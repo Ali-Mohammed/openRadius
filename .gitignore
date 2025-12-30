@@ -1,0 +1,39 @@
+# Ignore dependencies
+node_modules/
+**/node_modules/
+
+# Ignore build outputs
+bin/
+obj/
+dist/
+build/
+*.dll
+*.exe
+*.pdb
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore database files
+*.db
+*.sqlite
+postgres_data/
