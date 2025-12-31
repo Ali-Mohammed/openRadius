@@ -48,6 +48,10 @@ export interface Instant {
   color: string
   createdAt: string
   updatedAt: string
+  createdBy: string
+  updatedBy: string
+  deletedAt: string | null
+  deletedBy: string | null
 }
 
 export interface InstantCreateDto {
@@ -82,6 +86,15 @@ export const instantApi = {
 
   delete: async (id: number) => {
     await apiClient.delete(`/api/instant/${id}`)
+  },
+
+  restore: async (id: number) => {
+    await apiClient.post(`/api/instant/${id}/restore`)
+  },
+
+  getDeleted: async () => {
+    const { data } = await apiClient.get<Instant[]>('/api/instant/deleted')
+    return data
   },
 
   export: async () => {

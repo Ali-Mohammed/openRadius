@@ -48,7 +48,13 @@ import {
   SelectValue,
 } from '../components/ui/select'
 import { Badge } from '../components/ui/badge'
-import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle } from 'lucide-react'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../components/ui/tabs'
+import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User } from 'lucide-react'
 import { instantApi } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import type { Instant, InstantCreateDto } from '../lib/api'
@@ -64,6 +70,9 @@ export default function InstantView() {
   const [open, setOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [instantToDelete, setInstantToDelete] = useState<number | null>(null)
+  const [instantToRestore, setInstantToRestore] = useState<number | null>(null)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [showDeleted, setShowDeleted] = useState(false)
   const [editingInstant, setEditingInstant] = useState<Instant | null>(null)
   const [formData, setFormData] = useState<InstantCreateDto>({
     title: '',
@@ -83,6 +92,12 @@ export default function InstantView() {
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     }),
+  })
+
+  // Fetch deleted instants
+  const { data: deletedInstants = [], refetch: refetchDeleted } = useQuery({
+    queryKey: ['instants-deleted'],
+    queryFn: () => instantApi.getDeleted(),
   })
 
   // Refetch when sorting or filter changes
@@ -124,10 +139,24 @@ export default function InstantView() {
     mutationFn: instantApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instants'] })
+      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
       toast.success('Instant deleted successfully')
     },
     onError: () => {
       toast.error('Failed to delete instant')
+    },
+  })
+
+  // Restore mutation
+  const restoreMutation = useMutation({
+    mutationFn: instantApi.restore,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instants'] })
+      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
+      toast.success('Instant restored successfully')
+    },
+    onError: () => {
+      toast.error('Failed to restore instant')
     },
   })
 
@@ -225,6 +254,32 @@ export default function InstantView() {
       },
     },
     {
+      accessorKey: 'createdBy',
+      header: 'Created By',
+      cell: ({ row }) => {
+        const createdBy = row.getValue('createdBy') as string
+        return (
+          <div className="flex items-center gap-1">
+            <User className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{createdBy}</span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Created',
+      cell: ({ row }) => {
+        const date = new Date(row.getValue('createdAt'))
+        return (
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{date.toLocaleDateString()} {date.toLocaleTimeString()}</span>
+          </div>
+        )
+      },
+    },
+    {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
@@ -258,6 +313,61 @@ export default function InstantView() {
     },
   ]
 
+  // Columns for deleted items
+  const deletedColumns: ColumnDef<Instant>[] = [
+    {
+      accessorKey: 'title',
+      header: 'Title',
+    },
+    {
+      accessorKey: 'name',
+      header: 'Name',
+    },
+    {
+      accessorKey: 'deletedBy',
+      header: 'Deleted By',
+      cell: ({ row }) => {
+        const deletedBy = row.getValue('deletedBy') as string
+        return (
+          <div className="flex items-center gap-1">
+            <User className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{deletedBy}</span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'deletedAt',
+      header: 'Deleted At',
+      cell: ({ row }) => {
+        const date = new Date(row.getValue('deletedAt'))
+        return (
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{date.toLocaleDateString()} {date.toLocaleTimeString()}</span>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const instant = row.original
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleRestore(instant.id)}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Restore
+          </Button>
+        )
+      },
+    },
+  ]
+
   const table = useReactTable({
     data: instants,
     columns,
@@ -269,6 +379,13 @@ export default function InstantView() {
     state: {
       sorting,
     },
+  })
+
+  const deletedTable = useReactTable({
+    data: deletedInstants,
+    columns: deletedColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   })
 
   const resetForm = () => {
@@ -303,11 +420,24 @@ export default function InstantView() {
     setDeleteDialogOpen(true)
   }
 
+  const handleRestore = (id: number) => {
+    setInstantToRestore(id)
+    setRestoreDialogOpen(true)
+  }
+
   const confirmDelete = () => {
     if (instantToDelete) {
       deleteMutation.mutate(instantToDelete)
       setDeleteDialogOpen(false)
       setInstantToDelete(null)
+    }
+  }
+
+  const confirmRestore = () => {
+    if (instantToRestore) {
+      restoreMutation.mutate(instantToRestore)
+      setRestoreDialogOpen(false)
+      setInstantToRestore(null)
     }
   }
 
@@ -507,17 +637,29 @@ export default function InstantView() {
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
+      <Tabs defaultValue="active" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="active">
+            Active Instants ({instants.length})
+          </TabsTrigger>
+          <TabsTrigger value="deleted">
+            <Trash2 className="mr-2 h-4 w-4" />
+            Deleted ({deletedInstants.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="space-y-4">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
                           header.getContext()
                         )}
                   </TableHead>
@@ -585,6 +727,80 @@ export default function InstantView() {
           </Button>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="deleted" className="space-y-4">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {deletedTable.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {deletedInstants.length ? (
+                  deletedTable.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={deletedColumns.length}
+                      className="h-24 text-center"
+                    >
+                      No deleted items.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {deletedTable.getRowModel().rows.length} of {deletedInstants.length} deleted entries
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => deletedTable.previousPage()}
+                disabled={!deletedTable.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => deletedTable.nextPage()}
+                disabled={!deletedTable.getCanNextPage()}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="sm:max-w-md">
@@ -619,6 +835,46 @@ export default function InstantView() {
                 <>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Permanently
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <RotateCcw className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <AlertDialogTitle className="text-xl">Restore Instant Entry</AlertDialogTitle>
+              </div>
+            </div>
+            <AlertDialogDescription className="pt-3 text-base">
+              Do you want to restore this instant entry? It will be moved back to the active list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmRestore} 
+              className="w-full sm:w-auto bg-green-600 text-white hover:bg-green-700"
+              disabled={restoreMutation.isPending}
+            >
+              {restoreMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Restore
                 </>
               )}
             </AlertDialogAction>
