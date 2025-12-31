@@ -452,10 +452,10 @@ export default function InstantView() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="default" onClick={() => setOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                <Button type="submit" variant="default" disabled={createMutation.isPending || updateMutation.isPending}>
                   {editingInstant ? 'Update' : 'Add'} Instant
                 </Button>
               </DialogFooter>

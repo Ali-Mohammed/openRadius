@@ -15,13 +15,13 @@ export const appConfig = {
   },
   theme: {
     defaultMode: 'light' as 'light' | 'dark',
-    defaultColor: 'blue' as string,
+    defaultColor: 'purple' as string,
     availableColors: [
-      { name: 'Blue', value: 'blue', class: 'hsl(221.2 83.2% 53.3%)' },
-      { name: 'Green', value: 'green', class: 'hsl(142.1 76.2% 36.3%)' },
-      { name: 'Purple', value: 'purple', class: 'hsl(262.1 83.3% 57.8%)' },
-      { name: 'Red', value: 'red', class: 'hsl(0 72.2% 50.6%)' },
-      { name: 'Orange', value: 'orange', class: 'hsl(24.6 95% 53.1%)' },
+      { name: 'Blue', value: 'blue', class: 'oklch(0.583 0.187 262.881)' },
+      { name: 'Green', value: 'green', class: 'oklch(0.552 0.166 152.482)' },
+      { name: 'Purple', value: 'purple', class: 'oklch(0.631 0.242 297.696)' },
+      { name: 'Red', value: 'red', class: 'oklch(0.637 0.237 27.325)' },
+      { name: 'Orange', value: 'orange', class: 'oklch(0.705 0.186 56.049)' },
     ],
   },
   i18n: {

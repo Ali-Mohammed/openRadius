@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Shield, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { appConfig } from '@/config/app.config'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface OidcProvider {
   id: number
@@ -23,6 +25,7 @@ export default function LoginPage() {
   const [providers, setProviders] = useState<OidcProvider[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { theme, primaryColor } = useTheme()
 
   useEffect(() => {
     loadProviders()
@@ -77,10 +80,24 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen flex items-start justify-center bg-background pt-20">
+        <Card className="w-full max-w-md shadow-lg border-border">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-6">
+              <Skeleton className="h-28 w-28 rounded-full" />
+            </div>
+            <Skeleton className="h-8 w-3/4 mx-auto mb-2" />
+            <Skeleton className="h-4 w-full mx-auto" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-4 w-2/3 mx-auto mb-4" />
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+            </div>
+            <div className="pt-4 border-t">
+              <Skeleton className="h-3 w-full mx-auto" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -88,15 +105,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-start justify-center bg-background p-4 pt-20">
+      <Card className="w-full max-w-md shadow-lg border-border">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-primary" />
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/src/openradius.svg" 
+              alt="OpenRadius Logo" 
+              className="h-28 w-28 transition-all animate-in fade-in-0 zoom-in-50 duration-700"
+              style={{ 
+                animation: 'float 3s ease-in-out infinite',
+                filter: theme === 'dark' 
+                  ? 'brightness(0) saturate(100%) invert(1)' 
+                  : `brightness(0) saturate(100%) invert(${primaryColor === 'blue' ? '37%' : primaryColor === 'green' ? '58%' : primaryColor === 'purple' ? '26%' : primaryColor === 'orange' ? '60%' : primaryColor === 'red' ? '44%' : '37%'}) sepia(${primaryColor === 'blue' ? '98%' : primaryColor === 'green' ? '96%' : primaryColor === 'purple' ? '99%' : primaryColor === 'orange' ? '98%' : primaryColor === 'red' ? '89%' : '98%'}) saturate(${primaryColor === 'blue' ? '1234%' : primaryColor === 'green' ? '2067%' : primaryColor === 'purple' ? '7497%' : primaryColor === 'orange' ? '1850%' : primaryColor === 'red' ? '2374%' : '1234%'}) hue-rotate(${primaryColor === 'blue' ? '205deg' : primaryColor === 'green' ? '86deg' : primaryColor === 'purple' ? '255deg' : primaryColor === 'orange' ? '1deg' : primaryColor === 'red' ? '341deg' : '205deg'}) brightness(${primaryColor === 'blue' ? '101%' : primaryColor === 'green' ? '96%' : primaryColor === 'purple' ? '99%' : primaryColor === 'orange' ? '94%' : primaryColor === 'red' ? '95%' : '101%'}) contrast(${primaryColor === 'blue' ? '101%' : primaryColor === 'green' ? '106%' : primaryColor === 'purple' ? '110%' : primaryColor === 'orange' ? '107%' : primaryColor === 'red' ? '98%' : '101%'})`
+              }}
+            />
           </div>
-          <CardTitle className="text-2xl">Welcome to OpenRadius</CardTitle>
-          <CardDescription>
-            Enterprise Authentication Platform
+          <CardTitle className="text-2xl animate-in fade-in-0 slide-in-from-bottom-4 duration-700 delay-150">Welcome to OpenRadius</CardTitle>
+          <CardDescription className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700 delay-300">
+            Enterprise FreeRADIUS Billing & Management Platform
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -125,8 +152,8 @@ export default function LoginPage() {
                   .map((provider) => (
                     <Button
                       key={provider.id}
-                      variant={provider.isDefault ? "default" : "outline"}
-                      className="w-full justify-start text-left h-auto py-4"
+                      variant="outline"
+                      className="w-full justify-start text-left h-auto py-4 hover:bg-accent hover:text-accent-foreground"
                       onClick={() => handleProviderLogin(provider)}
                     >
                       <div className="flex items-center gap-3 w-full">
@@ -145,7 +172,7 @@ export default function LoginPage() {
                           <div className="font-medium">
                             {provider.displayName}
                             {provider.isDefault && (
-                              <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded">
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-md border border-primary/20">
                                 Default
                               </span>
                             )}

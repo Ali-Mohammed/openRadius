@@ -55,13 +55,19 @@ const data = {
       ],
     },
     {
-      title: "Administration",
+      title: "App Setting",
       url: "#",
       items: [
         {
-          title: "OIDC Settings",
+          title: "OIDC",
           url: "/settings/oidc",
         },
+      ],
+    },
+    {
+      title: "Administration",
+      url: "#",
+      items: [
         {
           title: "General Settings",
           url: "/settings",
