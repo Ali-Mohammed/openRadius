@@ -43,17 +43,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     const colorConfig = appConfig.theme.availableColors.find(c => c.value === primaryColor)
     
     if (colorConfig) {
-      // Extract just the HSL values without 'hsl()' wrapper
-      const hslValue = colorConfig.class.replace('hsl(', '').replace(')', '')
+      // Extract just the oklch values without 'oklch()' wrapper
+      const oklchValue = colorConfig.class.replace('oklch(', '').replace(')', '')
       
       // Set the CSS custom property for primary color
-      root.style.setProperty('--primary', hslValue)
+      root.style.setProperty('--primary', oklchValue)
       
       // Also update primary-foreground for proper contrast
       if (theme === 'dark') {
-        root.style.setProperty('--primary-foreground', '222.2 47.4% 11.2%')
+        root.style.setProperty('--primary-foreground', '0.205 0 0') // dark background
       } else {
-        root.style.setProperty('--primary-foreground', '210 40% 98%')
+        root.style.setProperty('--primary-foreground', '0.985 0 0') // light foreground
       }
     }
     

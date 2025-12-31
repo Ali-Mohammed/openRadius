@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Shield, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { appConfig } from '@/config/app.config'
 
 interface OidcProvider {
   id: number
@@ -30,7 +31,7 @@ export default function LoginPage() {
   const loadProviders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/oidcsettings/providers')
+      const response = await fetch(`${appConfig.api.baseUrl}/api/oidcsettings/providers`)
       
       if (response.ok) {
         const data = await response.json()

@@ -124,7 +124,7 @@ export const EditProfileDialog = ({ open, onOpenChange, onProfileUpdated }: Edit
         <DialogFooter className="pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-2">
             <Button 
-              variant="outline" 
+              variant="default" 
               onClick={() => onOpenChange(false)}
               type="button"
               className="flex-1 sm:flex-none"

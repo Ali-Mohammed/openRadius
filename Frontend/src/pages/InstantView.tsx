@@ -452,7 +452,7 @@ export default function InstantView() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button type="button" variant="default" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
@@ -480,10 +480,10 @@ export default function InstantView() {
             Search
           </Button>
         </div>
-        <Button onClick={handleRefresh} variant="outline" size="icon">
+        <Button onClick={handleRefresh} variant="default" size="icon">
           <RefreshCw className="h-4 w-4" />
         </Button>
-        <Button onClick={handleExport} variant="outline" size="icon">
+        <Button onClick={handleExport} variant="default" size="icon">
           <Download className="h-4 w-4" />
         </Button>
       </div>
@@ -549,7 +549,7 @@ export default function InstantView() {
         </div>
         <div className="flex items-center space-x-2">
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
@@ -557,7 +557,7 @@ export default function InstantView() {
             Previous
           </Button>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}

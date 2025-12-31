@@ -19,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { apiClient } from '@/lib/api'
+import { appConfig } from '@/config/app.config'
 
 interface OidcProvider {
   id?: number
@@ -100,8 +102,8 @@ export default function OidcSettingsPage() {
     authority: '',
     clientId: '',
     clientSecret: '',
-    redirectUri: 'http://localhost:5173',
-    postLogoutRedirectUri: 'http://localhost:5173',
+    redirectUri: appConfig.frontend.baseUrl,
+    postLogoutRedirectUri: appConfig.frontend.baseUrl,
     responseType: 'code',
     scope: 'openid profile email',
     metadataAddress: '',
@@ -120,16 +122,8 @@ export default function OidcSettingsPage() {
   const loadProviders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/oidcsettings', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setProviders(data)
-      }
+      const { data } = await apiClient.get('/api/oidcsettings')
+      setProviders(data)
     } catch (error) {
       console.error('Failed to load OIDC providers:', error)
       toast.error('Failed to load OIDC providers')
@@ -167,8 +161,8 @@ export default function OidcSettingsPage() {
       authority: '',
       clientId: '',
       clientSecret: '',
-      redirectUri: 'http://localhost:5173',
-      postLogoutRedirectUri: 'http://localhost:5173',
+      redirectUri: appConfig.frontend.baseUrl,
+      postLogoutRedirectUri: appConfig.frontend.baseUrl,
       responseType: 'code',
       scope: 'openid profile email',
       metadataAddress: '',
@@ -193,29 +187,15 @@ export default function OidcSettingsPage() {
     try {
       setSaving(true)
       
-      const url = editingProvider
-        ? `http://localhost:5000/api/oidcsettings/${editingProvider.id}`
-        : 'http://localhost:5000/api/oidcsettings'
-      
-      const method = editingProvider ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (response.ok) {
-        toast.success(`OIDC provider ${editingProvider ? 'updated' : 'created'} successfully`)
-        setDialogOpen(false)
-        loadProviders()
+      if (editingProvider) {
+        await apiClient.put(`/api/oidcsettings/${editingProvider.id}`, formData)
       } else {
-        const error = await response.text()
-        toast.error(error || 'Failed to save OIDC provider')
+        await apiClient.post('/api/oidcsettings', formData)
       }
+
+      toast.success(`OIDC provider ${editingProvider ? 'updated' : 'created'} successfully`)
+      setDialogOpen(false)
+      loadProviders()
     } catch (error) {
       console.error('Failed to save OIDC provider:', error)
       toast.error('Failed to save OIDC provider')
@@ -228,19 +208,9 @@ export default function OidcSettingsPage() {
     if (!confirm('Are you sure you want to delete this provider?')) return
 
     try {
-      const response = await fetch(`http://localhost:5000/api/oidcsettings/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
-        }
-      })
-
-      if (response.ok) {
-        toast.success('Provider deleted successfully')
-        loadProviders()
-      } else {
-        toast.error('Failed to delete provider')
-      }
+      await apiClient.delete(`/api/oidcsettings/${id}`)
+      toast.success('Provider deleted successfully')
+      loadProviders()
     } catch (error) {
       console.error('Failed to delete provider:', error)
       toast.error('Failed to delete provider')
@@ -249,19 +219,9 @@ export default function OidcSettingsPage() {
 
   const handleSetDefault = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/oidcsettings/${id}/set-default`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
-        }
-      })
-
-      if (response.ok) {
-        toast.success('Default provider updated')
-        loadProviders()
-      } else {
-        toast.error('Failed to set default provider')
-      }
+      await apiClient.put(`/api/oidcsettings/${id}/set-default`)
+      toast.success('Default provider updated')
+      loadProviders()
     } catch (error) {
       console.error('Failed to set default provider:', error)
       toast.error('Failed to set default provider')
@@ -270,19 +230,9 @@ export default function OidcSettingsPage() {
 
   const handleToggleActive = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/oidcsettings/${id}/toggle-active`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
-        }
-      })
-
-      if (response.ok) {
-        toast.success('Provider status updated')
-        loadProviders()
-      } else {
-        toast.error('Failed to update provider status')
-      }
+      await apiClient.put(`/api/oidcsettings/${id}/toggle-active`)
+      toast.success('Provider status updated')
+      loadProviders()
     } catch (error) {
       console.error('Failed to toggle provider:', error)
       toast.error('Failed to toggle provider')
@@ -292,24 +242,12 @@ export default function OidcSettingsPage() {
   const handleTest = async () => {
     try {
       setTesting(true)
-      const response = await fetch('http://localhost:5000/api/oidcsettings/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          toast.success('Successfully connected to OIDC provider!')
-        } else {
-          toast.error(`Connection failed: ${result.message}`)
-        }
+      const { data } = await apiClient.post('/api/oidcsettings/test', formData)
+      
+      if (data.success) {
+        toast.success('Successfully connected to OIDC provider!')
       } else {
-        toast.error('Failed to test OIDC connection')
+        toast.error(`Connection failed: ${data.message}`)
       }
     } catch (error) {
       console.error('Failed to test OIDC connection:', error)
@@ -334,7 +272,7 @@ export default function OidcSettingsPage() {
           <Shield className="h-6 w-6" />
           <h1 className="text-3xl font-bold">OIDC Providers</h1>
         </div>
-        <Button onClick={openCreateDialog}>
+        <Button onClick={openCreateDialog} variant="default">
           <Plus className="mr-2 h-4 w-4" />
           Add Provider
         </Button>
@@ -609,7 +547,7 @@ export default function OidcSettingsPage() {
           <DialogFooter className="gap-2">
             <Button
               onClick={handleTest}
-              variant="outline"
+              variant="default"
               disabled={testing || !formData.authority}
             >
               {testing ? (
@@ -627,6 +565,7 @@ export default function OidcSettingsPage() {
 
             <Button
               onClick={handleSave}
+              variant="default"
               disabled={saving || !formData.providerName || !formData.displayName || !formData.authority || !formData.clientId}
             >
               {saving ? (

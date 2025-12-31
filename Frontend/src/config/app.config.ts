@@ -5,6 +5,9 @@ export const appConfig = {
     baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
     timeout: 30000,
   },
+  frontend: {
+    baseUrl: import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173',
+  },
   keycloak: {
     url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
     realm: import.meta.env.VITE_KEYCLOAK_REALM || 'openradius',

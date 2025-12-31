@@ -200,7 +200,7 @@ export default function ProfileSettings() {
                             </p>
                           </div>
                           <Button 
-                            variant="outline" 
+                            variant="default" 
                             size="sm"
                             onClick={handleUpdateKeycloakProfile}
                             className="shrink-0"
@@ -341,7 +341,7 @@ export default function ProfileSettings() {
                               {t('profile.twoFactorDesc')}
                             </p>
                           </div>
-                          <Button variant="outline" onClick={() => keycloak.accountManagement()}>
+                          <Button variant="default" onClick={() => keycloak.accountManagement()}>
                             {t('profile.configure')}
                           </Button>
                         </div>
@@ -353,7 +353,7 @@ export default function ProfileSettings() {
                               {t('profile.activeSessionsDesc')}
                             </p>
                           </div>
-                          <Button variant="outline" onClick={() => keycloak.accountManagement()}>
+                          <Button variant="default" onClick={() => keycloak.accountManagement()}>
                             {t('profile.viewSessions')}
                           </Button>
                         </div>
@@ -365,7 +365,7 @@ export default function ProfileSettings() {
                               {t('profile.loginHistoryDesc')}
                             </p>
                           </div>
-                          <Button variant="outline" onClick={() => keycloak.accountManagement()}>
+                          <Button variant="default" onClick={() => keycloak.accountManagement()}>
                             {t('profile.viewHistory')}
                           </Button>
                         </div>
@@ -390,7 +390,7 @@ export default function ProfileSettings() {
                               {t('profile.emailNotificationsDesc')}
                             </p>
                           </div>
-                          <Button variant="outline">{t('profile.comingSoon')}</Button>
+                          <Button variant="default">{t('profile.comingSoon')}</Button>
                         </div>
 
                         <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -400,7 +400,7 @@ export default function ProfileSettings() {
                               {t('profile.systemAlertsDesc')}
                             </p>
                           </div>
-                          <Button variant="outline">{t('profile.comingSoon')}</Button>
+                          <Button variant="default">{t('profile.comingSoon')}</Button>
                         </div>
                       </div>
                     </CardContent>
