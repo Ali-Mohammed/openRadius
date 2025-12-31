@@ -1,0 +1,524 @@
+/* OpenRadius Simple Clean Theme */
+
+body {
+  background: #f8fafc !important;
+}
+
+#kc-header {
+  display: none !important;
+}
+
+#kc-container {
+  background: #f8fafc !important;
+}
+
+#kc-header-wrapper {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.kc-logo-text,
+#kc-page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #8b5cf6;
+  margin-bottom: 0.5rem;
+}
+
+#kc-content,
+#kc-form,
+.login-pf-page {
+  background: white !important;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+.pf-c-form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+input:focus,
+.pf-c-form-control:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+}
+
+button[type="submit"],
+input[type="submit"],
+.btn-primary {
+  background: #8b5cf6 !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+}
+
+button[type="submit"]:hover,
+input[type="submit"]:hover,
+.btn-primary:hover {
+  background: #7c3aed !important;
+}
+
+.checkbox label {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+a {
+  color: #8b5cf6;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #7c3aed;
+  text-decoration: underline;
+}
+
+
+
+:root {
+  --primary: oklch(0.631 0.242 297.696);
+  --primary-hover: oklch(0.571 0.242 297.696);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #0f172a;
+    color: #f1f5f9;
+  }
+}
+
+/* Hide default header */
+#kc-header {
+  display: none !important;
+}
+
+/* Main container */
+.login-pf body {
+  background: #f8fafc;
+}
+
+#kc-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+#kc-container-wrapper {
+  width: 100%;
+  max-width: 28rem;
+}
+
+/* Logo and header */
+#kc-header-wrapper {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+#kc-header-wrapper .kc-logo-text {
+  font-size: 2.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary) 0%, oklch(0.731 0.242 297.696) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Main content card */
+#kc-content,
+#kc-info-wrapper,
+.kc-content-wrapper {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  #kc-content,
+  #kc-info-wrapper,
+  .kc-content-wrapper {
+    background: #1e293b;
+    border-color: #334155;
+  }
+}
+
+#kc-content-wrapper {
+  overflow: visible;
+}
+
+/* Form styling */
+.pf-c-form,
+#kc-form,
+#kc-form-login {
+  margin: 0;
+}
+
+.pf-c-form__group,
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.pf-c-form__label,
+.control-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pf-c-form__label,
+  .control-label {
+    color: #f1f5f9;
+  }
+}
+
+/* Input fields */
+.pf-c-form-control,
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: white;
+  color: #0f172a;
+  transition: all 0.2s;
+  outline: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pf-c-form-control,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"] {
+    background: #0f172a;
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+}
+
+.pf-c-form-control:focus,
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px oklch(0.631 0.242 297.696 / 0.1);
+}
+
+/* Buttons */
+.pf-c-button,
+button[type="submit"],
+input[type="submit"],
+.btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.pf-c-button.pf-m-primary,
+.btn-primary,
+input[type="submit"] {
+  background: var(--primary);
+  color: white;
+}
+
+.pf-c-button.pf-m-primary:hover,
+.btn-primary:hover,
+input[type="submit"]:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px oklch(0.631 0.242 297.696 / 0.3);
+}
+
+.pf-c-button.pf-m-secondary,
+.btn-default {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pf-c-button.pf-m-secondary,
+  .btn-default {
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+}
+
+.pf-c-button.pf-m-secondary:hover,
+.btn-default:hover {
+  background: #f8fafc;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pf-c-button.pf-m-secondary:hover,
+  .btn-default:hover {
+    background: #334155;
+  }
+}
+
+/* Form options (Remember me, etc) */
+#kc-form-options {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.checkbox,
+#kc-form-options .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.checkbox label {
+  color: #64748b;
+  margin: 0;
+  cursor: pointer;
+}
+
+#kc-form-options a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+#kc-form-options a:hover {
+  text-decoration: underline;
+}
+
+/* Registration/forgot password links */
+#kc-registration,
+#kc-info {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+#kc-registration span,
+#kc-info span {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+#kc-registration a,
+#kc-info a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+#kc-registration a:hover,
+#kc-info a:hover {
+  text-decoration: underline;
+}
+
+/* Alerts */
+.pf-c-alert,
+.alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.pf-c-alert.pf-m-danger,
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.pf-c-alert.pf-m-success,
+.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.pf-c-alert.pf-m-warning,
+.alert-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.pf-c-alert.pf-m-info,
+.alert-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+/* Social providers */
+#kc-social-providers {
+  margin-top: 1.5rem;
+}
+
+#kc-social-providers::before {
+  content: '';
+  display: block;
+  height: 1px;
+  background: #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  #kc-social-providers::before {
+    background: #334155;
+  }
+}
+
+#kc-social-providers ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#kc-social-providers li {
+  margin: 0;
+}
+
+#kc-social-providers .pf-c-button,
+#kc-social-providers button {
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+  #kc-social-providers .pf-c-button,
+  #kc-social-providers button {
+    background: #1e293b;
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+}
+
+#kc-social-providers .pf-c-button:hover,
+#kc-social-providers button:hover {
+  background: #f8fafc;
+  border-color: var(--primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  #kc-social-providers .pf-c-button:hover,
+  #kc-social-providers button:hover {
+    background: #334155;
+  }
+}
+
+/* WebAuthn / Passwordless */
+.pf-c-login__main-footer-links {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.pf-c-login__main-footer-links-item {
+  display: inline-block;
+  margin: 0 0.5rem;
+}
+
+.pf-c-login__main-footer-links-item a {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pf-c-login__main-footer-links-item a:hover {
+  text-decoration: underline;
+}
+
+/* Info messages */
+#kc-info-message {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border-radius: 0.5rem;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  #kc-info-message {
+    background: #1e293b;
+    border-color: #3b82f6;
+    color: #93c5fd;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  #kc-content,
+  #kc-info-wrapper {
+    padding: 1.5rem;
+  }
+  
+  #kc-header-wrapper .kc-logo-text {
+    font-size: 1.75rem;
+  }
+}
+
