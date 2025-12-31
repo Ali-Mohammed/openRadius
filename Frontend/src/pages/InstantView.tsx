@@ -39,6 +39,7 @@ import {
 } from '../components/ui/alert-dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { Checkbox } from '../components/ui/checkbox'
 import { Textarea } from '../components/ui/textarea'
 import {
   Select,
@@ -54,7 +55,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '../components/ui/tabs'
-import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { instantApi } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import type { Instant, InstantCreateDto } from '../lib/api'
@@ -68,7 +69,11 @@ export default function InstantView() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('active')
+  const [rowSelection, setRowSelection] = useState({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+  const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
   const [instantToDelete, setInstantToDelete] = useState<number | null>(null)
   const [instantToRestore, setInstantToRestore] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
@@ -104,6 +109,11 @@ export default function InstantView() {
   useEffect(() => {
     refetch()
   }, [sorting, globalFilter, refetch])
+
+  // Clear row selection when switching tabs
+  useEffect(() => {
+    setRowSelection({})
+  }, [activeTab])
 
   // Create mutation
   const createMutation = useMutation({
@@ -161,6 +171,25 @@ export default function InstantView() {
   })
 
   const columns: ColumnDef<Instant>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'title',
       header: ({ column }) => {
@@ -316,6 +345,25 @@ export default function InstantView() {
   // Columns for deleted items
   const deletedColumns: ColumnDef<Instant>[] = [
     {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: 'title',
       header: 'Title',
     },
@@ -376,8 +424,10 @@ export default function InstantView() {
     getFilteredRowModel: getFilteredRowModel(),
     manualSorting: true,
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
+      rowSelection,
     },
   })
 
@@ -386,6 +436,10 @@ export default function InstantView() {
     columns: deletedColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    onRowSelectionChange: setRowSelection,
+    state: {
+      rowSelection,
+    },
   })
 
   const resetForm = () => {
@@ -456,10 +510,65 @@ export default function InstantView() {
 
   const handleRefresh = () => {
     refetch()
+    refetchDeleted()
     toast.success('Data refreshed')
   }
 
+  const handleBulkDelete = () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    if (selectedRows.length === 0) {
+      toast.error('No items selected')
+      return
+    }
+    setBulkDeleteDialogOpen(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const promises = selectedRows.map(row => instantApi.delete(row.original.id))
+    
+    try {
+      await Promise.all(promises)
+      queryClient.invalidateQueries({ queryKey: ['instants'] })
+      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
+      toast.success(`${selectedRows.length} item(s) deleted successfully`)
+      setRowSelection({})
+      setBulkDeleteDialogOpen(false)
+    } catch (error) {
+      toast.error('Failed to delete some items')
+    }
+  }
+
+  const handleBulkRestore = () => {
+    const selectedRows = deletedTable.getFilteredSelectedRowModel().rows
+    if (selectedRows.length === 0) {
+      toast.error('No items selected')
+      return
+    }
+    setBulkRestoreDialogOpen(true)
+  }
+
+  const confirmBulkRestore = async () => {
+    const selectedRows = deletedTable.getFilteredSelectedRowModel().rows
+    const promises = selectedRows.map(row => instantApi.restore(row.original.id))
+    
+    try {
+      await Promise.all(promises)
+      queryClient.invalidateQueries({ queryKey: ['instants'] })
+      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
+      toast.success(`${selectedRows.length} item(s) restored successfully`)
+      setRowSelection({})
+      setBulkRestoreDialogOpen(false)
+    } catch (error) {
+      toast.error('Failed to restore some items')
+    }
+  }
+
   const handleExport = async () => {
+    const loadingToast = toast.loading('Preparing export...', {
+      description: 'Gathering data and generating Excel file'
+    })
+    
     try {
       const blob = await instantApi.export()
       const url = window.URL.createObjectURL(blob)
@@ -470,9 +579,15 @@ export default function InstantView() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      toast.success('Export completed successfully')
+      toast.success('Export completed successfully', {
+        id: loadingToast,
+        description: 'Your file has been downloaded'
+      })
     } catch (error) {
-      toast.error('Failed to export data')
+      toast.error('Failed to export data', {
+        id: loadingToast,
+        description: 'Please try again'
+      })
     }
   }
 
@@ -493,7 +608,7 @@ export default function InstantView() {
               Add New
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
                 <DialogTitle>{editingInstant ? 'Edit Instant' : 'Add New Instant'}</DialogTitle>
@@ -613,42 +728,61 @@ export default function InstantView() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search instant entries..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9"
-            />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="active">
+                Active ({instants.length})
+              </TabsTrigger>
+              <TabsTrigger value="deleted">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Deleted ({deletedInstants.length})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex flex-1 items-center gap-2">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search instant entries..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={handleSearch} variant="secondary">
+              Search
+            </Button>
           </div>
-          <Button onClick={handleSearch} variant="secondary">
-            Search
+        </div>
+
+        <div className="flex items-center gap-2">
+          {activeTab === 'active' && table.getFilteredSelectedRowModel().rows.length > 0 && (
+            <Button onClick={handleBulkDelete} variant="destructive" size="sm">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete ({table.getFilteredSelectedRowModel().rows.length})
+            </Button>
+          )}
+          {activeTab === 'deleted' && deletedTable.getFilteredSelectedRowModel().rows.length > 0 && (
+            <Button onClick={handleBulkRestore} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restore ({deletedTable.getFilteredSelectedRowModel().rows.length})
+            </Button>
+          )}
+          <Button onClick={handleRefresh} variant="default" size="icon">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button onClick={handleExport} variant="default" size="icon">
+            <Download className="h-4 w-4" />
           </Button>
         </div>
-        <Button onClick={handleRefresh} variant="default" size="icon">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        <Button onClick={handleExport} variant="default" size="icon">
-          <Download className="h-4 w-4" />
-        </Button>
       </div>
 
-      <Tabs defaultValue="active" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="active">
-            Active Instants ({instants.length})
-          </TabsTrigger>
-          <TabsTrigger value="deleted">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Deleted ({deletedInstants.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="space-y-4">
+      {activeTab === 'active' ? (
+        <div className="space-y-4">
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -704,32 +838,65 @@ export default function InstantView() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {instants.length} entries
+      <div className="flex items-center justify-between py-4">
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Page {table.getState().pagination.pageIndex + 1} of{' '}
+            {table.getPageCount()} ({instants.length} total entries)
+          </p>
+          <Select
+            value={table.getState().pagination.pageSize.toString()}
+            onValueChange={(value) => table.setPageSize(Number(value))}
+          >
+            <SelectTrigger className="w-[110px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / page</SelectItem>
+              <SelectItem value="20">20 / page</SelectItem>
+              <SelectItem value="50">50 / page</SelectItem>
+              <SelectItem value="100">100 / page</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <Button
-            variant="default"
+            variant="outline"
+            size="sm"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
-        </TabsContent>
-
-        <TabsContent value="deleted" className="space-y-4">
+        </div>
+      ) : (
+        <div className="space-y-4">
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -776,31 +943,64 @@ export default function InstantView() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing {deletedTable.getRowModel().rows.length} of {deletedInstants.length} deleted entries
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                Page {deletedTable.getState().pagination.pageIndex + 1} of{' '}
+                {deletedTable.getPageCount()} ({deletedInstants.length} total entries)
+              </p>
+              <Select
+                value={deletedTable.getState().pagination.pageSize.toString()}
+                onValueChange={(value) => deletedTable.setPageSize(Number(value))}
+              >
+                <SelectTrigger className="w-[110px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="20">20 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                  <SelectItem value="100">100 / page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <Button
-                variant="default"
+                variant="outline"
+                size="sm"
+                onClick={() => deletedTable.setPageIndex(0)}
+                disabled={!deletedTable.getCanPreviousPage()}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => deletedTable.previousPage()}
                 disabled={!deletedTable.getCanPreviousPage()}
               >
-                Previous
+                <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="default"
+                variant="outline"
                 size="sm"
                 onClick={() => deletedTable.nextPage()}
                 disabled={!deletedTable.getCanNextPage()}
               >
-                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => deletedTable.setPageIndex(deletedTable.getPageCount() - 1)}
+                disabled={!deletedTable.getCanNextPage()}
+              >
+                <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="sm:max-w-md">
@@ -877,6 +1077,68 @@ export default function InstantView() {
                   Restore
                 </>
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <AlertDialogTitle className="text-xl">Delete Multiple Entries</AlertDialogTitle>
+              </div>
+            </div>
+            <AlertDialogDescription className="pt-3 text-base">
+              Are you sure you want to delete {table.getFilteredSelectedRowModel().rows.length} selected instant entries? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBulkDelete} 
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete All Selected
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkRestoreDialogOpen} onOpenChange={setBulkRestoreDialogOpen}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <RotateCcw className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <AlertDialogTitle className="text-xl">Restore Multiple Entries</AlertDialogTitle>
+              </div>
+            </div>
+            <AlertDialogDescription className="pt-3 text-base">
+              Do you want to restore {deletedTable.getFilteredSelectedRowModel().rows.length} selected instant entries? 
+              They will be moved back to the active list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBulkRestore} 
+              className="w-full sm:w-auto bg-green-600 text-white hover:bg-green-700"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restore All Selected
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
