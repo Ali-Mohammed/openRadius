@@ -31,9 +31,9 @@ export const KeycloakProvider = ({ children }: { children: ReactNode }) => {
 
     keycloak
       .init({
-        onLoad: 'login-required',
+        onLoad: 'check-sso',
         checkLoginIframe: false,
-        redirectUri: window.location.origin + '/',
+        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
       })
       .then((auth) => {
         setAuthenticated(auth)

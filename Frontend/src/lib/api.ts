@@ -35,3 +35,59 @@ export const usersApi = {
     return data
   },
 }
+
+// Instant API
+export interface Instant {
+  id: number
+  title: string
+  name: string
+  location: string
+  description: string
+  comments: string
+  status: 'active' | 'inactive'
+  color: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface InstantCreateDto {
+  title: string
+  name: string
+  location: string
+  description: string
+  comments: string
+  status: 'active' | 'inactive'
+  color: string
+}
+
+export const instantApi = {
+  getAll: async (params?: { search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) => {
+    const { data } = await apiClient.get<Instant[]>('/api/instant', { params })
+    return data
+  },
+
+  getById: async (id: number) => {
+    const { data } = await apiClient.get<Instant>(`/api/instant/${id}`)
+    return data
+  },
+
+  create: async (instant: InstantCreateDto) => {
+    const { data } = await apiClient.post<Instant>('/api/instant', instant)
+    return data
+  },
+
+  update: async (id: number, instant: Partial<InstantCreateDto>) => {
+    await apiClient.put(`/api/instant/${id}`, instant)
+  },
+
+  delete: async (id: number) => {
+    await apiClient.delete(`/api/instant/${id}`)
+  },
+
+  export: async () => {
+    const response = await apiClient.get('/api/instant/export', {
+      responseType: 'blob'
+    })
+    return response.data
+  },
+}

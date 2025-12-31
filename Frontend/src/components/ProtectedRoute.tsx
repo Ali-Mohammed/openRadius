@@ -1,5 +1,5 @@
-import { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { ReactNode, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useKeycloak } from '../contexts/KeycloakContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { Loader2 } from 'lucide-react'
@@ -7,6 +7,14 @@ import { Loader2 } from 'lucide-react'
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { authenticated, initialized } = useKeycloak()
   const { theme, primaryColor } = useTheme()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (initialized && !authenticated) {
+      navigate(`/login?returnUrl=${encodeURIComponent(location.pathname)}`, { replace: true })
+    }
+  }, [authenticated, initialized, navigate, location.pathname])
 
   if (!initialized) {
     return (
@@ -27,7 +35,7 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   }
 
   if (!authenticated) {
-    return <Navigate to="/login" replace />
+    return null
   }
 
   return <>{children}</>

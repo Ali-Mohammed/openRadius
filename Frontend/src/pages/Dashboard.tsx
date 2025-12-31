@@ -12,7 +12,6 @@ import { usersApi } from '../lib/api'
 export default function Dashboard() {
   const { keycloak } = useKeycloak()
   const { t } = useTranslation()
-  const { layout } = useTheme()
 
   // Fetch current user data
   const { data: userData, isLoading: isLoadingUser } = useQuery({
@@ -30,9 +29,9 @@ export default function Dashboard() {
 
   return (
     <>
-      <Header />
+      {/* <Header /> */}
       
-      <main className={`${layout === 'full-width' ? 'w-full' : 'max-w-7xl mx-auto'} px-6 py-8 space-y-8`}>
+      <main className="space-y-8">
         <h1 className="text-4xl font-bold">{t('dashboard.title')}</h1>
 
         <Card>

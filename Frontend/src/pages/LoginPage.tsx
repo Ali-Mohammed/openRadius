@@ -20,8 +20,9 @@ export default function LoginPage() {
   }, [authenticated, initialized, navigate])
 
   const handleLogin = () => {
+    const returnPath = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard'
     keycloak.login({
-      redirectUri: window.location.origin + '/dashboard',
+      redirectUri: window.location.origin + returnPath,
     })
   }
 

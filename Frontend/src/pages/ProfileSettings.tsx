@@ -105,20 +105,9 @@ export default function ProfileSettings() {
   }, [dbUser, keycloak.tokenParsed, email])
 
   return (
-    <>
-      <Header />
-      
+    <>      
       <main className={`${layout === 'full-width' ? 'w-full' : 'max-w-7xl mx-auto'} px-6 py-8 space-y-6`}>
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/dashboard')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('common.back')}
-          </Button>
           <div>
             <h1 className="text-3xl font-bold">{t('profile.settings')}</h1>
             <p className="text-muted-foreground">{t('profile.manageAccount')}</p>
