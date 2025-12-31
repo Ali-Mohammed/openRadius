@@ -55,6 +55,20 @@ const data = {
       ],
     },
     {
+      title: "Administration",
+      url: "#",
+      items: [
+        {
+          title: "OIDC Settings",
+          url: "/settings/oidc",
+        },
+        {
+          title: "General Settings",
+          url: "/settings",
+        },
+      ],
+    },
+    {
       title: "Getting Started",
       url: "#",
       items: [

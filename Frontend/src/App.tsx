@@ -11,6 +11,7 @@ import ProfileSettings from './pages/ProfileSettings'
 import Settings from './pages/Settings'
 import InstantView from './pages/InstantView'
 import InstantSettings from './pages/InstantSettings'
+import OidcSettings from './pages/OidcSettings'
 
 const queryClient = new QueryClient()
 
@@ -33,6 +34,7 @@ function App() {
                         <Route path="/instant/view" element={<InstantView />} />
                         <Route path="/instant/:id/settings" element={<InstantSettings />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/settings/oidc" element={<OidcSettings />} />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                       </Routes>
                     </AppLayout>

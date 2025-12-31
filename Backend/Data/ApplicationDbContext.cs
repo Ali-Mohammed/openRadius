@@ -12,6 +12,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Instant> Instants { get; set; }
+    public DbSet<OidcSettings> OidcSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

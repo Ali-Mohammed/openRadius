@@ -1,0 +1,253 @@
+{
+  "realm": "openradius",
+  "enabled": true,
+  "displayName": "OpenRadius",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "defaultRole": {
+    "name": "default-roles-openradius",
+    "description": "${role_default-roles}",
+    "composite": true,
+    "clientRole": false
+  },
+  "clients": [
+    {
+      "clientId": "openradius-web",
+      "name": "OpenRadius Web Application",
+      "description": "OpenRadius frontend application using OIDC",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:5173"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "baseUrl": "http://localhost:5173",
+      "rootUrl": "http://localhost:5173",
+      "adminUrl": "http://localhost:5173",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "Administrators",
+      "path": "/Administrators",
+      "attributes": {
+        "description": ["Full system administrators with all permissions"]
+      },
+      "realmRoles": ["admin", "user"],
+      "clientRoles": {},
+      "subGroups": []
+    },
+    {
+      "name": "Users",
+      "path": "/Users",
+      "attributes": {
+        "description": ["Standard users with limited permissions"]
+      },
+      "realmRoles": ["user"],
+      "clientRoles": {},
+      "subGroups": []
+    },
+    {
+      "name": "Managers",
+      "path": "/Managers",
+      "attributes": {
+        "description": ["Managers with elevated permissions"]
+      },
+      "realmRoles": ["manager", "user"],
+      "clientRoles": {},
+      "subGroups": []
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-openradius",
+        "admin",
+        "user"
+      ],
+      "groups": ["/Administrators"],
+      "attributes": {
+        "department": ["IT"],
+        "location": ["Headquarters"]
+      }
+    },
+    {
+      "username": "manager",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Manager",
+      "lastName": "Smith",
+      "email": "manager@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "manager123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-openradius",
+        "manager",
+        "user"
+      ],
+      "groups": ["/Managers"],
+      "attributes": {
+        "department": ["Operations"],
+        "location": ["Branch Office"]
+      }
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Standard user with basic access",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "permissions": ["read:profile", "update:own-profile", "read:dashboard"]
+        }
+      },
+      {
+        "name": "manager",
+        "description": "Manager with team management capabilities",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "permissions": [
+            "read:profile",
+            "update:own-profile",
+            "read:dashboard",
+            "read:reports",
+            "create:reports",
+            "manage:team",
+            "approve:requests"
+          ]
+        }
+      },
+      {
+        "name": "admin",
+        "description": "Administrator with full system access",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "permissions": [
+            "read:*",
+            "write:*",
+            "delete:*",
+            "manage:users",
+            "manage:roles",
+            "manage:settings",
+            "manage:system",
+            "view:audit-logs"
+          ]
+        }
+      }
+    ]
+  },
+  "scopeMappings": [],
+  "clientScopeMappings": {},
+  "defaultDefaultClientScopes": [
+    "role_list",
+    "profile",
+    "email",
+    "roles",
+    "web-origins",
+    "acr"
+  ],
+  "defaultOptionalClientScopes": [
+    "offline_access",
+    "address",
+    "phone",
+    "microprofile-jwt"
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "smtpServer": {},
+  "eventsEnabled": false,
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "enabledEventTypes": [],
+  "adminEventsEnabled": false,
+  "adminEventsDetailsEnabled": false,
+  "internationalizationEnabled": false,
+  "supportedLocales": [],
+  "authenticationFlows": [],
+  "authenticatorConfig": [],
+  "requiredActions": [],
+  "browserFlow": "browser",
+  "registrationFlow": "registration",
+  "directGrantFlow": "direct grant",
+  "resetCredentialsFlow": "reset credentials",
+  "clientAuthenticationFlow": "clients",
+  "dockerAuthenticationFlow": "docker auth",
+  "attributes": {
+    "cibaBackchannelTokenDeliveryMode": "poll",
+    "cibaExpiresIn": "120",
+    "cibaAuthRequestedUserHint": "login_hint",
+    "oauth2DeviceCodeLifespan": "600",
+    "oauth2DevicePollingInterval": "5",
+    "parRequestUriLifespan": "60",
+    "cibaInterval": "5",
+    "realmReusableOtpCode": "false"
+  },
+  "keycloakVersion": "26.4.0"
+}

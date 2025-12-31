@@ -1,72 +1,172 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { useKeycloak } from '../contexts/KeycloakContext'
-import { useTheme } from '../contexts/ThemeContext'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Shield, AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
+
+interface OidcProvider {
+  id: number
+  providerName: string
+  displayName: string
+  description?: string
+  logoUrl?: string
+  displayOrder: number
+  authority: string
+  clientId: string
+  isDefault: boolean
+}
 
 export default function LoginPage() {
-  const { keycloak, authenticated, initialized } = useKeycloak()
+  const [providers, setProviders] = useState<OidcProvider[]>([])
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { t } = useTranslation()
-  const { theme, primaryColor } = useTheme()
 
   useEffect(() => {
-    if (initialized && authenticated) {
-      navigate('/dashboard')
-    }
-  }, [authenticated, initialized, navigate])
+    loadProviders()
+  }, [])
 
-  const handleLogin = () => {
-    const returnPath = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard'
-    keycloak.login({
-      redirectUri: window.location.origin + returnPath,
-    })
+  const loadProviders = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('http://localhost:5000/api/oidcsettings/providers')
+      
+      if (response.ok) {
+        const data = await response.json()
+        setProviders(data)
+      } else {
+        toast.error('Failed to load authentication providers')
+      }
+    } catch (error) {
+      console.error('Error loading providers:', error)
+      toast.error('Error loading authentication providers')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (!initialized) {
+  const handleProviderLogin = (provider: OidcProvider) => {
+    // Store selected provider in sessionStorage
+    sessionStorage.setItem('selectedOidcProvider', JSON.stringify({
+      providerName: provider.providerName,
+      authority: provider.authority,
+      clientId: provider.clientId
+    }))
+    
+    // Navigate to initiate OIDC flow
+    window.location.href = `/?provider=${provider.providerName}`
+  }
+
+  const getProviderIcon = (providerName: string) => {
+    switch (providerName.toLowerCase()) {
+      case 'keycloak':
+        return '🔐'
+      case 'azuread':
+      case 'azure':
+        return '☁️'
+      case 'google':
+        return '🔵'
+      case 'local':
+        return '🏠'
+      default:
+        return '🔑'
+    }
+  }
+
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-6">
-        <img 
-          src="/src/openradius.svg" 
-          alt="OpenRadius Logo" 
-          className="h-40 w-40 transition-all"
-          style={{ 
-            filter: theme === 'dark' 
-              ? 'brightness(0) saturate(100%) invert(1)' 
-              : `brightness(0) saturate(100%) invert(${primaryColor === 'blue' ? '37%' : primaryColor === 'green' ? '58%' : primaryColor === 'purple' ? '26%' : primaryColor === 'orange' ? '60%' : '37%'}) sepia(${primaryColor === 'blue' ? '98%' : primaryColor === 'green' ? '96%' : primaryColor === 'purple' ? '99%' : primaryColor === 'orange' ? '98%' : '98%'}) saturate(${primaryColor === 'blue' ? '1234%' : primaryColor === 'green' ? '2067%' : primaryColor === 'purple' ? '7497%' : primaryColor === 'orange' ? '1850%' : '1234%'}) hue-rotate(${primaryColor === 'blue' ? '205deg' : primaryColor === 'green' ? '86deg' : primaryColor === 'purple' ? '255deg' : primaryColor === 'orange' ? '1deg' : '205deg'}) brightness(${primaryColor === 'blue' ? '101%' : primaryColor === 'green' ? '96%' : primaryColor === 'purple' ? '99%' : primaryColor === 'orange' ? '94%' : '101%'}) contrast(${primaryColor === 'blue' ? '101%' : primaryColor === 'green' ? '106%' : primaryColor === 'purple' ? '110%' : primaryColor === 'orange' ? '107%' : '101%'})`
-          }}
-        />
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Card className="w-[400px]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img 
-              src="/src/openradius.svg" 
-              alt="OpenRadius Logo" 
-              className="h-40 w-40 transition-all"
-              style={{ 
-                filter: theme === 'dark' 
-                  ? 'brightness(0) saturate(100%) invert(1)' 
-                  : `brightness(0) saturate(100%) invert(${primaryColor === 'blue' ? '37%' : primaryColor === 'green' ? '58%' : primaryColor === 'purple' ? '26%' : primaryColor === 'orange' ? '60%' : '37%'}) sepia(${primaryColor === 'blue' ? '98%' : primaryColor === 'green' ? '96%' : primaryColor === 'purple' ? '99%' : primaryColor === 'orange' ? '98%' : '98%'}) saturate(${primaryColor === 'blue' ? '1234%' : primaryColor === 'green' ? '2067%' : primaryColor === 'purple' ? '7497%' : primaryColor === 'orange' ? '1850%' : '1234%'}) hue-rotate(${primaryColor === 'blue' ? '205deg' : primaryColor === 'green' ? '86deg' : primaryColor === 'purple' ? '255deg' : primaryColor === 'orange' ? '1deg' : '205deg'}) brightness(${primaryColor === 'blue' ? '101%' : primaryColor === 'green' ? '96%' : primaryColor === 'purple' ? '99%' : primaryColor === 'orange' ? '94%' : '101%'}) contrast(${primaryColor === 'blue' ? '101%' : primaryColor === 'green' ? '106%' : primaryColor === 'purple' ? '110%' : primaryColor === 'orange' ? '107%' : '101%'})`
-              }}
-            />
+            <Shield className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle>{t('app.welcome')}</CardTitle>
-          <CardDescription>{t('auth.pleaseSignIn')}</CardDescription>
+          <CardTitle className="text-2xl">Welcome to OpenRadius</CardTitle>
+          <CardDescription>
+            Enterprise Authentication Platform
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button onClick={handleLogin} className="w-full">
-            {t('auth.signIn')}
-          </Button>
+        <CardContent className="space-y-4">
+          {providers.length === 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                No authentication providers configured. Please contact your administrator.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="text-sm text-muted-foreground text-center mb-4">
+                Choose your authentication provider
+              </div>
+              
+              <div className="space-y-3">
+                {providers
+                  .sort((a, b) => {
+                    // Default provider first
+                    if (a.isDefault) return -1
+                    if (b.isDefault) return 1
+                    // Then by display order
+                    return a.displayOrder - b.displayOrder
+                  })
+                  .map((provider) => (
+                    <Button
+                      key={provider.id}
+                      variant={provider.isDefault ? "default" : "outline"}
+                      className="w-full justify-start text-left h-auto py-4"
+                      onClick={() => handleProviderLogin(provider)}
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="text-2xl">
+                          {provider.logoUrl ? (
+                            <img 
+                              src={provider.logoUrl} 
+                              alt={provider.displayName}
+                              className="w-8 h-8 object-contain"
+                            />
+                          ) : (
+                            <span>{getProviderIcon(provider.providerName)}</span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">
+                            {provider.displayName}
+                            {provider.isDefault && (
+                              <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          {provider.description && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {provider.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+              </div>
+            </>
+          )}
+
+          <div className="pt-4 border-t">
+            <p className="text-xs text-center text-muted-foreground">
+              By signing in, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

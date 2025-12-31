@@ -14,22 +14,43 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Keycloak Authentication
-var keycloakSettings = builder.Configuration.GetSection("Keycloak");
+// Configure OIDC Authentication with Keycloak
+var oidcSettings = builder.Configuration.GetSection("Oidc");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = keycloakSettings["Authority"] ?? "http://localhost:8080/realms/openradius";
-        options.Audience = keycloakSettings["Audience"] ?? "account";
-        options.MetadataAddress = keycloakSettings["MetadataAddress"] ?? "http://localhost:8080/realms/openradius/.well-known/openid-configuration";
-        options.RequireHttpsMetadata = false; // For development only
+        // OIDC Provider Configuration
+        options.Authority = oidcSettings["Authority"] ?? "http://localhost:8080/realms/openradius";
+        options.Audience = oidcSettings["Audience"] ?? "openradius-api";
+        options.MetadataAddress = oidcSettings["MetadataAddress"] ?? 
+            $"{oidcSettings["Authority"]}/.well-known/openid-configuration";
+        options.RequireHttpsMetadata = oidcSettings.GetValue<bool>("RequireHttpsMetadata", false);
+        
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = false, // Disable audience validation for now
+            ValidateAudience = oidcSettings.GetValue<bool>("ValidateAudience", false),
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuers = new[] { "http://localhost:8080/realms/openradius" }
+            ValidIssuers = new[] { 
+                oidcSettings["Issuer"] ?? oidcSettings["Authority"] ?? string.Empty 
+            },
+            ClockSkew = TimeSpan.FromMinutes(5)
+        };
+        
+        // Enhanced event logging for OIDC authentication
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"OIDC Authentication failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine($"OIDC Token validated for: {context.Principal?.Identity?.Name}");
+                return Task.CompletedTask;
+            }
         };
     });
 
