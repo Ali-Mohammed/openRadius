@@ -37,6 +37,18 @@ services:
       KC_HEALTH_ENABLED: true
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      # Email Configuration for password reset (choose one option):
+      # 
+      # Option 1: SendGrid (Recommended - Free tier: 100 emails/day)
+      # SENDGRID_API_KEY: your-sendgrid-api-key
+      # 
+      # Option 2: Mailgun (Free tier: 5000 emails/month)
+      # SMTP_USER: postmaster@your-domain.mailgun.org
+      # SMTP_PASSWORD: your-mailgun-smtp-password
+      # 
+      # Option 3: AWS SES (Pay as you go)
+      # SMTP_USER: your-aws-smtp-username
+      # SMTP_PASSWORD: your-aws-smtp-password
     command: 
       - start-dev
       - --import-realm

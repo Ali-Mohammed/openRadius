@@ -1,7 +1,7 @@
 import { useKeycloak } from "@/contexts/KeycloakContext"
 import { useQuery } from "@tanstack/react-query"
 import { usersApi } from "@/lib/api"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +15,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDown, LogOut, User, Settings } from "lucide-react"
+import { ChevronsUpDown, LogOut, User, Settings, KeyRound, UserCog } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { appConfig } from "@/config/app.config"
 
 export function NavUser() {
   const { keycloak, authenticated } = useKeycloak()
@@ -32,6 +33,11 @@ export function NavUser() {
 
   const email = keycloak.tokenParsed?.email
   const dbUser = users.find((u: any) => u.email === email)
+
+  const getProfileImage = () => {
+    // Try to get picture from token claims or attributes
+    return keycloak.tokenParsed?.picture || null
+  }
 
   const getUserInitials = () => {
     if (dbUser) {
@@ -57,6 +63,12 @@ export function NavUser() {
     keycloak.logout()
   }
 
+  const handleManageAccount = () => {
+    // Open Keycloak account management page
+    const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account`
+    window.open(accountUrl, '_blank')
+  }
+
   if (!authenticated) return null
 
   return (
@@ -69,6 +81,7 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src={getProfileImage() || undefined} alt={getDisplayName()} />
                 <AvatarFallback className="rounded-lg">
                   {getUserInitials()}
                 </AvatarFallback>
@@ -89,6 +102,7 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={getProfileImage() || undefined} alt={getDisplayName()} />
                   <AvatarFallback className="rounded-lg">
                     {getUserInitials()}
                   </AvatarFallback>
@@ -103,6 +117,10 @@ export function NavUser() {
             <DropdownMenuItem onClick={() => navigate('/profile')}>
               <User className="mr-2 h-4 w-4" />
               {t('user.profile')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleManageAccount}>
+              <UserCog className="mr-2 h-4 w-4" />
+              Manage Account
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
