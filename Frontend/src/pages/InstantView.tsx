@@ -27,6 +27,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
@@ -52,6 +62,8 @@ export default function InstantView() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [open, setOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [instantToDelete, setInstantToDelete] = useState<number | null>(null)
   const [editingInstant, setEditingInstant] = useState<Instant | null>(null)
   const [formData, setFormData] = useState<InstantCreateDto>({
     title: '',
@@ -71,7 +83,6 @@ export default function InstantView() {
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     }),
-    enabled: false,
   })
 
   // Refetch when sorting or filter changes
@@ -288,8 +299,15 @@ export default function InstantView() {
   }
 
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this instant?')) {
-      deleteMutation.mutate(id)
+    setInstantToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (instantToDelete) {
+      deleteMutation.mutate(instantToDelete)
+      setDeleteDialogOpen(false)
+      setInstantToDelete(null)
     }
   }
 
@@ -401,13 +419,14 @@ export default function InstantView() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="comments">Comments</Label>
+                  <Label htmlFor="comments">Comments (Optional)</Label>
                   <Textarea
                     id="comments"
                     value={formData.comments}
                     onChange={(e) =>
                       setFormData({ ...formData, comments: e.target.value })
                     }
+                    placeholder="Optional comments..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -566,6 +585,23 @@ export default function InstantView() {
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the instant entry.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
