@@ -49,16 +49,22 @@ export const KeycloakProvider = ({ children }: { children: ReactNode }) => {
 
     isInitializing = true
 
+    // Check if provider parameter exists in URL (user clicked login button)
+    const urlParams = new URLSearchParams(window.location.search)
+    const providerParam = urlParams.get('provider')
+    const shouldLogin = providerParam !== null
+
     /**
      * Initialize OIDC authentication with Authorization Code Flow
-     * - Uses 'login-required' to prompt authentication when needed
+     * - Uses 'login-required' to prompt authentication when provider is selected
+     * - Uses 'check-sso' to check for existing session otherwise
      * - Automatically refreshes tokens to maintain session
      * - Works with any OIDC-compliant provider (Keycloak, Azure AD, Google, etc.)
      * - Disabled silent SSO to avoid CSP frame-ancestors issues
      */
     keycloak
       .init({
-        onLoad: 'check-sso',
+        onLoad: shouldLogin ? 'login-required' : 'check-sso',
         checkLoginIframe: false,
         silentCheckSsoRedirectUri: undefined, // Disable silent SSO to avoid CSP issues
         enableLogging: true,

@@ -70,6 +70,42 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Seed database with default OIDC provider
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    
+    // Ensure database is created and migrations are applied
+    context.Database.Migrate();
+    
+    // Seed default Keycloak provider if no providers exist
+    if (!context.OidcSettings.Any())
+    {
+        context.OidcSettings.Add(new Backend.Models.OidcSettings
+        {
+            ProviderName = "keycloak",
+            DisplayName = "Login with Keycloak",
+            Description = "Login using Keycloak OpenID Connect",
+            LogoUrl = "/keycloak-icon.svg",
+            DisplayOrder = 1,
+            Authority = "http://localhost:8080/realms/openradius",
+            ClientId = "openradius-web",
+            ClientSecret = "",
+            RedirectUri = "http://localhost:5173",
+            PostLogoutRedirectUri = "http://localhost:5173",
+            ResponseType = "code",
+            Scope = "openid profile email",
+            IsActive = true,
+            IsDefault = true,
+            RequireHttpsMetadata = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        context.SaveChanges();
+        Console.WriteLine("✓ Default Keycloak OIDC provider seeded");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

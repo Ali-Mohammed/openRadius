@@ -18,14 +18,26 @@
 
 ## Default Credentials
 
-### Keycloak Admin
+### Keycloak Admin Console
 - URL: http://localhost:8080
 - Username: `admin`
 - Password: `admin`
 
-### Test User
-- Username: `testuser`
-- Password: (set during setup)
+### Test Users
+
+**Administrator**
+- Username: `admin`
+- Password: `admin123`
+- Email: admin@example.com
+- Roles: admin, user
+- Group: Administrators
+
+**Manager**
+- Username: `manager`
+- Password: `manager123`
+- Email: manager@example.com
+- Roles: manager, user
+- Group: Managers
 
 ## Quick Start
 
