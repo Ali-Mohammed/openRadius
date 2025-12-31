@@ -2,7 +2,6 @@
   "realm": "openradius",
   "enabled": true,
   "displayName": "OpenRadius",
-  "displayNameHtml": "<div class='kc-logo-text'>OpenRadius</div>",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
