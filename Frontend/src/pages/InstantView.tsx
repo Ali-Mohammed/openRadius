@@ -48,7 +48,7 @@ import {
   SelectValue,
 } from '../components/ui/select'
 import { Badge } from '../components/ui/badge'
-import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle } from 'lucide-react'
 import { instantApi } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import type { Instant, InstantCreateDto } from '../lib/api'
@@ -587,17 +587,40 @@ export default function InstantView() {
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the instant entry.
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <AlertDialogTitle className="text-xl">Delete Instant Entry</AlertDialogTitle>
+              </div>
+            </div>
+            <AlertDialogDescription className="pt-3 text-base">
+              Are you absolutely sure you want to delete this instant entry? This action cannot be undone and will permanently remove the entry from the database.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Permanently
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
