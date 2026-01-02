@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251231160511_AddMultiProviderSupport")]
-    partial class AddMultiProviderSupport
+    [Migration("20260102055031_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -44,6 +44,16 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -67,9 +77,13 @@ namespace Backend.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Instants");
+                    b.ToTable("Instant");
                 });
 
             modelBuilder.Entity("Backend.Models.OidcSettings", b =>
@@ -166,6 +180,12 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("CurrentInstantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DefaultInstantId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -181,10 +201,31 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CurrentInstantId");
+
+                    b.HasIndex("DefaultInstantId");
+
                     b.HasIndex("Email")
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Backend.Models.User", b =>
+                {
+                    b.HasOne("Backend.Models.Instant", "CurrentInstant")
+                        .WithMany()
+                        .HasForeignKey("CurrentInstantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Backend.Models.Instant", "DefaultInstant")
+                        .WithMany()
+                        .HasForeignKey("DefaultInstantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CurrentInstant");
+
+                    b.Navigation("DefaultInstant");
                 });
 #pragma warning restore 612, 618
         }

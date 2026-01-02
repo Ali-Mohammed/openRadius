@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers;
 
@@ -11,13 +12,18 @@ namespace Backend.Controllers;
 [Authorize]
 public class InstantController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<InstantController> _logger;
+    private readonly IConfiguration _configuration;
 
-    public InstantController(ApplicationDbContext context, ILogger<InstantController> logger)
+    public InstantController(
+        MasterDbContext masterContext, 
+        ILogger<InstantController> logger,
+        IConfiguration configuration)
     {
-        _context = context;
+        _masterContext = masterContext;
         _logger = logger;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -27,7 +33,7 @@ public class InstantController : ControllerBase
         [FromQuery] string? sortOrder = "asc",
         [FromQuery] bool includeDeleted = false)
     {
-        var query = _context.Instants.AsQueryable();
+        var query = _masterContext.Instants.AsQueryable();
 
         // Filter out soft-deleted items by default
         if (!includeDeleted)
@@ -79,7 +85,7 @@ public class InstantController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Instant>> GetInstant(int id)
     {
-        var instant = await _context.Instants.FindAsync(id);
+        var instant = await _masterContext.Instants.FindAsync(id);
 
         if (instant == null)
         {
@@ -109,16 +115,74 @@ public class InstantController : ControllerBase
             UpdatedBy = userName
         };
         
-        _context.Instants.Add(instant);
-        await _context.SaveChangesAsync();
+        _masterContext.Instants.Add(instant);
+        await _masterContext.SaveChangesAsync();
+
+        // Create a dedicated database for this instant/tenant
+        try
+        {
+            var tenantConnectionString = GetTenantConnectionString(instant.Id);
+            
+            var tenantInfo = new InstantTenantInfo
+            {
+                Id = instant.Id.ToString(),
+                Identifier = instant.Name,
+                Name = instant.Title,
+                ConnectionString = tenantConnectionString,
+                InstantId = instant.Id,
+                DisplayName = instant.Title,
+                Location = instant.Location,
+                IsActive = instant.Status == "active"
+            };
+            
+            var tenantDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseNpgsql(tenantInfo.ConnectionString)
+                .Options;
+                
+            using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
+            await tenantContext.Database.MigrateAsync();
+            
+            _logger.LogInformation($"✓ Created tenant database for instant: {instant.Title} (ID: {instant.Id})");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"✗ Failed to create tenant database for instant {instant.Title}: {ex.Message}");
+            
+            // Optionally rollback the instant creation
+            _masterContext.Instants.Remove(instant);
+            await _masterContext.SaveChangesAsync();
+            
+            return StatusCode(500, new { message = "Failed to create tenant database", error = ex.Message });
+        }
 
         return CreatedAtAction(nameof(GetInstant), new { id = instant.Id }, instant);
+    }
+
+    private string GetTenantConnectionString(int instantId)
+    {
+        var baseConnectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+        var parts = baseConnectionString.Split(';');
+        var newParts = new List<string>();
+        
+        foreach (var part in parts)
+        {
+            if (part.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
+            {
+                newParts.Add($"Database=openradius_instant_{instantId}");
+            }
+            else
+            {
+                newParts.Add(part);
+            }
+        }
+        
+        return string.Join(";", newParts);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateInstant(int id, InstantDto dto)
     {
-        var instant = await _context.Instants.FindAsync(id);
+        var instant = await _masterContext.Instants.FindAsync(id);
         if (instant == null || instant.DeletedAt != null)
         {
             return NotFound();
@@ -138,7 +202,7 @@ public class InstantController : ControllerBase
 
         try
         {
-            await _context.SaveChangesAsync();
+            await _masterContext.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -158,7 +222,7 @@ public class InstantController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteInstant(int id)
     {
-        var instant = await _context.Instants.FindAsync(id);
+        var instant = await _masterContext.Instants.FindAsync(id);
         if (instant == null || instant.DeletedAt != null)
         {
             return NotFound();
@@ -168,7 +232,7 @@ public class InstantController : ControllerBase
         
         instant.DeletedAt = DateTime.UtcNow;
         instant.DeletedBy = userName;
-        await _context.SaveChangesAsync();
+        await _masterContext.SaveChangesAsync();
 
         return NoContent();
     }
@@ -176,7 +240,7 @@ public class InstantController : ControllerBase
     [HttpPost("{id}/restore")]
     public async Task<IActionResult> RestoreInstant(int id)
     {
-        var instant = await _context.Instants.FindAsync(id);
+        var instant = await _masterContext.Instants.FindAsync(id);
         if (instant == null)
         {
             return NotFound();
@@ -191,7 +255,7 @@ public class InstantController : ControllerBase
         instant.DeletedBy = null;
         instant.UpdatedAt = DateTime.UtcNow;
         instant.UpdatedBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
-        await _context.SaveChangesAsync();
+        await _masterContext.SaveChangesAsync();
 
         return NoContent();
     }
@@ -199,7 +263,7 @@ public class InstantController : ControllerBase
     [HttpGet("deleted")]
     public async Task<ActionResult<IEnumerable<Instant>>> GetDeletedInstants()
     {
-        var query = _context.Instants
+        var query = _masterContext.Instants
             .Where(i => i.DeletedAt != null)
             .OrderByDescending(i => i.DeletedAt);
 
@@ -209,7 +273,7 @@ public class InstantController : ControllerBase
     [HttpGet("export")]
     public async Task<IActionResult> ExportToExcel()
     {
-        var instants = await _context.Instants.OrderByDescending(i => i.CreatedAt).ToListAsync();
+        var instants = await _masterContext.Instants.OrderByDescending(i => i.CreatedAt).ToListAsync();
         
         using var workbook = new ClosedXML.Excel.XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Instants");
@@ -273,6 +337,6 @@ public class InstantController : ControllerBase
 
     private bool InstantExists(int id)
     {
-        return _context.Instants.Any(e => e.Id == id);
+        return _masterContext.Instants.Any(e => e.Id == id);
     }
 }

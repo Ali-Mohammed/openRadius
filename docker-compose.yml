@@ -25,7 +25,7 @@ services:
     container_name: openradius-keycloak
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/openradius
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: admin
       KC_DB_PASSWORD: admin123
       KC_HOSTNAME: localhost

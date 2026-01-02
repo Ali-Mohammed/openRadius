@@ -2,17 +2,51 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Backend.Data;
+using Backend.Models;
+using Backend.Services;
+using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
+using Finbuckle.MultiTenant.Extensions;
+using Finbuckle.MultiTenant.AspNetCore.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure PostgreSQL
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+// Configure Master PostgreSQL Database (for tenant/instant management)
+builder.Services.AddDbContext<MasterDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configure Finbuckle.MultiTenant
+builder.Services.AddScoped<InstantTenantStore>();
+builder.Services.AddScoped<UserInstantTenantResolver>();
+
+builder.Services.AddMultiTenant<InstantTenantInfo>()
+    .WithDelegateStrategy(async (IServiceProvider sp) =>
+    {
+        var resolver = sp.GetRequiredService<UserInstantTenantResolver>();
+        var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
+        if (httpContext != null)
+        {
+            var tenantId = await resolver.GetIdentifierAsync(httpContext);
+            return tenantId;
+        }
+        return null;
+    })
+    .WithStore<InstantTenantStore>(ServiceLifetime.Scoped);
+
+// Configure tenant-specific ApplicationDbContext with MultiTenant support
+builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+{
+    var accessor = serviceProvider.GetService<IMultiTenantContextAccessor<InstantTenantInfo>>();
+    var connectionString = accessor?.MultiTenantContext?.TenantInfo?.ConnectionString 
+        ?? builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseNpgsql(connectionString);
+});
 
 // Configure OIDC Authentication with Keycloak
 var oidcSettings = builder.Configuration.GetSection("Oidc");
@@ -70,18 +104,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Seed database with default OIDC provider
+// Initialize master database and seed data
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var masterContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
     
-    // Ensure database is created and migrations are applied
-    context.Database.Migrate();
+    // Ensure master database is created and migrations are applied
+    masterContext.Database.Migrate();
     
-    // Seed default Keycloak provider if no providers exist
-    if (!context.OidcSettings.Any())
+    // Seed default OIDC provider if no providers exist
+    if (!masterContext.OidcSettings.Any())
     {
-        context.OidcSettings.Add(new Backend.Models.OidcSettings
+        masterContext.OidcSettings.Add(new Backend.Models.OidcSettings
         {
             ProviderName = "keycloak",
             DisplayName = "Login with Keycloak",
@@ -101,9 +135,66 @@ using (var scope = app.Services.CreateScope())
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
-        context.SaveChanges();
+        masterContext.SaveChanges();
         Console.WriteLine("✓ Default Keycloak OIDC provider seeded");
     }
+    
+    // Ensure all tenant databases exist
+    var instants = masterContext.Instants.Where(i => i.DeletedAt == null).ToList();
+    foreach (var instant in instants)
+    {
+        try
+        {
+            var tenantConnectionString = GetTenantConnectionString(
+                builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
+                instant.Id
+            );
+            
+            var tenantInfo = new InstantTenantInfo
+            {
+                Id = instant.Id.ToString(),
+                Identifier = instant.Name,
+                Name = instant.Title,
+                ConnectionString = tenantConnectionString,
+                InstantId = instant.Id,
+                DisplayName = instant.Title,
+                Location = instant.Location,
+                IsActive = instant.Status == "active"
+            };
+            
+            var tenantDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseNpgsql(tenantInfo.ConnectionString)
+                .Options;
+                
+            using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
+            tenantContext.Database.Migrate();
+            Console.WriteLine($"✓ Tenant database initialized for instant: {instant.Title}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"✗ Failed to initialize tenant database for instant {instant.Title}: {ex.Message}");
+        }
+    }
+}
+
+static string GetTenantConnectionString(string baseConnectionString, int instantId)
+{
+    var parts = baseConnectionString.Split(';');
+    var newParts = new List<string>();
+    
+    foreach (var part in parts)
+    {
+        if (part.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
+        {
+            newParts.Add($"Database=openradius_instant_{instantId}");
+        }
+        else
+        {
+            newParts.Add(part);
+        }
+    }
+    
+    return string.Join(";", newParts);
 }
 
 // Configure the HTTP request pipeline.
@@ -114,6 +205,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
+
+// Add MultiTenant middleware (must be before Authentication)
+app.UseMultiTenant();
 
 app.UseAuthentication();
 app.UseAuthorization();

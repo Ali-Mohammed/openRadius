@@ -12,6 +12,8 @@ import Settings from './pages/Settings'
 import InstantView from './pages/InstantView'
 import InstantSettings from './pages/InstantSettings'
 import OidcSettings from './pages/OidcSettings'
+import RadiusProfiles from './pages/RadiusProfiles'
+import RadiusUsers from './pages/RadiusUsers'
 
 const queryClient = new QueryClient()
 
@@ -33,6 +35,9 @@ function App() {
                         <Route path="/profile" element={<ProfileSettings />} />
                         <Route path="/instant/view" element={<InstantView />} />
                         <Route path="/instant/:id/settings" element={<InstantSettings />} />
+                        <Route path="/integration/sas-radius" element={<Navigate to="/instant/1/settings" replace />} />
+                        <Route path="/radius/profiles" element={<RadiusProfiles />} />
+                        <Route path="/radius/users" element={<RadiusUsers />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/settings/oidc" element={<OidcSettings />} />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />

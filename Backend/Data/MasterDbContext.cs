@@ -1,26 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Backend.Models;
-using Finbuckle.MultiTenant;
-using Finbuckle.MultiTenant.Abstractions;
-using Finbuckle.MultiTenant.EntityFrameworkCore;
 
 namespace Backend.Data;
 
-public class ApplicationDbContext : DbContext
+/// <summary>
+/// Master database context for managing tenants (Instants).
+/// This context stores the list of all Instants and their connection strings.
+/// </summary>
+public class MasterDbContext : DbContext
 {
-    private readonly IMultiTenantContextAccessor<InstantTenantInfo>? _multiTenantContextAccessor;
-
-    public ApplicationDbContext(
-        DbContextOptions<ApplicationDbContext> options, 
-        IMultiTenantContextAccessor<InstantTenantInfo>? multiTenantContextAccessor = null)
+    public MasterDbContext(DbContextOptions<MasterDbContext> options)
         : base(options)
     {
-        _multiTenantContextAccessor = multiTenantContextAccessor;
     }
 
+    public DbSet<Instant> Instants { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<OidcSettings> OidcSettings { get; set; }
-
+    public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
+    public DbSet<RadiusProfile> RadiusProfiles { get; set; }
+    public DbSet<RadiusUser> RadiusUsers { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -31,7 +31,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.HasIndex(e => e.Email).IsUnique();
             
-            // Configure relationships for multi-tenant instant selection
             entity.HasOne(e => e.DefaultInstant)
                   .WithMany()
                   .HasForeignKey(e => e.DefaultInstantId)
