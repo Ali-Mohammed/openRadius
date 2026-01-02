@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Switch } from '../components/ui/switch'
+import { Badge } from '../components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import {
   Table,
   TableBody,
@@ -27,6 +29,7 @@ import {
 } from '../components/ui/dialog'
 import { instantApi } from '../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration } from '../api/sasRadiusApi'
+import { SyncProgressDialog } from '../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../utils/errorHandler'
 
@@ -34,9 +37,18 @@ export default function InstantSettings() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   
+  // Sync history pagination state
+  const [syncPage, setSyncPage] = useState(1)
+  const [syncPageSize, setSyncPageSize] = useState(20)
+  const [syncSortBy, setSyncSortBy] = useState('startedAt')
+  const [syncSortDirection, setSyncSortDirection] = useState('desc')
+  const [syncStatusFilter, setSyncStatusFilter] = useState<number | undefined>(undefined)
+  
   // SAS Radius Integration state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingIntegration, setEditingIntegration] = useState<SasRadiusIntegration | null>(null)
+  const [activeSyncId, setActiveSyncId] = useState<string | null>(null)
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
   const [formData, setFormData] = useState<SasRadiusIntegration>({
     name: '',
     url: '',
@@ -60,6 +72,23 @@ export default function InstantSettings() {
     queryFn: () => sasRadiusApi.getAll(Number(id)),
     enabled: !!id,
   })
+
+  const { data: activeSyncs = [] } = useQuery({
+    queryKey: ['active-syncs', id],
+    queryFn: () => sasRadiusApi.getActiveSyncs(Number(id)),
+    enabled: !!id,
+    refetchInterval: 3000, // Poll every 3 seconds for active syncs
+  })
+
+  const { data: recentSyncsData } = useQuery({
+    queryKey: ['recent-syncs', id, syncPage, syncPageSize, syncSortBy, syncSortDirection, syncStatusFilter],
+    queryFn: () => sasRadiusApi.getAllSyncs(Number(id), syncPage, syncPageSize, syncSortBy, syncSortDirection, syncStatusFilter),
+    enabled: !!id,
+    refetchInterval: 5000, // Poll every 5 seconds for history
+  })
+
+  const recentSyncs = recentSyncsData?.data || []
+  const syncPagination = recentSyncsData?.pagination
 
   const createMutation = useMutation({
     mutationFn: (data: SasRadiusIntegration) => sasRadiusApi.create(Number(id), data),
@@ -97,6 +126,22 @@ export default function InstantSettings() {
     },
   })
 
+  const syncMutation = useMutation({
+    mutationFn: (integrationId: number) => sasRadiusApi.sync(Number(id), integrationId),
+    onSuccess: async (response) => {
+      setActiveSyncId(response.syncId)
+      setIsSyncDialogOpen(true)
+      // Small delay to ensure sync is in database before dialog fetches it
+      await new Promise(resolve => setTimeout(resolve, 100))
+      queryClient.invalidateQueries({ queryKey: ['active-syncs', id] })
+      queryClient.invalidateQueries({ queryKey: ['recent-syncs', id] })
+      toast.success(`Sync started successfully`)
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to start sync')
+    },
+  })
+
   const handleOpenDialog = (integration?: SasRadiusIntegration) => {
     if (integration) {
       setEditingIntegration(integration)
@@ -127,7 +172,7 @@ export default function InstantSettings() {
       password: '',
       useHttps: true,
       isActive: false,
-      maxPagesPerRequest: 10,
+      maxItemInPagePerRequest: 100,
       action: '',
       description: '',
     })
@@ -150,6 +195,26 @@ export default function InstantSettings() {
     if (integration.id && confirm('Are you sure you want to delete this integration?')) {
       deleteMutation.mutate(integration.id)
     }
+  }
+
+  const handleSyncSort = (column: string) => {
+    if (syncSortBy === column) {
+      setSyncSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSyncSortBy(column)
+      setSyncSortDirection('desc')
+    }
+    setSyncPage(1)
+  }
+
+  const handleSyncStatusFilter = (value: string) => {
+    setSyncStatusFilter(value === 'all' ? undefined : Number(value))
+    setSyncPage(1)
+  }
+
+  const handleSyncPageSize = (value: string) => {
+    setSyncPageSize(Number(value))
+    setSyncPage(1)
   }
 
   if (isLoading || isLoadingIntegrations) {
@@ -262,17 +327,17 @@ export default function InstantSettings() {
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="maxPages">Max Pages Per Request</Label>
+                  <Label htmlFor="maxPages">Items Per Page</Label>
                   <Input
                     id="maxPages"
                     type="number"
                     min="1"
-                    max="100"
-                    placeholder="e.g., 10"
-                    value={formData.maxPagesPerRequest}
-                    onChange={(e) => setFormData({ ...formData, maxPagesPerRequest: parseInt(e.target.value) || 10 })}
+                    max="500"
+                    placeholder="e.g., 100"
+                    value={formData.maxItemInPagePerRequest}
+                    onChange={(e) => setFormData({ ...formData, maxItemInPagePerRequest: parseInt(e.target.value) || 100 })}
                   />
-                  <p className="text-xs text-muted-foreground">Maximum number of pages to fetch per sync request (1-100)</p>
+                  <p className="text-xs text-muted-foreground">Number of items to fetch per page (1-500, default: 100)</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="action">Action</Label>
@@ -365,6 +430,15 @@ export default function InstantSettings() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => integration.id && syncMutation.mutate(integration.id)}
+                            disabled={syncMutation.isPending}
+                            title="Sync Now"
+                          >
+                            <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleOpenDialog(integration)}
                           >
                             <Edit className="h-4 w-4" />
@@ -386,6 +460,193 @@ export default function InstantSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Active Syncs */}
+      {activeSyncs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Active Synchronizations</CardTitle>
+            <CardDescription>
+              Click to view real-time progress
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {activeSyncs.map((sync) => (
+                <div
+                  key={sync.syncId}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer"
+                  onClick={() => {
+                    setActiveSyncId(sync.syncId)
+                    setIsSyncDialogOpen(true)
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                    <div>
+                      <p className="font-medium">{sync.integrationName}</p>
+                      <p className="text-sm text-muted-foreground">{sync.currentMessage}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary">
+                      {sync.progressPercentage.toFixed(0)}%
+                    </Badge>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync History */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Synchronizations</CardTitle>
+              <CardDescription>
+                View past sync operations
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={syncStatusFilter?.toString() || 'all'} onValueChange={handleSyncStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="8">Completed</SelectItem>
+                  <SelectItem value="9">Failed</SelectItem>
+                  <SelectItem value="10">Cancelled</SelectItem>
+                  <SelectItem value="0">Active</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={syncPageSize.toString()} onValueChange={handleSyncPageSize}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {recentSyncs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No synchronizations found
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {recentSyncs.map((sync) => {
+                  const isCompleted = sync.status === 8
+                  const isFailed = sync.status === 9
+                  const isCancelled = sync.status === 10
+                  const isActive = sync.status < 8
+                  
+                  let statusIcon = <Clock className="w-4 h-4 text-gray-500" />
+                  let statusBadge = { variant: 'secondary' as const, text: 'Unknown' }
+                  
+                  if (isCompleted) {
+                    statusIcon = <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    statusBadge = { variant: 'default' as const, text: 'Completed' }
+                  } else if (isFailed) {
+                    statusIcon = <XCircle className="w-4 h-4 text-red-500" />
+                    statusBadge = { variant: 'destructive' as const, text: 'Failed' }
+                  } else if (isCancelled) {
+                    statusIcon = <XCircle className="w-4 h-4 text-orange-500" />
+                    statusBadge = { variant: 'outline' as const, text: 'Cancelled' }
+                  } else if (isActive) {
+                    statusIcon = <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                    statusBadge = { variant: 'secondary' as const, text: `${sync.progressPercentage.toFixed(0)}%` }
+                  }
+                  
+                  return (
+                    <div
+                      key={sync.syncId}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        setActiveSyncId(sync.syncId)
+                        setIsSyncDialogOpen(true)
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        {statusIcon}
+                        <div>
+                          <p className="font-medium">{sync.integrationName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {sync.errorMessage || sync.currentMessage}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(sync.startedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant={statusBadge.variant}>
+                          {statusBadge.text}
+                        </Badge>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {syncPagination && syncPagination.totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((syncPage - 1) * syncPageSize) + 1} to {Math.min(syncPage * syncPageSize, syncPagination.totalRecords)} of {syncPagination.totalRecords} syncs
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSyncPage(p => Math.max(1, p - 1))}
+                      disabled={syncPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {syncPage} of {syncPagination.totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSyncPage(p => Math.min(syncPagination.totalPages, p + 1))}
+                      disabled={syncPage === syncPagination.totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <SyncProgressDialog
+        open={isSyncDialogOpen}
+        onOpenChange={setIsSyncDialogOpen}
+        syncId={activeSyncId}
+        instantId={Number(id)}
+      />
     </div>
   )
 }

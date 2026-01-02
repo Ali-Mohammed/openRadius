@@ -36,8 +36,8 @@ function App() {
                         <Route path="/instant/view" element={<InstantView />} />
                         <Route path="/instant/:id/settings" element={<InstantSettings />} />
                         <Route path="/integration/sas-radius" element={<Navigate to="/instant/1/settings" replace />} />
-                        <Route path="/radius/profiles" element={<RadiusProfiles />} />
-                        <Route path="/radius/users" element={<RadiusUsers />} />
+                        <Route path="/instant/:id/radius/profiles" element={<RadiusProfiles />} />
+                        <Route path="/instant/:id/radius/users" element={<RadiusUsers />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/settings/oidc" element={<OidcSettings />} />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />

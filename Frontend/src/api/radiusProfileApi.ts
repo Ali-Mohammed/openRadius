@@ -36,9 +36,31 @@ export interface SyncProfileResponse {
   errorMessage?: string
 }
 
+export interface PaginatedProfilesResponse {
+  data: RadiusProfile[]
+  pagination: {
+    currentPage: number
+    pageSize: number
+    totalRecords: number
+    totalPages: number
+  }
+}
+
 export const radiusProfileApi = {
-  getAll: async (instantId: number): Promise<RadiusProfile[]> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/radius/profiles`)
+  getAll: async (
+    instantId: number,
+    page: number = 1,
+    pageSize: number = 50,
+    search?: string
+  ): Promise<PaginatedProfilesResponse> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    })
+    if (search) {
+      params.append('search', search)
+    }
+    const response = await apiClient.get(`/api/instants/${instantId}/radius/profiles?${params.toString()}`)
     return response.data
   },
 

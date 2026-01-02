@@ -19,11 +19,32 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RadiusProfileResponse>>> GetProfiles(int instantId)
+    public async Task<ActionResult<object>> GetProfiles(
+        int instantId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null)
     {
-        var profiles = await _context.RadiusProfiles
-            .Where(p => p.InstantId == instantId)
+        var query = _context.RadiusProfiles
+            .Where(p => p.InstantId == instantId);
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.ToLower();
+            query = query.Where(p =>
+                (p.Name != null && p.Name.ToLower().Contains(search)) ||
+                (p.Pool != null && p.Pool.ToLower().Contains(search))
+            );
+        }
+
+        var totalRecords = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+        var profiles = await query
             .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new RadiusProfileResponse
             {
                 Id = p.Id,
@@ -49,7 +70,17 @@ public class RadiusProfileController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(profiles);
+        return Ok(new
+        {
+            data = profiles,
+            pagination = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalRecords = totalRecords,
+                totalPages = totalPages
+            }
+        });
     }
 
     [HttpGet("{id}")]

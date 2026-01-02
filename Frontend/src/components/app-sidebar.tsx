@@ -27,6 +27,9 @@ import {
 } from "@/components/ui/sidebar"
 
 // This is sample data.
+// TODO: Make instant ID dynamic based on selected/active instant
+const DEFAULT_INSTANT_ID = 1
+
 const data = {
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
@@ -46,11 +49,11 @@ const data = {
       items: [
         {
           title: "Users",
-          url: "/radius/users",
+          url: `/instant/${DEFAULT_INSTANT_ID}/radius/users`,
         },
         {
           title: "Profiles",
-          url: "/radius/profiles",
+          url: `/instant/${DEFAULT_INSTANT_ID}/radius/profiles`,
         },
       ],
     },

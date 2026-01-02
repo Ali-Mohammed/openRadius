@@ -20,11 +20,36 @@ public class RadiusUserController : ControllerBase
 
     // GET: api/instants/{instantId}/radius/users
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RadiusUserResponse>>> GetUsers(int instantId)
+    public async Task<ActionResult<object>> GetUsers(
+        int instantId, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null)
     {
-        var users = await _context.RadiusUsers
-            .Where(u => u.InstantId == instantId)
+        var query = _context.RadiusUsers
+            .Include(u => u.Profile)
+            .Where(u => u.InstantId == instantId);
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(u => 
+                (u.Username != null && u.Username.ToLower().Contains(searchLower)) ||
+                (u.Firstname != null && u.Firstname.ToLower().Contains(searchLower)) ||
+                (u.Lastname != null && u.Lastname.ToLower().Contains(searchLower)) ||
+                (u.Email != null && u.Email.ToLower().Contains(searchLower)) ||
+                (u.Phone != null && u.Phone.ToLower().Contains(searchLower))
+            );
+        }
+
+        var totalRecords = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+        var users = await query
             .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         var response = users.Select(u => new RadiusUserResponse
@@ -38,6 +63,7 @@ public class RadiusUserController : ControllerBase
             Phone = u.Phone,
             Email = u.Email,
             ProfileId = u.ProfileId,
+            ProfileName = u.Profile?.Name,
             Balance = u.Balance,
             LoanBalance = u.LoanBalance,
             Expiration = u.Expiration,
@@ -50,12 +76,23 @@ public class RadiusUserController : ControllerBase
             Company = u.Company,
             Address = u.Address,
             ContractId = u.ContractId,
+            SimultaneousSessions = u.SimultaneousSessions,
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
             LastSyncedAt = u.LastSyncedAt
         });
 
-        return Ok(response);
+        return Ok(new
+        {
+            data = response,
+            pagination = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalRecords = totalRecords,
+                totalPages = totalPages
+            }
+        });
     }
 
     // GET: api/instants/{instantId}/radius/users/{id}

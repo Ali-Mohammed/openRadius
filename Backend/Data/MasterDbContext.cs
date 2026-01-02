@@ -20,6 +20,7 @@ public class MasterDbContext : DbContext
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<RadiusProfile> RadiusProfiles { get; set; }
     public DbSet<RadiusUser> RadiusUsers { get; set; }
+    public DbSet<SyncProgress> SyncProgresses { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +40,16 @@ public class MasterDbContext : DbContext
             entity.HasOne(e => e.CurrentInstant)
                   .WithMany()
                   .HasForeignKey(e => e.CurrentInstantId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<RadiusUser>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.HasOne(e => e.Profile)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProfileId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
     }

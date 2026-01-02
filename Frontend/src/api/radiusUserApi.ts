@@ -10,6 +10,7 @@ export interface RadiusUser {
   phone?: string
   email?: string
   profileId?: number
+  profileName?: string
   balance: number
   loanBalance?: number
   expiration?: string
@@ -41,9 +42,31 @@ export interface SyncUsersResponse {
   errorMessage?: string
 }
 
+export interface PaginatedUsersResponse {
+  data: RadiusUser[]
+  pagination: {
+    currentPage: number
+    pageSize: number
+    totalRecords: number
+    totalPages: number
+  }
+}
+
 export const radiusUserApi = {
-  getAll: async (instantId: number): Promise<RadiusUser[]> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/radius/users`)
+  getAll: async (
+    instantId: number, 
+    page: number = 1, 
+    pageSize: number = 50,
+    search?: string
+  ): Promise<PaginatedUsersResponse> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    })
+    if (search) {
+      params.append('search', search)
+    }
+    const response = await apiClient.get(`/api/instants/${instantId}/radius/users?${params.toString()}`)
     return response.data
   },
 

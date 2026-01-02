@@ -224,6 +224,10 @@ namespace Backend.Models
         public string? City { get; set; }
         public string? Phone { get; set; }
         public int? ProfileId { get; set; }
+        
+        // Navigation properties
+        public RadiusProfile? Profile { get; set; }
+        
         public decimal Balance { get; set; }
         public decimal LoanBalance { get; set; }
         public DateTime? Expiration { get; set; }
@@ -287,6 +291,7 @@ namespace Backend.Models
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public int? ProfileId { get; set; }
+        public string? ProfileName { get; set; }
         public decimal Balance { get; set; }
         public decimal LoanBalance { get; set; }
         public DateTime? Expiration { get; set; }
@@ -299,6 +304,7 @@ namespace Backend.Models
         public string? Company { get; set; }
         public string? Address { get; set; }
         public string? ContractId { get; set; }
+        public int? SimultaneousSessions { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? LastSyncedAt { get; set; }

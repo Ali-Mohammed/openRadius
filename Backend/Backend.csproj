@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="old_project\**" />
+    <EmbeddedResource Remove="old_project\**" />
+    <None Remove="old_project\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="Finbuckle.MultiTenant.AspNetCore" Version="10.0.1" />
     <PackageReference Include="Finbuckle.MultiTenant.EntityFrameworkCore" Version="10.0.1" />

@@ -3,6 +3,7 @@ using System;
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.MasterDb
 {
     [DbContext(typeof(MasterDbContext))]
-    partial class MasterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260102123212_AddSyncProgress")]
+    partial class AddSyncProgress
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -364,8 +367,6 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProfileId");
-
                     b.ToTable("RadiusUsers");
                 });
 
@@ -392,7 +393,7 @@ namespace Backend.Migrations.MasterDb
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("MaxItemInPagePerRequest")
+                    b.Property<int>("MaxPagesPerRequest")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -549,16 +550,6 @@ namespace Backend.Migrations.MasterDb
                         .IsUnique();
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Backend.Models.RadiusUser", b =>
-                {
-                    b.HasOne("Backend.Models.RadiusProfile", "Profile")
-                        .WithMany()
-                        .HasForeignKey("ProfileId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Backend.Models.User", b =>

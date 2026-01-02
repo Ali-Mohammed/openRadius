@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Backend.Data;
 using Backend.Models;
 using Backend.Services;
+using Backend.Hubs;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.Extensions;
@@ -89,6 +90,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Add SignalR for real-time sync progress updates
+builder.Services.AddSignalR();
+
+// Add HttpClient for SAS API calls
+builder.Services.AddHttpClient();
+
+// Add SAS Sync Service
+builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -213,5 +223,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SasSyncHub>("/hubs/sassync");
 
 app.Run();

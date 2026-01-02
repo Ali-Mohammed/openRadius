@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"@tanstack/react-virtual": "^3.13.14",
 		"sonner": "^2.0.7"
 	}
 }

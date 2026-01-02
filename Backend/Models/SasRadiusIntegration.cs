@@ -9,7 +9,7 @@ public class SasRadiusIntegration
     public required string Password { get; set; }
     public bool UseHttps { get; set; }
     public bool IsActive { get; set; }
-    public int MaxPagesPerRequest { get; set; } = 10;
+    public int MaxItemInPagePerRequest { get; set; } = 100; // Items per page for each API request
     public string? Action { get; set; }
     public string? Description { get; set; }
     public int InstantId { get; set; }
