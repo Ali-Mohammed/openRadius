@@ -12,7 +12,9 @@ public class SasRadiusIntegration
     public int MaxItemInPagePerRequest { get; set; } = 100; // Items per page for each API request
     public string? Action { get; set; }
     public string? Description { get; set; }
-    public int InstantId { get; set; }
+    public int WorkspaceId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+
+

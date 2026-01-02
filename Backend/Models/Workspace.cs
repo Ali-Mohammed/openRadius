@@ -1,6 +1,6 @@
 namespace Backend.Models;
 
-public class Instant
+public class Workspace
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
@@ -18,7 +18,7 @@ public class Instant
     public string? DeletedBy { get; set; }
 }
 
-public class InstantDto
+public class WorkspaceDto
 {
     public string Title { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
@@ -28,3 +28,5 @@ public class InstantDto
     public string Status { get; set; } = "active";
     public string Color { get; set; } = "#3b82f6";
 }
+
+

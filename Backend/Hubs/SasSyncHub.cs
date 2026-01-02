@@ -17,3 +17,4 @@ public class SasSyncHub : Hub
         await Clients.Caller.SendAsync("LeftSyncSession", syncId);
     }
 }
+

@@ -8,97 +8,97 @@ namespace Backend.Services;
 
 /// <summary>
 /// Custom tenant store that loads tenant information from the master database
-/// based on Instant records.
+/// based on Workspace records.
 /// </summary>
-public class InstantTenantStore : IMultiTenantStore<InstantTenantInfo>
+public class WorkspaceTenantStore : IMultiTenantStore<WorkspaceTenantInfo>
 {
     private readonly MasterDbContext _masterDbContext;
     private readonly IConfiguration _configuration;
 
-    public InstantTenantStore(MasterDbContext masterDbContext, IConfiguration configuration)
+    public WorkspaceTenantStore(MasterDbContext masterDbContext, IConfiguration configuration)
     {
         _masterDbContext = masterDbContext;
         _configuration = configuration;
     }
 
-    public async Task<InstantTenantInfo?> GetAsync(string id)
+    public async Task<WorkspaceTenantInfo?> GetAsync(string id)
     {
-        var instant = await _masterDbContext.Instants
+        var workspace = await _masterDbContext.Workspaces
             .FirstOrDefaultAsync(i => i.Id.ToString() == id && i.DeletedAt == null);
         
-        return instant != null ? MapToTenantInfo(instant) : null;
+        return workspace != null ? MapToTenantInfo(workspace) : null;
     }
 
-    public async Task<IEnumerable<InstantTenantInfo>> GetAllAsync(int skip = 0, int take = 100)
+    public async Task<IEnumerable<WorkspaceTenantInfo>> GetAllAsync(int skip = 0, int take = 100)
     {
-        var instants = await _masterDbContext.Instants
+        var workspaces = await _masterDbContext.Workspaces
             .Where(i => i.DeletedAt == null)
             .Skip(skip)
             .Take(take)
             .ToListAsync();
         
-        return instants.Select(MapToTenantInfo);
+        return workspaces.Select(MapToTenantInfo);
     }
 
-    public async Task<IEnumerable<InstantTenantInfo>> GetAllAsync()
+    public async Task<IEnumerable<WorkspaceTenantInfo>> GetAllAsync()
     {
-        var instants = await _masterDbContext.Instants
+        var workspaces = await _masterDbContext.Workspaces
             .Where(i => i.DeletedAt == null)
             .ToListAsync();
         
-        return instants.Select(MapToTenantInfo);
+        return workspaces.Select(MapToTenantInfo);
     }
 
-    public async Task<InstantTenantInfo?> GetByIdentifierAsync(string identifier)
+    public async Task<WorkspaceTenantInfo?> GetByIdentifierAsync(string identifier)
     {
-        var instant = await _masterDbContext.Instants
+        var workspace = await _masterDbContext.Workspaces
             .FirstOrDefaultAsync(i => i.Name == identifier && i.DeletedAt == null);
         
-        return instant != null ? MapToTenantInfo(instant) : null;
+        return workspace != null ? MapToTenantInfo(workspace) : null;
     }
 
-    public async Task<bool> AddAsync(InstantTenantInfo tenantInfo)
+    public async Task<bool> AddAsync(WorkspaceTenantInfo tenantInfo)
     {
-        // This would be handled through the Instant creation endpoint
+        // This would be handled through the Workspace creation endpoint
         await Task.CompletedTask;
         return false;
     }
 
     public async Task<bool> RemoveAsync(string identifier)
     {
-        // This would be handled through the Instant deletion endpoint
+        // This would be handled through the Workspace deletion endpoint
         await Task.CompletedTask;
         return false;
     }
 
-    public async Task<bool> UpdateAsync(InstantTenantInfo tenantInfo)
+    public async Task<bool> UpdateAsync(WorkspaceTenantInfo tenantInfo)
     {
-        // This would be handled through the Instant update endpoint
+        // This would be handled through the Workspace update endpoint
         await Task.CompletedTask;
         return false;
     }
 
-    private InstantTenantInfo MapToTenantInfo(Instant instant)
+    private WorkspaceTenantInfo MapToTenantInfo(Workspace workspace)
     {
-        // Generate a unique connection string for each instant/tenant
+        // Generate a unique connection string for each workspace/tenant
         var baseConnectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
         
-        // Create a unique database name for each instant
+        // Create a unique database name for each workspace
         var tenantConnectionString = baseConnectionString.Replace(
             GetDatabaseName(baseConnectionString), 
-            $"openradius_instant_{instant.Id}"
+            $"openradius_workspace_{workspace.Id}"
         );
 
-        return new InstantTenantInfo
+        return new WorkspaceTenantInfo
         {
-            Id = instant.Id.ToString(),
-            Identifier = instant.Name,
-            Name = instant.Title,
+            Id = workspace.Id.ToString(),
+            Identifier = workspace.Name,
+            Name = workspace.Title,
             ConnectionString = tenantConnectionString,
-            InstantId = instant.Id,
-            DisplayName = instant.Title,
-            Location = instant.Location,
-            IsActive = instant.Status == "active"
+            WorkspaceId = workspace.Id,
+            DisplayName = workspace.Title,
+            Location = workspace.Location,
+            IsActive = workspace.Status == "active"
         };
     }
 
@@ -116,3 +116,5 @@ public class InstantTenantStore : IMultiTenantStore<InstantTenantInfo>
         return "openradius";
     }
 }
+
+

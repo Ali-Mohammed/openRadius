@@ -27,13 +27,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../components/ui/dialog'
-import { instantApi } from '../lib/api'
+import { workspaceApi } from '../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration } from '../api/sasRadiusApi'
 import { SyncProgressDialog } from '../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../utils/errorHandler'
 
-export default function InstantSettings() {
+export default function WorkspaceSettings() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   
@@ -61,9 +61,9 @@ export default function InstantSettings() {
     description: '',
   })
 
-  const { data: instant, isLoading } = useQuery({
-    queryKey: ['instant', id],
-    queryFn: () => instantApi.getById(Number(id)),
+  const { data: workspace, isLoading } = useQuery({
+    queryKey: ['workspace', id],
+    queryFn: () => workspaceApi.getById(Number(id)),
     enabled: !!id,
   })
 
@@ -225,10 +225,10 @@ export default function InstantSettings() {
     )
   }
 
-  if (!instant) {
+  if (!workspace) {
     return (
       <div className="space-y-6">
-        <p className="text-destructive">Instant not found</p>
+        <p className="text-destructive">workspace not found</p>
       </div>
     )
   }
@@ -236,7 +236,7 @@ export default function InstantSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{instant.name} Settings</h1>
+        <h1 className="text-3xl font-bold">{workspace.name} Settings</h1>
         <p className="text-muted-foreground">Configure SAS Radius 4 Integration</p>
       </div>
 
@@ -245,7 +245,7 @@ export default function InstantSettings() {
           <div>
             <CardTitle>SAS Radius 4 Integration</CardTitle>
             <CardDescription>
-              Manage external RADIUS servers for this instant
+              Manage external RADIUS servers for this workspace
             </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -645,8 +645,9 @@ export default function InstantSettings() {
         open={isSyncDialogOpen}
         onOpenChange={setIsSyncDialogOpen}
         syncId={activeSyncId}
-        instantId={Number(id)}
+        workspaceId={Number(id)}
       />
     </div>
   )
 }
+

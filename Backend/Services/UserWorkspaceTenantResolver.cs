@@ -7,14 +7,14 @@ using System.Security.Claims;
 namespace Backend.Services;
 
 /// <summary>
-/// Resolves the current tenant based on user's CurrentInstantId from JWT claims or header.
-/// Falls back to DefaultInstantId if CurrentInstantId is not set.
+/// Resolves the current tenant based on user's CurrentWorkspaceId from JWT claims or header.
+/// Falls back to DefaultWorkspaceId if CurrentWorkspaceId is not set.
 /// </summary>
-public class UserInstantTenantResolver : IMultiTenantStrategy
+public class UserWorkspaceTenantResolver : IMultiTenantStrategy
 {
     private readonly MasterDbContext _masterDbContext;
 
-    public UserInstantTenantResolver(MasterDbContext masterDbContext)
+    public UserWorkspaceTenantResolver(MasterDbContext masterDbContext)
     {
         _masterDbContext = masterDbContext;
     }
@@ -38,18 +38,20 @@ public class UserInstantTenantResolver : IMultiTenantStrategy
         if (string.IsNullOrEmpty(userEmail))
             return null;
 
-        // Look up user's current or default instant
+        // Look up user's current or default workspace
         var user = await _masterDbContext.Users
-            .Include(u => u.CurrentInstant)
-            .Include(u => u.DefaultInstant)
+            .Include(u => u.CurrentWorkspace)
+            .Include(u => u.DefaultWorkspace)
             .FirstOrDefaultAsync(u => u.Email == userEmail);
 
         if (user == null)
             return null;
 
-        // Use CurrentInstant if set, otherwise fall back to DefaultInstant
-        var instantId = user.CurrentInstantId ?? user.DefaultInstantId;
+        // Use CurrentWorkspace if set, otherwise fall back to DefaultWorkspace
+        var WorkspaceId = user.CurrentWorkspaceId ?? user.DefaultWorkspaceId;
         
-        return instantId?.ToString();
+        return WorkspaceId?.ToString();
     }
 }
+
+

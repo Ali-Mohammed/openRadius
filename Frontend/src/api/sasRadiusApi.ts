@@ -11,7 +11,7 @@ export interface SasRadiusIntegration {
   maxItemInPagePerRequest?: number
   action?: string
   description?: string
-  instantId?: number
+  workspaceId?: number
   createdAt?: string
   updatedAt?: string
 }
@@ -20,7 +20,7 @@ export interface SyncProgress {
   syncId: string
   integrationId: number
   integrationName: string
-  instantId: number
+  workspaceId: number
   status: number
   currentPhase: number
   profileCurrentPage: number
@@ -56,46 +56,46 @@ export interface PaginatedSyncResponse {
 }
 
 export const sasRadiusApi = {
-  getAll: async (instantId: number): Promise<SasRadiusIntegration[]> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/sas-radius`)
+  getAll: async (workspaceId: number): Promise<SasRadiusIntegration[]> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius`)
     return response.data
   },
 
-  getById: async (instantId: number, id: number): Promise<SasRadiusIntegration> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/sas-radius/${id}`)
+  getById: async (workspaceId: number, id: number): Promise<SasRadiusIntegration> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius/${id}`)
     return response.data
   },
 
-  create: async (instantId: number, data: SasRadiusIntegration): Promise<SasRadiusIntegration> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/sas-radius`, data)
+  create: async (workspaceId: number, data: SasRadiusIntegration): Promise<SasRadiusIntegration> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius`, data)
     return response.data
   },
 
-  update: async (instantId: number, id: number, data: SasRadiusIntegration): Promise<void> => {
-    await apiClient.put(`/api/instants/${instantId}/sas-radius/${id}`, { ...data, id })
+  update: async (workspaceId: number, id: number, data: SasRadiusIntegration): Promise<void> => {
+    await apiClient.put(`/api/workspaces/${workspaceId}/sas-radius/${id}`, { ...data, id })
   },
 
-  delete: async (instantId: number, id: number): Promise<void> => {
-    await apiClient.delete(`/api/instants/${instantId}/sas-radius/${id}`)
+  delete: async (workspaceId: number, id: number): Promise<void> => {
+    await apiClient.delete(`/api/workspaces/${workspaceId}/sas-radius/${id}`)
   },
 
-  sync: async (instantId: number, id: number, fullSync: boolean = false): Promise<{ syncId: string; message: string; integrationId: number; integrationName: string; instantId: number }> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/sas-radius/${id}/sync?fullSync=${fullSync}`)
+  sync: async (workspaceId: number, id: number, fullSync: boolean = false): Promise<{ syncId: string; message: string; integrationId: number; integrationName: string; workspaceId: number }> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/${id}/sync?fullSync=${fullSync}`)
     return response.data
   },
 
-  getActiveSyncs: async (instantId: number): Promise<SyncProgress[]> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/sas-radius/syncs/active`)
+  getActiveSyncs: async (workspaceId: number): Promise<SyncProgress[]> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius/syncs/active`)
     return response.data
   },
 
-  getSyncProgress: async (instantId: number, syncId: string): Promise<SyncProgress> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/sas-radius/syncs/${syncId}`)
+  getSyncProgress: async (workspaceId: number, syncId: string): Promise<SyncProgress> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius/syncs/${syncId}`)
     return response.data
   },
 
   getAllSyncs: async (
-    instantId: number, 
+    workspaceId: number, 
     page: number = 1,
     pageSize: number = 20,
     sortBy: string = 'startedAt',
@@ -111,12 +111,13 @@ export const sasRadiusApi = {
     if (status !== undefined) {
       params.append('status', status.toString())
     }
-    const response = await apiClient.get(`/api/instants/${instantId}/sas-radius/syncs?${params.toString()}`)
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius/syncs?${params.toString()}`)
     return response.data
   },
 
-  cancelSync: async (instantId: number, syncId: string): Promise<{ message: string; syncId: string }> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/sas-radius/syncs/${syncId}/cancel`)
+  cancelSync: async (workspaceId: number, syncId: string): Promise<{ message: string; syncId: string }> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/syncs/${syncId}/cancel`)
     return response.data
   },
 }
+

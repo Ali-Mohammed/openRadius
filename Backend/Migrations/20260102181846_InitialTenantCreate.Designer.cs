@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Backend.Migrations.MasterDb
+namespace Backend.Migrations
 {
-    [DbContext(typeof(MasterDbContext))]
-    [Migration("20260102063904_AddSasRadiusIntegration")]
-    partial class AddSasRadiusIntegration
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260102181846_InitialTenantCreate")]
+    partial class InitialTenantCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,67 +24,6 @@ namespace Backend.Migrations.MasterDb
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Backend.Models.Instant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Comments")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Instants");
-                });
 
             modelBuilder.Entity("Backend.Models.OidcSettings", b =>
                 {
@@ -169,56 +108,6 @@ namespace Backend.Migrations.MasterDb
                     b.ToTable("OidcSettings");
                 });
 
-            modelBuilder.Entity("Backend.Models.SasRadiusIntegration", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Action")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<int>("InstantId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("UseHttps")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SasRadiusIntegrations");
-                });
-
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -230,10 +119,10 @@ namespace Backend.Migrations.MasterDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("CurrentInstantId")
+                    b.Property<int?>("CurrentWorkspaceId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("DefaultInstantId")
+                    b.Property<int?>("DefaultWorkspaceId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Email")
@@ -251,9 +140,9 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrentInstantId");
+                    b.HasIndex("CurrentWorkspaceId");
 
-                    b.HasIndex("DefaultInstantId");
+                    b.HasIndex("DefaultWorkspaceId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -261,21 +150,82 @@ namespace Backend.Migrations.MasterDb
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Backend.Models.Workspace", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Comments")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Workspace");
+                });
+
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
-                    b.HasOne("Backend.Models.Instant", "CurrentInstant")
+                    b.HasOne("Backend.Models.Workspace", "CurrentWorkspace")
                         .WithMany()
-                        .HasForeignKey("CurrentInstantId")
+                        .HasForeignKey("CurrentWorkspaceId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Backend.Models.Instant", "DefaultInstant")
+                    b.HasOne("Backend.Models.Workspace", "DefaultWorkspace")
                         .WithMany()
-                        .HasForeignKey("DefaultInstantId")
+                        .HasForeignKey("DefaultWorkspaceId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("CurrentInstant");
+                    b.Navigation("CurrentWorkspace");
 
-                    b.Navigation("DefaultInstant");
+                    b.Navigation("DefaultWorkspace");
                 });
 #pragma warning restore 612, 618
         }

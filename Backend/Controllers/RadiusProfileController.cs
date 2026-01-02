@@ -6,7 +6,7 @@ using Backend.Models;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/instants/{instantId}/radius/profiles")]
+[Route("api/workspaces/{WorkspaceId}/radius/profiles")]
 public class RadiusProfileController : ControllerBase
 {
     private readonly MasterDbContext _context;
@@ -20,13 +20,13 @@ public class RadiusProfileController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<object>> GetProfiles(
-        int instantId,
+        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null)
     {
         var query = _context.RadiusProfiles
-            .Where(p => p.InstantId == instantId);
+            .Where(p => p.WorkspaceId == WorkspaceId);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -84,10 +84,10 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusProfileResponse>> GetProfile(int instantId, int id)
+    public async Task<ActionResult<RadiusProfileResponse>> GetProfile(int WorkspaceId, int id)
     {
         var profile = await _context.RadiusProfiles
-            .Where(p => p.Id == id && p.InstantId == instantId)
+            .Where(p => p.Id == id && p.WorkspaceId == WorkspaceId)
             .Select(p => new RadiusProfileResponse
             {
                 Id = p.Id,
@@ -122,12 +122,12 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<RadiusProfileResponse>> CreateProfile(int instantId, [FromBody] CreateProfileRequest request)
+    public async Task<ActionResult<RadiusProfileResponse>> CreateProfile(int WorkspaceId, [FromBody] CreateProfileRequest request)
     {
-        var instant = await _context.Instants.FindAsync(instantId);
-        if (instant == null)
+        var workspace = await _context.Workspaces.FindAsync(WorkspaceId);
+        if (workspace == null)
         {
-            return NotFound($"Instant with ID {instantId} not found");
+            return NotFound($"Workspace with ID {WorkspaceId} not found");
         }
 
         var profile = new RadiusProfile
@@ -145,7 +145,7 @@ public class RadiusProfileController : ControllerBase
             ExpirationAmount = request.ExpirationAmount,
             ExpirationUnit = request.ExpirationUnit,
             SiteId = request.SiteId,
-            InstantId = instantId,
+            WorkspaceId = WorkspaceId,
             ExternalId = 0,
             OnlineUsersCount = 0,
             UsersCount = 0,
@@ -157,7 +157,7 @@ public class RadiusProfileController : ControllerBase
         _context.RadiusProfiles.Add(profile);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created radius profile {Name} for instant {InstantId}", profile.Name, instantId);
+        _logger.LogInformation("Created radius profile {Name} for instant {WorkspaceId}", profile.Name, WorkspaceId);
 
         var response = new RadiusProfileResponse
         {
@@ -183,14 +183,14 @@ public class RadiusProfileController : ControllerBase
             LastSyncedAt = profile.LastSyncedAt
         };
 
-        return CreatedAtAction(nameof(GetProfile), new { instantId, id = profile.Id }, response);
+        return CreatedAtAction(nameof(GetProfile), new { WorkspaceId, id = profile.Id }, response);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProfile(int instantId, int id, [FromBody] UpdateProfileRequest request)
+    public async Task<IActionResult> UpdateProfile(int WorkspaceId, int id, [FromBody] UpdateProfileRequest request)
     {
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.InstantId == instantId);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId);
 
         if (profile == null)
         {
@@ -214,16 +214,16 @@ public class RadiusProfileController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Updated radius profile {Name} for instant {InstantId}", profile.Name, instantId);
+        _logger.LogInformation("Updated radius profile {Name} for instant {WorkspaceId}", profile.Name, WorkspaceId);
 
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProfile(int instantId, int id)
+    public async Task<IActionResult> DeleteProfile(int WorkspaceId, int id)
     {
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.InstantId == instantId);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId);
 
         if (profile == null)
         {
@@ -233,13 +233,13 @@ public class RadiusProfileController : ControllerBase
         _context.RadiusProfiles.Remove(profile);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Deleted radius profile {Name} for instant {InstantId}", profile.Name, instantId);
+        _logger.LogInformation("Deleted radius profile {Name} for instant {WorkspaceId}", profile.Name, WorkspaceId);
 
         return NoContent();
     }
 
     [HttpPost("sync")]
-    public async Task<ActionResult<SyncProfileResponse>> SyncProfiles(int instantId)
+    public async Task<ActionResult<SyncProfileResponse>> SyncProfiles(int WorkspaceId)
     {
         var syncId = Guid.NewGuid().ToString();
         var startedAt = DateTime.UtcNow;
@@ -262,13 +262,13 @@ public class RadiusProfileController : ControllerBase
                 CompletedAt = DateTime.UtcNow
             };
 
-            _logger.LogInformation("Synced radius profiles for instant {InstantId}. SyncId: {SyncId}", instantId, syncId);
+            _logger.LogInformation("Synced radius profiles for instant {WorkspaceId}. SyncId: {SyncId}", WorkspaceId, syncId);
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to sync radius profiles for instant {InstantId}", instantId);
+            _logger.LogError(ex, "Failed to sync radius profiles for instant {WorkspaceId}", WorkspaceId);
 
             return Ok(new SyncProfileResponse
             {
@@ -286,3 +286,8 @@ public class RadiusProfileController : ControllerBase
         }
     }
 }
+
+
+
+
+

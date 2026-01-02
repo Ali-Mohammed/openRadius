@@ -27,8 +27,8 @@ import {
 } from "@/components/ui/sidebar"
 
 // This is sample data.
-// TODO: Make instant ID dynamic based on selected/active instant
-const DEFAULT_INSTANT_ID = 1
+// TODO: Make workspace ID dynamic based on selected/active workspace
+const DEFAULT_workspace_ID = 1
 
 const data = {
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
@@ -49,25 +49,25 @@ const data = {
       items: [
         {
           title: "Users",
-          url: `/instant/${DEFAULT_INSTANT_ID}/radius/users`,
+          url: `/workspace/${DEFAULT_workspace_ID}/radius/users`,
         },
         {
           title: "Profiles",
-          url: `/instant/${DEFAULT_INSTANT_ID}/radius/profiles`,
+          url: `/workspace/${DEFAULT_workspace_ID}/radius/profiles`,
         },
       ],
     },
     {
-      title: "Instant",
+      title: "workspace",
       url: "#",
       items: [
         {
           title: "View",
-          url: "/instant/view",
+          url: "/workspace/view",
         },
         {
           title: "Setting",
-          url: "/instant/setting",
+          url: "/workspace/setting",
         },
       ],
     },
@@ -153,3 +153,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
+

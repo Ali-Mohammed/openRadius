@@ -116,7 +116,7 @@ public class RadiusProfile
     public int? SiteId { get; set; }
     public int OnlineUsersCount { get; set; }
     public int UsersCount { get; set; }
-    public int InstantId { get; set; }
+    public int WorkspaceId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime LastSyncedAt { get; set; }
@@ -195,3 +195,5 @@ public class UpdateProfileRequest
     public int ExpirationUnit { get; set; }
     public int? SiteId { get; set; }
 }
+
+

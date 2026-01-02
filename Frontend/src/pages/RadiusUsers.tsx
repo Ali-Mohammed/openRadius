@@ -15,8 +15,8 @@ import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-// Hardcoded instantId for now - will be dynamic based on routing later
-const INSTANT_ID = 1
+// Hardcoded workspaceId for now - will be dynamic based on routing later
+const WORKSPACE_ID = 1
 
 export default function RadiusUsers() {
   const queryClient = useQueryClient()
@@ -51,8 +51,8 @@ export default function RadiusUsers() {
 
   // Queries
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['radius-users', INSTANT_ID, currentPage, pageSize, searchQuery],
-    queryFn: () => radiusUserApi.getAll(INSTANT_ID, currentPage, pageSize, searchQuery),
+    queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery],
+    queryFn: () => radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery),
   })
 
   const users = usersData?.data || []
@@ -68,9 +68,9 @@ export default function RadiusUsers() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: any) => radiusUserApi.create(INSTANT_ID, data),
+    mutationFn: (data: any) => radiusUserApi.create(WORKSPACE_ID, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', INSTANT_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
       toast.success('User created successfully')
       handleCloseDialog()
     },
@@ -81,9 +81,9 @@ export default function RadiusUsers() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      radiusUserApi.update(INSTANT_ID, id, data),
+      radiusUserApi.update(WORKSPACE_ID, id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', INSTANT_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
       toast.success('User updated successfully')
       handleCloseDialog()
     },
@@ -93,9 +93,9 @@ export default function RadiusUsers() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => radiusUserApi.delete(INSTANT_ID, id),
+    mutationFn: (id: number) => radiusUserApi.delete(WORKSPACE_ID, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', INSTANT_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
       toast.success('User deleted successfully')
     },
     onError: (error: any) => {
@@ -104,9 +104,9 @@ export default function RadiusUsers() {
   })
 
   const syncMutation = useMutation({
-    mutationFn: () => radiusUserApi.sync(INSTANT_ID),
+    mutationFn: () => radiusUserApi.sync(WORKSPACE_ID),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', INSTANT_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
       toast.success(
         `Synced ${response.totalUsers} users (${response.newUsers} created, ${response.updatedUsers} updated)`
       )
@@ -626,3 +626,4 @@ export default function RadiusUsers() {
     </div>
   )
 }
+

@@ -26,7 +26,7 @@ export interface SyncProgressUpdate {
   syncId: string;
   integrationId: number;
   integrationName: string;
-  instantId: number;
+  workspaceId: number;
   status: SyncStatus;
   currentPhase: SyncPhase;
   profileCurrentPage: number;
@@ -146,3 +146,4 @@ export const useSyncHub = (syncId?: string) => {
     leaveSession
   };
 };
+

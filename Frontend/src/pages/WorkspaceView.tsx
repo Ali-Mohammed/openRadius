@@ -56,12 +56,12 @@ import {
   TabsTrigger,
 } from '../components/ui/tabs'
 import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { instantApi } from '../lib/api'
+import { workspaceApi } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
-import type { Instant, InstantCreateDto } from '../lib/api'
+import type { Workspace, WorkspaceCreateDto } from '../lib/api'
 import { toast } from 'sonner'
 
-export default function InstantView() {
+export default function workspaceView() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -74,12 +74,12 @@ export default function InstantView() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
-  const [instantToDelete, setInstantToDelete] = useState<number | null>(null)
-  const [instantToRestore, setInstantToRestore] = useState<number | null>(null)
+  const [workspaceToDelete, setworkspaceToDelete] = useState<number | null>(null)
+  const [workspaceToRestore, setworkspaceToRestore] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
-  const [editingInstant, setEditingInstant] = useState<Instant | null>(null)
-  const [formData, setFormData] = useState<InstantCreateDto>({
+  const [editingworkspace, setEditingworkspace] = useState<Workspace | null>(null)
+  const [formData, setFormData] = useState<workspaceCreateDto>({
     title: '',
     name: '',
     location: '',
@@ -89,20 +89,20 @@ export default function InstantView() {
     color: '#3b82f6',
   })
 
-  // Fetch instants
-  const { data: instants = [], isLoading, refetch } = useQuery({
-    queryKey: ['instants'],
-    queryFn: () => instantApi.getAll({
+  // Fetch workspaces
+  const { data: workspaces = [], isLoading, refetch } = useQuery({
+    queryKey: ['workspaces'],
+    queryFn: () => workspaceApi.getAll({
       search: globalFilter,
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     }),
   })
 
-  // Fetch deleted instants
-  const { data: deletedInstants = [], refetch: refetchDeleted } = useQuery({
-    queryKey: ['instants-deleted'],
-    queryFn: () => instantApi.getDeleted(),
+  // Fetch deleted workspaces
+  const { data: deletedworkspaces = [], refetch: refetchDeleted } = useQuery({
+    queryKey: ['workspaces-deleted'],
+    queryFn: () => workspaceApi.getDeleted(),
   })
 
   // Refetch when sorting or filter changes
@@ -117,60 +117,60 @@ export default function InstantView() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: instantApi.create,
+    mutationFn: workspaceApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instants'] })
-      toast.success('Instant created successfully')
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      toast.success('Workspace created successfully')
       setOpen(false)
       resetForm()
     },
     onError: () => {
-      toast.error('Failed to create instant')
+      toast.error('Failed to create Workspace')
     },
   })
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<InstantCreateDto> }) => 
-      instantApi.update(id, data),
+    mutationFn: ({ id, data }: { id: number; data: Partial<workspaceCreateDto> }) => 
+      workspaceApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instants'] })
-      toast.success('Instant updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      toast.success('Workspace updated successfully')
       setOpen(false)
       resetForm()
     },
     onError: () => {
-      toast.error('Failed to update instant')
+      toast.error('Failed to update Workspace')
     },
   })
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: instantApi.delete,
+    mutationFn: workspaceApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instants'] })
-      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
-      toast.success('Instant deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+      toast.success('Workspace deleted successfully')
     },
     onError: () => {
-      toast.error('Failed to delete instant')
+      toast.error('Failed to delete Workspace')
     },
   })
 
   // Restore mutation
   const restoreMutation = useMutation({
-    mutationFn: instantApi.restore,
+    mutationFn: workspaceApi.restore,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instants'] })
-      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
-      toast.success('Instant restored successfully')
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+      toast.success('Workspace restored successfully')
     },
     onError: () => {
-      toast.error('Failed to restore instant')
+      toast.error('Failed to restore Workspace')
     },
   })
 
-  const columns: ColumnDef<Instant>[] = [
+  const columns: ColumnDef<Workspace>[] = [
     {
       id: 'select',
       header: ({ table }) => (
@@ -312,27 +312,27 @@ export default function InstantView() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
-        const instant = row.original
+        const Workspace = row.original
         return (
           <div className="flex gap-2">
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => navigate(`/instant/${instant.id}/settings`)}
+              onClick={() => navigate(`/Workspace/${Workspace.id}/settings`)}
             >
               <Settings className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => handleEdit(instant)}
+              onClick={() => handleEdit(Workspace)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => handleDelete(instant.id)}
+              onClick={() => handleDelete(Workspace.id)}
             >
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
@@ -343,7 +343,7 @@ export default function InstantView() {
   ]
 
   // Columns for deleted items
-  const deletedColumns: ColumnDef<Instant>[] = [
+  const deletedColumns: ColumnDef<Workspace>[] = [
     {
       id: 'select',
       header: ({ table }) => (
@@ -401,12 +401,12 @@ export default function InstantView() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
-        const instant = row.original
+        const Workspace = row.original
         return (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleRestore(instant.id)}
+            onClick={() => handleRestore(Workspace.id)}
           >
             <RotateCcw className="mr-2 h-4 w-4" />
             Restore
@@ -417,7 +417,7 @@ export default function InstantView() {
   ]
 
   const table = useReactTable({
-    data: instants,
+    data: workspaces,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -432,7 +432,7 @@ export default function InstantView() {
   })
 
   const deletedTable = useReactTable({
-    data: deletedInstants,
+    data: deletedworkspaces,
     columns: deletedColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -452,53 +452,53 @@ export default function InstantView() {
       status: 'active',
       color: '#3b82f6',
     })
-    setEditingInstant(null)
+    setEditingworkspace(null)
   }
 
-  const handleEdit = (instant: Instant) => {
-    setEditingInstant(instant)
+  const handleEdit = (Workspace: Workspace) => {
+    setEditingworkspace(Workspace)
     setFormData({
-      title: instant.title,
-      name: instant.name,
-      location: instant.location,
-      description: instant.description,
-      comments: instant.comments,
-      status: instant.status,
-      color: instant.color,
+      title: Workspace.title,
+      name: Workspace.name,
+      location: Workspace.location,
+      description: Workspace.description,
+      comments: Workspace.comments,
+      status: Workspace.status,
+      color: Workspace.color,
     })
     setOpen(true)
   }
 
   const handleDelete = (id: number) => {
-    setInstantToDelete(id)
+    setworkspaceToDelete(id)
     setDeleteDialogOpen(true)
   }
 
   const handleRestore = (id: number) => {
-    setInstantToRestore(id)
+    setworkspaceToRestore(id)
     setRestoreDialogOpen(true)
   }
 
   const confirmDelete = () => {
-    if (instantToDelete) {
-      deleteMutation.mutate(instantToDelete)
+    if (workspaceToDelete) {
+      deleteMutation.mutate(workspaceToDelete)
       setDeleteDialogOpen(false)
-      setInstantToDelete(null)
+      setworkspaceToDelete(null)
     }
   }
 
   const confirmRestore = () => {
-    if (instantToRestore) {
-      restoreMutation.mutate(instantToRestore)
+    if (workspaceToRestore) {
+      restoreMutation.mutate(workspaceToRestore)
       setRestoreDialogOpen(false)
-      setInstantToRestore(null)
+      setworkspaceToRestore(null)
     }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (editingInstant) {
-      updateMutation.mutate({ id: editingInstant.id, data: formData })
+    if (editingworkspace) {
+      updateMutation.mutate({ id: editingworkspace.id, data: formData })
     } else {
       createMutation.mutate(formData)
     }
@@ -525,12 +525,12 @@ export default function InstantView() {
 
   const confirmBulkDelete = async () => {
     const selectedRows = table.getFilteredSelectedRowModel().rows
-    const promises = selectedRows.map(row => instantApi.delete(row.original.id))
+    const promises = selectedRows.map(row => workspaceApi.delete(row.original.id))
     
     try {
       await Promise.all(promises)
-      queryClient.invalidateQueries({ queryKey: ['instants'] })
-      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       toast.success(`${selectedRows.length} item(s) deleted successfully`)
       setRowSelection({})
       setBulkDeleteDialogOpen(false)
@@ -550,12 +550,12 @@ export default function InstantView() {
 
   const confirmBulkRestore = async () => {
     const selectedRows = deletedTable.getFilteredSelectedRowModel().rows
-    const promises = selectedRows.map(row => instantApi.restore(row.original.id))
+    const promises = selectedRows.map(row => workspaceApi.restore(row.original.id))
     
     try {
       await Promise.all(promises)
-      queryClient.invalidateQueries({ queryKey: ['instants'] })
-      queryClient.invalidateQueries({ queryKey: ['instants-deleted'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       toast.success(`${selectedRows.length} item(s) restored successfully`)
       setRowSelection({})
       setBulkRestoreDialogOpen(false)
@@ -570,11 +570,11 @@ export default function InstantView() {
     })
     
     try {
-      const blob = await instantApi.export()
+      const blob = await workspaceApi.export()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `instants_${new Date().toISOString().split('T')[0]}.xlsx`
+      a.download = `workspaces_${new Date().toISOString().split('T')[0]}.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -595,8 +595,8 @@ export default function InstantView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Instant</h1>
-          <p className="text-muted-foreground">Manage your instant entries</p>
+          <h1 className="text-3xl font-bold">Workspace</h1>
+          <p className="text-muted-foreground">Manage your Workspace entries</p>
         </div>
         <Dialog open={open} onOpenChange={(isOpen) => {
           setOpen(isOpen)
@@ -611,9 +611,9 @@ export default function InstantView() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>{editingInstant ? 'Edit Instant' : 'Add New Instant'}</DialogTitle>
+                <DialogTitle>{editingworkspace ? 'Edit Workspace' : 'Add New Workspace'}</DialogTitle>
                 <DialogDescription>
-                  {editingInstant ? 'Update the instant entry details' : 'Fill in the details to create a new instant entry'}
+                  {editingworkspace ? 'Update the Workspace entry details' : 'Fill in the details to create a new Workspace entry'}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -720,7 +720,7 @@ export default function InstantView() {
                   Cancel
                 </Button>
                 <Button type="submit" variant="default" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingInstant ? 'Update' : 'Add'} Instant
+                  {editingworkspace ? 'Update' : 'Add'} Workspace
                 </Button>
               </DialogFooter>
             </form>
@@ -733,11 +733,11 @@ export default function InstantView() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="active">
-                Active ({instants.length})
+                Active ({workspaces.length})
               </TabsTrigger>
               <TabsTrigger value="deleted">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Deleted ({deletedInstants.length})
+                Deleted ({deletedworkspaces.length})
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -746,7 +746,7 @@ export default function InstantView() {
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search instant entries..."
+                placeholder="Search Workspace entries..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -842,7 +842,7 @@ export default function InstantView() {
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">
             Page {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount()} ({instants.length} total entries)
+            {table.getPageCount()} ({workspaces.length} total entries)
           </p>
           <Select
             value={table.getState().pagination.pageSize.toString()}
@@ -916,7 +916,7 @@ export default function InstantView() {
                 ))}
               </TableHeader>
               <TableBody>
-                {deletedInstants.length ? (
+                {deletedworkspaces.length ? (
                   deletedTable.getRowModel().rows.map((row) => (
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
@@ -947,7 +947,7 @@ export default function InstantView() {
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 Page {deletedTable.getState().pagination.pageIndex + 1} of{' '}
-                {deletedTable.getPageCount()} ({deletedInstants.length} total entries)
+                {deletedTable.getPageCount()} ({deletedworkspaces.length} total entries)
               </p>
               <Select
                 value={deletedTable.getState().pagination.pageSize.toString()}
@@ -1010,11 +1010,11 @@ export default function InstantView() {
                 <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
               <div className="flex-1">
-                <AlertDialogTitle className="text-xl">Delete Instant Entry</AlertDialogTitle>
+                <AlertDialogTitle className="text-xl">Delete Workspace Entry</AlertDialogTitle>
               </div>
             </div>
             <AlertDialogDescription className="pt-3 text-base">
-              Are you absolutely sure you want to delete this instant entry? This action cannot be undone and will permanently remove the entry from the database.
+              Are you absolutely sure you want to delete this Workspace entry? This action cannot be undone and will permanently remove the entry from the database.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
@@ -1050,11 +1050,11 @@ export default function InstantView() {
                 <RotateCcw className="h-6 w-6 text-green-600" />
               </div>
               <div className="flex-1">
-                <AlertDialogTitle className="text-xl">Restore Instant Entry</AlertDialogTitle>
+                <AlertDialogTitle className="text-xl">Restore Workspace Entry</AlertDialogTitle>
               </div>
             </div>
             <AlertDialogDescription className="pt-3 text-base">
-              Do you want to restore this instant entry? It will be moved back to the active list.
+              Do you want to restore this Workspace entry? It will be moved back to the active list.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
@@ -1094,7 +1094,7 @@ export default function InstantView() {
               </div>
             </div>
             <AlertDialogDescription className="pt-3 text-base">
-              Are you sure you want to delete {table.getFilteredSelectedRowModel().rows.length} selected instant entries? 
+              Are you sure you want to delete {table.getFilteredSelectedRowModel().rows.length} selected Workspace entries? 
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1125,7 +1125,7 @@ export default function InstantView() {
               </div>
             </div>
             <AlertDialogDescription className="pt-3 text-base">
-              Do you want to restore {deletedTable.getFilteredSelectedRowModel().rows.length} selected instant entries? 
+              Do you want to restore {deletedTable.getFilteredSelectedRowModel().rows.length} selected Workspace entries? 
               They will be moved back to the active list.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1146,3 +1146,4 @@ export default function InstantView() {
     </div>
   )
 }
+

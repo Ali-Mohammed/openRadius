@@ -4,8 +4,8 @@ using Backend.Models;
 namespace Backend.Data;
 
 /// <summary>
-/// Master database context for managing tenants (Instants).
-/// This context stores the list of all Instants and their connection strings.
+/// Master database context for managing tenants (Workspaces).
+/// This context stores the list of all Workspaces and their connection strings.
 /// </summary>
 public class MasterDbContext : DbContext
 {
@@ -14,7 +14,7 @@ public class MasterDbContext : DbContext
     {
     }
 
-    public DbSet<Instant> Instants { get; set; }
+    public DbSet<Workspace> Workspaces { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<OidcSettings> OidcSettings { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
@@ -32,14 +32,14 @@ public class MasterDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.HasIndex(e => e.Email).IsUnique();
             
-            entity.HasOne(e => e.DefaultInstant)
+            entity.HasOne(e => e.DefaultWorkspace)
                   .WithMany()
-                  .HasForeignKey(e => e.DefaultInstantId)
+                  .HasForeignKey(e => e.DefaultWorkspaceId)
                   .OnDelete(DeleteBehavior.SetNull);
                   
-            entity.HasOne(e => e.CurrentInstant)
+            entity.HasOne(e => e.CurrentWorkspace)
                   .WithMany()
-                  .HasForeignKey(e => e.CurrentInstantId)
+                  .HasForeignKey(e => e.CurrentWorkspaceId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -54,3 +54,4 @@ public class MasterDbContext : DbContext
         });
     }
 }
+

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.MasterDb
 {
     [DbContext(typeof(MasterDbContext))]
-    [Migration("20260102123212_AddSyncProgress")]
-    partial class AddSyncProgress
+    [Migration("20260102181834_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,67 +24,6 @@ namespace Backend.Migrations.MasterDb
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Backend.Models.Instant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Comments")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Instants");
-                });
 
             modelBuilder.Entity("Backend.Models.OidcSettings", b =>
                 {
@@ -198,9 +137,6 @@ namespace Backend.Migrations.MasterDb
                     b.Property<int>("ExternalId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("InstantId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("LastSyncedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -236,6 +172,9 @@ namespace Backend.Migrations.MasterDb
                         .HasColumnType("integer");
 
                     b.Property<int>("UsersCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WorkspaceId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -297,9 +236,6 @@ namespace Backend.Migrations.MasterDb
                         .HasColumnType("text");
 
                     b.Property<int?>("GroupId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("InstantId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("LastOnline")
@@ -365,7 +301,12 @@ namespace Backend.Migrations.MasterDb
                     b.Property<string>("Username")
                         .HasColumnType("text");
 
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ProfileId");
 
                     b.ToTable("RadiusUsers");
                 });
@@ -387,13 +328,10 @@ namespace Backend.Migrations.MasterDb
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<int>("InstantId")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("MaxPagesPerRequest")
+                    b.Property<int>("MaxItemInPagePerRequest")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -418,6 +356,9 @@ namespace Backend.Migrations.MasterDb
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("SasRadiusIntegrations");
@@ -440,9 +381,6 @@ namespace Backend.Migrations.MasterDb
 
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
-
-                    b.Property<int>("InstantId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("IntegrationId")
                         .HasColumnType("integer");
@@ -505,6 +443,9 @@ namespace Backend.Migrations.MasterDb
                     b.Property<int>("UserUpdatedRecords")
                         .HasColumnType("integer");
 
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
                     b.HasKey("SyncId");
 
                     b.ToTable("SyncProgresses");
@@ -521,10 +462,10 @@ namespace Backend.Migrations.MasterDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("CurrentInstantId")
+                    b.Property<int?>("CurrentWorkspaceId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("DefaultInstantId")
+                    b.Property<int?>("DefaultWorkspaceId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Email")
@@ -542,9 +483,9 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrentInstantId");
+                    b.HasIndex("CurrentWorkspaceId");
 
-                    b.HasIndex("DefaultInstantId");
+                    b.HasIndex("DefaultWorkspaceId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -552,21 +493,92 @@ namespace Backend.Migrations.MasterDb
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Backend.Models.Workspace", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Comments")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Workspaces");
+                });
+
+            modelBuilder.Entity("Backend.Models.RadiusUser", b =>
+                {
+                    b.HasOne("Backend.Models.RadiusProfile", "Profile")
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Profile");
+                });
+
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
-                    b.HasOne("Backend.Models.Instant", "CurrentInstant")
+                    b.HasOne("Backend.Models.Workspace", "CurrentWorkspace")
                         .WithMany()
-                        .HasForeignKey("CurrentInstantId")
+                        .HasForeignKey("CurrentWorkspaceId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Backend.Models.Instant", "DefaultInstant")
+                    b.HasOne("Backend.Models.Workspace", "DefaultWorkspace")
                         .WithMany()
-                        .HasForeignKey("DefaultInstantId")
+                        .HasForeignKey("DefaultWorkspaceId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("CurrentInstant");
+                    b.Navigation("CurrentWorkspace");
 
-                    b.Navigation("DefaultInstant");
+                    b.Navigation("DefaultWorkspace");
                 });
 #pragma warning restore 612, 618
         }

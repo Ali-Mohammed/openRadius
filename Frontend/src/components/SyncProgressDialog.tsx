@@ -15,7 +15,7 @@ interface SyncProgressDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   syncId: string | null
-  instantId: number
+  workspaceId: number
 }
 
 const getStatusInfo = (status: SyncStatus) => {
@@ -47,7 +47,7 @@ const getStatusInfo = (status: SyncStatus) => {
   }
 }
 
-export function SyncProgressDialog({ open, onOpenChange, syncId, instantId }: SyncProgressDialogProps) {
+export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId }: SyncProgressDialogProps) {
   const { progress, isConnected } = useSyncHub(syncId || undefined)
   const [initialProgress, setInitialProgress] = useState<SyncProgress | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -58,7 +58,7 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, instantId }: Sy
     if (syncId && open) {
       setIsLoading(true)
       setFetchError(null)
-      sasRadiusApi.getSyncProgress(instantId, syncId)
+      sasRadiusApi.getSyncProgress(workspaceId, syncId)
         .then((data) => {
           setInitialProgress(data)
           setFetchError(null)
@@ -69,13 +69,13 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, instantId }: Sy
         })
         .finally(() => setIsLoading(false))
     }
-  }, [syncId, instantId, open])
+  }, [syncId, workspaceId, open])
 
   // Cancel mutation
   const cancelMutation = useMutation({
     mutationFn: () => {
       if (!syncId) throw new Error('No sync ID')
-      return sasRadiusApi.cancelSync(instantId, syncId)
+      return sasRadiusApi.cancelSync(workspaceId, syncId)
     },
     onSuccess: () => {
       toast.success('Sync cancelled successfully')
@@ -326,3 +326,4 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, instantId }: Sy
     </Dialog>
   )
 }
+

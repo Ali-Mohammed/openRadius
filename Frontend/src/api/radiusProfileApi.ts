@@ -48,7 +48,7 @@ export interface PaginatedProfilesResponse {
 
 export const radiusProfileApi = {
   getAll: async (
-    instantId: number,
+    workspaceId: number,
     page: number = 1,
     pageSize: number = 50,
     search?: string
@@ -60,30 +60,31 @@ export const radiusProfileApi = {
     if (search) {
       params.append('search', search)
     }
-    const response = await apiClient.get(`/api/instants/${instantId}/radius/profiles?${params.toString()}`)
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/profiles?${params.toString()}`)
     return response.data
   },
 
-  getById: async (instantId: number, id: number): Promise<RadiusProfile> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/radius/profiles/${id}`)
+  getById: async (workspaceId: number, id: number): Promise<RadiusProfile> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/profiles/${id}`)
     return response.data
   },
 
-  create: async (instantId: number, data: RadiusProfile): Promise<RadiusProfile> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/radius/profiles`, data)
+  create: async (workspaceId: number, data: RadiusProfile): Promise<RadiusProfile> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/profiles`, data)
     return response.data
   },
 
-  update: async (instantId: number, id: number, data: RadiusProfile): Promise<void> => {
-    await apiClient.put(`/api/instants/${instantId}/radius/profiles/${id}`, { ...data, id })
+  update: async (workspaceId: number, id: number, data: RadiusProfile): Promise<void> => {
+    await apiClient.put(`/api/workspaces/${workspaceId}/radius/profiles/${id}`, { ...data, id })
   },
 
-  delete: async (instantId: number, id: number): Promise<void> => {
-    await apiClient.delete(`/api/instants/${instantId}/radius/profiles/${id}`)
+  delete: async (workspaceId: number, id: number): Promise<void> => {
+    await apiClient.delete(`/api/workspaces/${workspaceId}/radius/profiles/${id}`)
   },
 
-  sync: async (instantId: number): Promise<SyncProfileResponse> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/radius/profiles/sync`)
+  sync: async (workspaceId: number): Promise<SyncProfileResponse> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/profiles/sync`)
     return response.data
   },
 }
+

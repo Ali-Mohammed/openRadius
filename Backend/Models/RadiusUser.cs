@@ -257,7 +257,7 @@ namespace Backend.Models
         public int DebtDays { get; set; }
         
         // Foreign Keys
-        public int InstantId { get; set; }
+        public int WorkspaceId { get; set; }
         
         // Timestamps
         public DateTime CreatedAt { get; set; }
@@ -348,3 +348,5 @@ namespace Backend.Models
         public int? SimultaneousSessions { get; set; }
     }
 }
+
+

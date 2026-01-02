@@ -18,18 +18,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure Master PostgreSQL Database (for tenant/instant management)
+// Configure Master PostgreSQL Database (for tenant/workspace management)
 builder.Services.AddDbContext<MasterDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure Finbuckle.MultiTenant
-builder.Services.AddScoped<InstantTenantStore>();
-builder.Services.AddScoped<UserInstantTenantResolver>();
+builder.Services.AddScoped<WorkspaceTenantStore>();
+builder.Services.AddScoped<UserWorkspaceTenantResolver>();
 
-builder.Services.AddMultiTenant<InstantTenantInfo>()
+builder.Services.AddMultiTenant<WorkspaceTenantInfo>()
     .WithDelegateStrategy(async (IServiceProvider sp) =>
     {
-        var resolver = sp.GetRequiredService<UserInstantTenantResolver>();
+        var resolver = sp.GetRequiredService<UserWorkspaceTenantResolver>();
         var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
         if (httpContext != null)
         {
@@ -38,12 +38,12 @@ builder.Services.AddMultiTenant<InstantTenantInfo>()
         }
         return null;
     })
-    .WithStore<InstantTenantStore>(ServiceLifetime.Scoped);
+    .WithStore<WorkspaceTenantStore>(ServiceLifetime.Scoped);
 
 // Configure tenant-specific ApplicationDbContext with MultiTenant support
 builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
 {
-    var accessor = serviceProvider.GetService<IMultiTenantContextAccessor<InstantTenantInfo>>();
+    var accessor = serviceProvider.GetService<IMultiTenantContextAccessor<WorkspaceTenantInfo>>();
     var connectionString = accessor?.MultiTenantContext?.TenantInfo?.ConnectionString 
         ?? builder.Configuration.GetConnectionString("DefaultConnection");
     options.UseNpgsql(connectionString);
@@ -150,26 +150,26 @@ using (var scope = app.Services.CreateScope())
     }
     
     // Ensure all tenant databases exist
-    var instants = masterContext.Instants.Where(i => i.DeletedAt == null).ToList();
-    foreach (var instant in instants)
+    var workspaces = masterContext.Workspaces.Where(i => i.DeletedAt == null).ToList();
+    foreach (var workspace in workspaces)
     {
         try
         {
             var tenantConnectionString = GetTenantConnectionString(
                 builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
-                instant.Id
+                workspace.Id
             );
             
-            var tenantInfo = new InstantTenantInfo
+            var tenantInfo = new WorkspaceTenantInfo
             {
-                Id = instant.Id.ToString(),
-                Identifier = instant.Name,
-                Name = instant.Title,
+                Id = workspace.Id.ToString(),
+                Identifier = workspace.Name,
+                Name = workspace.Title,
                 ConnectionString = tenantConnectionString,
-                InstantId = instant.Id,
-                DisplayName = instant.Title,
-                Location = instant.Location,
-                IsActive = instant.Status == "active"
+                WorkspaceId = workspace.Id,
+                DisplayName = workspace.Title,
+                Location = workspace.Location,
+                IsActive = workspace.Status == "active"
             };
             
             var tenantDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -178,16 +178,16 @@ using (var scope = app.Services.CreateScope())
                 
             using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
             tenantContext.Database.Migrate();
-            Console.WriteLine($"✓ Tenant database initialized for instant: {instant.Title}");
+            Console.WriteLine($"✓ Tenant database initialized for workspace: {workspace.Title}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"✗ Failed to initialize tenant database for instant {instant.Title}: {ex.Message}");
+            Console.WriteLine($"✗ Failed to initialize tenant database for workspace {workspace.Title}: {ex.Message}");
         }
     }
 }
 
-static string GetTenantConnectionString(string baseConnectionString, int instantId)
+static string GetTenantConnectionString(string baseConnectionString, int WorkspaceId)
 {
     var parts = baseConnectionString.Split(';');
     var newParts = new List<string>();
@@ -196,7 +196,7 @@ static string GetTenantConnectionString(string baseConnectionString, int instant
     {
         if (part.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
         {
-            newParts.Add($"Database=openradius_instant_{instantId}");
+            newParts.Add($"Database=openradius_workspace_{WorkspaceId}");
         }
         else
         {
@@ -226,3 +226,4 @@ app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
 
 app.Run();
+

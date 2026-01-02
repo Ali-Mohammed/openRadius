@@ -7,7 +7,7 @@ using Backend.Services;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/instants/{instantId}/sas-radius")]
+[Route("api/workspaces/{WorkspaceId}/sas-radius")]
 public class SasRadiusIntegrationController : ControllerBase
 {
     private readonly MasterDbContext _context;
@@ -25,10 +25,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetIntegrations(int instantId)
+    public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetIntegrations(int WorkspaceId)
     {
         var integrations = await _context.SasRadiusIntegrations
-            .Where(i => i.InstantId == instantId)
+            .Where(i => i.WorkspaceId == WorkspaceId)
             .OrderByDescending(i => i.IsActive)
             .ThenBy(i => i.Name)
             .ToListAsync();
@@ -37,10 +37,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SasRadiusIntegration>> GetIntegration(int instantId, int id)
+    public async Task<ActionResult<SasRadiusIntegration>> GetIntegration(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.InstantId == instantId);
+            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
 
         if (integration == null)
         {
@@ -51,20 +51,20 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SasRadiusIntegration>> CreateIntegration(int instantId, [FromBody] SasRadiusIntegration integration)
+    public async Task<ActionResult<SasRadiusIntegration>> CreateIntegration(int WorkspaceId, [FromBody] SasRadiusIntegration integration)
     {
-        // Verify instant exists
-        var instant = await _context.Instants.FindAsync(instantId);
-        if (instant == null)
+        // Verify workspace exists
+        var workspace = await _context.Workspaces.FindAsync(WorkspaceId);
+        if (workspace == null)
         {
-            return NotFound($"Instant with ID {instantId} not found");
+            return NotFound($"Workspace with ID {WorkspaceId} not found");
         }
 
-        // If this integration is marked as active, deactivate all others for this instant
+        // If this integration is marked as active, deactivate all others for this workspace
         if (integration.IsActive)
         {
             var activeIntegrations = await _context.SasRadiusIntegrations
-                .Where(i => i.InstantId == instantId && i.IsActive)
+                .Where(i => i.WorkspaceId == WorkspaceId && i.IsActive)
                 .ToListAsync();
 
             foreach (var activeIntegration in activeIntegrations)
@@ -74,20 +74,20 @@ public class SasRadiusIntegrationController : ControllerBase
             }
         }
 
-        integration.InstantId = instantId;
+        integration.WorkspaceId = WorkspaceId;
         integration.CreatedAt = DateTime.UtcNow;
         integration.UpdatedAt = DateTime.UtcNow;
 
         _context.SasRadiusIntegrations.Add(integration);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created SAS Radius integration {Name} for instant {InstantId}", integration.Name, instantId);
+        _logger.LogInformation("Created SAS Radius integration {Name} for instant {WorkspaceId}", integration.Name, WorkspaceId);
 
-        return CreatedAtAction(nameof(GetIntegration), new { instantId, id = integration.Id }, integration);
+        return CreatedAtAction(nameof(GetIntegration), new { WorkspaceId, id = integration.Id }, integration);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateIntegration(int instantId, int id, [FromBody] SasRadiusIntegration integration)
+    public async Task<IActionResult> UpdateIntegration(int WorkspaceId, int id, [FromBody] SasRadiusIntegration integration)
     {
         if (id != integration.Id)
         {
@@ -95,7 +95,7 @@ public class SasRadiusIntegrationController : ControllerBase
         }
 
         var existingIntegration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.InstantId == instantId);
+            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
 
         if (existingIntegration == null)
         {
@@ -106,7 +106,7 @@ public class SasRadiusIntegrationController : ControllerBase
         if (integration.IsActive && !existingIntegration.IsActive)
         {
             var activeIntegrations = await _context.SasRadiusIntegrations
-                .Where(i => i.InstantId == instantId && i.IsActive && i.Id != id)
+                .Where(i => i.WorkspaceId == WorkspaceId && i.IsActive && i.Id != id)
                 .ToListAsync();
 
             foreach (var activeIntegration in activeIntegrations)
@@ -128,16 +128,16 @@ public class SasRadiusIntegrationController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Updated SAS Radius integration {Name} for instant {InstantId}", integration.Name, instantId);
+        _logger.LogInformation("Updated SAS Radius integration {Name} for instant {WorkspaceId}", integration.Name, WorkspaceId);
 
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteIntegration(int instantId, int id)
+    public async Task<IActionResult> DeleteIntegration(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.InstantId == instantId);
+            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
 
         if (integration == null)
         {
@@ -147,16 +147,16 @@ public class SasRadiusIntegrationController : ControllerBase
         _context.SasRadiusIntegrations.Remove(integration);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Deleted SAS Radius integration {Name} for instant {InstantId}", integration.Name, instantId);
+        _logger.LogInformation("Deleted SAS Radius integration {Name} for instant {WorkspaceId}", integration.Name, WorkspaceId);
 
         return NoContent();
     }
 
     [HttpPost("{id}/sync")]
-    public async Task<ActionResult> SyncIntegration(int instantId, int id, [FromQuery] bool fullSync = false)
+    public async Task<ActionResult> SyncIntegration(int WorkspaceId, int id, [FromQuery] bool fullSync = false)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.InstantId == instantId);
+            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
 
         if (integration == null)
         {
@@ -165,7 +165,7 @@ public class SasRadiusIntegrationController : ControllerBase
 
         try
         {
-            var syncId = await _syncService.SyncAsync(id, instantId, fullSync);
+            var syncId = await _syncService.SyncAsync(id, WorkspaceId, fullSync);
             
             _logger.LogInformation("Started sync {SyncId} for SAS Radius integration {Name}", syncId, integration.Name);
 
@@ -175,7 +175,7 @@ public class SasRadiusIntegrationController : ControllerBase
                 message = "Sync started successfully. Connect to SignalR hub at /hubs/sassync and join group with syncId to receive real-time updates.",
                 integrationId = id,
                 integrationName = integration.Name,
-                instantId
+                WorkspaceId
             });
         }
         catch (Exception ex)
@@ -186,10 +186,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpGet("syncs/active")]
-    public async Task<ActionResult<IEnumerable<SyncProgress>>> GetActiveSyncs(int instantId)
+    public async Task<ActionResult<IEnumerable<SyncProgress>>> GetActiveSyncs(int WorkspaceId)
     {
         var activeSyncs = await _context.SyncProgresses
-            .Where(s => s.InstantId == instantId && 
+            .Where(s => s.WorkspaceId == WorkspaceId && 
                        s.Status != SyncStatus.Completed && 
                        s.Status != SyncStatus.Failed &&
                        s.Status != SyncStatus.Cancelled)
@@ -200,10 +200,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpPost("syncs/{syncId}/cancel")]
-    public async Task<ActionResult> CancelSync(int instantId, Guid syncId)
+    public async Task<ActionResult> CancelSync(int WorkspaceId, Guid syncId)
     {
         var sync = await _context.SyncProgresses
-            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.InstantId == instantId);
+            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
 
         if (sync == null)
         {
@@ -215,11 +215,11 @@ public class SasRadiusIntegrationController : ControllerBase
             return BadRequest(new { error = "Sync is already completed, failed, or cancelled" });
         }
 
-        var cancelled = await _syncService.CancelSyncAsync(syncId, instantId);
+        var cancelled = await _syncService.CancelSyncAsync(syncId, WorkspaceId);
         
         if (cancelled)
         {
-            _logger.LogInformation("Cancelled sync {SyncId} for instant {InstantId}", syncId, instantId);
+            _logger.LogInformation("Cancelled sync {SyncId} for instant {WorkspaceId}", syncId, WorkspaceId);
             return Ok(new { message = "Sync cancelled successfully", syncId });
         }
         else
@@ -229,10 +229,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpGet("syncs/{syncId}")]
-    public async Task<ActionResult<SyncProgress>> GetSyncProgress(int instantId, Guid syncId)
+    public async Task<ActionResult<SyncProgress>> GetSyncProgress(int WorkspaceId, Guid syncId)
     {
         var sync = await _context.SyncProgresses
-            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.InstantId == instantId);
+            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
 
         if (sync == null)
         {
@@ -244,7 +244,7 @@ public class SasRadiusIntegrationController : ControllerBase
 
     [HttpGet("syncs")]
     public async Task<ActionResult<object>> GetAllSyncs(
-        int instantId, 
+        int WorkspaceId, 
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? sortBy = "startedAt",
@@ -252,7 +252,7 @@ public class SasRadiusIntegrationController : ControllerBase
         [FromQuery] int? status = null)
     {
         var query = _context.SyncProgresses
-            .Where(s => s.InstantId == instantId);
+            .Where(s => s.WorkspaceId == WorkspaceId);
 
         // Filter by status if provided
         if (status.HasValue)
@@ -298,3 +298,8 @@ public class SasRadiusIntegrationController : ControllerBase
         });
     }
 }
+
+
+
+
+

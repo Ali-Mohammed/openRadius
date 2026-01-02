@@ -18,7 +18,7 @@ import { formatApiError } from '@/utils/errorHandler'
 
 export default function RadiusProfiles() {
   const { id } = useParams<{ id: string }>()
-  const instantId = parseInt(id || '0')
+  const workspaceId = parseInt(id || '0')
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -48,9 +48,9 @@ export default function RadiusProfiles() {
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, error: profilesError } = useQuery({
-    queryKey: ['radius-profiles', instantId, currentPage, pageSize, searchQuery],
-    queryFn: () => radiusProfileApi.getAll(instantId, currentPage, pageSize, searchQuery),
-    enabled: instantId > 0,
+    queryKey: ['radius-profiles', workspaceId, currentPage, pageSize, searchQuery],
+    queryFn: () => radiusProfileApi.getAll(workspaceId, currentPage, pageSize, searchQuery),
+    enabled: workspaceId > 0,
   })
 
   const profiles = profilesData?.data || []
@@ -66,9 +66,9 @@ export default function RadiusProfiles() {
 
   // Debug logging
   useEffect(() => {
-    console.log('RadiusProfiles - instantId:', instantId)
-    console.log('RadiusProfiles - Query enabled:', instantId > 0)
-  }, [instantId])
+    console.log('RadiusProfiles - workspaceId:', workspaceId)
+    console.log('RadiusProfiles - Query enabled:', workspaceId > 0)
+  }, [workspaceId])
 
   useEffect(() => {
     if (profilesData) {
@@ -84,9 +84,9 @@ export default function RadiusProfiles() {
 
   // Profile mutations
   const createProfileMutation = useMutation({
-    mutationFn: (data: any) => radiusProfileApi.create(instantId, data),
+    mutationFn: (data: any) => radiusProfileApi.create(workspaceId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', instantId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
       toast.success('Profile created successfully')
       handleCloseProfileDialog()
     },
@@ -97,9 +97,9 @@ export default function RadiusProfiles() {
 
   const updateProfileMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      radiusProfileApi.update(instantId, id, data),
+      radiusProfileApi.update(workspaceId, id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', instantId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
       toast.success('Profile updated successfully')
       handleCloseProfileDialog()
     },
@@ -109,9 +109,9 @@ export default function RadiusProfiles() {
   })
 
   const deleteProfileMutation = useMutation({
-    mutationFn: (id: number) => radiusProfileApi.delete(instantId, id),
+    mutationFn: (id: number) => radiusProfileApi.delete(workspaceId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', instantId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
       toast.success('Profile deleted successfully')
     },
     onError: (error: any) => {
@@ -120,9 +120,9 @@ export default function RadiusProfiles() {
   })
 
   const syncProfilesMutation = useMutation({
-    mutationFn: () => radiusProfileApi.sync(instantId),
+    mutationFn: () => radiusProfileApi.sync(workspaceId),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', instantId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
       toast.success(
         `Synced ${response.totalProfiles} profiles (${response.newProfiles} created, ${response.updatedProfiles} updated)`
       )
@@ -232,7 +232,7 @@ export default function RadiusProfiles() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">RADIUS Profiles</h1>
-          <p className="text-muted-foreground">Manage RADIUS profiles for your instant</p>
+          <p className="text-muted-foreground">Manage RADIUS profiles for your workspace</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleSyncProfiles} variant="outline" disabled={syncProfilesMutation.isPending}>
@@ -287,10 +287,10 @@ export default function RadiusProfiles() {
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-hidden">
-          {instantId <= 0 ? (
+          {workspaceId <= 0 ? (
             <div className="text-center py-8 text-red-500">
-              <p className="font-semibold mb-2">Invalid Instant ID</p>
-              <p className="text-sm">Please navigate to this page from the instants dashboard.</p>
+              <p className="font-semibold mb-2">Invalid Workspace ID</p>
+              <p className="text-sm">Please navigate to this page from the workspaces dashboard.</p>
               <p className="text-xs mt-2 text-muted-foreground">Current ID: {id || 'undefined'}</p>
             </div>
           ) : isLoadingProfiles ? (
@@ -610,3 +610,4 @@ export default function RadiusProfiles() {
     </div>
   )
 }
+

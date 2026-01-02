@@ -54,7 +54,7 @@ export interface PaginatedUsersResponse {
 
 export const radiusUserApi = {
   getAll: async (
-    instantId: number, 
+    workspaceId: number, 
     page: number = 1, 
     pageSize: number = 50,
     search?: string
@@ -66,31 +66,32 @@ export const radiusUserApi = {
     if (search) {
       params.append('search', search)
     }
-    const response = await apiClient.get(`/api/instants/${instantId}/radius/users?${params.toString()}`)
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users?${params.toString()}`)
     return response.data
   },
 
-  getById: async (instantId: number, id: number): Promise<RadiusUser> => {
-    const response = await apiClient.get(`/api/instants/${instantId}/radius/users/${id}`)
+  getById: async (workspaceId: number, id: number): Promise<RadiusUser> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users/${id}`)
     return response.data
   },
 
-  create: async (instantId: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/radius/users`, data)
+  create: async (workspaceId: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/users`, data)
     return response.data
   },
 
-  update: async (instantId: number, id: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
-    const response = await apiClient.put(`/api/instants/${instantId}/radius/users/${id}`, data)
+  update: async (workspaceId: number, id: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
+    const response = await apiClient.put(`/api/workspaces/${workspaceId}/radius/users/${id}`, data)
     return response.data
   },
 
-  delete: async (instantId: number, id: number): Promise<void> => {
-    await apiClient.delete(`/api/instants/${instantId}/radius/users/${id}`)
+  delete: async (workspaceId: number, id: number): Promise<void> => {
+    await apiClient.delete(`/api/workspaces/${workspaceId}/radius/users/${id}`)
   },
 
-  sync: async (instantId: number): Promise<SyncUsersResponse> => {
-    const response = await apiClient.post(`/api/instants/${instantId}/radius/users/sync`)
+  sync: async (workspaceId: number): Promise<SyncUsersResponse> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/sync`)
     return response.data
   },
 }
+

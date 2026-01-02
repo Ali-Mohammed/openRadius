@@ -4,39 +4,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Backend.Migrations.MasterDb
+namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMultiTenantSupport : Migration
+    public partial class InitialTenantCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Instants",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Title = table.Column<string>(type: "text", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Location = table.Column<string>(type: "text", nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    Comments = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    Color = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Instants", x => x.Id);
-                });
-
             migrationBuilder.CreateTable(
                 name: "OidcSettings",
                 columns: table => new
@@ -71,6 +46,31 @@ namespace Backend.Migrations.MasterDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "Workspace",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Location = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    Comments = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "text", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Workspace", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -80,35 +80,35 @@ namespace Backend.Migrations.MasterDb
                     FirstName = table.Column<string>(type: "text", nullable: false),
                     LastName = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    DefaultInstantId = table.Column<int>(type: "integer", nullable: true),
-                    CurrentInstantId = table.Column<int>(type: "integer", nullable: true)
+                    DefaultWorkspaceId = table.Column<int>(type: "integer", nullable: true),
+                    CurrentWorkspaceId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Users_Instants_CurrentInstantId",
-                        column: x => x.CurrentInstantId,
-                        principalTable: "Instants",
+                        name: "FK_Users_Workspace_CurrentWorkspaceId",
+                        column: x => x.CurrentWorkspaceId,
+                        principalTable: "Workspace",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_Users_Instants_DefaultInstantId",
-                        column: x => x.DefaultInstantId,
-                        principalTable: "Instants",
+                        name: "FK_Users_Workspace_DefaultWorkspaceId",
+                        column: x => x.DefaultWorkspaceId,
+                        principalTable: "Workspace",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Users_CurrentInstantId",
+                name: "IX_Users_CurrentWorkspaceId",
                 table: "Users",
-                column: "CurrentInstantId");
+                column: "CurrentWorkspaceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Users_DefaultInstantId",
+                name: "IX_Users_DefaultWorkspaceId",
                 table: "Users",
-                column: "DefaultInstantId");
+                column: "DefaultWorkspaceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -127,7 +127,7 @@ namespace Backend.Migrations.MasterDb
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "Instants");
+                name: "Workspace");
         }
     }
 }

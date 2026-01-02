@@ -10,15 +10,15 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class InstantController : ControllerBase
+public class WorkspaceController : ControllerBase
 {
     private readonly MasterDbContext _masterContext;
-    private readonly ILogger<InstantController> _logger;
+    private readonly ILogger<WorkspaceController> _logger;
     private readonly IConfiguration _configuration;
 
-    public InstantController(
+    public WorkspaceController(
         MasterDbContext masterContext, 
-        ILogger<InstantController> logger,
+        ILogger<WorkspaceController> logger,
         IConfiguration configuration)
     {
         _masterContext = masterContext;
@@ -27,13 +27,13 @@ public class InstantController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Instant>>> GetInstants(
+    public async Task<ActionResult<IEnumerable<Workspace>>> GetWorkspaces(
         [FromQuery] string? search = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] string? sortOrder = "asc",
         [FromQuery] bool includeDeleted = false)
     {
-        var query = _masterContext.Instants.AsQueryable();
+        var query = _masterContext.Workspaces.AsQueryable();
 
         // Filter out soft-deleted items by default
         if (!includeDeleted)
@@ -83,24 +83,24 @@ public class InstantController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Instant>> GetInstant(int id)
+    public async Task<ActionResult<Workspace>> GetWorkspace(int id)
     {
-        var instant = await _masterContext.Instants.FindAsync(id);
+        var workspace = await _masterContext.Workspaces.FindAsync(id);
 
-        if (instant == null)
+        if (workspace == null)
         {
             return NotFound();
         }
 
-        return instant;
+        return workspace;
     }
 
     [HttpPost]
-    public async Task<ActionResult<Instant>> CreateInstant(InstantDto dto)
+    public async Task<ActionResult<Workspace>> CreateWorkspace(WorkspaceDto dto)
     {
         var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
         
-        var instant = new Instant
+        var workspace = new Workspace
         {
             Title = dto.Title,
             Name = dto.Name,
@@ -115,24 +115,24 @@ public class InstantController : ControllerBase
             UpdatedBy = userName
         };
         
-        _masterContext.Instants.Add(instant);
+        _masterContext.Workspaces.Add(workspace);
         await _masterContext.SaveChangesAsync();
 
-        // Create a dedicated database for this instant/tenant
+        // Create a dedicated database for this workspace/tenant
         try
         {
-            var tenantConnectionString = GetTenantConnectionString(instant.Id);
+            var tenantConnectionString = GetTenantConnectionString(workspace.Id);
             
-            var tenantInfo = new InstantTenantInfo
+            var tenantInfo = new WorkspaceTenantInfo
             {
-                Id = instant.Id.ToString(),
-                Identifier = instant.Name,
-                Name = instant.Title,
+                Id = workspace.Id.ToString(),
+                Identifier = workspace.Name,
+                Name = workspace.Title,
                 ConnectionString = tenantConnectionString,
-                InstantId = instant.Id,
-                DisplayName = instant.Title,
-                Location = instant.Location,
-                IsActive = instant.Status == "active"
+                WorkspaceId = workspace.Id,
+                DisplayName = workspace.Title,
+                Location = workspace.Location,
+                IsActive = workspace.Status == "active"
             };
             
             var tenantDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -142,23 +142,23 @@ public class InstantController : ControllerBase
             using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
             await tenantContext.Database.MigrateAsync();
             
-            _logger.LogInformation($"✓ Created tenant database for instant: {instant.Title} (ID: {instant.Id})");
+            _logger.LogInformation($"✓ Created tenant database for workspace: {workspace.Title} (ID: {workspace.Id})");
         }
         catch (Exception ex)
         {
-            _logger.LogError($"✗ Failed to create tenant database for instant {instant.Title}: {ex.Message}");
+            _logger.LogError($"✗ Failed to create tenant database for workspace {workspace.Title}: {ex.Message}");
             
-            // Optionally rollback the instant creation
-            _masterContext.Instants.Remove(instant);
+            // Optionally rollback the workspace creation
+            _masterContext.Workspaces.Remove(workspace);
             await _masterContext.SaveChangesAsync();
             
             return StatusCode(500, new { message = "Failed to create tenant database", error = ex.Message });
         }
 
-        return CreatedAtAction(nameof(GetInstant), new { id = instant.Id }, instant);
+        return CreatedAtAction(nameof(GetWorkspace), new { id = workspace.Id }, workspace);
     }
 
-    private string GetTenantConnectionString(int instantId)
+    private string GetTenantConnectionString(int WorkspaceId)
     {
         var baseConnectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
         var parts = baseConnectionString.Split(';');
@@ -168,7 +168,7 @@ public class InstantController : ControllerBase
         {
             if (part.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
             {
-                newParts.Add($"Database=openradius_instant_{instantId}");
+                newParts.Add($"Database=openradius_workspace_{WorkspaceId}");
             }
             else
             {
@@ -180,25 +180,25 @@ public class InstantController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateInstant(int id, InstantDto dto)
+    public async Task<IActionResult> UpdateWorkspace(int id, WorkspaceDto dto)
     {
-        var instant = await _masterContext.Instants.FindAsync(id);
-        if (instant == null || instant.DeletedAt != null)
+        var workspace = await _masterContext.Workspaces.FindAsync(id);
+        if (workspace == null || workspace.DeletedAt != null)
         {
             return NotFound();
         }
 
         var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
         
-        instant.Title = dto.Title;
-        instant.Name = dto.Name;
-        instant.Location = dto.Location;
-        instant.Description = dto.Description;
-        instant.Comments = dto.Comments;
-        instant.Status = dto.Status;
-        instant.Color = dto.Color;
-        instant.UpdatedAt = DateTime.UtcNow;
-        instant.UpdatedBy = userName;
+        workspace.Title = dto.Title;
+        workspace.Name = dto.Name;
+        workspace.Location = dto.Location;
+        workspace.Description = dto.Description;
+        workspace.Comments = dto.Comments;
+        workspace.Status = dto.Status;
+        workspace.Color = dto.Color;
+        workspace.UpdatedAt = DateTime.UtcNow;
+        workspace.UpdatedBy = userName;
 
         try
         {
@@ -206,7 +206,7 @@ public class InstantController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!InstantExists(id))
+            if (!WorkspaceExists(id))
             {
                 return NotFound();
             }
@@ -220,50 +220,50 @@ public class InstantController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteInstant(int id)
+    public async Task<IActionResult> DeleteWorkspace(int id)
     {
-        var instant = await _masterContext.Instants.FindAsync(id);
-        if (instant == null || instant.DeletedAt != null)
+        var workspace = await _masterContext.Workspaces.FindAsync(id);
+        if (workspace == null || workspace.DeletedAt != null)
         {
             return NotFound();
         }
 
         var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
         
-        instant.DeletedAt = DateTime.UtcNow;
-        instant.DeletedBy = userName;
+        workspace.DeletedAt = DateTime.UtcNow;
+        workspace.DeletedBy = userName;
         await _masterContext.SaveChangesAsync();
 
         return NoContent();
     }
 
     [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreInstant(int id)
+    public async Task<IActionResult> RestoreWorkspace(int id)
     {
-        var instant = await _masterContext.Instants.FindAsync(id);
-        if (instant == null)
+        var workspace = await _masterContext.Workspaces.FindAsync(id);
+        if (workspace == null)
         {
             return NotFound();
         }
 
-        if (instant.DeletedAt == null)
+        if (workspace.DeletedAt == null)
         {
-            return BadRequest("Instant is not deleted");
+            return BadRequest("Workspace is not deleted");
         }
 
-        instant.DeletedAt = null;
-        instant.DeletedBy = null;
-        instant.UpdatedAt = DateTime.UtcNow;
-        instant.UpdatedBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
+        workspace.DeletedAt = null;
+        workspace.DeletedBy = null;
+        workspace.UpdatedAt = DateTime.UtcNow;
+        workspace.UpdatedBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
         await _masterContext.SaveChangesAsync();
 
         return NoContent();
     }
 
     [HttpGet("deleted")]
-    public async Task<ActionResult<IEnumerable<Instant>>> GetDeletedInstants()
+    public async Task<ActionResult<IEnumerable<Workspace>>> GetDeletedWorkspaces()
     {
-        var query = _masterContext.Instants
+        var query = _masterContext.Workspaces
             .Where(i => i.DeletedAt != null)
             .OrderByDescending(i => i.DeletedAt);
 
@@ -273,10 +273,10 @@ public class InstantController : ControllerBase
     [HttpGet("export")]
     public async Task<IActionResult> ExportToExcel()
     {
-        var instants = await _masterContext.Instants.OrderByDescending(i => i.CreatedAt).ToListAsync();
+        var workspaces = await _masterContext.Workspaces.OrderByDescending(i => i.CreatedAt).ToListAsync();
         
         using var workbook = new ClosedXML.Excel.XLWorkbook();
-        var worksheet = workbook.Worksheets.Add("Instants");
+        var worksheet = workbook.Worksheets.Add("Workspaces");
         
         // Headers
         worksheet.Cell(1, 1).Value = "ID";
@@ -300,25 +300,25 @@ public class InstantController : ControllerBase
         headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
         
         // Data
-        for (int i = 0; i < instants.Count; i++)
+        for (int i = 0; i < workspaces.Count; i++)
         {
-            var instant = instants[i];
+            var workspace = workspaces[i];
             var row = i + 2;
             
-            worksheet.Cell(row, 1).Value = instant.Id;
-            worksheet.Cell(row, 2).Value = instant.Title;
-            worksheet.Cell(row, 3).Value = instant.Name;
-            worksheet.Cell(row, 4).Value = instant.Location;
-            worksheet.Cell(row, 5).Value = instant.Description;
-            worksheet.Cell(row, 6).Value = instant.Comments;
-            worksheet.Cell(row, 7).Value = instant.Status;
-            worksheet.Cell(row, 8).Value = instant.Color;
-            worksheet.Cell(row, 9).Value = instant.CreatedAt;
-            worksheet.Cell(row, 10).Value = instant.CreatedBy;
-            worksheet.Cell(row, 11).Value = instant.UpdatedAt;
-            worksheet.Cell(row, 12).Value = instant.UpdatedBy;
-            worksheet.Cell(row, 13).Value = instant.DeletedAt?.ToString() ?? "";
-            worksheet.Cell(row, 14).Value = instant.DeletedBy ?? "";
+            worksheet.Cell(row, 1).Value = workspace.Id;
+            worksheet.Cell(row, 2).Value = workspace.Title;
+            worksheet.Cell(row, 3).Value = workspace.Name;
+            worksheet.Cell(row, 4).Value = workspace.Location;
+            worksheet.Cell(row, 5).Value = workspace.Description;
+            worksheet.Cell(row, 6).Value = workspace.Comments;
+            worksheet.Cell(row, 7).Value = workspace.Status;
+            worksheet.Cell(row, 8).Value = workspace.Color;
+            worksheet.Cell(row, 9).Value = workspace.CreatedAt;
+            worksheet.Cell(row, 10).Value = workspace.CreatedBy;
+            worksheet.Cell(row, 11).Value = workspace.UpdatedAt;
+            worksheet.Cell(row, 12).Value = workspace.UpdatedBy;
+            worksheet.Cell(row, 13).Value = workspace.DeletedAt?.ToString() ?? "";
+            worksheet.Cell(row, 14).Value = workspace.DeletedBy ?? "";
         }
         
         // Auto-fit columns
@@ -331,12 +331,14 @@ public class InstantController : ControllerBase
         return File(
             stream.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"instants_{DateTime.UtcNow:yyyy-MM-dd}.xlsx"
+            $"workspaces_{DateTime.UtcNow:yyyy-MM-dd}.xlsx"
         );
     }
 
-    private bool InstantExists(int id)
+    private bool WorkspaceExists(int id)
     {
-        return _masterContext.Instants.Any(e => e.Id == id);
+        return _masterContext.Workspaces.Any(e => e.Id == id);
     }
 }
+
+

@@ -6,7 +6,7 @@ using Backend.Models;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/instants/{instantId}/radius/users")]
+[Route("api/workspaces/{WorkspaceId}/radius/users")]
 public class RadiusUserController : ControllerBase
 {
     private readonly MasterDbContext _context;
@@ -18,17 +18,17 @@ public class RadiusUserController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/instants/{instantId}/radius/users
+    // GET: api/workspaces/{WorkspaceId}/radius/users
     [HttpGet]
     public async Task<ActionResult<object>> GetUsers(
-        int instantId, 
+        int WorkspaceId, 
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null)
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
-            .Where(u => u.InstantId == instantId);
+            .Where(u => u.WorkspaceId == WorkspaceId);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -95,12 +95,12 @@ public class RadiusUserController : ControllerBase
         });
     }
 
-    // GET: api/instants/{instantId}/radius/users/{id}
+    // GET: api/workspaces/{WorkspaceId}/radius/users/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusUserResponse>> GetUser(int instantId, int id)
+    public async Task<ActionResult<RadiusUserResponse>> GetUser(int WorkspaceId, int id)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.InstantId == instantId);
+            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId);
 
         if (user == null)
         {
@@ -138,9 +138,9 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // POST: api/instants/{instantId}/radius/users
+    // POST: api/workspaces/{WorkspaceId}/radius/users
     [HttpPost]
-    public async Task<ActionResult<RadiusUserResponse>> CreateUser(int instantId, [FromBody] CreateUserRequest request)
+    public async Task<ActionResult<RadiusUserResponse>> CreateUser(int WorkspaceId, [FromBody] CreateUserRequest request)
     {
         var user = new RadiusUser
         {
@@ -160,7 +160,7 @@ public class RadiusUserController : ControllerBase
             Address = request.Address,
             ContractId = request.ContractId,
             SimultaneousSessions = request.SimultaneousSessions,
-            InstantId = instantId,
+            WorkspaceId = WorkspaceId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -196,15 +196,15 @@ public class RadiusUserController : ControllerBase
             LastSyncedAt = user.LastSyncedAt
         };
 
-        return CreatedAtAction(nameof(GetUser), new { instantId, id = user.Id }, response);
+        return CreatedAtAction(nameof(GetUser), new { WorkspaceId, id = user.Id }, response);
     }
 
-    // PUT: api/instants/{instantId}/radius/users/{id}
+    // PUT: api/workspaces/{WorkspaceId}/radius/users/{id}
     [HttpPut("{id}")]
-    public async Task<ActionResult<RadiusUserResponse>> UpdateUser(int instantId, int id, [FromBody] UpdateUserRequest request)
+    public async Task<ActionResult<RadiusUserResponse>> UpdateUser(int WorkspaceId, int id, [FromBody] UpdateUserRequest request)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.InstantId == instantId);
+            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId);
 
         if (user == null)
         {
@@ -263,12 +263,12 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // DELETE: api/instants/{instantId}/radius/users/{id}
+    // DELETE: api/workspaces/{WorkspaceId}/radius/users/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(int instantId, int id)
+    public async Task<IActionResult> DeleteUser(int WorkspaceId, int id)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.InstantId == instantId);
+            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId);
 
         if (user == null)
         {
@@ -281,9 +281,9 @@ public class RadiusUserController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/instants/{instantId}/radius/users/sync
+    // POST: api/workspaces/{WorkspaceId}/radius/users/sync
     [HttpPost("sync")]
-    public async Task<ActionResult<SyncUsersResponse>> SyncUsers(int instantId)
+    public async Task<ActionResult<SyncUsersResponse>> SyncUsers(int WorkspaceId)
     {
         var syncStartTime = DateTime.UtcNow;
         var syncId = Guid.NewGuid().ToString();
@@ -309,15 +309,15 @@ public class RadiusUserController : ControllerBase
             };
 
             _logger.LogInformation(
-                "User sync completed for instant {InstantId}. New: {New}, Updated: {Updated}, Failed: {Failed}",
-                instantId, response.NewUsers, response.UpdatedUsers, response.FailedUsers
+                "User sync completed for instant {WorkspaceId}. New: {New}, Updated: {Updated}, Failed: {Failed}",
+                WorkspaceId, response.NewUsers, response.UpdatedUsers, response.FailedUsers
             );
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing users for instant {InstantId}", instantId);
+            _logger.LogError(ex, "Error syncing users for instant {WorkspaceId}", WorkspaceId);
 
             var response = new SyncUsersResponse
             {
@@ -337,3 +337,6 @@ public class RadiusUserController : ControllerBase
         }
     }
 }
+
+
+

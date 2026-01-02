@@ -29,7 +29,7 @@ public class SasSyncService : ISasSyncService
         _logger = logger;
     }
 
-    public async Task<Guid> SyncAsync(int integrationId, int instantId, bool fullSync = false)
+    public async Task<Guid> SyncAsync(int integrationId, int WorkspaceId, bool fullSync = false)
     {
         using (var scope = _scopeFactory.CreateScope())
         {
@@ -37,7 +37,7 @@ public class SasSyncService : ISasSyncService
             
             // Check for active syncs (status < 8 means not completed/failed/cancelled)
             var activeSync = await context.SyncProgresses
-                .Where(s => s.InstantId == instantId && s.Status < SyncStatus.Completed)
+                .Where(s => s.WorkspaceId == WorkspaceId && s.Status < SyncStatus.Completed)
                 .OrderByDescending(s => s.StartedAt)
                 .FirstOrDefaultAsync();
 
@@ -51,7 +51,7 @@ public class SasSyncService : ISasSyncService
 
             // Get integration settings
             var integration = await context.SasRadiusIntegrations
-                .FirstOrDefaultAsync(i => i.Id == integrationId && i.InstantId == instantId);
+                .FirstOrDefaultAsync(i => i.Id == integrationId && i.WorkspaceId == WorkspaceId);
 
             if (integration == null)
             {
@@ -66,7 +66,7 @@ public class SasSyncService : ISasSyncService
                 SyncId = syncId,
                 IntegrationId = integrationId,
                 IntegrationName = integration.Name,
-                InstantId = instantId,
+                WorkspaceId = WorkspaceId,
                 Status = SyncStatus.Starting,
                 CurrentPhase = SyncPhase.NotStarted,
                 ProgressPercentage = 0,
@@ -99,13 +99,13 @@ public class SasSyncService : ISasSyncService
         }
     }
 
-    public async Task<bool> CancelSyncAsync(Guid syncId, int instantId)
+    public async Task<bool> CancelSyncAsync(Guid syncId, int WorkspaceId)
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
         
         var sync = await context.SyncProgresses
-            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.InstantId == instantId);
+            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
         
         if (sync == null)
         {
@@ -296,7 +296,7 @@ public class SasSyncService : ISasSyncService
                         try
                         {
                             var existingProfile = await context.RadiusProfiles
-                                .FirstOrDefaultAsync(p => p.ExternalId == sasProfile.Id && p.InstantId == integration.InstantId, cancellationToken);
+                                .FirstOrDefaultAsync(p => p.ExternalId == sasProfile.Id && p.WorkspaceId == integration.WorkspaceId, cancellationToken);
 
                             if (existingProfile == null)
                             {
@@ -315,7 +315,7 @@ public class SasSyncService : ISasSyncService
                                     BurstEnabled = sasProfile.BurstEnabled == 1,
                                     Monthly = sasProfile.Monthly,
                                     LimitExpiration = sasProfile.LimitExpiration == 1,
-                                    InstantId = integration.InstantId,
+                                    WorkspaceId = integration.WorkspaceId,
                                     CreatedAt = DateTime.UtcNow,
                                     UpdatedAt = DateTime.UtcNow,
                                     LastSyncedAt = DateTime.UtcNow
@@ -443,14 +443,14 @@ public class SasSyncService : ISasSyncService
                         try
                         {
                             var existingUser = await context.RadiusUsers
-                                .FirstOrDefaultAsync(u => u.ExternalId == sasUser.Id && u.InstantId == integration.InstantId, cancellationToken);
+                                .FirstOrDefaultAsync(u => u.ExternalId == sasUser.Id && u.WorkspaceId == integration.WorkspaceId, cancellationToken);
 
                             // Map external ProfileId to database ProfileId
                             int? dbProfileId = null;
                             if (sasUser.ProfileId.HasValue)
                             {
                                 var profile = await context.RadiusProfiles
-                                    .FirstOrDefaultAsync(p => p.ExternalId == sasUser.ProfileId.Value && p.InstantId == integration.InstantId, cancellationToken);
+                                    .FirstOrDefaultAsync(p => p.ExternalId == sasUser.ProfileId.Value && p.WorkspaceId == integration.WorkspaceId, cancellationToken);
                                 dbProfileId = profile?.Id;
                             }
 
@@ -492,7 +492,7 @@ public class SasSyncService : ISasSyncService
                                     AvailableTraffic = sasUser.AvailableTraffic,
                                     ParentUsername = sasUser.ParentUsername,
                                     DebtDays = sasUser.DebtDays,
-                                    InstantId = integration.InstantId,
+                                    WorkspaceId = integration.WorkspaceId,
                                     CreatedAt = DateTime.UtcNow,
                                     UpdatedAt = DateTime.UtcNow,
                                     LastSyncedAt = DateTime.UtcNow
@@ -586,7 +586,7 @@ public class SasSyncService : ISasSyncService
             SyncId = progress.SyncId,
             IntegrationId = progress.IntegrationId,
             IntegrationName = progress.IntegrationName,
-            InstantId = progress.InstantId,
+            WorkspaceId = progress.WorkspaceId,
             Status = progress.Status,
             CurrentPhase = progress.CurrentPhase,
             ProfileCurrentPage = progress.ProfileCurrentPage,
@@ -612,3 +612,5 @@ public class SasSyncService : ISasSyncService
         await _hubContext.Clients.Group(progress.SyncId.ToString()).SendAsync("SyncProgress", update);
     }
 }
+
+

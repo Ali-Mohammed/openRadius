@@ -9,8 +9,8 @@ import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
 import ProfileSettings from './pages/ProfileSettings'
 import Settings from './pages/Settings'
-import InstantView from './pages/InstantView'
-import InstantSettings from './pages/InstantSettings'
+import WorkspaceView from './pages/WorkspaceView'
+import WorkspaceSettings from './pages/WorkspaceSettings'
 import OidcSettings from './pages/OidcSettings'
 import RadiusProfiles from './pages/RadiusProfiles'
 import RadiusUsers from './pages/RadiusUsers'
@@ -33,11 +33,11 @@ function App() {
                       <Routes>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/profile" element={<ProfileSettings />} />
-                        <Route path="/instant/view" element={<InstantView />} />
-                        <Route path="/instant/:id/settings" element={<InstantSettings />} />
-                        <Route path="/integration/sas-radius" element={<Navigate to="/instant/1/settings" replace />} />
-                        <Route path="/instant/:id/radius/profiles" element={<RadiusProfiles />} />
-                        <Route path="/instant/:id/radius/users" element={<RadiusUsers />} />
+                        <Route path="/workspace/view" element={<WorkspaceView />} />
+                        <Route path="/workspace/:id/settings" element={<WorkspaceSettings />} />
+                        <Route path="/integration/sas-radius" element={<Navigate to="/workspace/1/settings" replace />} />
+                        <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
+                        <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/settings/oidc" element={<OidcSettings />} />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -56,3 +56,4 @@ function App() {
 }
 
 export default App
+

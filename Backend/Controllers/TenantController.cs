@@ -27,7 +27,7 @@ public class TenantController : ControllerBase
     [HttpGet("available")]
     public async Task<ActionResult<IEnumerable<AvailableTenantDto>>> GetAvailableTenants()
     {
-        var instants = await _masterDbContext.Instants
+        var workspaces = await _masterDbContext.Workspaces
             .Where(i => i.DeletedAt == null && i.Status == "active")
             .Select(i => new AvailableTenantDto
             {
@@ -39,7 +39,7 @@ public class TenantController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(instants);
+        return Ok(workspaces);
     }
 
     /// <summary>
@@ -55,8 +55,8 @@ public class TenantController : ControllerBase
         }
 
         var user = await _masterDbContext.Users
-            .Include(u => u.CurrentInstant)
-            .Include(u => u.DefaultInstant)
+            .Include(u => u.CurrentWorkspace)
+            .Include(u => u.DefaultWorkspace)
             .FirstOrDefaultAsync(u => u.Email == userEmail);
 
         if (user == null)
@@ -66,10 +66,10 @@ public class TenantController : ControllerBase
 
         var response = new UserTenantPreferenceDto
         {
-            CurrentInstantId = user.CurrentInstantId,
-            CurrentInstantName = user.CurrentInstant?.Title,
-            DefaultInstantId = user.DefaultInstantId,
-            DefaultInstantName = user.DefaultInstant?.Title
+            CurrentWorkspaceId = user.CurrentWorkspaceId,
+            CurrentWorkspaceName = user.CurrentWorkspace?.Title,
+            DefaultWorkspaceId = user.DefaultWorkspaceId,
+            DefaultWorkspaceName = user.DefaultWorkspace?.Title
         };
 
         return Ok(response);
@@ -87,16 +87,16 @@ public class TenantController : ControllerBase
             return Unauthorized(new { message = "User email not found in token" });
         }
 
-        // Verify the instant exists and is active
-        var instant = await _masterDbContext.Instants
-            .FirstOrDefaultAsync(i => i.Id == request.InstantId && i.DeletedAt == null);
+        // Verify the workspace exists and is active
+        var workspace = await _masterDbContext.Workspaces
+            .FirstOrDefaultAsync(i => i.Id == request.WorkspaceId && i.DeletedAt == null);
 
-        if (instant == null)
+        if (workspace == null)
         {
-            return NotFound(new { message = "Instant not found or inactive" });
+            return NotFound(new { message = "Workspace not found or inactive" });
         }
 
-        // Update user's current instant
+        // Update user's current workspace
         var user = await _masterDbContext.Users
             .FirstOrDefaultAsync(u => u.Email == userEmail);
 
@@ -105,19 +105,19 @@ public class TenantController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
-        user.CurrentInstantId = request.InstantId;
+        user.CurrentWorkspaceId = request.WorkspaceId;
         await _masterDbContext.SaveChangesAsync();
 
-        _logger.LogInformation($"User {userEmail} switched to instant {instant.Title} (ID: {instant.Id})");
+        _logger.LogInformation($"User {userEmail} switched to workspace {workspace.Title} (ID: {workspace.Id})");
 
         return Ok(new 
         { 
             message = "Tenant switched successfully",
-            tenantId = instant.Id,
-            tenantName = instant.Title,
+            tenantId = workspace.Id,
+            tenantName = workspace.Title,
             // Return the tenant ID as a header for the client to use in subsequent requests
             tenantHeader = "X-Tenant-Id",
-            tenantHeaderValue = instant.Id.ToString()
+            tenantHeaderValue = workspace.Id.ToString()
         });
     }
 
@@ -133,16 +133,16 @@ public class TenantController : ControllerBase
             return Unauthorized(new { message = "User email not found in token" });
         }
 
-        // Verify the instant exists and is active
-        var instant = await _masterDbContext.Instants
-            .FirstOrDefaultAsync(i => i.Id == request.InstantId && i.DeletedAt == null);
+        // Verify the workspace exists and is active
+        var workspace = await _masterDbContext.Workspaces
+            .FirstOrDefaultAsync(i => i.Id == request.WorkspaceId && i.DeletedAt == null);
 
-        if (instant == null)
+        if (workspace == null)
         {
-            return NotFound(new { message = "Instant not found or inactive" });
+            return NotFound(new { message = "Workspace not found or inactive" });
         }
 
-        // Update user's default instant
+        // Update user's default workspace
         var user = await _masterDbContext.Users
             .FirstOrDefaultAsync(u => u.Email == userEmail);
 
@@ -151,30 +151,30 @@ public class TenantController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
-        user.DefaultInstantId = request.InstantId;
+        user.DefaultWorkspaceId = request.WorkspaceId;
         
-        // If current instant is not set, also set it as current
-        if (user.CurrentInstantId == null)
+        // If current workspace is not set, also set it as current
+        if (user.CurrentWorkspaceId == null)
         {
-            user.CurrentInstantId = request.InstantId;
+            user.CurrentWorkspaceId = request.WorkspaceId;
         }
         
         await _masterDbContext.SaveChangesAsync();
 
-        _logger.LogInformation($"User {userEmail} set default instant to {instant.Title} (ID: {instant.Id})");
+        _logger.LogInformation($"User {userEmail} set default workspace to {workspace.Title} (ID: {workspace.Id})");
 
         return Ok(new 
         { 
             message = "Default tenant set successfully",
-            tenantId = instant.Id,
-            tenantName = instant.Title
+            tenantId = workspace.Id,
+            tenantName = workspace.Title
         });
     }
 }
 
 public class SwitchTenantRequest
 {
-    public int InstantId { get; set; }
+    public int WorkspaceId { get; set; }
 }
 
 public class AvailableTenantDto
@@ -188,8 +188,12 @@ public class AvailableTenantDto
 
 public class UserTenantPreferenceDto
 {
-    public int? CurrentInstantId { get; set; }
-    public string? CurrentInstantName { get; set; }
-    public int? DefaultInstantId { get; set; }
-    public string? DefaultInstantName { get; set; }
+    public int? CurrentWorkspaceId { get; set; }
+    public string? CurrentWorkspaceName { get; set; }
+    public int? DefaultWorkspaceId { get; set; }
+    public string? DefaultWorkspaceName { get; set; }
 }
+
+
+
+

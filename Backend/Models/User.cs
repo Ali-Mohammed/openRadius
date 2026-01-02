@@ -8,11 +8,13 @@ public class User
     public string LastName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
-    // Multi-tenant support: Default and current instant selection
-    public int? DefaultInstantId { get; set; }
-    public int? CurrentInstantId { get; set; }
+    // Multi-tenant support: Default and current workspace selection
+    public int? DefaultWorkspaceId { get; set; }
+    public int? CurrentWorkspaceId { get; set; }
     
     // Navigation properties
-    public Instant? DefaultInstant { get; set; }
-    public Instant? CurrentInstant { get; set; }
+    public Workspace? DefaultWorkspace { get; set; }
+    public Workspace? CurrentWorkspace { get; set; }
 }
+
+

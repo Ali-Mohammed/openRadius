@@ -8,11 +8,11 @@ namespace Backend.Data;
 
 public class ApplicationDbContext : DbContext
 {
-    private readonly IMultiTenantContextAccessor<InstantTenantInfo>? _multiTenantContextAccessor;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo>? _multiTenantContextAccessor;
 
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options, 
-        IMultiTenantContextAccessor<InstantTenantInfo>? multiTenantContextAccessor = null)
+        IMultiTenantContextAccessor<WorkspaceTenantInfo>? multiTenantContextAccessor = null)
         : base(options)
     {
         _multiTenantContextAccessor = multiTenantContextAccessor;
@@ -31,16 +31,17 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.HasIndex(e => e.Email).IsUnique();
             
-            // Configure relationships for multi-tenant instant selection
-            entity.HasOne(e => e.DefaultInstant)
+            // Configure relationships for multi-tenant workspace selection
+            entity.HasOne(e => e.DefaultWorkspace)
                   .WithMany()
-                  .HasForeignKey(e => e.DefaultInstantId)
+                  .HasForeignKey(e => e.DefaultWorkspaceId)
                   .OnDelete(DeleteBehavior.SetNull);
                   
-            entity.HasOne(e => e.CurrentInstant)
+            entity.HasOne(e => e.CurrentWorkspace)
                   .WithMany()
-                  .HasForeignKey(e => e.CurrentInstantId)
+                  .HasForeignKey(e => e.CurrentWorkspaceId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
+

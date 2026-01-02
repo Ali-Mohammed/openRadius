@@ -37,9 +37,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname === '/dashboard') return { parent: null, current: 'Dashboard' }
     if (location.pathname === '/profile') return { parent: null, current: 'Profile Settings' }
     if (location.pathname === '/settings') return { parent: null, current: 'Settings' }
-    if (location.pathname === '/instant/view') return { parent: null, current: 'Instant View' }
-    if (location.pathname.startsWith('/instant/') && location.pathname.endsWith('/settings')) {
-      return { parent: { title: 'Instant View', href: '/instant/view' }, current: 'Instant Settings' }
+    if (location.pathname === '/workspace/view') return { parent: null, current: 'Workspace View' }
+    if (location.pathname.startsWith('/workspace/') && location.pathname.endsWith('/settings')) {
+      return { parent: { title: 'Workspace View', href: '/workspace/view' }, current: 'Workspace Settings' }
     }
     if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius' }
     return { parent: null, current: 'Dashboard' }
@@ -166,3 +166,4 @@ export function AppLayout({ children }: AppLayoutProps) {
     </SidebarProvider>
   )
 }
+

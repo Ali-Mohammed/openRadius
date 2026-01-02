@@ -36,8 +36,8 @@ export const usersApi = {
   },
 }
 
-// Instant API
-export interface Instant {
+// Workspace API
+export interface Workspace {
   id: number
   title: string
   name: string
@@ -54,7 +54,7 @@ export interface Instant {
   deletedBy: string | null
 }
 
-export interface InstantCreateDto {
+export interface WorkspaceCreateDto {
   title: string
   name: string
   location: string
@@ -64,41 +64,41 @@ export interface InstantCreateDto {
   color: string
 }
 
-export const instantApi = {
+export const workspaceApi = {
   getAll: async (params?: { search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) => {
-    const { data } = await apiClient.get<Instant[]>('/api/instant', { params })
+    const { data } = await apiClient.get<Workspace[]>('/api/workspace', { params })
     return data
   },
 
   getById: async (id: number) => {
-    const { data } = await apiClient.get<Instant>(`/api/instant/${id}`)
+    const { data } = await apiClient.get<Workspace>(`/api/workspace/${id}`)
     return data
   },
 
-  create: async (instant: InstantCreateDto) => {
-    const { data } = await apiClient.post<Instant>('/api/instant', instant)
+  create: async (workspace: WorkspaceCreateDto) => {
+    const { data } = await apiClient.post<Workspace>('/api/workspace', workspace)
     return data
   },
 
-  update: async (id: number, instant: Partial<InstantCreateDto>) => {
-    await apiClient.put(`/api/instant/${id}`, instant)
+  update: async (id: number, workspace: Partial<WorkspaceCreateDto>) => {
+    await apiClient.put(`/api/workspace/${id}`, workspace)
   },
 
   delete: async (id: number) => {
-    await apiClient.delete(`/api/instant/${id}`)
+    await apiClient.delete(`/api/workspace/${id}`)
   },
 
   restore: async (id: number) => {
-    await apiClient.post(`/api/instant/${id}/restore`)
+    await apiClient.post(`/api/workspace/${id}/restore`)
   },
 
   getDeleted: async () => {
-    const { data } = await apiClient.get<Instant[]>('/api/instant/deleted')
+    const { data } = await apiClient.get<Workspace[]>('/api/workspace/deleted')
     return data
   },
 
   export: async () => {
-    const response = await apiClient.get('/api/instant/export', {
+    const response = await apiClient.get('/api/workspace/export', {
       responseType: 'blob'
     })
     return response.data
