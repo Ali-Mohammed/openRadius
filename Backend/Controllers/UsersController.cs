@@ -12,10 +12,10 @@ namespace Backend.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _context;
     private readonly ILogger<UsersController> _logger;
 
-    public UsersController(ApplicationDbContext context, ILogger<UsersController> logger)
+    public UsersController(MasterDbContext context, ILogger<UsersController> logger)
     {
         _context = context;
         _logger = logger;
@@ -200,6 +200,38 @@ public class UsersController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPost("me/workspace/{workspaceId}")]
+    public async Task<IActionResult> SetUserWorkspace(int workspaceId, [FromQuery] bool setAsDefault = true)
+    {
+        var email = User.Claims.FirstOrDefault(c => c.Type == "email" || 
+                                                     c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" ||
+                                                     c.Type.EndsWith("/emailaddress"))?.Value;
+        
+        if (string.IsNullOrEmpty(email))
+        {
+            return BadRequest(new { message = "Email not found in token" });
+        }
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        // Set current workspace
+        user.CurrentWorkspaceId = workspaceId;
+        
+        // Optionally set as default workspace
+        if (setAsDefault)
+        {
+            user.DefaultWorkspaceId = workspaceId;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Workspace updated successfully", user });
     }
 
     private bool UserExists(int id)

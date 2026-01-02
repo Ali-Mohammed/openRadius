@@ -56,7 +56,7 @@ import {
   TabsTrigger,
 } from '../components/ui/tabs'
 import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { workspaceApi } from '../lib/api'
+import { workspaceApi, usersApi } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import type { Workspace, WorkspaceCreateDto } from '../lib/api'
 import { toast } from 'sonner'
@@ -105,6 +105,13 @@ export default function workspaceView() {
     queryFn: () => workspaceApi.getDeleted(),
   })
 
+  // Auto-open create dialog when no workspaces exist
+  useEffect(() => {
+    if (!isLoading && workspaces.length === 0 && deletedworkspaces.length === 0 && !open) {
+      setOpen(true)
+    }
+  }, [workspaces, deletedworkspaces, isLoading, open])
+
   // Refetch when sorting or filter changes
   useEffect(() => {
     refetch()
@@ -118,9 +125,21 @@ export default function workspaceView() {
   // Create mutation
   const createMutation = useMutation({
     mutationFn: workspaceApi.create,
-    onSuccess: () => {
+    onSuccess: async (newWorkspace) => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
-      toast.success('Workspace created successfully')
+      
+      // If this is the first workspace, set it as default
+      if (workspaces.length === 0 && deletedworkspaces.length === 0) {
+        try {
+          await usersApi.setWorkspace(newWorkspace.id, true)
+          toast.success('First workspace created and set as default')
+        } catch (error) {
+          toast.success('Workspace created successfully')
+        }
+      } else {
+        toast.success('Workspace created successfully')
+      }
+      
       setOpen(false)
       resetForm()
     },
@@ -599,6 +618,10 @@ export default function workspaceView() {
           <p className="text-muted-foreground">Manage your Workspace entries</p>
         </div>
         <Dialog open={open} onOpenChange={(isOpen) => {
+          // Prevent closing if this is the first workspace prompt
+          if (!isOpen && workspaces.length === 0 && deletedworkspaces.length === 0 && !editingworkspace) {
+            return
+          }
           setOpen(isOpen)
           if (!isOpen) resetForm()
         }}>
@@ -611,9 +634,15 @@ export default function workspaceView() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>{editingworkspace ? 'Edit Workspace' : 'Add New Workspace'}</DialogTitle>
+                <DialogTitle>
+                  {editingworkspace ? 'Edit Workspace' : workspaces.length === 0 && deletedworkspaces.length === 0 ? 'Create Your First Workspace' : 'Add New Workspace'}
+                </DialogTitle>
                 <DialogDescription>
-                  {editingworkspace ? 'Update the Workspace entry details' : 'Fill in the details to create a new Workspace entry'}
+                  {workspaces.length === 0 && deletedworkspaces.length === 0 && !editingworkspace
+                    ? 'Welcome! Let\'s get started by creating your first workspace. This workspace will be set as your default workspace.'
+                    : editingworkspace 
+                      ? 'Update the Workspace entry details' 
+                      : 'Fill in the details to create a new Workspace entry'}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -716,11 +745,22 @@ export default function workspaceView() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
+                {workspaces.length > 0 || deletedworkspaces.length > 0 || editingworkspace ? (
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                ) : null}
                 <Button type="submit" variant="default" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingworkspace ? 'Update' : 'Add'} Workspace
+                  {createMutation.isPending || updateMutation.isPending ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      {editingworkspace ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    <>
+                      {editingworkspace ? 'Update' : workspaces.length === 0 && deletedworkspaces.length === 0 ? 'Create First Workspace' : 'Add'} Workspace
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </form>

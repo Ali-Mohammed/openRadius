@@ -34,6 +34,13 @@ export const usersApi = {
     const { data } = await apiClient.put('/api/users/me', profileData)
     return data
   },
+
+  setWorkspace: async (workspaceId: number, setAsDefault: boolean = true) => {
+    const { data } = await apiClient.post(`/api/users/me/workspace/${workspaceId}`, null, {
+      params: { setAsDefault }
+    })
+    return data
+  },
 }
 
 // Workspace API
