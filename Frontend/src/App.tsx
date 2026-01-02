@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { KeycloakProvider } from './contexts/KeycloakContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { WorkspaceGuard } from './components/WorkspaceGuard'
 import { AppLayout } from './components/AppLayout'
 import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
@@ -29,20 +30,22 @@ function App() {
                 path="/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Routes>
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/profile" element={<ProfileSettings />} />
-                        <Route path="/workspace/view" element={<WorkspaceView />} />
-                        <Route path="/workspace/:id/settings" element={<WorkspaceSettings />} />
-                        <Route path="/integration/sas-radius" element={<Navigate to="/workspace/1/settings" replace />} />
-                        <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
-                        <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/settings/oidc" element={<OidcSettings />} />
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      </Routes>
-                    </AppLayout>
+                    <WorkspaceGuard>
+                      <AppLayout>
+                        <Routes>
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/profile" element={<ProfileSettings />} />
+                          <Route path="/workspace/view" element={<WorkspaceView />} />
+                          <Route path="/workspace/:id/settings" element={<WorkspaceSettings />} />
+                          <Route path="/integration/sas-radius" element={<Navigate to="/workspace/1/settings" replace />} />
+                          <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
+                          <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/settings/oidc" element={<OidcSettings />} />
+                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        </Routes>
+                      </AppLayout>
+                    </WorkspaceGuard>
                   </ProtectedRoute>
                 }
               />
