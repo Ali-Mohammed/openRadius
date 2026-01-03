@@ -20,6 +20,7 @@
     "view": "View",
     "setting": "Setting",
     "appSetting": "App Setting",
+    "general": "General",
     "oidc": "OIDC"
   },
   "dashboard": {

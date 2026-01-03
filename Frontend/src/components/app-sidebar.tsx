@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -85,6 +85,11 @@ const data = {
       url: "#",
       icon: SlidersHorizontal,
       items: [
+        {
+          titleKey: "navigation.general",
+          url: `/workspace/${DEFAULT_workspace_ID}/settings/general`,
+          icon: DollarSign,
+        },
         {
           titleKey: "navigation.oidc",
           url: "/settings/oidc",

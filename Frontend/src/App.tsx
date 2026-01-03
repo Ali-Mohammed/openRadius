@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
 import ProfileSettings from './pages/ProfileSettings'
 import Settings from './pages/Settings'
+import GeneralSettings from './pages/GeneralSettings'
 import WorkspaceView from './pages/WorkspaceView'
 import WorkspaceSettings from './pages/WorkspaceSettings'
 import OidcSettings from './pages/OidcSettings'
@@ -40,6 +41,7 @@ function App() {
                           <Route path="/integration/sas-radius" element={<Navigate to="/workspace/1/settings" replace />} />
                           <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
+                          <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />

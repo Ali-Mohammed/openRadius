@@ -20,6 +20,7 @@
     "view": "عرض",
     "setting": "الإعدادات",
     "appSetting": "إعدادات التطبيق",
+    "general": "عام",
     "oidc": "OIDC"
   },
   "dashboard": {
