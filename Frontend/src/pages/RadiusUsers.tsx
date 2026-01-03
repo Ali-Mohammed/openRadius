@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
+import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -55,8 +56,14 @@ export default function RadiusUsers() {
     queryFn: () => radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery),
   })
 
+  const { data: profilesData } = useQuery({
+    queryKey: ['radius-profiles', WORKSPACE_ID],
+    queryFn: () => radiusProfileApi.getAll(WORKSPACE_ID, 1, 999999),
+  })
+
   const users = usersData?.data || []
   const pagination = usersData?.pagination
+  const profiles = profilesData?.data || []
 
   // Virtual scrolling
   const rowVirtualizer = useVirtualizer({
@@ -518,14 +525,22 @@ export default function RadiusUsers() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="profileId">Profile ID</Label>
-                <Input
-                  id="profileId"
-                  type="number"
+                <Label htmlFor="profileId">Profile</Label>
+                <Select
                   value={formData.profileId}
-                  onChange={(e) => setFormData({ ...formData, profileId: e.target.value })}
-                  placeholder="e.g., 1"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, profileId: value })}
+                >
+                  <SelectTrigger id="profileId">
+                    <SelectValue placeholder="Select a profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id?.toString() || ''}>
+                        {profile.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="balance">Balance</Label>

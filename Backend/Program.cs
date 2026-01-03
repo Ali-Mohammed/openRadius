@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -28,8 +29,7 @@ builder.Services.AddScoped<UserWorkspaceTenantResolver>();
 
 builder.Services.AddMultiTenant<WorkspaceTenantInfo>()
     .WithStrategy<UserWorkspaceTenantResolver>(ServiceLifetime.Scoped)
-    .WithStore<WorkspaceTenantStore>(ServiceLifetime.Scoped)
-    .WithInMemoryStoreCache(); // Cache tenant info to avoid repeated DB queries
+    .WithStore<WorkspaceTenantStore>(ServiceLifetime.Scoped);
 
 // Configure tenant-specific ApplicationDbContext with MultiTenant support
 builder.Services.AddScoped<ApplicationDbContext>((serviceProvider) =>

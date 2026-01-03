@@ -3,33 +3,53 @@ using Finbuckle.MultiTenant.Abstractions;
 using Backend.Data;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Backend.Services;
 
 /// <summary>
 /// Custom tenant store that loads tenant information from the master database
-/// based on Workspace records.
+/// based on Workspace records with in-memory caching.
 /// </summary>
 public class WorkspaceTenantStore : IMultiTenantStore<WorkspaceTenantInfo>
 {
     private readonly MasterDbContext _masterDbContext;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WorkspaceTenantStore> _logger;
+    private readonly IMemoryCache _cache;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
 
-    public WorkspaceTenantStore(MasterDbContext masterDbContext, IConfiguration configuration, ILogger<WorkspaceTenantStore> logger)
+    public WorkspaceTenantStore(MasterDbContext masterDbContext, IConfiguration configuration, ILogger<WorkspaceTenantStore> logger, IMemoryCache cache)
     {
         _masterDbContext = masterDbContext;
         _configuration = configuration;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<WorkspaceTenantInfo?> GetAsync(string id)
     {
-        _logger.LogInformation($"WorkspaceTenantStore.GetAsync called with id: {id}");
+        var cacheKey = $"tenant_{id}";
+        
+        if (_cache.TryGetValue(cacheKey, out WorkspaceTenantInfo? cachedTenant))
+        {
+            _logger.LogInformation($"WorkspaceTenantStore.GetAsync - Cache HIT for id: {id}");
+            return cachedTenant;
+        }
+        
+        _logger.LogInformation($"WorkspaceTenantStore.GetAsync - Cache MISS for id: {id}, querying database");
         var workspace = await _masterDbContext.Workspaces
             .FirstOrDefaultAsync(i => i.Id.ToString() == id && i.DeletedAt == null);
         
         var result = workspace != null ? MapToTenantInfo(workspace) : null;
+        
+        // Cache the result for 30 minutes
+        if (result != null)
+        {
+            _cache.Set(cacheKey, result, CacheDuration);
+            _logger.LogInformation($"WorkspaceTenantStore.GetAsync - Cached tenant for id: {id}");
+        }
+        
         _logger.LogInformation($"WorkspaceTenantStore.GetAsync returned: WorkspaceId={result?.WorkspaceId}, ConnectionString={result?.ConnectionString}");
         return result;
     }
@@ -56,7 +76,15 @@ public class WorkspaceTenantStore : IMultiTenantStore<WorkspaceTenantInfo>
 
     public async Task<WorkspaceTenantInfo?> GetByIdentifierAsync(string identifier)
     {
-        _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync called with identifier: {identifier}");
+        var cacheKey = $"tenant_identifier_{identifier}";
+        
+        if (_cache.TryGetValue(cacheKey, out WorkspaceTenantInfo? cachedTenant))
+        {
+            _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync - Cache HIT for identifier: {identifier}");
+            return cachedTenant;
+        }
+        
+        _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync - Cache MISS for identifier: {identifier}, querying database");
         
         // Try to parse as integer ID first, otherwise treat as workspace name
         Workspace? workspace = null;
@@ -74,6 +102,14 @@ public class WorkspaceTenantStore : IMultiTenantStore<WorkspaceTenantInfo>
         }
         
         var result = workspace != null ? MapToTenantInfo(workspace) : null;
+        
+        // Cache the result for 30 minutes
+        if (result != null)
+        {
+            _cache.Set(cacheKey, result, CacheDuration);
+            _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync - Cached tenant for identifier: {identifier}");
+        }
+        
         _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync returned: WorkspaceId={result?.WorkspaceId}, ConnectionString={result?.ConnectionString}");
         return result;
     }
