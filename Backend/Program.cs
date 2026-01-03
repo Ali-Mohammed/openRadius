@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient(); // Add HTTP client for Keycloak API calls
 builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

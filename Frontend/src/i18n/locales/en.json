@@ -22,7 +22,8 @@
     "setting": "Setting",
     "appSetting": "App Setting",
     "general": "General",
-    "oidc": "OIDC"
+    "oidc": "OIDC",
+    "userManagement": "User Management"
   },
   "dashboard": {
     "title": "Dashboard",

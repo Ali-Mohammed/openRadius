@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -99,6 +99,11 @@ const data = {
           titleKey: "navigation.oidc",
           url: "/settings/oidc",
           icon: Key,
+        },
+        {
+          titleKey: "navigation.userManagement",
+          url: "/users",
+          icon: UserCog,
         },
       ],
     },

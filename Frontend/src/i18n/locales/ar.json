@@ -20,7 +20,8 @@
     "setting": "الإعدادات",
     "appSetting": "إعدادات التطبيق",
     "general": "عام",
-    "oidc": "OIDC"
+    "oidc": "OIDC",
+    "userManagement": "إدارة المستخدمين"
   },
   "dashboard": {
     "title": "لوحة التحكم",

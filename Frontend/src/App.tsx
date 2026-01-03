@@ -17,6 +17,7 @@ import OidcSettings from './pages/OidcSettings'
 import RadiusProfiles from './pages/RadiusProfiles'
 import RadiusUsers from './pages/RadiusUsers'
 import RadiusGroups from './pages/RadiusGroups'
+import UserManagement from './pages/UserManagement'
 
 const queryClient = new QueryClient()
 
@@ -46,6 +47,7 @@ function App() {
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
+                          <Route path="/users" element={<UserManagement />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>
