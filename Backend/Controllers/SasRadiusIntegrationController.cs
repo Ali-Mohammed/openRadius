@@ -28,10 +28,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetIntegrations(int WorkspaceId)
+    public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetIntegrations(int WorkspaceId, [FromQuery] bool includeDeleted = false)
     {
         var integrations = await _context.SasRadiusIntegrations
-            .Where(i => i.WorkspaceId == WorkspaceId)
+            .Where(i => i.WorkspaceId == WorkspaceId && (includeDeleted || !i.IsDeleted))
             .OrderByDescending(i => i.IsActive)
             .ThenBy(i => i.Name)
             .ToListAsync();
@@ -140,19 +140,51 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<IActionResult> DeleteIntegration(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId && !i.IsDeleted);
 
         if (integration == null)
         {
             return NotFound();
         }
 
-        _context.SasRadiusIntegrations.Remove(integration);
+        integration.IsDeleted = true;
+        integration.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Deleted SAS Radius integration {Name} for instant {WorkspaceId}", integration.Name, WorkspaceId);
+        _logger.LogInformation("Soft deleted SAS Radius integration {Name} for workspace {WorkspaceId}", integration.Name, WorkspaceId);
 
         return NoContent();
+    }
+
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreIntegration(int WorkspaceId, int id)
+    {
+        var integration = await _context.SasRadiusIntegrations
+            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId && i.IsDeleted);
+
+        if (integration == null)
+        {
+            return NotFound(new { message = "Deleted integration not found" });
+        }
+
+        integration.IsDeleted = false;
+        integration.DeletedAt = null;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Restored SAS Radius integration {Name} for workspace {WorkspaceId}", integration.Name, WorkspaceId);
+
+        return NoContent();
+    }
+
+    [HttpGet("trash")]
+    public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetDeletedIntegrations(int WorkspaceId)
+    {
+        var integrations = await _context.SasRadiusIntegrations
+            .Where(i => i.WorkspaceId == WorkspaceId && i.IsDeleted)
+            .OrderByDescending(i => i.DeletedAt)
+            .ToListAsync();
+
+        return Ok(integrations);
     }
 
     [HttpPost("{id}/sync")]
