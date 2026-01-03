@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
@@ -12,24 +12,40 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export default function RadiusProfiles() {
   const { id } = useParams<{ id: string }>()
   const workspaceId = parseInt(id || '0')
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(50)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  // Initialize state from URL params
+  const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'))
+  const [pageSize, setPageSize] = useState(() => parseInt(searchParams.get('pageSize') || '50'))
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '')
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
+  const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc')
 
-  // Profile state
+  // Update URL params when state changes
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (currentPage !== 1) params.page = currentPage.toString()
+    if (pageSize !== 50) params.pageSize = pageSize.toString()
+    if (searchQuery) params.search = searchQuery
+    if (sortField) params.sortField = sortField
+    if (sortDirection !== 'asc') params.sortDirection = sortDirection
+    setSearchParams(params, { replace: true })
+  }, [currentPage, pageSize, searchQuery, sortField, sortDirection])
+
+  //Profile state
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [editingProfile, setEditingProfile] = useState<RadiusProfile | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -37,6 +53,18 @@ export default function RadiusProfiles() {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [profileToRestore, setProfileToRestore] = useState<number | null>(null)
   const [showTrash, setShowTrash] = useState(false)
+
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState({
+    name: true,
+    status: true,
+    download: true,
+    upload: true,
+    price: true,
+    pool: true,
+    users: true,
+  })
+
   const [profileFormData, setProfileFormData] = useState({
     name: '',
     downrate: '',
@@ -53,42 +81,67 @@ export default function RadiusProfiles() {
   })
 
   // Profile queries
-  const { data: profilesData, isLoading: isLoadingProfiles, error: profilesError } = useQuery({
-    queryKey: ['radius-profiles', workspaceId, currentPage, pageSize, searchQuery, showTrash],
+  const { data: profilesData, isLoading: isLoadingProfiles, isFetching, error: profilesError } = useQuery({
+    queryKey: ['radius-profiles', workspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash
       ? radiusProfileApi.getTrash(workspaceId, currentPage, pageSize)
-      : radiusProfileApi.getAll(workspaceId, currentPage, pageSize, searchQuery),
+      : radiusProfileApi.getAll(workspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection),
     enabled: workspaceId > 0,
   })
 
-  const profiles = profilesData?.data || []
+  const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const pagination = profilesData?.pagination
 
-  // Virtual scrolling
+  // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
     count: profiles.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, // Approximate row height in pixels
-    overscan: 5, // Number of items to render outside visible area
+    estimateSize: () => 53,
+    overscan: 2,
   })
 
-  // Debug logging
-  useEffect(() => {
-    console.log('RadiusProfiles - workspaceId:', workspaceId)
-    console.log('RadiusProfiles - Query enabled:', workspaceId > 0)
-  }, [workspaceId])
-
-  useEffect(() => {
-    if (profilesData) {
-      console.log('RadiusProfiles - API Response:', profilesData)
+  // Sorting handlers
+  const handleSort = useCallback((field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
     }
-  }, [profilesData])
+    setCurrentPage(1)
+  }, [sortField, sortDirection])
 
-  useEffect(() => {
-    if (profilesError) {
-      console.error('RadiusProfiles - API Error:', profilesError)
+  const getSortIcon = useCallback((field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 inline-block" />
     }
-  }, [profilesError])
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
+      : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
+  }, [sortField, sortDirection])
+
+  // Pagination pages generator
+  const getPaginationPages = useCallback((current: number, total: number) => {
+    const pages: (number | string)[] = []
+    const maxVisible = 7
+    
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      pages.push(1)
+      if (current > 3) pages.push('...')
+      const start = Math.max(2, current - 1)
+      const end = Math.min(total - 1, current + 1)
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+      if (current < total - 2) pages.push('...')
+      pages.push(total)
+    }
+    return pages
+  }, [])
 
   // Profile mutations
   const createProfileMutation = useMutation({
@@ -138,25 +191,22 @@ export default function RadiusProfiles() {
     },
   })
 
-  const syncProfilesMutation = useMutation({
-    mutationFn: () => radiusProfileApi.sync(workspaceId),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
-      toast.success(
-        `Synced ${response.totalProfiles} profiles (${response.newProfiles} created, ${response.updatedProfiles} updated)`
-      )
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error) || 'Failed to sync profiles')
-    },
-  })
+  // Handlers
+  const handleSearch = () => {
+    setSearchQuery(searchInput)
+    setCurrentPage(1)
+  }
 
-  // Profile handlers
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(parseInt(value))
+    setCurrentPage(1)
+  }
+
   const handleOpenProfileDialog = (profile?: RadiusProfile) => {
     if (profile) {
       setEditingProfile(profile)
       setProfileFormData({
-        name: profile.name,
+        name: profile.name || '',
         downrate: profile.downrate?.toString() || '',
         uprate: profile.uprate?.toString() || '',
         price: profile.price?.toString() || '',
@@ -164,10 +214,10 @@ export default function RadiusProfiles() {
         pool: profile.pool || '',
         type: profile.type?.toString() || '',
         expirationAmount: profile.expirationAmount?.toString() || '',
-        expirationUnit: profile.expirationUnit?.toString() || 'days',
-        enabled: profile.enabled,
-        burstEnabled: profile.burstEnabled,
-        limitExpiration: profile.limitExpiration,
+        expirationUnit: profile.expirationUnit?.toString() || '0',
+        enabled: profile.enabled ?? true,
+        burstEnabled: profile.burstEnabled ?? false,
+        limitExpiration: profile.limitExpiration ?? false,
       })
     } else {
       setEditingProfile(null)
@@ -250,32 +300,21 @@ export default function RadiusProfiles() {
     }
   }
 
-  const handleSyncProfiles = () => {
-    syncProfilesMutation.mutate()
-  }
-
-  const handleSearch = () => {
-    setSearchQuery(searchInput)
-    setCurrentPage(1)
-  }
-
-  const handlePageSizeChange = (value: string) => {
-    setPageSize(Number(value))
-    setCurrentPage(1)
-  }
-
-  const formatNumber = (num: number) => {
-    return num.toLocaleString()
+  const formatSpeed = (kbps?: number) => {
+    if (!kbps) return 'N/A'
+    if (kbps >= 1000000) return `${(kbps / 1000000).toFixed(2)} Gbps`
+    if (kbps >= 1000) return `${(kbps / 1000).toFixed(2)} Mbps`
+    return `${kbps} Kbps`
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">RADIUS Profiles</h1>
-          <p className="text-muted-foreground">Manage RADIUS profiles for your workspace</p>
+          <h1 className="text-3xl font-bold tracking-tight">RADIUS Profiles</h1>
+          <p className="text-muted-foreground">Manage user profiles and bandwidth configurations</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowTrash(!showTrash)}
             variant={showTrash ? 'default' : 'outline'}
@@ -284,29 +323,17 @@ export default function RadiusProfiles() {
             {showTrash ? 'Show Active' : 'Show Trash'}
           </Button>
           {!showTrash && (
-            <>
-              <Button onClick={handleSyncProfiles} variant="outline" disabled={syncProfilesMutation.isPending}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${syncProfilesMutation.isPending ? 'animate-spin' : ''}`} />
-                Sync Profiles
-              </Button>
-              <Button onClick={() => handleOpenProfileDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Profile
-              </Button>
-            </>
+            <Button onClick={() => handleOpenProfileDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Profile
+            </Button>
           )}
         </div>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Profiles</CardTitle>
-                <CardDescription>Manage RADIUS user profiles and their configurations</CardDescription>
-              </div>
-            </div>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 flex-1">
                 <Input
@@ -319,6 +346,93 @@ export default function RadiusProfiles() {
                 <Button onClick={handleSearch} variant="outline" size="icon">
                   <Search className="h-4 w-4" />
                 </Button>
+                <Button 
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })} 
+                  variant="outline" 
+                  size="icon"
+                  title="Refresh"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" title="Toggle columns">
+                      <Columns3 className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={Object.values(columnVisibility).every(v => v)}
+                      onCheckedChange={(checked) => {
+                        setColumnVisibility({
+                          name: checked,
+                          status: checked,
+                          download: checked,
+                          upload: checked,
+                          price: checked,
+                          pool: checked,
+                          users: checked,
+                        })
+                      }}
+                      onSelect={(e) => e.preventDefault()}
+                      className="font-semibold"
+                    >
+                      {Object.values(columnVisibility).every(v => v) ? 'Hide All' : 'Show All'}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.name}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Name
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.status}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Status
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.download}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, download: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Download Speed
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.upload}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, upload: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Upload Speed
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.price}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, price: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Price
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.pool}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, pool: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Pool
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.users}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, users: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Users Count
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Per page:</span>
@@ -331,6 +445,8 @@ export default function RadiusProfiles() {
                     <SelectItem value="50">50</SelectItem>
                     <SelectItem value="100">100</SelectItem>
                     <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="1000">1000</SelectItem>
                     <SelectItem value="999999">All</SelectItem>
                   </SelectContent>
                 </Select>
@@ -338,156 +454,154 @@ export default function RadiusProfiles() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-hidden">
-          {workspaceId <= 0 ? (
-            <div className="text-center py-8 text-red-500">
-              <p className="font-semibold mb-2">Invalid Workspace ID</p>
-              <p className="text-sm">Please navigate to this page from the workspaces dashboard.</p>
-              <p className="text-xs mt-2 text-muted-foreground">Current ID: {id || 'undefined'}</p>
-            </div>
-          ) : isLoadingProfiles ? (
-            <div className="text-center py-8">Loading profiles...</div>
-          ) : profilesError ? (
-            <div className="text-center py-8 text-red-500">
-              Error loading profiles: {profilesError instanceof Error ? profilesError.message : 'Unknown error'}
+        <CardContent className="p-0 overflow-hidden relative">
+          {isLoadingProfiles ? (
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow>
+                    <TableHead className="h-12 px-4 w-[180px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="sticky right-0 bg-background h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="h-12 px-4 w-[180px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="sticky right-0 bg-background h-12 px-4 w-[120px]">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-8 rounded" />
+                          <Skeleton className="h-8 w-8 rounded" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : profiles.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="mb-2">No profiles found.</p>
-              <p className="text-sm">Click "Add Profile" to create one or "Sync Profiles" to fetch from SAS Radius server.</p>
-              {pagination && (
-                <p className="text-xs mt-4 text-muted-foreground">
-                  Total records in database: {pagination.totalRecords}
-                </p>
-              )}
+              No profiles found.
             </div>
           ) : (
-            <div className="overflow-hidden">
-              {/* Fixed Header */}
-              <div className="bg-muted border-b">
-                <Table className="table-fixed w-full">
-                  <colgroup>
-                    <col style={{ width: '180px' }} />
-                    <col style={{ width: '100px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '120px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '100px' }} />
-                    <col style={{ width: '120px' }} />
-                  </colgroup>
-                  <TableHeader>
-                    <TableRow className="hover:bg-muted">
-                      <TableHead className="h-12 px-4 font-semibold">Name</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">Status</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">Download</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">Upload</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold text-right">Price</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">Pool</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold text-right">Users</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                </Table>
-              </div>
-
-              {/* Scrollable Body */}
-              <div ref={parentRef} className="overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100vh - 452px)' }}>
-                <Table className="table-fixed w-full">
-                  <colgroup>
-                    <col style={{ width: '180px' }} />
-                    <col style={{ width: '100px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '120px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '100px' }} />
-                    <col style={{ width: '120px' }} />
-                  </colgroup>
-                  <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                      const profile = profiles[virtualRow.index]
-                      return (
-                        <TableRow
-                          key={profile.id}
-                          className="border-b"
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: `${virtualRow.size}px`,
-                            transform: `translateY(${virtualRow.start}px)`,
-                            display: 'table',
-                            tableLayout: 'fixed',
-                          }}
-                        >
-                          <colgroup>
-                            <col style={{ width: '180px' }} />
-                            <col style={{ width: '100px' }} />
-                            <col style={{ width: '140px' }} />
-                            <col style={{ width: '140px' }} />
-                            <col style={{ width: '120px' }} />
-                            <col style={{ width: '140px' }} />
-                            <col style={{ width: '100px' }} />
-                            <col style={{ width: '120px' }} />
-                          </colgroup>
-                          <TableCell className="h-12 px-4 font-medium">{profile.name}</TableCell>
-                          <TableCell className="h-12 px-4">
-                            <Badge variant={profile.enabled ? 'default' : 'secondary'}>
-                              {profile.enabled ? 'Enabled' : 'Disabled'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="h-12 px-4">{profile.downrate ? `${formatNumber(profile.downrate)} Kbps` : '-'}</TableCell>
-                          <TableCell className="h-12 px-4">{profile.uprate ? `${formatNumber(profile.uprate)} Kbps` : '-'}</TableCell>
-                          <TableCell className="h-12 px-4 text-right font-mono">{profile.price ? `$${profile.price.toFixed(2)}` : '-'}</TableCell>
-                          <TableCell className="h-12 px-4">{profile.pool || '-'}</TableCell>
-                          <TableCell className="h-12 px-4 text-right">{formatNumber(profile.usersCount || 0)}</TableCell>
-                          <TableCell className="h-12 px-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              {showTrash ? (
+            <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+              {isFetching && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>Name{getSortIcon('name')}</TableHead>}
+                    {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('enabled')}>Status{getSortIcon('enabled')}</TableHead>}
+                    {columnVisibility.download && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('downrate')}>Download{getSortIcon('downrate')}</TableHead>}
+                    {columnVisibility.upload && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('uprate')}>Upload{getSortIcon('uprate')}</TableHead>}
+                    {columnVisibility.price && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('price')}>Price{getSortIcon('price')}</TableHead>}
+                    {columnVisibility.pool && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('pool')}>Pool{getSortIcon('pool')}</TableHead>}
+                    {columnVisibility.users && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('userCount')}>Users{getSortIcon('userCount')}</TableHead>}
+                    <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const profile = profiles[virtualRow.index]
+                    return (
+                      <TableRow
+                        key={profile.id}
+                        className="border-b"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                          display: 'table',
+                          tableLayout: 'fixed',
+                        }}
+                      >
+                        {columnVisibility.name && <TableCell className="h-12 px-4 font-medium w-[180px]">{profile.name}</TableCell>}
+                        {columnVisibility.status && <TableCell className="h-12 px-4 w-[100px]">
+                          <Badge variant={profile.enabled ? 'default' : 'secondary'}>
+                            {profile.enabled ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>}
+                        {columnVisibility.download && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.downrate)}</TableCell>}
+                        {columnVisibility.upload && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.uprate)}</TableCell>}
+                        {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${profile.price?.toFixed(2) || '0.00'}</TableCell>}
+                        {columnVisibility.pool && <TableCell className="h-12 px-4 w-[140px]">{profile.pool || '-'}</TableCell>}
+                        {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.userCount || 0}</TableCell>}
+                        <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
+                          <div className="flex justify-end gap-2">
+                            {showTrash ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRestoreProfile(profile.id!)}
+                                disabled={restoreProfileMutation.isPending}
+                                title="Restore profile"
+                              >
+                                <RotateCcw className="h-4 w-4 text-green-600" />
+                              </Button>
+                            ) : (
+                              <>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenProfileDialog(profile)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleRestoreProfile(profile.id!)}
-                                  disabled={restoreProfileMutation.isPending}
-                                  title="Restore profile"
+                                  onClick={() => handleDeleteProfile(profile.id)}
+                                  disabled={deleteProfileMutation.isPending}
                                 >
-                                  <RotateCcw className="h-4 w-4 text-green-600" />
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
-                              ) : (
-                                <>
-                                  <Button variant="ghost" size="icon" onClick={() => handleOpenProfileDialog(profile)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteProfile(profile.id)}
-                                    disabled={deleteProfileMutation.isPending}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
 
-          {/* Pagination Controls - Always visible */}
+          {/* Pagination Controls */}
           {pagination && (
             <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
               <div className="text-sm text-muted-foreground">
-                Showing {formatNumber(profiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + profiles.length)} of {formatNumber(pagination.totalRecords)} profiles
+                Showing {profiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + profiles.length} of {pagination.totalRecords} profiles
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 -ml-2" />
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -495,19 +609,48 @@ export default function RadiusProfiles() {
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
                 </Button>
-                <div className="text-sm">
-                  Page {currentPage} of {pagination.totalPages || 1}
-                </div>
+                
+                {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                  page === '...' ? (
+                    <Button
+                      key={`ellipsis-${idx}`}
+                      variant="ghost"
+                      size="sm"
+                      disabled
+                      className="w-9 p-0"
+                    >
+                      ...
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(page as number)}
+                      className="w-9 p-0"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={currentPage === pagination.totalPages}
                 >
-                  Next
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 -ml-2" />
                 </Button>
               </div>
             </div>
@@ -516,163 +659,112 @@ export default function RadiusProfiles() {
       </Card>
 
       {/* Profile Dialog */}
-      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingProfile ? 'Edit Profile' : 'Add Profile'}</DialogTitle>
-            <DialogDescription>
-              {editingProfile ? 'Update the profile details below.' : 'Fill in the details to create a new profile.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="profile-name">Name *</Label>
-              <Input
-                id="profile-name"
-                value={profileFormData.name}
-                onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
-                placeholder="Profile name"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="profile-downrate">Download Rate (Kbps)</Label>
-                <Input
-                  id="profile-downrate"
-                  type="number"
-                  value={profileFormData.downrate}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, downrate: e.target.value })}
-                  placeholder="e.g., 10240"
-                />
+      {isProfileDialogOpen && (
+        <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingProfile ? 'Edit Profile' : 'Add Profile'}</DialogTitle>
+              <DialogDescription>
+                {editingProfile ? 'Update profile details' : 'Fill in the profile details'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Profile Name *</Label>
+                  <Input
+                    id="name"
+                    value={profileFormData.name}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
+                    placeholder="e.g., Basic Plan"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="price">Price</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={profileFormData.price}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-uprate">Upload Rate (Kbps)</Label>
-                <Input
-                  id="profile-uprate"
-                  type="number"
-                  value={profileFormData.uprate}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, uprate: e.target.value })}
-                  placeholder="e.g., 5120"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="downrate">Download Speed (Kbps)</Label>
+                  <Input
+                    id="downrate"
+                    type="number"
+                    value={profileFormData.downrate}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, downrate: e.target.value })}
+                    placeholder="e.g., 10240"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="uprate">Upload Speed (Kbps)</Label>
+                  <Input
+                    id="uprate"
+                    type="number"
+                    value={profileFormData.uprate}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, uprate: e.target.value })}
+                    placeholder="e.g., 2048"
+                  />
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="profile-price">Price</Label>
-                <Input
-                  id="profile-price"
-                  type="number"
-                  step="0.01"
-                  value={profileFormData.price}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, price: e.target.value })}
-                  placeholder="e.g., 29.99"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="pool">IP Pool</Label>
+                  <Input
+                    id="pool"
+                    value={profileFormData.pool}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, pool: e.target.value })}
+                    placeholder="e.g., main-pool"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="monthly">Monthly Fee</Label>
+                  <Input
+                    id="monthly"
+                    type="number"
+                    value={profileFormData.monthly}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, monthly: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-monthly">Monthly Price</Label>
-                <Input
-                  id="profile-monthly"
-                  type="number"
-                  step="0.01"
-                  value={profileFormData.monthly}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, monthly: e.target.value })}
-                  placeholder="e.g., 49.99"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="profile-pool">Pool</Label>
-                <Input
-                  id="profile-pool"
-                  value={profileFormData.pool}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, pool: e.target.value })}
-                  placeholder="e.g., pool1"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-type">Type</Label>
-                <Input
-                  id="profile-type"
-                  value={profileFormData.type}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, type: e.target.value })}
-                  placeholder="e.g., standard"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="profile-expiration-amount">Expiration Amount</Label>
-                <Input
-                  id="profile-expiration-amount"
-                  type="number"
-                  value={profileFormData.expirationAmount}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, expirationAmount: e.target.value })}
-                  placeholder="e.g., 30"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-expiration-unit">Expiration Unit</Label>
-                <Select
-                  value={profileFormData.expirationUnit}
-                  onValueChange={(value) => setProfileFormData({ ...profileFormData, expirationUnit: value })}
-                >
-                  <SelectTrigger id="profile-expiration-unit">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Days</SelectItem>
-                    <SelectItem value="1">Months</SelectItem>
-                    <SelectItem value="2">Years</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="profile-enabled">Enabled</Label>
+              <div className="flex items-center space-x-2">
                 <Switch
-                  id="profile-enabled"
+                  id="enabled"
                   checked={profileFormData.enabled}
                   onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, enabled: checked })}
                 />
+                <Label htmlFor="enabled">Enabled</Label>
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="profile-burst-enabled">Burst Enabled</Label>
+              <div className="flex items-center space-x-2">
                 <Switch
-                  id="profile-burst-enabled"
+                  id="burstEnabled"
                   checked={profileFormData.burstEnabled}
                   onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, burstEnabled: checked })}
                 />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="profile-limit-expiration">Limit Expiration</Label>
-                <Switch
-                  id="profile-limit-expiration"
-                  checked={profileFormData.limitExpiration}
-                  onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, limitExpiration: checked })}
-                />
+                <Label htmlFor="burstEnabled">Burst Enabled</Label>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseProfileDialog}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveProfile}
-              disabled={!profileFormData.name || createProfileMutation.isPending || updateProfileMutation.isPending}
-            >
-              {editingProfile ? 'Update' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseProfileDialog}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={!profileFormData.name || createProfileMutation.isPending || updateProfileMutation.isPending}
+              >
+                {editingProfile ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -685,9 +777,7 @@ export default function RadiusProfiles() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteProfile} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmDeleteProfile}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -698,18 +788,15 @@ export default function RadiusProfiles() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore Profile?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will restore the profile and make it available again.
+              This will restore the profile and make it active again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRestoreProfile}>
-              Restore
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmRestoreProfile}>Restore</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   )
 }
-

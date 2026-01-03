@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Services;
 
 namespace Backend.Controllers;
 
@@ -11,12 +12,18 @@ public class RadiusProfileController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly MasterDbContext _masterContext;
+    private readonly ISasSyncService _syncService;
     private readonly ILogger<RadiusProfileController> _logger;
 
-    public RadiusProfileController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusProfileController> logger)
+    public RadiusProfileController(
+        ApplicationDbContext context, 
+        MasterDbContext masterContext, 
+        ISasSyncService syncService,
+        ILogger<RadiusProfileController> logger)
     {
         _context = context;
         _masterContext = masterContext;
+        _syncService = syncService;
         _logger = logger;
     }
 
@@ -26,7 +33,9 @@ public class RadiusProfileController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null,
-        [FromQuery] bool includeDeleted = false)
+        [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = null)
     {
         var query = _context.RadiusProfiles
             .Where(p => p.WorkspaceId == WorkspaceId && (includeDeleted || !p.IsDeleted));
@@ -44,8 +53,30 @@ public class RadiusProfileController : ControllerBase
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
+        // Apply sorting
+        if (!string.IsNullOrWhiteSpace(sortField))
+        {
+            var isDescending = sortDirection?.ToLower() == "desc";
+            query = sortField.ToLower() switch
+            {
+                "name" => isDescending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
+                "enabled" => isDescending ? query.OrderByDescending(p => p.Enabled) : query.OrderBy(p => p.Enabled),
+                "downrate" => isDescending ? query.OrderByDescending(p => p.Downrate) : query.OrderBy(p => p.Downrate),
+                "uprate" => isDescending ? query.OrderByDescending(p => p.Uprate) : query.OrderBy(p => p.Uprate),
+                "price" => isDescending ? query.OrderByDescending(p => p.Price) : query.OrderBy(p => p.Price),
+                "pool" => isDescending ? query.OrderByDescending(p => p.Pool) : query.OrderBy(p => p.Pool),
+                "usercount" => isDescending ? query.OrderByDescending(p => p.UsersCount) : query.OrderBy(p => p.UsersCount),
+                "monthly" => isDescending ? query.OrderByDescending(p => p.Monthly) : query.OrderBy(p => p.Monthly),
+                "type" => isDescending ? query.OrderByDescending(p => p.Type) : query.OrderBy(p => p.Type),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+        }
+        else
+        {
+            query = query.OrderByDescending(p => p.CreatedAt);
+        }
+
         var profiles = await query
-            .OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(p => new RadiusProfileResponse
@@ -317,50 +348,37 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpPost("sync")]
-    public async Task<ActionResult<SyncProfileResponse>> SyncProfiles(int WorkspaceId)
+    public async Task<ActionResult<SyncProfileResponse>> SyncProfiles(int WorkspaceId, [FromQuery] bool fullSync = false)
     {
-        var syncId = Guid.NewGuid().ToString();
-        var startedAt = DateTime.UtcNow;
-
         try
         {
-            // TODO: Implement actual sync with SAS Radius server
-            // For now, return a mock response
-            
-            var response = new SyncProfileResponse
+            // Get the active SAS Radius integration for this workspace
+            var integration = await _context.SasRadiusIntegrations
+                .FirstOrDefaultAsync(i => i.WorkspaceId == WorkspaceId && i.IsActive && !i.IsDeleted);
+
+            if (integration == null)
             {
-                SyncId = syncId,
-                Success = true,
-                Message = "Sync completed successfully",
-                TotalProfiles = 0,
-                NewProfiles = 0,
-                UpdatedProfiles = 0,
-                FailedProfiles = 0,
-                StartedAt = startedAt,
-                CompletedAt = DateTime.UtcNow
-            };
+                return BadRequest(new { error = "No active SAS Radius integration found for this workspace" });
+            }
 
-            _logger.LogInformation("Synced radius profiles for instant {WorkspaceId}. SyncId: {SyncId}", WorkspaceId, syncId);
+            // Start the sync using the SAS sync service
+            var syncId = await _syncService.SyncAsync(integration.Id, WorkspaceId, fullSync);
+            
+            _logger.LogInformation("Started profile sync {SyncId} for workspace {WorkspaceId}", syncId, WorkspaceId);
 
-            return Ok(response);
+            return Ok(new
+            {
+                syncId = syncId.ToString(),
+                message = "Profile sync started successfully. Connect to SignalR hub at /hubs/sassync and join group with syncId to receive real-time updates.",
+                integrationId = integration.Id,
+                integrationName = integration.Name,
+                workspaceId = WorkspaceId
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to sync radius profiles for instant {WorkspaceId}", WorkspaceId);
-
-            return Ok(new SyncProfileResponse
-            {
-                SyncId = syncId,
-                Success = false,
-                Message = "Sync failed",
-                TotalProfiles = 0,
-                NewProfiles = 0,
-                UpdatedProfiles = 0,
-                FailedProfiles = 0,
-                StartedAt = startedAt,
-                CompletedAt = DateTime.UtcNow,
-                ErrorMessage = ex.Message
-            });
+            _logger.LogError(ex, "Failed to start profile sync for workspace {WorkspaceId}", WorkspaceId);
+            return StatusCode(500, new { error = "Failed to start profile synchronization", details = ex.Message });
         }
     }
 }

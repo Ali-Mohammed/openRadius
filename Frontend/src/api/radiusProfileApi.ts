@@ -18,6 +18,7 @@ export interface RadiusProfile {
   siteId?: number
   onlineUsersCount?: number
   usersCount?: number
+  userCount?: number  // Alias for usersCount
   createdAt?: string
   updatedAt?: string
   lastSyncedAt?: string
@@ -51,7 +52,9 @@ export const radiusProfileApi = {
     workspaceId: number,
     page: number = 1,
     pageSize: number = 50,
-    search?: string
+    search?: string,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc'
   ): Promise<PaginatedProfilesResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -59,6 +62,10 @@ export const radiusProfileApi = {
     })
     if (search) {
       params.append('search', search)
+    }
+    if (sortField && sortDirection) {
+      params.append('sortField', sortField)
+      params.append('sortDirection', sortDirection)
     }
     const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/profiles?${params.toString()}`)
     return response.data

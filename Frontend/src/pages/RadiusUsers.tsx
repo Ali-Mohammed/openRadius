@@ -313,6 +313,43 @@ export default function RadiusUsers() {
       : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
   }, [sortField, sortDirection])
 
+  // Generate pagination page numbers
+  const getPaginationPages = useCallback((current: number, total: number) => {
+    const pages: (number | string)[] = []
+    const maxVisible = 7 // Maximum number of page buttons to show
+    
+    if (total <= maxVisible) {
+      // Show all pages if total is small
+      for (let i = 1; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Always show first page
+      pages.push(1)
+      
+      if (current > 3) {
+        pages.push('...')
+      }
+      
+      // Show pages around current page
+      const start = Math.max(2, current - 1)
+      const end = Math.min(total - 1, current + 1)
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+      
+      if (current < total - 2) {
+        pages.push('...')
+      }
+      
+      // Always show last page
+      pages.push(total)
+    }
+    
+    return pages
+  }, [])
+
   const handleSync = () => {
     syncMutation.mutate()
   }
@@ -760,7 +797,16 @@ export default function RadiusUsers() {
               <div className="text-sm text-muted-foreground">
                 {t('radiusUsers.showing')} {formatNumber(users.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} {t('radiusUsers.to')} {formatNumber(((currentPage - 1) * pageSize) + users.length)} {t('radiusUsers.of')} {formatNumber(pagination.totalRecords)} {t('radiusUsers.users')}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 -ml-2" />
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -768,19 +814,48 @@ export default function RadiusUsers() {
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {t('common.previous')}
                 </Button>
-                <div className="text-sm">
-                  {t('common.page')} {currentPage} {t('radiusUsers.of')} {pagination.totalPages || 1}
-                </div>
+                
+                {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                  page === '...' ? (
+                    <Button
+                      key={`ellipsis-${idx}`}
+                      variant="ghost"
+                      size="sm"
+                      disabled
+                      className="w-9 p-0"
+                    >
+                      ...
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(page as number)}
+                      className="w-9 p-0"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={currentPage === pagination.totalPages}
                 >
-                  {t('common.next')}
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 -ml-2" />
                 </Button>
               </div>
             </div>
