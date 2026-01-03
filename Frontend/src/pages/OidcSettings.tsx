@@ -432,32 +432,45 @@ export default function OidcSettingsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {!provider.isDefault && (
+                          {showTrash ? (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleSetDefault(provider.id!)}
-                              title="Set as default"
+                              onClick={() => handleRestore(provider.id!)}
+                              title="Restore provider"
                             >
-                              <Star className="h-4 w-4" />
+                              <RotateCcw className="h-4 w-4 text-green-600" />
                             </Button>
+                          ) : (
+                            <>
+                              {!provider.isDefault && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSetDefault(provider.id!)}
+                                  title="Set as default"
+                                >
+                                  <Star className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditDialog(provider)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(provider.id!, provider.isDefault)}
+                                disabled={provider.isDefault}
+                                title={provider.isDefault ? 'Cannot delete default provider' : 'Delete provider'}
+                              >
+                                <Trash2 className={`h-4 w-4 ${provider.isDefault ? 'text-muted-foreground' : 'text-destructive'}`} />
+                              </Button>
+                            </>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(provider)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(provider.id!, provider.isDefault)}
-                            disabled={provider.isDefault}
-                            title={provider.isDefault ? 'Cannot delete default provider' : 'Delete provider'}
-                          >
-                            <Trash2 className={`h-4 w-4 ${provider.isDefault ? 'text-muted-foreground' : 'text-destructive'}`} />
-                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
