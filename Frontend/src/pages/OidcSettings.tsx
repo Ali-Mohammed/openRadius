@@ -328,10 +328,21 @@ export default function OidcSettingsPage() {
           <Shield className="h-6 w-6" />
           <h1 className="text-3xl font-bold">OIDC Providers</h1>
         </div>
-        <Button onClick={openCreateDialog} variant="default">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Provider
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowTrash(!showTrash)}
+            variant={showTrash ? 'default' : 'outline'}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
+          </Button>
+          {!showTrash && (
+            <Button onClick={openCreateDialog} variant="default">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Provider
+            </Button>
+          )}
+        </div>
       </div>
       
       <Alert>
