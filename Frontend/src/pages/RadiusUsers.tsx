@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -37,6 +37,9 @@ export default function RadiusUsers() {
   const [editingUser, setEditingUser] = useState<RadiusUser | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<number | null>(null)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [userToRestore, setUserToRestore] = useState<number | null>(null)
+  const [showTrash, setShowTrash] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
     firstname: '',
@@ -57,8 +60,10 @@ export default function RadiusUsers() {
 
   // Queries
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery],
-    queryFn: () => radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery),
+    queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash],
+    queryFn: () => showTrash 
+      ? radiusUserApi.getTrash(WORKSPACE_ID, currentPage, pageSize)
+      : radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery),
   })
 
   const { data: profilesData } = useQuery({
