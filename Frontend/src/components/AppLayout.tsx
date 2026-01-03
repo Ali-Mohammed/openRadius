@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Plug, Users, CircleUser, LayoutDashboard } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -36,16 +36,16 @@ export function AppLayout({ children }: AppLayoutProps) {
   const getBreadcrumbs = () => {
     if (location.pathname === '/dashboard') return { parent: null, current: 'Dashboard', icon: Home }
     if (location.pathname === '/profile') return { parent: null, current: 'Profile Settings', icon: UserCog }
-    if (location.pathname === '/settings') return { parent: null, current: 'Settings', icon: Settings }
-    if (location.pathname === '/workspace/view') return { parent: null, current: 'Workspace View', icon: Building2 }
+    if (location.pathname === '/settings') return { parent: null, current: 'Settings', icon: SlidersHorizontal }
+    if (location.pathname === '/workspace/view') return { parent: null, current: 'Workspace View', icon: Eye }
     if (location.pathname.startsWith('/workspace/') && location.pathname.endsWith('/settings')) {
-      return { parent: { title: 'Workspace View', href: '/workspace/view', icon: Building2 }, current: 'Workspace Settings', icon: Settings }
+      return { parent: { title: 'Workspace View', href: '/workspace/view', icon: Eye }, current: 'Workspace Settings', icon: Wrench }
     }
-    if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius', icon: Plug }
+    if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius', icon: Radio }
     if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
-    if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Settings }
-    if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Settings }
+    if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Wrench }
+    if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Key }
     return { parent: null, current: 'Dashboard', icon: Home }
   }
 

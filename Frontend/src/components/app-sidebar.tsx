@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -42,7 +42,7 @@ const data = {
         {
           title: "SAS Radius",
           url: "/integration/sas-radius",
-          icon: Plug,
+          icon: Radio,
         },
       ],
     },
@@ -71,24 +71,24 @@ const data = {
         {
           title: "View",
           url: "/workspace/view",
-          icon: LayoutDashboard,
+          icon: Eye,
         },
         {
           title: "Setting",
           url: "/workspace/setting",
-          icon: Settings,
+          icon: Wrench,
         },
       ],
     },
     {
       title: "App Setting",
       url: "#",
-      icon: Settings,
+      icon: SlidersHorizontal,
       items: [
         {
           title: "OIDC",
           url: "/settings/oidc",
-          icon: Settings,
+          icon: Key,
         },
       ],
     },
