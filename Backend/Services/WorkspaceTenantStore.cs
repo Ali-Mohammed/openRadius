@@ -14,19 +14,24 @@ public class WorkspaceTenantStore : IMultiTenantStore<WorkspaceTenantInfo>
 {
     private readonly MasterDbContext _masterDbContext;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<WorkspaceTenantStore> _logger;
 
-    public WorkspaceTenantStore(MasterDbContext masterDbContext, IConfiguration configuration)
+    public WorkspaceTenantStore(MasterDbContext masterDbContext, IConfiguration configuration, ILogger<WorkspaceTenantStore> logger)
     {
         _masterDbContext = masterDbContext;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task<WorkspaceTenantInfo?> GetAsync(string id)
     {
+        _logger.LogInformation($"WorkspaceTenantStore.GetAsync called with id: {id}");
         var workspace = await _masterDbContext.Workspaces
             .FirstOrDefaultAsync(i => i.Id.ToString() == id && i.DeletedAt == null);
         
-        return workspace != null ? MapToTenantInfo(workspace) : null;
+        var result = workspace != null ? MapToTenantInfo(workspace) : null;
+        _logger.LogInformation($"WorkspaceTenantStore.GetAsync returned: WorkspaceId={result?.WorkspaceId}, ConnectionString={result?.ConnectionString}");
+        return result;
     }
 
     public async Task<IEnumerable<WorkspaceTenantInfo>> GetAllAsync(int skip = 0, int take = 100)
@@ -51,10 +56,26 @@ public class WorkspaceTenantStore : IMultiTenantStore<WorkspaceTenantInfo>
 
     public async Task<WorkspaceTenantInfo?> GetByIdentifierAsync(string identifier)
     {
-        var workspace = await _masterDbContext.Workspaces
-            .FirstOrDefaultAsync(i => i.Name == identifier && i.DeletedAt == null);
+        _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync called with identifier: {identifier}");
         
-        return workspace != null ? MapToTenantInfo(workspace) : null;
+        // Try to parse as integer ID first, otherwise treat as workspace name
+        Workspace? workspace = null;
+        if (int.TryParse(identifier, out int workspaceId))
+        {
+            workspace = await _masterDbContext.Workspaces
+                .FirstOrDefaultAsync(i => i.Id == workspaceId && i.DeletedAt == null);
+        }
+        
+        // Fallback to searching by name if not found by ID
+        if (workspace == null)
+        {
+            workspace = await _masterDbContext.Workspaces
+                .FirstOrDefaultAsync(i => i.Name == identifier && i.DeletedAt == null);
+        }
+        
+        var result = workspace != null ? MapToTenantInfo(workspace) : null;
+        _logger.LogInformation($"WorkspaceTenantStore.GetByIdentifierAsync returned: WorkspaceId={result?.WorkspaceId}, ConnectionString={result?.ConnectionString}");
+        return result;
     }
 
     public async Task<bool> AddAsync(WorkspaceTenantInfo tenantInfo)

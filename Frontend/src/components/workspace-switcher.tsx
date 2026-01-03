@@ -44,6 +44,15 @@ export function WorkspaceSwitcher() {
       queryClient.invalidateQueries({ queryKey: ['current-user'] })
       setCurrentWorkspaceId(workspaceId)
       toast.success('Workspace switched successfully')
+      
+      // Invalidate all workspace-scoped queries to force reload
+      queryClient.invalidateQueries({ queryKey: ['radius-users'] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
+      queryClient.invalidateQueries({ queryKey: ['sas-integrations'] })
+      queryClient.invalidateQueries({ queryKey: ['sync-progress'] })
+      
+      // Reload the current page to ensure fresh data
+      window.location.reload()
     },
     onError: () => {
       toast.error('Failed to switch workspace')

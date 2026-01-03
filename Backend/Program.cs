@@ -27,26 +27,26 @@ builder.Services.AddScoped<WorkspaceTenantStore>();
 builder.Services.AddScoped<UserWorkspaceTenantResolver>();
 
 builder.Services.AddMultiTenant<WorkspaceTenantInfo>()
-    .WithDelegateStrategy(async (IServiceProvider sp) =>
-    {
-        var resolver = sp.GetRequiredService<UserWorkspaceTenantResolver>();
-        var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
-        if (httpContext != null)
-        {
-            var tenantId = await resolver.GetIdentifierAsync(httpContext);
-            return tenantId;
-        }
-        return null;
-    })
-    .WithStore<WorkspaceTenantStore>(ServiceLifetime.Scoped);
+    .WithStrategy<UserWorkspaceTenantResolver>(ServiceLifetime.Scoped)
+    .WithStore<WorkspaceTenantStore>(ServiceLifetime.Scoped)
+    .WithInMemoryStoreCache(); // Cache tenant info to avoid repeated DB queries
 
 // Configure tenant-specific ApplicationDbContext with MultiTenant support
-builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+builder.Services.AddScoped<ApplicationDbContext>((serviceProvider) =>
 {
-    var accessor = serviceProvider.GetService<IMultiTenantContextAccessor<WorkspaceTenantInfo>>();
-    var connectionString = accessor?.MultiTenantContext?.TenantInfo?.ConnectionString 
-        ?? builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseNpgsql(connectionString);
+    var accessor = serviceProvider.GetRequiredService<IMultiTenantContextAccessor<WorkspaceTenantInfo>>();
+    var logger = serviceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
+    
+    var tenantInfo = accessor?.MultiTenantContext?.TenantInfo;
+    var connectionString = tenantInfo?.ConnectionString 
+        ?? builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+    
+    logger.LogInformation($"ApplicationDbContext: TenantId={tenantInfo?.Id}, WorkspaceId={tenantInfo?.WorkspaceId}, ConnectionString={connectionString}");
+    
+    var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+    optionsBuilder.UseNpgsql(connectionString);
+    
+    return new ApplicationDbContext(optionsBuilder.Options);
 });
 
 // Configure OIDC Authentication with Keycloak
@@ -61,6 +61,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             $"{oidcSettings["Authority"]}/.well-known/openid-configuration";
         options.RequireHttpsMetadata = oidcSettings.GetValue<bool>("RequireHttpsMetadata", false);
         
+        // Map inbound claims to expected .NET claim types
+        options.MapInboundClaims = false; // Disable default claim mapping to keep original claim names
+        
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -70,7 +73,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuers = new[] { 
                 oidcSettings["Issuer"] ?? oidcSettings["Authority"] ?? string.Empty 
             },
-            ClockSkew = TimeSpan.FromMinutes(5)
+            ClockSkew = TimeSpan.FromMinutes(5),
+            NameClaimType = "preferred_username", // Map name claim
+            RoleClaimType = "realm_access.roles" // Map role claim
         };
         
         // Enhanced event logging for OIDC authentication
@@ -83,7 +88,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             },
             OnTokenValidated = context =>
             {
+                var claims = string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}") ?? Array.Empty<string>());
                 Console.WriteLine($"OIDC Token validated for: {context.Principal?.Identity?.Name}");
+                Console.WriteLine($"OIDC Claims: {claims}");
                 return Task.CompletedTask;
             }
         };
@@ -216,10 +223,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
-// Add MultiTenant middleware (must be before Authentication)
+// Authentication must run first to populate claims
+app.UseAuthentication();
+
+// Multi-tenant middleware reads claims from authenticated user
 app.UseMultiTenant();
 
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
