@@ -42,7 +42,7 @@ public class UserManagementController : ControllerBase
         var content = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "client_credentials"),
-            new KeyValuePair<string, string>("client_id", _configuration["Oidc:ClientId"] ?? ""),
+            new KeyValuePair<string, string>("client_id", _configuration["KeycloakAdmin:ClientId"] ?? "openradius-admin"),
             new KeyValuePair<string, string>("client_secret", _configuration["KeycloakAdmin:ClientSecret"] ?? "")
         });
 
