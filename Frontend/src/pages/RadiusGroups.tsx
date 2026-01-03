@@ -296,57 +296,58 @@ export default function RadiusGroups() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <Card>
+    <div className="space-y-6 overflow-x-hidden">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">RADIUS Groups</h1>
+          <p className="text-muted-foreground">Manage user groups and subscriptions</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowTrash(!showTrash)}
+            variant={showTrash ? 'default' : 'outline'}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
+          </Button>
+          {!showTrash && (
+            <Button onClick={handleCreateGroup}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Group
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Card className="overflow-hidden">
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>RADIUS Groups</CardTitle>
-              <CardDescription>Manage user groups and subscriptions</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowTrash(!showTrash)}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                placeholder="Search groups..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="max-w-sm"
+              />
+              <Button onClick={handleSearch} variant="outline" size="icon">
+                <Search className="h-4 w-4" />
+              </Button>
+              <Button 
+                onClick={handleRefresh} 
+                variant="outline" 
+                size="icon"
+                disabled={isFetching}
               >
-                <Archive className="mr-2 h-4 w-4" />
-                {showTrash ? 'Active Groups' : 'Trash'}
-              </Button>
-              <Button onClick={handleCreateGroup} size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Group
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Filters and Search */}
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="flex-1 flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search groups..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyPress={handleSearchKeyPress}
-                  className="pl-8"
-                />
-              </div>
-              <Button variant="outline" onClick={handleSearch}>
-                Search
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isFetching}>
-                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+                <RefreshCw className="h-4 w-4" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" title="Toggle columns">
                     <Columns3 className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem
@@ -390,7 +391,8 @@ export default function RadiusGroups() {
               </DropdownMenu>
             </div>
           </div>
-
+        </CardHeader>
+        <CardContent className="p-0">
           {/* Table */}
           <div className="relative">
             {isFetching && (
@@ -499,7 +501,7 @@ export default function RadiusGroups() {
 
           {/* Enhanced Pagination */}
           {pagination && pagination.totalPages > 0 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-between p-4 border-t">
               <div className="text-sm text-muted-foreground">
                 Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pagination.totalRecords)} of {pagination.totalRecords} groups
               </div>
