@@ -482,16 +482,15 @@ export default function RadiusUsers() {
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline" 
-                      size="sm"
+                      size="icon"
                       disabled={isExporting}
                       title="Export data"
                     >
                       {isExporting ? (
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Download className="h-4 w-4 mr-2" />
+                        <Download className="h-4 w-4" />
                       )}
-                      Export
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-48 p-2" align="end">
