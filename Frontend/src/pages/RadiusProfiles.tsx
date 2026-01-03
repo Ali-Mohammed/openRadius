@@ -276,14 +276,25 @@ export default function RadiusProfiles() {
           <p className="text-muted-foreground">Manage RADIUS profiles for your workspace</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleSyncProfiles} variant="outline" disabled={syncProfilesMutation.isPending}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncProfilesMutation.isPending ? 'animate-spin' : ''}`} />
-            Sync Profiles
+          <Button
+            onClick={() => setShowTrash(!showTrash)}
+            variant={showTrash ? 'default' : 'outline'}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
           </Button>
-          <Button onClick={() => handleOpenProfileDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Profile
-          </Button>
+          {!showTrash && (
+            <>
+              <Button onClick={handleSyncProfiles} variant="outline" disabled={syncProfilesMutation.isPending}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncProfilesMutation.isPending ? 'animate-spin' : ''}`} />
+                Sync Profiles
+              </Button>
+              <Button onClick={() => handleOpenProfileDialog()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Profile
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
