@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -21,6 +21,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // Hardcoded workspaceId for now - will be dynamic based on routing later
 const WORKSPACE_ID = 1
@@ -82,6 +83,7 @@ export default function RadiusUsers() {
   })
 
   const [showTrash, setShowTrash] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
     firstname: '',
@@ -355,6 +357,7 @@ export default function RadiusUsers() {
   }
 
   const handleExportCsv = async () => {
+    setIsExporting(true)
     try {
       const blob = await radiusUserApi.exportToCsv(
         WORKSPACE_ID,
@@ -373,10 +376,13 @@ export default function RadiusUsers() {
       toast.success('CSV exported successfully')
     } catch (error) {
       toast.error('Failed to export CSV')
+    } finally {
+      setIsExporting(false)
     }
   }
 
   const handleExportExcel = async () => {
+    setIsExporting(true)
     try {
       const blob = await radiusUserApi.exportToExcel(
         WORKSPACE_ID,
@@ -395,6 +401,8 @@ export default function RadiusUsers() {
       toast.success('Excel exported successfully')
     } catch (error) {
       toast.error('Failed to export Excel')
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -470,24 +478,47 @@ export default function RadiusUsers() {
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
-                <Button 
-                  onClick={handleExportCsv} 
-                  variant="outline" 
-                  size="sm"
-                  title="Export to CSV"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  CSV
-                </Button>
-                <Button 
-                  onClick={handleExportExcel} 
-                  variant="outline" 
-                  size="sm"
-                  title="Export to Excel"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Excel
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={isExporting}
+                      title="Export data"
+                    >
+                      {isExporting ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      Export
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="end">
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start"
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Export as CSV
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start"
+                        onClick={handleExportExcel}
+                        disabled={isExporting}
+                      >
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Export as Excel
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" title="Toggle columns">
