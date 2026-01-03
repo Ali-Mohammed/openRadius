@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
 
 import { SearchForm } from "@/components/search-form"
+import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { VersionSwitcher } from "@/components/version-switcher"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -108,6 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <p className="text-xs text-muted-foreground">{t('app.welcome')}</p>
           </div>
         </Link>
+        <WorkspaceSwitcher />
         <SearchForm />
       </SidebarHeader>
       <SidebarContent className="gap-0">

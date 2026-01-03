@@ -6,6 +6,11 @@ using Finbuckle.MultiTenant.EntityFrameworkCore;
 
 namespace Backend.Data;
 
+/// <summary>
+/// Workspace-specific database context for multi-tenant data.
+/// Each workspace has its own database containing RadiusUsers, RadiusProfiles, 
+/// SasRadiusIntegration, and SyncProgress data.
+/// </summary>
 public class ApplicationDbContext : DbContext
 {
     private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo>? _multiTenantContextAccessor;
@@ -18,28 +23,22 @@ public class ApplicationDbContext : DbContext
         _multiTenantContextAccessor = multiTenantContextAccessor;
     }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<OidcSettings> OidcSettings { get; set; }
+    public DbSet<RadiusUser> RadiusUsers { get; set; }
+    public DbSet<RadiusProfile> RadiusProfiles { get; set; }
+    public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
+    public DbSet<SyncProgress> SyncProgresses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<RadiusUser>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-            entity.HasIndex(e => e.Email).IsUnique();
             
-            // Configure relationships for multi-tenant workspace selection
-            entity.HasOne(e => e.DefaultWorkspace)
+            entity.HasOne(e => e.Profile)
                   .WithMany()
-                  .HasForeignKey(e => e.DefaultWorkspaceId)
-                  .OnDelete(DeleteBehavior.SetNull);
-                  
-            entity.HasOne(e => e.CurrentWorkspace)
-                  .WithMany()
-                  .HasForeignKey(e => e.CurrentWorkspaceId)
+                  .HasForeignKey(e => e.ProfileId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
     }

@@ -28,7 +28,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("me")]
-    public ActionResult<object> GetCurrentUser()
+    public async Task<ActionResult<object>> GetCurrentUser()
     {
         var claims = User.Claims.Select(c => new { c.Type, c.Value });
         
@@ -39,6 +39,16 @@ public class UsersController : ControllerBase
         var email = User.Claims.FirstOrDefault(c => 
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" ||
             c.Type == "email")?.Value;
+        
+        // Get user from database to include workspace information
+        User? dbUser = null;
+        if (!string.IsNullOrEmpty(email))
+        {
+            dbUser = await _context.Users
+                .Include(u => u.DefaultWorkspace)
+                .Include(u => u.CurrentWorkspace)
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
         
         // Extract realm roles from JSON
         var realmRoles = new List<string>();
@@ -94,7 +104,29 @@ public class UsersController : ControllerBase
             Roles = realmRoles,
             ResourceRoles = resourceRoles,
             Groups = groups,
-            Claims = claims
+            Claims = claims,
+            User = dbUser != null ? new {
+                dbUser.Id,
+                dbUser.Email,
+                dbUser.FirstName,
+                dbUser.LastName,
+                dbUser.CurrentWorkspaceId,
+                dbUser.DefaultWorkspaceId,
+                CurrentWorkspace = dbUser.CurrentWorkspace != null ? new {
+                    dbUser.CurrentWorkspace.Id,
+                    dbUser.CurrentWorkspace.Title,
+                    dbUser.CurrentWorkspace.Name,
+                    dbUser.CurrentWorkspace.Location,
+                    dbUser.CurrentWorkspace.Color
+                } : null,
+                DefaultWorkspace = dbUser.DefaultWorkspace != null ? new {
+                    dbUser.DefaultWorkspace.Id,
+                    dbUser.DefaultWorkspace.Title,
+                    dbUser.DefaultWorkspace.Name,
+                    dbUser.DefaultWorkspace.Location,
+                    dbUser.DefaultWorkspace.Color
+                } : null
+            } : null
         });
     }
 
@@ -218,16 +250,31 @@ public class UsersController : ControllerBase
         
         if (user == null)
         {
-            return NotFound(new { message = "User not found" });
+            // Create new user if doesn't exist
+            var name = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
+            var nameParts = name?.Split(' ', 2) ?? new[] { "", "" };
+            
+            user = new User
+            {
+                Email = email,
+                FirstName = nameParts.Length > 0 ? nameParts[0] : "",
+                LastName = nameParts.Length > 1 ? nameParts[1] : "",
+                CreatedAt = DateTime.UtcNow,
+                CurrentWorkspaceId = workspaceId,
+                DefaultWorkspaceId = setAsDefault ? workspaceId : null
+            };
+            _context.Users.Add(user);
         }
-
-        // Set current workspace
-        user.CurrentWorkspaceId = workspaceId;
-        
-        // Optionally set as default workspace
-        if (setAsDefault)
+        else
         {
-            user.DefaultWorkspaceId = workspaceId;
+            // Set current workspace
+            user.CurrentWorkspaceId = workspaceId;
+            
+            // Optionally set as default workspace
+            if (setAsDefault)
+            {
+                user.DefaultWorkspaceId = workspaceId;
+            }
         }
 
         await _context.SaveChangesAsync();

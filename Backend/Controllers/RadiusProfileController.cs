@@ -9,12 +9,14 @@ namespace Backend.Controllers;
 [Route("api/workspaces/{WorkspaceId}/radius/profiles")]
 public class RadiusProfileController : ControllerBase
 {
-    private readonly MasterDbContext _context;
+    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusProfileController> _logger;
 
-    public RadiusProfileController(MasterDbContext context, ILogger<RadiusProfileController> logger)
+    public RadiusProfileController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusProfileController> logger)
     {
         _context = context;
+        _masterContext = masterContext;
         _logger = logger;
     }
 
@@ -124,7 +126,7 @@ public class RadiusProfileController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RadiusProfileResponse>> CreateProfile(int WorkspaceId, [FromBody] CreateProfileRequest request)
     {
-        var workspace = await _context.Workspaces.FindAsync(WorkspaceId);
+        var workspace = await _masterContext.Workspaces.FindAsync(WorkspaceId);
         if (workspace == null)
         {
             return NotFound($"Workspace with ID {WorkspaceId} not found");

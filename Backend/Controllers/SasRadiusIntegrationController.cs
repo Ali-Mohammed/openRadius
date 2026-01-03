@@ -10,16 +10,19 @@ namespace Backend.Controllers;
 [Route("api/workspaces/{WorkspaceId}/sas-radius")]
 public class SasRadiusIntegrationController : ControllerBase
 {
-    private readonly MasterDbContext _context;
+    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ISasSyncService _syncService;
     private readonly ILogger<SasRadiusIntegrationController> _logger;
 
     public SasRadiusIntegrationController(
-        MasterDbContext context, 
+        ApplicationDbContext context,
+        MasterDbContext masterContext,
         ISasSyncService syncService,
         ILogger<SasRadiusIntegrationController> logger)
     {
         _context = context;
+        _masterContext = masterContext;
         _syncService = syncService;
         _logger = logger;
     }
@@ -54,7 +57,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<ActionResult<SasRadiusIntegration>> CreateIntegration(int WorkspaceId, [FromBody] SasRadiusIntegration integration)
     {
         // Verify workspace exists
-        var workspace = await _context.Workspaces.FindAsync(WorkspaceId);
+        var workspace = await _masterContext.Workspaces.FindAsync(WorkspaceId);
         if (workspace == null)
         {
             return NotFound($"Workspace with ID {WorkspaceId} not found");

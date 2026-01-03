@@ -10,12 +10,12 @@ namespace Backend.Controllers;
 [Route("api/[controller]")]
 public class OidcSettingsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _context;
     private readonly ILogger<OidcSettingsController> _logger;
     private readonly IConfiguration _configuration;
 
     public OidcSettingsController(
-        ApplicationDbContext context,
+        MasterDbContext context,
         ILogger<OidcSettingsController> logger,
         IConfiguration configuration)
     {

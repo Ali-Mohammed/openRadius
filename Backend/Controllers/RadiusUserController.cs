@@ -9,10 +9,10 @@ namespace Backend.Controllers;
 [Route("api/workspaces/{WorkspaceId}/radius/users")]
 public class RadiusUserController : ControllerBase
 {
-    private readonly MasterDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly ILogger<RadiusUserController> _logger;
 
-    public RadiusUserController(MasterDbContext context, ILogger<RadiusUserController> logger)
+    public RadiusUserController(ApplicationDbContext context, ILogger<RadiusUserController> logger)
     {
         _context = context;
         _logger = logger;

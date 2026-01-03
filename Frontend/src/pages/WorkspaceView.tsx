@@ -57,7 +57,7 @@ import {
 } from '../components/ui/tabs'
 import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { workspaceApi, usersApi } from '../lib/api'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import type { Workspace, WorkspaceCreateDto } from '../lib/api'
 import { toast } from 'sonner'
 
@@ -65,6 +65,7 @@ export default function workspaceView() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const location = useLocation()
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -111,6 +112,15 @@ export default function workspaceView() {
       setOpen(true)
     }
   }, [workspaces, deletedworkspaces, isLoading, open])
+
+  // Open dialog when navigated with openDialog state
+  useEffect(() => {
+    if (location.state?.openDialog) {
+      setOpen(true)
+      // Clear the state to prevent reopening on subsequent visits
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location, navigate])
 
   // Refetch when sorting or filter changes
   useEffect(() => {

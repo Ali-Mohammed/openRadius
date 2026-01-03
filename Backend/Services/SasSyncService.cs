@@ -33,7 +33,7 @@ public class SasSyncService : ISasSyncService
     {
         using (var scope = _scopeFactory.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             
             // Check for active syncs (status < 8 means not completed/failed/cancelled)
             var activeSync = await context.SyncProgresses
@@ -102,7 +102,7 @@ public class SasSyncService : ISasSyncService
     public async Task<bool> CancelSyncAsync(Guid syncId, int WorkspaceId)
     {
         using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
         var sync = await context.SyncProgresses
             .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
@@ -158,7 +158,7 @@ public class SasSyncService : ISasSyncService
             await UpdateProgress(syncId, SyncStatus.Completed, SyncPhase.Completed, 100, "Synchronization completed successfully", cancellationToken);
             
             using var scope = _scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var progress = await context.SyncProgresses.FindAsync(syncId);
             if (progress != null)
             {
@@ -279,7 +279,7 @@ public class SasSyncService : ISasSyncService
 
             using (var scope = _scopeFactory.CreateScope())
             {
-                var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 
                 // Update progress totals
                 var profileProgress = await context.SyncProgresses.FindAsync(syncId);
@@ -426,7 +426,7 @@ public class SasSyncService : ISasSyncService
 
             using (var scope = _scopeFactory.CreateScope())
             {
-                var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 
                 // Update progress totals
                 var userProgress = await context.SyncProgresses.FindAsync(syncId);
@@ -562,7 +562,7 @@ public class SasSyncService : ISasSyncService
     private async Task UpdateProgress(Guid syncId, SyncStatus status, SyncPhase phase, double percentage, string message, CancellationToken cancellationToken, string? errorMessage = null)
     {
         using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
         var progress = await context.SyncProgresses.FindAsync(syncId);
         if (progress != null)
