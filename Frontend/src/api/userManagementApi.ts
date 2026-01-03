@@ -44,37 +44,37 @@ export const userManagementApi = {
     if (max !== undefined) params.append('max', max.toString())
     if (search) params.append('search', search)
     
-    const response = await apiClient.get(`/api/users?${params.toString()}`)
+    const response = await apiClient.get(`/api/keycloak/users?${params.toString()}`)
     return response.data
   },
 
   getById: async (id: string): Promise<KeycloakUser> => {
-    const response = await apiClient.get(`/api/users/${id}`)
+    const response = await apiClient.get(`/api/keycloak/users/${id}`)
     return response.data
   },
 
   create: async (data: CreateUserRequest): Promise<{ id: string; message: string }> => {
-    const response = await apiClient.post('/api/users', data)
+    const response = await apiClient.post('/api/keycloak/users', data)
     return response.data
   },
 
   update: async (id: string, data: Partial<KeycloakUser>): Promise<{ message: string }> => {
-    const response = await apiClient.put(`/api/users/${id}`, data)
+    const response = await apiClient.put(`/api/keycloak/users/${id}`, data)
     return response.data
   },
 
   delete: async (id: string): Promise<{ message: string }> => {
-    const response = await apiClient.delete(`/api/users/${id}`)
+    const response = await apiClient.delete(`/api/keycloak/users/${id}`)
     return response.data
   },
 
   resetPassword: async (id: string, data: SetPasswordRequest): Promise<{ message: string }> => {
-    const response = await apiClient.put(`/api/users/${id}/reset-password`, data)
+    const response = await apiClient.put(`/api/keycloak/users/${id}/reset-password`, data)
     return response.data
   },
 
   getGroups: async (): Promise<KeycloakGroup[]> => {
-    const response = await apiClient.get('/api/users/groups')
+    const response = await apiClient.get('/api/keycloak/users/groups')
     return response.data
   },
 }

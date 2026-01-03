@@ -48,6 +48,14 @@ Complete guide to all OpenRadius documentation.
 
 ### [OIDC_CONFIGURATION.md](OIDC_CONFIGURATION.md)
 **OIDC configuration details**
+
+### [KEYCLOAK_ADMIN_CLIENT_SETUP.md](KEYCLOAK_ADMIN_CLIENT_SETUP.md)
+**Automated Keycloak admin client setup**
+- Service account client creation
+- PowerShell automation scripts
+- Role assignment for user management
+- Manual setup instructions
+- Troubleshooting guide
 - Environment variables
 - Configuration options
 - Provider settings

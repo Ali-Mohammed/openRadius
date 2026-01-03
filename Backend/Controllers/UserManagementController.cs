@@ -8,7 +8,7 @@ using System.Text.Json;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/users")]
+[Route("api/keycloak/users")]
 [Authorize]
 public class UserManagementController : ControllerBase
 {
@@ -316,7 +316,7 @@ public class UserManagementController : ControllerBase
         }
     }
 
-    // GET: api/users/groups
+    // GET: api/keycloak/users/groups
     [HttpGet("groups")]
     public async Task<IActionResult> GetGroups()
     {
