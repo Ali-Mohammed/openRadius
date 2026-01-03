@@ -96,7 +96,7 @@ namespace Backend.Models
         public string? Notes { get; set; }
 
         [JsonPropertyName("simultaneous_sessions")]
-        public int SimultaneousSessions { get; set; }
+        public int? SimultaneousSessions { get; set; }
 
         [JsonPropertyName("address")]
         public string? Address { get; set; }

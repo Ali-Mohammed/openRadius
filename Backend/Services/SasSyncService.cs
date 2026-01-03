@@ -475,7 +475,7 @@ public class SasSyncService : ISasSyncService
                                     Enabled = sasUser.Enabled == 1,
                                     Company = sasUser.Company,
                                     Notes = sasUser.Notes,
-                                    SimultaneousSessions = sasUser.SimultaneousSessions,
+                                    SimultaneousSessions = sasUser.SimultaneousSessions ?? 1,
                                     Address = sasUser.Address,
                                     ContractId = sasUser.ContractId,
                                     NationalId = sasUser.NationalId,
@@ -518,7 +518,7 @@ public class SasSyncService : ISasSyncService
                                 existingUser.Enabled = sasUser.Enabled == 1;
                                 existingUser.Company = sasUser.Company;
                                 existingUser.Notes = sasUser.Notes;
-                                existingUser.SimultaneousSessions = sasUser.SimultaneousSessions;
+                                existingUser.SimultaneousSessions = sasUser.SimultaneousSessions ?? 1;
                                 existingUser.Address = sasUser.Address;
                                 existingUser.ContractId = sasUser.ContractId;
                                 existingUser.NationalId = sasUser.NationalId;

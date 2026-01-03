@@ -72,6 +72,7 @@
     "fillDetails": "املأ التفاصيل لإنشاء مستخدم جديد.",
     "updateDetails": "قم بتحديث تفاصيل المستخدم أدناه.",
     "selectProfile": "اختر ملف شخصي",
+    "searchProfile": "البحث عن ملف شخصي...",
     "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟"
   },
   "radiusProfiles": {

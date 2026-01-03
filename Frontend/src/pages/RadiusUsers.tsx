@@ -17,6 +17,7 @@ import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 
 // Hardcoded workspaceId for now - will be dynamic based on routing later
 const WORKSPACE_ID = 1
@@ -594,21 +595,17 @@ export default function RadiusUsers() {
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="profileId">{t('radiusUsers.profileId')}</Label>
-                <Select
+                <Combobox
+                  options={profiles.map((profile) => ({
+                    value: profile.id?.toString() || '',
+                    label: profile.name || ''
+                  }))}
                   value={formData.profileId}
                   onValueChange={(value) => setFormData({ ...formData, profileId: value })}
-                >
-                  <SelectTrigger id="profileId">
-                    <SelectValue placeholder={t('radiusUsers.selectProfile')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.id?.toString() || ''}>
-                        {profile.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('radiusUsers.selectProfile')}
+                  searchPlaceholder={t('radiusUsers.searchProfile') || "Search profile..."}
+                  emptyText={t('radiusUsers.noProfilesFound') || "No profiles found."}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="balance">{t('radiusUsers.balance')}</Label>

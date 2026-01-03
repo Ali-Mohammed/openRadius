@@ -72,6 +72,7 @@
     "fillDetails": "Fill in the details to create a new user.",
     "updateDetails": "Update the user details below.",
     "selectProfile": "Select a profile",
+    "searchProfile": "Search profile...",
     "deleteConfirm": "Are you sure you want to delete this user?"
   },
   "radiusProfiles": {
