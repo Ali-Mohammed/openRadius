@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, useCallback, memo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
@@ -99,16 +99,16 @@ export default function RadiusUsers() {
     queryFn: () => radiusProfileApi.getAll(WORKSPACE_ID, 1, 999999),
   })
 
-  const users = usersData?.data || []
+  const users = useMemo(() => usersData?.data || [], [usersData?.data])
   const pagination = usersData?.pagination
-  const profiles = profilesData?.data || []
+  const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
 
-  // Virtual scrolling
+  // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
     count: users.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 53, // Approximate row height in pixels
-    overscan: 5, // Number of items to render outside visible area
+    overscan: 2, // Reduced overscan for better performance with large datasets
   })
 
   // Mutations
@@ -280,7 +280,7 @@ export default function RadiusUsers() {
     }
   }
 
-  const handleSort = (field: string) => {
+  const handleSort = useCallback((field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -288,16 +288,16 @@ export default function RadiusUsers() {
       setSortDirection('asc')
     }
     setCurrentPage(1) // Reset to first page when sorting
-  }
+  }, [sortField, sortDirection])
 
-  const getSortIcon = (field: string) => {
+  const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) {
       return <ArrowUpDown className="ml-2 h-4 w-4 inline-block" />
     }
     return sortDirection === 'asc' 
       ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
       : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
-  }
+  }, [sortField, sortDirection])
 
   const handleSync = () => {
     syncMutation.mutate()
@@ -562,6 +562,8 @@ export default function RadiusUsers() {
                     <SelectItem value="50">50</SelectItem>
                     <SelectItem value="100">100</SelectItem>
                     <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="1000">1000</SelectItem>
                     <SelectItem value="999999">All</SelectItem>
                   </SelectContent>
                 </Select>
@@ -577,7 +579,7 @@ export default function RadiusUsers() {
               {t('radiusUsers.noUsersFound')}
             </div>
           ) : (
-            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+            <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
               <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
@@ -606,7 +608,7 @@ export default function RadiusUsers() {
                   </TableHeader>
                 
                 {/* Scrollable Body */}
-                <TableBody ref={parentRef} style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+                <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
                     {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                         const user = users[virtualRow.index]
                         return (
@@ -729,8 +731,9 @@ export default function RadiusUsers() {
       </Card>
 
       {/* User Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {isDialogOpen && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingUser ? t('radiusUsers.editUser') : t('radiusUsers.addUser')}</DialogTitle>
             <DialogDescription>
@@ -913,6 +916,7 @@ export default function RadiusUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
