@@ -445,17 +445,31 @@ export default function RadiusProfiles() {
                           <TableCell className="h-12 px-4 text-right">{formatNumber(profile.usersCount || 0)}</TableCell>
                           <TableCell className="h-12 px-4 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenProfileDialog(profile)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteProfile(profile.id)}
-                                disabled={deleteProfileMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {showTrash ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRestoreProfile(profile.id!)}
+                                  disabled={restoreProfileMutation.isPending}
+                                  title="Restore profile"
+                                >
+                                  <RotateCcw className="h-4 w-4 text-green-600" />
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button variant="ghost" size="icon" onClick={() => handleOpenProfileDialog(profile)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteProfile(profile.id)}
+                                    disabled={deleteProfileMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
