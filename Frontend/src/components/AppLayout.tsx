@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Plug, Users, CircleUser, LayoutDashboard } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -34,15 +34,19 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { t, i18n } = useTranslation()
 
   const getBreadcrumbs = () => {
-    if (location.pathname === '/dashboard') return { parent: null, current: 'Dashboard' }
-    if (location.pathname === '/profile') return { parent: null, current: 'Profile Settings' }
-    if (location.pathname === '/settings') return { parent: null, current: 'Settings' }
-    if (location.pathname === '/workspace/view') return { parent: null, current: 'Workspace View' }
+    if (location.pathname === '/dashboard') return { parent: null, current: 'Dashboard', icon: Home }
+    if (location.pathname === '/profile') return { parent: null, current: 'Profile Settings', icon: UserCog }
+    if (location.pathname === '/settings') return { parent: null, current: 'Settings', icon: Settings }
+    if (location.pathname === '/workspace/view') return { parent: null, current: 'Workspace View', icon: Building2 }
     if (location.pathname.startsWith('/workspace/') && location.pathname.endsWith('/settings')) {
-      return { parent: { title: 'Workspace View', href: '/workspace/view' }, current: 'Workspace Settings' }
+      return { parent: { title: 'Workspace View', href: '/workspace/view', icon: Building2 }, current: 'Workspace Settings', icon: Settings }
     }
-    if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius' }
-    return { parent: null, current: 'Dashboard' }
+    if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius', icon: Plug }
+    if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
+    if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
+    if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Settings }
+    if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Settings }
+    return { parent: null, current: 'Dashboard', icon: Home }
   }
 
   const breadcrumbs = getBreadcrumbs()
@@ -102,7 +106,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/dashboard">OpenRadius</Link>
+                  <Link to="/dashboard" className="flex items-center gap-2">
+                    <Home className="h-4 w-4 text-primary" />
+                    OpenRadius
+                  </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -110,14 +117,20 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <>
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
-                      <Link to={breadcrumbs.parent.href}>{breadcrumbs.parent.title}</Link>
+                      <Link to={breadcrumbs.parent.href} className="flex items-center gap-2">
+                        {breadcrumbs.parent.icon && <breadcrumbs.parent.icon className="h-4 w-4 text-primary" />}
+                        {breadcrumbs.parent.title}
+                      </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
                 </>
               )}
               <BreadcrumbItem>
-                <BreadcrumbPage>{breadcrumbs.current}</BreadcrumbPage>
+                <BreadcrumbPage className="flex items-center gap-2">
+                  {breadcrumbs.icon && <breadcrumbs.icon className="h-4 w-4 text-primary" />}
+                  {breadcrumbs.current}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
