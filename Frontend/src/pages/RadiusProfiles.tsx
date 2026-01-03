@@ -548,7 +548,7 @@ export default function RadiusProfiles() {
                         {columnVisibility.upload && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.uprate)}</TableCell>}
                         {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${profile.price?.toFixed(2) || '0.00'}</TableCell>}
                         {columnVisibility.pool && <TableCell className="h-12 px-4 w-[140px]">{profile.pool || '-'}</TableCell>}
-                        {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.userCount || 0}</TableCell>}
+                        {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.usersCount || 0}</TableCell>}
                         <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
                           <div className="flex justify-end gap-2">
                             {showTrash ? (

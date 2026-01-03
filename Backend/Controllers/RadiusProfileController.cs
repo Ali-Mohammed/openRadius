@@ -76,10 +76,21 @@ public class RadiusProfileController : ControllerBase
             query = query.OrderByDescending(p => p.CreatedAt);
         }
 
-        var profiles = await query
+        var profilesList = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new RadiusProfileResponse
+            .ToListAsync();
+
+        // Calculate actual user counts for each profile
+        var profiles = new List<RadiusProfileResponse>();
+        foreach (var p in profilesList)
+        {
+            var userCount = await _context.RadiusUsers
+                .CountAsync(u => u.WorkspaceId == WorkspaceId && 
+                                 !u.IsDeleted && 
+                                 u.ProfileId == p.Id);
+
+            profiles.Add(new RadiusProfileResponse
             {
                 Id = p.Id,
                 ExternalId = p.ExternalId,
@@ -97,12 +108,12 @@ public class RadiusProfileController : ControllerBase
                 ExpirationUnit = p.ExpirationUnit,
                 SiteId = p.SiteId,
                 OnlineUsersCount = p.OnlineUsersCount,
-                UsersCount = p.UsersCount,
+                UsersCount = userCount,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 LastSyncedAt = p.LastSyncedAt
-            })
-            .ToListAsync();
+            });
+        }
 
         return Ok(new
         {
@@ -122,29 +133,6 @@ public class RadiusProfileController : ControllerBase
     {
         var profile = await _context.RadiusProfiles
             .Where(p => p.Id == id && p.WorkspaceId == WorkspaceId)
-            .Select(p => new RadiusProfileResponse
-            {
-                Id = p.Id,
-                ExternalId = p.ExternalId,
-                Name = p.Name,
-                Enabled = p.Enabled,
-                Type = p.Type,
-                Downrate = p.Downrate,
-                Uprate = p.Uprate,
-                Pool = p.Pool,
-                Price = p.Price,
-                Monthly = p.Monthly,
-                BurstEnabled = p.BurstEnabled,
-                LimitExpiration = p.LimitExpiration,
-                ExpirationAmount = p.ExpirationAmount,
-                ExpirationUnit = p.ExpirationUnit,
-                SiteId = p.SiteId,
-                OnlineUsersCount = p.OnlineUsersCount,
-                UsersCount = p.UsersCount,
-                CreatedAt = p.CreatedAt,
-                UpdatedAt = p.UpdatedAt,
-                LastSyncedAt = p.LastSyncedAt
-            })
             .FirstOrDefaultAsync();
 
         if (profile == null)
@@ -152,7 +140,37 @@ public class RadiusProfileController : ControllerBase
             return NotFound();
         }
 
-        return Ok(profile);
+        // Calculate actual user count
+        var userCount = await _context.RadiusUsers
+            .CountAsync(u => u.WorkspaceId == WorkspaceId && 
+                             !u.IsDeleted && 
+                             u.ProfileId == profile.Id);
+
+        var response = new RadiusProfileResponse
+        {
+            Id = profile.Id,
+            ExternalId = profile.ExternalId,
+            Name = profile.Name,
+            Enabled = profile.Enabled,
+            Type = profile.Type,
+            Downrate = profile.Downrate,
+            Uprate = profile.Uprate,
+            Pool = profile.Pool,
+            Price = profile.Price,
+            Monthly = profile.Monthly,
+            BurstEnabled = profile.BurstEnabled,
+            LimitExpiration = profile.LimitExpiration,
+            ExpirationAmount = profile.ExpirationAmount,
+            ExpirationUnit = profile.ExpirationUnit,
+            SiteId = profile.SiteId,
+            OnlineUsersCount = profile.OnlineUsersCount,
+            UsersCount = userCount,
+            CreatedAt = profile.CreatedAt,
+            UpdatedAt = profile.UpdatedAt,
+            LastSyncedAt = profile.LastSyncedAt
+        };
+
+        return Ok(response);
     }
 
     [HttpPost]
@@ -305,11 +323,22 @@ public class RadiusProfileController : ControllerBase
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
-        var profiles = await query
+        var profilesList = await query
             .OrderByDescending(p => p.DeletedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new RadiusProfileResponse
+            .ToListAsync();
+
+        // Calculate actual user counts for each profile
+        var profiles = new List<RadiusProfileResponse>();
+        foreach (var p in profilesList)
+        {
+            var userCount = await _context.RadiusUsers
+                .CountAsync(u => u.WorkspaceId == WorkspaceId && 
+                                 !u.IsDeleted && 
+                                 u.ProfileId == p.Id);
+
+            profiles.Add(new RadiusProfileResponse
             {
                 Id = p.Id,
                 ExternalId = p.ExternalId,
@@ -327,12 +356,12 @@ public class RadiusProfileController : ControllerBase
                 ExpirationUnit = p.ExpirationUnit,
                 SiteId = p.SiteId,
                 OnlineUsersCount = p.OnlineUsersCount,
-                UsersCount = p.UsersCount,
+                UsersCount = userCount,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 LastSyncedAt = p.LastSyncedAt
-            })
-            .ToListAsync();
+            });
+        }
 
         return Ok(new
         {
