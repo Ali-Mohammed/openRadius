@@ -25,6 +25,8 @@ public class RadiusUserController : ControllerBase
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = "asc",
         [FromQuery] bool includeDeleted = false)
     {
         var query = _context.RadiusUsers
@@ -44,11 +46,43 @@ public class RadiusUserController : ControllerBase
             );
         }
 
+        // Apply sorting
+        if (!string.IsNullOrWhiteSpace(sortField))
+        {
+            var isDescending = sortDirection?.ToLower() == "desc";
+            query = sortField.ToLower() switch
+            {
+                "username" => isDescending ? query.OrderByDescending(u => u.Username) : query.OrderBy(u => u.Username),
+                "name" => isDescending ? query.OrderByDescending(u => u.Firstname).ThenByDescending(u => u.Lastname) : query.OrderBy(u => u.Firstname).ThenBy(u => u.Lastname),
+                "email" => isDescending ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+                "phone" => isDescending ? query.OrderByDescending(u => u.Phone) : query.OrderBy(u => u.Phone),
+                "city" => isDescending ? query.OrderByDescending(u => u.City) : query.OrderBy(u => u.City),
+                "profile" => isDescending ? query.OrderByDescending(u => u.Profile!.Name) : query.OrderBy(u => u.Profile!.Name),
+                "enabled" => isDescending ? query.OrderByDescending(u => u.Enabled) : query.OrderBy(u => u.Enabled),
+                "balance" => isDescending ? query.OrderByDescending(u => u.Balance) : query.OrderBy(u => u.Balance),
+                "loanbalance" => isDescending ? query.OrderByDescending(u => u.LoanBalance) : query.OrderBy(u => u.LoanBalance),
+                "expiration" => isDescending ? query.OrderByDescending(u => u.Expiration) : query.OrderBy(u => u.Expiration),
+                "lastonline" => isDescending ? query.OrderByDescending(u => u.LastOnline) : query.OrderBy(u => u.LastOnline),
+                "onlinestatus" => isDescending ? query.OrderByDescending(u => u.OnlineStatus) : query.OrderBy(u => u.OnlineStatus),
+                "remainingdays" => isDescending ? query.OrderByDescending(u => u.RemainingDays) : query.OrderBy(u => u.RemainingDays),
+                "debtdays" => isDescending ? query.OrderByDescending(u => u.DebtDays) : query.OrderBy(u => u.DebtDays),
+                "staticip" => isDescending ? query.OrderByDescending(u => u.StaticIp) : query.OrderBy(u => u.StaticIp),
+                "company" => isDescending ? query.OrderByDescending(u => u.Company) : query.OrderBy(u => u.Company),
+                "address" => isDescending ? query.OrderByDescending(u => u.Address) : query.OrderBy(u => u.Address),
+                "contractid" => isDescending ? query.OrderByDescending(u => u.ContractId) : query.OrderBy(u => u.ContractId),
+                "simultaneoussessions" => isDescending ? query.OrderByDescending(u => u.SimultaneousSessions) : query.OrderBy(u => u.SimultaneousSessions),
+                _ => query.OrderByDescending(u => u.CreatedAt)
+            };
+        }
+        else
+        {
+            query = query.OrderByDescending(u => u.CreatedAt);
+        }
+
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
         var users = await query
-            .OrderByDescending(u => u.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

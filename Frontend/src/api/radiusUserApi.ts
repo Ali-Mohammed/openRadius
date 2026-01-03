@@ -57,7 +57,9 @@ export const radiusUserApi = {
     workspaceId: number, 
     page: number = 1, 
     pageSize: number = 50,
-    search?: string
+    search?: string,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc'
   ): Promise<PaginatedUsersResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -65,6 +67,12 @@ export const radiusUserApi = {
     })
     if (search) {
       params.append('search', search)
+    }
+    if (sortField) {
+      params.append('sortField', sortField)
+    }
+    if (sortDirection) {
+      params.append('sortDirection', sortDirection)
     }
     const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users?${params.toString()}`)
     return response.data

@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3 } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -33,6 +33,8 @@ export default function RadiusUsers() {
   const [pageSize, setPageSize] = useState(50)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [sortField, setSortField] = useState<string>('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // User state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -86,10 +88,10 @@ export default function RadiusUsers() {
 
   // Queries
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash],
+    queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash 
       ? radiusUserApi.getTrash(WORKSPACE_ID, currentPage, pageSize)
-      : radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery),
+      : radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery, sortField, sortDirection),
   })
 
   const { data: profilesData } = useQuery({
@@ -276,6 +278,25 @@ export default function RadiusUsers() {
       setRestoreDialogOpen(false)
       setUserToRestore(null)
     }
+  }
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+    setCurrentPage(1) // Reset to first page when sorting
+  }
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 inline-block" />
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
+      : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
   }
 
   const handleSync = () => {
@@ -541,25 +562,25 @@ export default function RadiusUsers() {
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
-                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[150px]">{t('radiusUsers.username')}</TableHead>}
-                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[180px]">{t('radiusUsers.name')}</TableHead>}
-                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[200px]">{t('radiusUsers.email')}</TableHead>}
-                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">{t('radiusUsers.phone')}</TableHead>}
-                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">City</TableHead>}
-                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">{t('radiusUsers.profile')}</TableHead>}
-                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px]">{t('radiusUsers.status')}</TableHead>}
-                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.balance')}</TableHead>}
-                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">Loan Balance</TableHead>}
-                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">{t('radiusUsers.expiration')}</TableHead>}
-                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">Last Online</TableHead>}
-                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px]">Online</TableHead>}
-                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">Remaining Days</TableHead>}
-                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px]">Debt Days</TableHead>}
-                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">Static IP</TableHead>}
-                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">Company</TableHead>}
-                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[160px]">Address</TableHead>}
-                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">Contract ID</TableHead>}
-                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px]">Sessions</TableHead>}
+                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[150px] cursor-pointer select-none" onClick={() => handleSort('username')}>{t('radiusUsers.username')}{getSortIcon('username')}</TableHead>}
+                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>{t('radiusUsers.name')}{getSortIcon('name')}</TableHead>}
+                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[200px] cursor-pointer select-none" onClick={() => handleSort('email')}>{t('radiusUsers.email')}{getSortIcon('email')}</TableHead>}
+                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('phone')}>{t('radiusUsers.phone')}{getSortIcon('phone')}</TableHead>}
+                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('city')}>City{getSortIcon('city')}</TableHead>}
+                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('profile')}>{t('radiusUsers.profile')}{getSortIcon('profile')}</TableHead>}
+                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('enabled')}>{t('radiusUsers.status')}{getSortIcon('enabled')}</TableHead>}
+                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('balance')}>{t('radiusUsers.balance')}{getSortIcon('balance')}</TableHead>}
+                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('loanBalance')}>Loan Balance{getSortIcon('loanBalance')}</TableHead>}
+                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('expiration')}>{t('radiusUsers.expiration')}{getSortIcon('expiration')}</TableHead>}
+                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('lastOnline')}>Last Online{getSortIcon('lastOnline')}</TableHead>}
+                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('onlineStatus')}>Online{getSortIcon('onlineStatus')}</TableHead>}
+                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('remainingDays')}>Remaining Days{getSortIcon('remainingDays')}</TableHead>}
+                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('debtDays')}>Debt Days{getSortIcon('debtDays')}</TableHead>}
+                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('staticIp')}>Static IP{getSortIcon('staticIp')}</TableHead>}
+                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('company')}>Company{getSortIcon('company')}</TableHead>}
+                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[160px] cursor-pointer select-none" onClick={() => handleSort('address')}>Address{getSortIcon('address')}</TableHead>}
+                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('contractId')}>Contract ID{getSortIcon('contractId')}</TableHead>}
+                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('simultaneousSessions')}>Sessions{getSortIcon('simultaneousSessions')}</TableHead>}
                       <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
