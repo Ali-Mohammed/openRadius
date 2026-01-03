@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { Loader2, Shield, TestTube, Save, AlertCircle, Plus, Edit, Trash2, Star, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Shield, TestTube, Save, AlertCircle, Plus, Edit, Trash2, Star, Eye, EyeOff, Archive, RotateCcw } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -92,9 +92,12 @@ export default function OidcSettingsPage() {
   const [editingProvider, setEditingProvider] = useState<OidcProvider | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [providerToDelete, setProviderToDelete] = useState<{ id: number; isDefault: boolean } | null>(null)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [providerToRestore, setProviderToRestore] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<string>('custom')
+  const [showTrash, setShowTrash] = useState(false)
   
   const [formData, setFormData] = useState<OidcProvider>({
     providerName: '',
@@ -119,8 +122,12 @@ export default function OidcSettingsPage() {
   })
 
   useEffect(() => {
-    loadProviders()
-  }, [])
+    if (showTrash) {
+      loadDeletedProviders()
+    } else {
+      loadProviders()
+    }
+  }, [showTrash])
 
   const loadProviders = async () => {
     try {
@@ -130,6 +137,19 @@ export default function OidcSettingsPage() {
     } catch (error) {
       console.error('Failed to load OIDC providers:', error)
       toast.error('Failed to load OIDC providers')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadDeletedProviders = async () => {
+    try {
+      setLoading(true)
+      const { data } = await apiClient.get('/api/oidcsettings/trash')
+      setProviders(data)
+    } catch (error) {
+      console.error('Failed to load deleted OIDC providers:', error)
+      toast.error('Failed to load deleted OIDC providers')
     } finally {
       setLoading(false)
     }
