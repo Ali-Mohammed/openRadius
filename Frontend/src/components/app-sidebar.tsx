@@ -35,58 +35,58 @@ const data = {
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
     {
-      title: "Integration",
+      titleKey: "navigation.integration",
       url: "#",
       icon: Plug,
       items: [
         {
-          title: "SAS Radius",
+          titleKey: "navigation.sasRadius",
           url: "/integration/sas-radius",
           icon: Radio,
         },
       ],
     },
     {
-      title: "Radius",
+      titleKey: "navigation.radius",
       url: "#",
       icon: LayoutDashboard,
       items: [
         {
-          title: "Users",
+          titleKey: "navigation.users",
           url: `/workspace/${DEFAULT_workspace_ID}/radius/users`,
           icon: Users,
         },
         {
-          title: "Profiles",
+          titleKey: "navigation.profiles",
           url: `/workspace/${DEFAULT_workspace_ID}/radius/profiles`,
           icon: CircleUser,
         },
       ],
     },
     {
-      title: "workspace",
+      titleKey: "navigation.workspace",
       url: "#",
       icon: Building2,
       items: [
         {
-          title: "View",
+          titleKey: "navigation.view",
           url: "/workspace/view",
           icon: Eye,
         },
         {
-          title: "Setting",
+          titleKey: "navigation.setting",
           url: "/workspace/setting",
           icon: Wrench,
         },
       ],
     },
     {
-      title: "App Setting",
+      titleKey: "navigation.appSetting",
       url: "#",
       icon: SlidersHorizontal,
       items: [
         {
-          title: "OIDC",
+          titleKey: "navigation.oidc",
           url: "/settings/oidc",
           icon: Key,
         },
@@ -126,8 +126,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* We create a collapsible SidebarGroup for each parent. */}
         {data.navMain.map((item) => (
           <Collapsible
-            key={item.title}
-            title={item.title}
+            key={item.titleKey}
+            title={t(item.titleKey)}
             defaultOpen
             className="group/collapsible"
           >
@@ -138,7 +138,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               >
                 <CollapsibleTrigger>
                   <item.icon className="mr-2 h-4 w-4 text-primary" />
-                  {item.title}{" "}
+                  {t(item.titleKey)}{" "}
                   <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                 </CollapsibleTrigger>
               </SidebarGroupLabel>
@@ -146,11 +146,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {item.items.map((subItem) => (
-                      <SidebarMenuItem key={subItem.title}>
+                      <SidebarMenuItem key={subItem.titleKey}>
                         <SidebarMenuButton asChild isActive={location.pathname === subItem.url}>
                           <Link to={subItem.url}>
                             <subItem.icon className="mr-2 h-4 w-4 text-primary" />
-                            {subItem.title}
+                            {t(subItem.titleKey)}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
