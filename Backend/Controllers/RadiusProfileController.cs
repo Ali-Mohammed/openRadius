@@ -25,10 +25,11 @@ public class RadiusProfileController : ControllerBase
         int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] bool includeDeleted = false)
     {
         var query = _context.RadiusProfiles
-            .Where(p => p.WorkspaceId == WorkspaceId);
+            .Where(p => p.WorkspaceId == WorkspaceId && (includeDeleted || !p.IsDeleted));
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -225,19 +226,94 @@ public class RadiusProfileController : ControllerBase
     public async Task<IActionResult> DeleteProfile(int WorkspaceId, int id)
     {
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && !p.IsDeleted);
 
         if (profile == null)
         {
             return NotFound();
         }
 
-        _context.RadiusProfiles.Remove(profile);
+        profile.IsDeleted = true;
+        profile.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Deleted radius profile {Name} for instant {WorkspaceId}", profile.Name, WorkspaceId);
+        _logger.LogInformation("Soft deleted radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
 
         return NoContent();
+    }
+
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreProfile(int WorkspaceId, int id)
+    {
+        var profile = await _context.RadiusProfiles
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && p.IsDeleted);
+
+        if (profile == null)
+        {
+            return NotFound(new { message = "Deleted profile not found" });
+        }
+
+        profile.IsDeleted = false;
+        profile.DeletedAt = null;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Restored radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
+
+        return NoContent();
+    }
+
+    [HttpGet("trash")]
+    public async Task<ActionResult<object>> GetDeletedProfiles(
+        int WorkspaceId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var query = _context.RadiusProfiles
+            .Where(p => p.WorkspaceId == WorkspaceId && p.IsDeleted);
+
+        var totalRecords = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+        var profiles = await query
+            .OrderByDescending(p => p.DeletedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new RadiusProfileResponse
+            {
+                Id = p.Id,
+                ExternalId = p.ExternalId,
+                Name = p.Name,
+                Enabled = p.Enabled,
+                Type = p.Type,
+                Downrate = p.Downrate,
+                Uprate = p.Uprate,
+                Pool = p.Pool,
+                Price = p.Price,
+                Monthly = p.Monthly,
+                BurstEnabled = p.BurstEnabled,
+                LimitExpiration = p.LimitExpiration,
+                ExpirationAmount = p.ExpirationAmount,
+                ExpirationUnit = p.ExpirationUnit,
+                SiteId = p.SiteId,
+                OnlineUsersCount = p.OnlineUsersCount,
+                UsersCount = p.UsersCount,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt,
+                LastSyncedAt = p.LastSyncedAt
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            data = profiles,
+            pagination = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalRecords = totalRecords,
+                totalPages = totalPages
+            }
+        });
     }
 
     [HttpPost("sync")]

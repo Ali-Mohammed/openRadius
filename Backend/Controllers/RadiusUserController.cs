@@ -24,11 +24,12 @@ public class RadiusUserController : ControllerBase
         int WorkspaceId, 
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 50,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] bool includeDeleted = false)
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
-            .Where(u => u.WorkspaceId == WorkspaceId);
+            .Where(u => u.WorkspaceId == WorkspaceId && (includeDeleted || !u.IsDeleted));
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -268,17 +269,88 @@ public class RadiusUserController : ControllerBase
     public async Task<IActionResult> DeleteUser(int WorkspaceId, int id)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId && !u.IsDeleted);
 
         if (user == null)
         {
             return NotFound(new { message = "User not found" });
         }
 
-        _context.RadiusUsers.Remove(user);
+        user.IsDeleted = true;
+        user.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // POST: api/workspaces/{WorkspaceId}/radius/users/{id}/restore
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreUser(int WorkspaceId, int id)
+    {
+        var user = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId && u.IsDeleted);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Deleted user not found" });
+        }
+
+        user.IsDeleted = false;
+        user.DeletedAt = null;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // GET: api/workspaces/{WorkspaceId}/radius/users/trash
+    [HttpGet("trash")]
+    public async Task<ActionResult<object>> GetDeletedUsers(
+        int WorkspaceId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var query = _context.RadiusUsers
+            .Include(u => u.Profile)
+            .Where(u => u.WorkspaceId == WorkspaceId && u.IsDeleted);
+
+        var totalRecords = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+        var users = await query
+            .OrderByDescending(u => u.DeletedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var response = users.Select(u => new RadiusUserResponse
+        {
+            Id = u.Id,
+            ExternalId = u.ExternalId,
+            Username = u.Username,
+            Firstname = u.Firstname,
+            Lastname = u.Lastname,
+            Email = u.Email,
+            Phone = u.Phone,
+            ProfileId = u.ProfileId,
+            ProfileName = u.Profile?.Name,
+            Balance = u.Balance,
+            Enabled = u.Enabled,
+            DeletedAt = u.DeletedAt,
+            CreatedAt = u.CreatedAt,
+            UpdatedAt = u.UpdatedAt
+        });
+
+        return Ok(new
+        {
+            data = response,
+            pagination = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalRecords = totalRecords,
+                totalPages = totalPages
+            }
+        });
     }
 
     // POST: api/workspaces/{WorkspaceId}/radius/users/sync
