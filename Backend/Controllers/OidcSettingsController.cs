@@ -34,7 +34,7 @@ public class OidcSettingsController : ControllerBase
         try
         {
             var providers = await _context.OidcSettings
-                .Where(s => s.IsActive)
+                .Where(s => s.IsActive && !s.IsDeleted)
                 .OrderBy(s => s.DisplayOrder)
                 .ThenBy(s => s.DisplayName)
                 .Select(s => new OidcProviderDto
@@ -70,7 +70,7 @@ public class OidcSettingsController : ControllerBase
         try
         {
             var settings = await _context.OidcSettings
-                .Where(s => s.ProviderName.ToLower() == providerName.ToLower() && s.IsActive)
+                .Where(s => s.ProviderName.ToLower() == providerName.ToLower() && s.IsActive && !s.IsDeleted)
                 .Select(s => new OidcProviderDto
                 {
                     Id = s.Id,
@@ -314,7 +314,7 @@ public class OidcSettingsController : ControllerBase
     }
 
     /// <summary>
-    /// Delete OIDC provider configuration
+    /// Delete OIDC provider configuration (soft delete)
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
@@ -322,17 +322,24 @@ public class OidcSettingsController : ControllerBase
     {
         try
         {
-            var settings = await _context.OidcSettings.FindAsync(id);
+            var settings = await _context.OidcSettings
+                .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
 
             if (settings == null)
             {
                 return NotFound();
             }
 
-            _context.OidcSettings.Remove(settings);
+            if (settings.IsDefault)
+            {
+                return BadRequest(new { message = "Cannot delete the default OIDC provider" });
+            }
+
+            settings.IsDeleted = true;
+            settings.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Deleted OIDC provider {ProviderName} with ID {Id}", settings.ProviderName, id);
+            _logger.LogInformation("Soft deleted OIDC provider {ProviderName} with ID {Id}", settings.ProviderName, id);
 
             return NoContent();
         }
@@ -340,6 +347,61 @@ public class OidcSettingsController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting OIDC settings");
             return StatusCode(500, "Error deleting OIDC settings");
+        }
+    }
+
+    /// <summary>
+    /// Restore a deleted OIDC provider configuration
+    /// </summary>
+    [HttpPost("{id}/restore")]
+    [Authorize]
+    public async Task<IActionResult> RestoreSettings(int id)
+    {
+        try
+        {
+            var settings = await _context.OidcSettings
+                .FirstOrDefaultAsync(s => s.Id == id && s.IsDeleted);
+
+            if (settings == null)
+            {
+                return NotFound(new { message = "Deleted provider not found" });
+            }
+
+            settings.IsDeleted = false;
+            settings.DeletedAt = null;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Restored OIDC provider {ProviderName} with ID {Id}", settings.ProviderName, id);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring OIDC settings");
+            return StatusCode(500, "Error restoring OIDC settings");
+        }
+    }
+
+    /// <summary>
+    /// Get all deleted OIDC provider configurations
+    /// </summary>
+    [HttpGet("trash")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<OidcSettings>>> GetDeletedSettings()
+    {
+        try
+        {
+            var settings = await _context.OidcSettings
+                .Where(s => s.IsDeleted)
+                .OrderByDescending(s => s.DeletedAt)
+                .ToListAsync();
+
+            return Ok(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving deleted OIDC settings");
+            return StatusCode(500, "Error retrieving deleted OIDC settings");
         }
     }
 
