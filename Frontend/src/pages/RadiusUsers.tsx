@@ -302,7 +302,7 @@ export default function RadiusUsers() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('radiusUsers.title')}</h1>
@@ -331,7 +331,7 @@ export default function RadiusUsers() {
         </div>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-4">
@@ -560,7 +560,7 @@ export default function RadiusUsers() {
                       {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[160px]">Address</TableHead>}
                       {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">Contract ID</TableHead>}
                       {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px]">Sessions</TableHead>}
-                      <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.actions')}</TableHead>
+                      <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                 
@@ -616,7 +616,7 @@ export default function RadiusUsers() {
                           {columnVisibility.address && <TableCell className="h-12 px-4">{user.address || '-'}</TableCell>}
                           {columnVisibility.contractId && <TableCell className="h-12 px-4">{user.contractId || '-'}</TableCell>}
                           {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right">{user.simultaneousSessions || '1'}</TableCell>}
-                          <TableCell className="h-12 px-4 text-right">
+                          <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right">
                             <div className="flex justify-end gap-2">
                               {showTrash ? (
                                 <Button
