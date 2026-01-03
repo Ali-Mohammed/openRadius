@@ -79,6 +79,15 @@ export const sasRadiusApi = {
     await apiClient.delete(`/api/workspaces/${workspaceId}/sas-radius/${id}`)
   },
 
+  restore: async (workspaceId: number, id: number): Promise<void> => {
+    await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/${id}/restore`)
+  },
+
+  getTrash: async (workspaceId: number): Promise<SasRadiusIntegration[]> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius/trash`)
+    return response.data
+  },
+
   sync: async (workspaceId: number, id: number, fullSync: boolean = false): Promise<{ syncId: string; message: string; integrationId: number; integrationName: string; workspaceId: number }> => {
     const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/${id}/sync?fullSync=${fullSync}`)
     return response.data
