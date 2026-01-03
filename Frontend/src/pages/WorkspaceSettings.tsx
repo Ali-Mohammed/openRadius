@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -58,6 +58,9 @@ export default function WorkspaceSettings() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingIntegration, setEditingIntegration] = useState<SasRadiusIntegration | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [integrationToRestore, setIntegrationToRestore] = useState<number | null>(null)
+  const [showTrash, setShowTrash] = useState(false)
   const [integrationToDelete, setIntegrationToDelete] = useState<number | null>(null)
   const [activeSyncId, setActiveSyncId] = useState<string | null>(null)
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
@@ -80,8 +83,10 @@ export default function WorkspaceSettings() {
   })
 
   const { data: integrations = [], isLoading: isLoadingIntegrations } = useQuery({
-    queryKey: ['sas-radius-integrations', id],
-    queryFn: () => sasRadiusApi.getAll(Number(id)),
+    queryKey: ['sas-radius-integrations', id, showTrash],
+    queryFn: () => showTrash
+      ? sasRadiusApi.getTrash(Number(id))
+      : sasRadiusApi.getAll(Number(id)),
     enabled: !!id,
   })
 
@@ -135,6 +140,17 @@ export default function WorkspaceSettings() {
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to delete integration')
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (integrationId: number) => sasRadiusApi.restore(Number(id), integrationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', id] })
+      toast.success('Integration restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to restore integration')
     },
   })
 
@@ -218,6 +234,19 @@ export default function WorkspaceSettings() {
     }
   }
 
+  const handleRestore = (integrationId: number) => {
+    setIntegrationToRestore(integrationId)
+    setRestoreDialogOpen(true)
+  }
+
+  const confirmRestore = () => {
+    if (integrationToRestore) {
+      restoreMutation.mutate(integrationToRestore)
+      setRestoreDialogOpen(false)
+      setIntegrationToRestore(null)
+    }
+  }
+
   const handleSyncSort = (column: string) => {
     if (syncSortBy === column) {
       setSyncSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
@@ -269,13 +298,22 @@ export default function WorkspaceSettings() {
               Manage external RADIUS servers for this workspace
             </CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Integration
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowTrash(!showTrash)}
+              variant={showTrash ? 'default' : 'outline'}
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              {showTrash ? 'Show Active' : 'Show Trash'}
+            </Button>
+            {!showTrash && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => handleOpenDialog()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Integration
+                  </Button>
+                </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>
