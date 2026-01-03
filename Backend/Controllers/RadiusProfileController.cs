@@ -53,33 +53,60 @@ public class RadiusProfileController : ControllerBase
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
-        // Apply sorting
-        if (!string.IsNullOrWhiteSpace(sortField))
+        // For usercount sorting, we need to materialize and sort in memory
+        IEnumerable<RadiusProfile> profilesList;
+        if (!string.IsNullOrWhiteSpace(sortField) && sortField.ToLower() == "usercount")
         {
             var isDescending = sortDirection?.ToLower() == "desc";
-            query = sortField.ToLower() switch
-            {
-                "name" => isDescending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
-                "enabled" => isDescending ? query.OrderByDescending(p => p.Enabled) : query.OrderBy(p => p.Enabled),
-                "downrate" => isDescending ? query.OrderByDescending(p => p.Downrate) : query.OrderBy(p => p.Downrate),
-                "uprate" => isDescending ? query.OrderByDescending(p => p.Uprate) : query.OrderBy(p => p.Uprate),
-                "price" => isDescending ? query.OrderByDescending(p => p.Price) : query.OrderBy(p => p.Price),
-                "pool" => isDescending ? query.OrderByDescending(p => p.Pool) : query.OrderBy(p => p.Pool),
-                "usercount" => isDescending ? query.OrderByDescending(p => p.UsersCount) : query.OrderBy(p => p.UsersCount),
-                "monthly" => isDescending ? query.OrderByDescending(p => p.Monthly) : query.OrderBy(p => p.Monthly),
-                "type" => isDescending ? query.OrderByDescending(p => p.Type) : query.OrderBy(p => p.Type),
-                _ => query.OrderByDescending(p => p.CreatedAt)
-            };
+            
+            // Load all profiles with user counts using a left join approach
+            var profilesWithCounts = await query
+                .Select(p => new { 
+                    Profile = p, 
+                    UserCount = _context.RadiusUsers
+                        .Count(u => u.WorkspaceId == WorkspaceId && !u.IsDeleted && u.ProfileId == p.Id)
+                })
+                .ToListAsync();
+            
+            // Sort in memory and paginate
+            var sortedProfiles = isDescending 
+                ? profilesWithCounts.OrderByDescending(p => p.UserCount)
+                : profilesWithCounts.OrderBy(p => p.UserCount);
+            
+            profilesList = sortedProfiles
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => p.Profile);
         }
         else
         {
-            query = query.OrderByDescending(p => p.CreatedAt);
+            // Apply sorting for other fields
+            if (!string.IsNullOrWhiteSpace(sortField))
+            {
+                var isDescending = sortDirection?.ToLower() == "desc";
+                query = sortField.ToLower() switch
+                {
+                    "name" => isDescending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
+                    "enabled" => isDescending ? query.OrderByDescending(p => p.Enabled) : query.OrderBy(p => p.Enabled),
+                    "downrate" => isDescending ? query.OrderByDescending(p => p.Downrate) : query.OrderBy(p => p.Downrate),
+                    "uprate" => isDescending ? query.OrderByDescending(p => p.Uprate) : query.OrderBy(p => p.Uprate),
+                    "price" => isDescending ? query.OrderByDescending(p => p.Price) : query.OrderBy(p => p.Price),
+                    "pool" => isDescending ? query.OrderByDescending(p => p.Pool) : query.OrderBy(p => p.Pool),
+                    "monthly" => isDescending ? query.OrderByDescending(p => p.Monthly) : query.OrderBy(p => p.Monthly),
+                    "type" => isDescending ? query.OrderByDescending(p => p.Type) : query.OrderBy(p => p.Type),
+                    _ => query.OrderByDescending(p => p.CreatedAt)
+                };
+            }
+            else
+            {
+                query = query.OrderByDescending(p => p.CreatedAt);
+            }
+            
+            profilesList = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
-
-        var profilesList = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
 
         // Calculate actual user counts for each profile
         var profiles = new List<RadiusProfileResponse>();
