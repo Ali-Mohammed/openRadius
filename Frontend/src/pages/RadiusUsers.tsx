@@ -12,12 +12,13 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3 } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 // Hardcoded workspaceId for now - will be dynamic based on routing later
 const WORKSPACE_ID = 1
@@ -40,6 +41,30 @@ export default function RadiusUsers() {
   const [userToDelete, setUserToDelete] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [userToRestore, setUserToRestore] = useState<number | null>(null)
+  
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState({
+    username: true,
+    name: true,
+    email: true,
+    phone: true,
+    city: false,
+    profile: true,
+    status: true,
+    balance: true,
+    loanBalance: false,
+    expiration: true,
+    lastOnline: false,
+    onlineStatus: false,
+    remainingDays: false,
+    debtDays: false,
+    staticIp: false,
+    company: false,
+    address: false,
+    contractId: false,
+    simultaneousSessions: false,
+  })
+
   const [showTrash, setShowTrash] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
@@ -309,12 +334,6 @@ export default function RadiusUsers() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{t('radiusUsers.users')}</CardTitle>
-                <CardDescription>{t('radiusUsers.viewManage')}</CardDescription>
-              </div>
-            </div>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 flex-1">
                 <Input
@@ -327,6 +346,169 @@ export default function RadiusUsers() {
                 <Button onClick={handleSearch} variant="outline" size="icon">
                   <Search className="h-4 w-4" />
                 </Button>
+                <Button 
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })} 
+                  variant="outline" 
+                  size="icon"
+                  title={t('common.refresh')}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" title="Toggle columns">
+                      <Columns3 className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 max-h-[500px] overflow-y-auto">
+                    <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={Object.values(columnVisibility).every(v => v)}
+                      onCheckedChange={(checked) => {
+                        setColumnVisibility({
+                          username: checked,
+                          name: checked,
+                          email: checked,
+                          phone: checked,
+                          city: checked,
+                          profile: checked,
+                          status: checked,
+                          balance: checked,
+                          loanBalance: checked,
+                          expiration: checked,
+                          lastOnline: checked,
+                          onlineStatus: checked,
+                          remainingDays: checked,
+                          debtDays: checked,
+                          staticIp: checked,
+                          company: checked,
+                          address: checked,
+                          contractId: checked,
+                          simultaneousSessions: checked,
+                        })
+                      }}
+                      className="font-semibold"
+                    >
+                      {Object.values(columnVisibility).every(v => v) ? 'Hide All' : 'Show All'}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.username}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, username: checked }))}
+                    >
+                      {t('radiusUsers.username')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.name}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
+                    >
+                      {t('radiusUsers.name')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.email}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, email: checked }))}
+                    >
+                      {t('radiusUsers.email')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.phone}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, phone: checked }))}
+                    >
+                      {t('radiusUsers.phone')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.profile}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, profile: checked }))}
+                    >
+                      {t('radiusUsers.profile')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.status}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                    >
+                      {t('radiusUsers.status')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.balance}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, balance: checked }))}
+                    >
+                      {t('radiusUsers.balance')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.expiration}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, expiration: checked }))}
+                    >
+                      {t('radiusUsers.expiration')}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.city}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, city: checked }))}
+                    >
+                      City
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.loanBalance}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, loanBalance: checked }))}
+                    >
+                      Loan Balance
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.lastOnline}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, lastOnline: checked }))}
+                    >
+                      Last Online
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.onlineStatus}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, onlineStatus: checked }))}
+                    >
+                      Online Status
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.remainingDays}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, remainingDays: checked }))}
+                    >
+                      Remaining Days
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.debtDays}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, debtDays: checked }))}
+                    >
+                      Debt Days
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.staticIp}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, staticIp: checked }))}
+                    >
+                      Static IP
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.company}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, company: checked }))}
+                    >
+                      Company
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.address}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, address: checked }))}
+                    >
+                      Address
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.contractId}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, contractId: checked }))}
+                    >
+                      Contract ID
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.simultaneousSessions}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, simultaneousSessions: checked }))}
+                    >
+                      Simultaneous Sessions
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">{t('radiusUsers.perPage')}</span>
@@ -354,53 +536,37 @@ export default function RadiusUsers() {
               {t('radiusUsers.noUsersFound')}
             </div>
           ) : (
-            <div className="overflow-hidden">
-              {/* Fixed Header */}
-              <div className="bg-muted border-b">
-                <Table className="table-fixed w-full">
-                  <colgroup>
-                    <col style={{ width: '150px' }} />
-                    <col style={{ width: '180px' }} />
-                    <col style={{ width: '200px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '100px' }} />
-                    <col style={{ width: '120px' }} />
-                    <col style={{ width: '120px' }} />
-                    <col style={{ width: '120px' }} />
-                  </colgroup>
-                  <TableHeader>
-                    <TableRow className="hover:bg-muted">
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.username')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.name')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.email')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.phone')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.profile')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.status')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold text-right">{t('radiusUsers.balance')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold">{t('radiusUsers.expiration')}</TableHead>
-                      <TableHead className="h-12 px-4 font-semibold text-right">{t('radiusUsers.actions')}</TableHead>
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+              <Table className="table-auto w-full min-w-max">
+                {/* Fixed Header */}
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[150px]">{t('radiusUsers.username')}</TableHead>}
+                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[180px]">{t('radiusUsers.name')}</TableHead>}
+                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[200px]">{t('radiusUsers.email')}</TableHead>}
+                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">{t('radiusUsers.phone')}</TableHead>}
+                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">City</TableHead>}
+                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">{t('radiusUsers.profile')}</TableHead>}
+                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px]">{t('radiusUsers.status')}</TableHead>}
+                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.balance')}</TableHead>}
+                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">Loan Balance</TableHead>}
+                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">{t('radiusUsers.expiration')}</TableHead>}
+                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">Last Online</TableHead>}
+                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px]">Online</TableHead>}
+                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">Remaining Days</TableHead>}
+                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px]">Debt Days</TableHead>}
+                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">Static IP</TableHead>}
+                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px]">Company</TableHead>}
+                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[160px]">Address</TableHead>}
+                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px]">Contract ID</TableHead>}
+                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px]">Sessions</TableHead>}
+                      <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
-                </Table>
-              </div>
-              
-              {/* Scrollable Body */}
-              <div ref={parentRef} className="overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100vh - 452px)' }}>
-                <Table className="table-fixed w-full">
-                  <colgroup>
-                    <col style={{ width: '150px' }} />
-                    <col style={{ width: '180px' }} />
-                    <col style={{ width: '200px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '140px' }} />
-                    <col style={{ width: '100px' }} />
-                    <col style={{ width: '120px' }} />
-                    <col style={{ width: '120px' }} />
-                    <col style={{ width: '120px' }} />
-                  </colgroup>
-                  <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                
+                {/* Scrollable Body */}
+                <TableBody ref={parentRef} style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                         const user = users[virtualRow.index]
                         return (
                           <TableRow 
@@ -417,35 +583,39 @@ export default function RadiusUsers() {
                             tableLayout: 'fixed',
                           }}
                         >
-                          <colgroup>
-                            <col style={{ width: '150px' }} />
-                            <col style={{ width: '180px' }} />
-                            <col style={{ width: '200px' }} />
-                            <col style={{ width: '140px' }} />
-                            <col style={{ width: '140px' }} />
-                            <col style={{ width: '100px' }} />
-                            <col style={{ width: '120px' }} />
-                            <col style={{ width: '120px' }} />
-                            <col style={{ width: '120px' }} />
-                          </colgroup>
-                          <TableCell className="h-12 px-4 font-medium">{user.username}</TableCell>
-                          <TableCell className="h-12 px-4">
+                          {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap">{user.username}</TableCell>}
+                          {columnVisibility.name && <TableCell className="h-12 px-4">
                             {user.firstname || user.lastname
                               ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
                               : '-'}
-                          </TableCell>
-                          <TableCell className="h-12 px-4 max-w-[200px] truncate" title={user.email || '-'}>
+                          </TableCell>}
+                          {columnVisibility.email && <TableCell className="h-12 px-4 max-w-[200px] truncate" title={user.email || '-'}>
                             {user.email || '-'}
-                          </TableCell>
-                          <TableCell className="h-12 px-4">{user.phone || '-'}</TableCell>
-                          <TableCell className="h-12 px-4">{user.profileName || '-'}</TableCell>
-                          <TableCell className="h-12 px-4">
+                          </TableCell>}
+                          {columnVisibility.phone && <TableCell className="h-12 px-4">{user.phone || '-'}</TableCell>}
+                          {columnVisibility.city && <TableCell className="h-12 px-4">{user.city || '-'}</TableCell>}
+                          {columnVisibility.profile && <TableCell className="h-12 px-4">{user.profileName || '-'}</TableCell>}
+                          {columnVisibility.status && <TableCell className="h-12 px-4">
                             <Badge variant={user.enabled ? 'default' : 'secondary'}>
                               {user.enabled ? t('radiusUsers.enabled') : t('radiusUsers.disabled')}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="h-12 px-4 text-right font-mono">${user.balance?.toFixed(2) || '0.00'}</TableCell>
-                          <TableCell className="h-12 px-4">{formatDate(user.expiration)}</TableCell>
+                          </TableCell>}
+                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono">${user.balance?.toFixed(2) || '0.00'}</TableCell>}
+                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono">${user.loanBalance?.toFixed(2) || '0.00'}</TableCell>}
+                          {columnVisibility.expiration && <TableCell className="h-12 px-4">{formatDate(user.expiration)}</TableCell>}
+                          {columnVisibility.lastOnline && <TableCell className="h-12 px-4">{formatDate(user.lastOnline)}</TableCell>}
+                          {columnVisibility.onlineStatus && <TableCell className="h-12 px-4">
+                            <Badge variant={user.onlineStatus ? 'default' : 'secondary'}>
+                              {user.onlineStatus ? 'Online' : 'Offline'}
+                            </Badge>
+                          </TableCell>}
+                          {columnVisibility.remainingDays && <TableCell className="h-12 px-4 text-right">{user.remainingDays || '0'}</TableCell>}
+                          {columnVisibility.debtDays && <TableCell className="h-12 px-4 text-right">{user.debtDays || '0'}</TableCell>}
+                          {columnVisibility.staticIp && <TableCell className="h-12 px-4">{user.staticIp || '-'}</TableCell>}
+                          {columnVisibility.company && <TableCell className="h-12 px-4">{user.company || '-'}</TableCell>}
+                          {columnVisibility.address && <TableCell className="h-12 px-4">{user.address || '-'}</TableCell>}
+                          {columnVisibility.contractId && <TableCell className="h-12 px-4">{user.contractId || '-'}</TableCell>}
+                          {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right">{user.simultaneousSessions || '1'}</TableCell>}
                           <TableCell className="h-12 px-4 text-right">
                             <div className="flex justify-end gap-2">
                               {showTrash ? (
@@ -479,8 +649,7 @@ export default function RadiusUsers() {
                       )
                     })}
                   </TableBody>
-                </Table>
-              </div>
+              </Table>
             </div>
           )}
           
