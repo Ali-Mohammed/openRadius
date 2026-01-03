@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -37,48 +37,58 @@ const data = {
     {
       title: "Integration",
       url: "#",
+      icon: Plug,
       items: [
         {
           title: "SAS Radius",
           url: "/integration/sas-radius",
+          icon: Plug,
         },
       ],
     },
     {
       title: "Radius",
       url: "#",
+      icon: LayoutDashboard,
       items: [
         {
           title: "Users",
           url: `/workspace/${DEFAULT_workspace_ID}/radius/users`,
+          icon: Users,
         },
         {
           title: "Profiles",
           url: `/workspace/${DEFAULT_workspace_ID}/radius/profiles`,
+          icon: CircleUser,
         },
       ],
     },
     {
       title: "workspace",
       url: "#",
+      icon: Building2,
       items: [
         {
           title: "View",
           url: "/workspace/view",
+          icon: LayoutDashboard,
         },
         {
           title: "Setting",
           url: "/workspace/setting",
+          icon: Settings,
         },
       ],
     },
     {
       title: "App Setting",
       url: "#",
+      icon: Settings,
       items: [
         {
           title: "OIDC",
           url: "/settings/oidc",
+          icon: Settings,
         },
       ],
     },
@@ -127,6 +137,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
               >
                 <CollapsibleTrigger>
+                  <item.icon className="mr-2 h-4 w-4 text-primary" />
                   {item.title}{" "}
                   <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                 </CollapsibleTrigger>
@@ -137,7 +148,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {item.items.map((subItem) => (
                       <SidebarMenuItem key={subItem.title}>
                         <SidebarMenuButton asChild isActive={location.pathname === subItem.url}>
-                          <Link to={subItem.url}>{subItem.title}</Link>
+                          <Link to={subItem.url}>
+                            <subItem.icon className="mr-2 h-4 w-4 text-primary" />
+                            {subItem.title}
+                          </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
