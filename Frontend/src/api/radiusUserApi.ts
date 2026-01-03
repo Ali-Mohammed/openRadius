@@ -89,6 +89,23 @@ export const radiusUserApi = {
     await apiClient.delete(`/api/workspaces/${workspaceId}/radius/users/${id}`)
   },
 
+  restore: async (workspaceId: number, id: number): Promise<void> => {
+    await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/${id}/restore`)
+  },
+
+  getTrash: async (
+    workspaceId: number,
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<PaginatedUsersResponse> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    })
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users/trash?${params.toString()}`)
+    return response.data
+  },
+
   sync: async (workspaceId: number): Promise<SyncUsersResponse> => {
     const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/sync`)
     return response.data
