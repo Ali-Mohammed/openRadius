@@ -32,6 +32,14 @@ export interface KeycloakGroup {
   path: string
 }
 
+export interface KeycloakRole {
+  id: string
+  name: string
+  description?: string
+  composite: boolean
+  clientRole: boolean
+}
+
 export interface SetPasswordRequest {
   password: string
   temporary?: boolean
@@ -75,6 +83,41 @@ export const userManagementApi = {
 
   getGroups: async (): Promise<KeycloakGroup[]> => {
     const response = await apiClient.get('/api/keycloak/users/groups')
+    return response.data
+  },
+
+  getRoles: async (): Promise<KeycloakRole[]> => {
+    const response = await apiClient.get('/api/keycloak/users/roles')
+    return response.data
+  },
+
+  getUserRoles: async (id: string): Promise<string[]> => {
+    const response = await apiClient.get(`/api/keycloak/users/${id}/roles`)
+    return response.data
+  },
+
+  assignRoles: async (id: string, roleNames: string[]): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/keycloak/users/${id}/roles`, roleNames)
+    return response.data
+  },
+
+  removeRoles: async (id: string, roleNames: string[]): Promise<{ message: string }> => {
+    const response = await apiClient.delete(`/api/keycloak/users/${id}/roles`, { data: roleNames })
+    return response.data
+  },
+
+  getUserGroups: async (id: string): Promise<string[]> => {
+    const response = await apiClient.get(`/api/keycloak/users/${id}/groups`)
+    return response.data
+  },
+
+  addToGroup: async (id: string, groupId: string): Promise<{ message: string }> => {
+    const response = await apiClient.put(`/api/keycloak/users/${id}/groups/${groupId}`)
+    return response.data
+  },
+
+  removeFromGroup: async (id: string, groupId: string): Promise<{ message: string }> => {
+    const response = await apiClient.delete(`/api/keycloak/users/${id}/groups/${groupId}`)
     return response.data
   },
 }

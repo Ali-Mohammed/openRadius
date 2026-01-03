@@ -40,7 +40,12 @@ This script will:
 2. ✅ Check if the client already exists
 3. ✅ Create the `openradius-admin` client
 4. ✅ Enable service accounts
-5. ✅ Assign user management roles (`manage-users`, `query-users`, `view-users`)
+5. ✅ Assign comprehensive admin roles:
+   - **User Management**: `manage-users`, `query-users`, `view-users`
+   - **Group Management**: `query-groups`
+   - **Realm & Role Management**: `manage-realm`, `view-realm`
+   - **Permission Management**: `manage-authorization`, `view-authorization`
+   - **Client Management**: `query-clients`, `view-clients`
 
 ### Option 2: Manual PowerShell Commands
 
@@ -87,9 +92,26 @@ $realmMgmtId = $realmMgmt.id
 # 6. Get roles
 $rolesUrl = "$keycloakUrl/admin/realms/$realm/clients/$realmMgmtId/roles"
 $allRoles = Invoke-RestMethod -Uri $rolesUrl -Method Get -Headers $headers
-$manageUsersRole = $allRoles | Where-Object { $_.name -eq "manage-users" }
-$queryUsersRole = $allRoles | Where-Object { $_.name -eq "query-users" }
-$viewUsersRole = $allRoles | Where-Object { $_.name -eq "view-users" }
+
+# Define comprehensive role list
+$requiredRoleNames = @(
+    "manage-users",      # Create, update, delete users
+    "query-users",       # Search and query users
+    "view-users",        # View user details
+    "manage-realm",      # Manage realm settings and realm roles
+    "view-realm",        # View realm configuration
+    "query-groups",      # Query groups
+    "manage-authorization", # Manage permissions
+    "view-authorization",   # View permissions
+    "query-clients",     # Query clients
+    "view-clients"       # View client configurations
+)
+
+$rolesToAssign = @()
+foreach ($roleName in $requiredRoleNames) {
+    $role = $allRoles | Where-Object { $_.name -eq $roleName }
+    if ($role) { $rolesToAssign += $role }
+}
 
 # 7. Assign roles
 $rolesToAssign = @($manageUsersRole, $queryUsersRole, $viewUsersRole) | ConvertTo-Json
@@ -115,10 +137,13 @@ If automated methods fail, create the client manually:
 7. Go to **Credentials** tab
 8. Set Client Secret to: `openradius-admin-secret-2026`
 9. Go to **Service account roles** tab
-10. Assign the following roles from `realm-management` client:
-    - `manage-users`
-    - `query-users`
-    - `view-users`
+10. Click **Assign role** → Filter by clients → Select **realm-management**
+11. Assign the following roles:
+    - **User Management**: `manage-users`, `query-users`, `view-users`
+    - **Group Management**: `query-groups`
+    - **Realm & Role Management**: `manage-realm`, `view-realm`
+    - **Permission Management**: `manage-authorization`, `view-authorization`
+    - **Client Management**: `query-clients`, `view-clients`
 
 ## Verification
 

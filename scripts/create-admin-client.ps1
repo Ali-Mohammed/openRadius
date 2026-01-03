@@ -113,7 +113,7 @@ catch {
 }
 
 # Assign admin roles to service account
-Write-Host "`n🔐 Assigning admin roles to service account..." -ForegroundColor Cyan
+Write-Host "`n🔐 Assigning comprehensive admin roles to service account..." -ForegroundColor Cyan
 $realmManagementUrl = "$keycloakUrl/admin/realms/$realm/clients?clientId=realm-management"
 try {
     $realmManagementClient = Invoke-RestMethod -Uri $realmManagementUrl -Method Get -Headers $headers
@@ -123,23 +123,40 @@ try {
     $rolesUrl = "$keycloakUrl/admin/realms/$realm/clients/$realmManagementUuid/roles"
     $allRoles = Invoke-RestMethod -Uri $rolesUrl -Method Get -Headers $headers
     
-    # Find manage-users role
-    $manageUsersRole = $allRoles | Where-Object { $_.name -eq "manage-users" }
-    $queryUsersRole = $allRoles | Where-Object { $_.name -eq "query-users" }
-    $viewUsersRole = $allRoles | Where-Object { $_.name -eq "view-users" }
+    # Define comprehensive role list for full user/role/group management
+    $requiredRoleNames = @(
+        "manage-users",      # Create, update, delete users
+        "query-users",       # Search and query users
+        "view-users",        # View user details
+        "manage-realm",      # Manage realm settings and realm roles
+        "view-realm",        # View realm configuration
+        "query-groups",      # Query groups
+        "manage-authorization", # Manage permissions
+        "view-authorization",   # View permissions
+        "query-clients",     # Query clients
+        "view-clients"       # View client configurations
+    )
     
-    if ($manageUsersRole -and $serviceAccountUser) {
+    $rolesToAssign = @()
+    $assignedRoles = @()
+    
+    foreach ($roleName in $requiredRoleNames) {
+        $role = $allRoles | Where-Object { $_.name -eq $roleName }
+        if ($role) {
+            $rolesToAssign += $role
+            $assignedRoles += $roleName
+        }
+    }
+    
+    if ($rolesToAssign.Count -gt 0 -and $serviceAccountUser) {
         $assignRolesUrl = "$keycloakUrl/admin/realms/$realm/users/$($serviceAccountUser.id)/role-mappings/clients/$realmManagementUuid"
-        $rolesToAssign = @()
-        
-        if ($manageUsersRole) { $rolesToAssign += $manageUsersRole }
-        if ($queryUsersRole) { $rolesToAssign += $queryUsersRole }
-        if ($viewUsersRole) { $rolesToAssign += $viewUsersRole }
-        
         $rolesJson = $rolesToAssign | ConvertTo-Json -Depth 10
         
         Invoke-RestMethod -Uri $assignRolesUrl -Method Post -Headers $headers -Body $rolesJson
-        Write-Host "✅ Assigned user management roles to service account" -ForegroundColor Green
+        Write-Host "✅ Assigned $($assignedRoles.Count) admin roles to service account:" -ForegroundColor Green
+        foreach ($assignedRole in $assignedRoles) {
+            Write-Host "   • $assignedRole" -ForegroundColor Gray
+        }
     }
 }
 catch {

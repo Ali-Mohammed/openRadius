@@ -11,9 +11,11 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, RefreshCw, Search, Key } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, Key, Users, Shield } from 'lucide-react'
 import { userManagementApi, type KeycloakUser, type CreateUserRequest } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export default function UserManagement() {
   const { t } = useTranslation()
@@ -37,7 +39,11 @@ export default function UserManagement() {
     emailVerified: false,
     password: '',
     temporaryPassword: false,
+    groups: [],
   })
+
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([])
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
 
   const [passwordData, setPasswordData] = useState({
     password: '',
@@ -53,6 +59,11 @@ export default function UserManagement() {
   const { data: groups = [] } = useQuery({
     queryKey: ['keycloak-groups'],
     queryFn: () => userManagementApi.getGroups(),
+  })
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ['keycloak-roles'],
+    queryFn: () => userManagementApi.getRoles(),
   })
 
   // Mutations
@@ -120,6 +131,11 @@ export default function UserManagement() {
         enabled: user.enabled,
         emailVerified: user.emailVerified || false,
       })
+      // Load user's current roles and groups
+      if (user.id) {
+        userManagementApi.getUserRoles(user.id).then(setSelectedRoles).catch(() => setSelectedRoles([]))
+        userManagementApi.getUserGroups(user.id).then(setSelectedGroups).catch(() => setSelectedGroups([]))
+      }
     } else {
       setEditingUser(null)
       setFormData({
@@ -131,7 +147,10 @@ export default function UserManagement() {
         emailVerified: false,
         password: '',
         temporaryPassword: false,
+        groups: [],
       })
+      setSelectedRoles([])
+      setSelectedGroups([])
     }
     setIsDialogOpen(true)
   }
@@ -141,26 +160,68 @@ export default function UserManagement() {
     setEditingUser(null)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.username) {
       toast.error('Username is required')
       return
     }
 
     if (editingUser && editingUser.id) {
-      updateMutation.mutate({ 
-        id: editingUser.id, 
+      // Update user
+      await updateMutation.mutateAsync({
+        id: editingUser.id,
         data: {
-          username: formData.username,
           email: formData.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
           enabled: formData.enabled,
           emailVerified: formData.emailVerified,
-        }
+        },
       })
+
+      // Update roles
+      const currentRoles = await userManagementApi.getUserRoles(editingUser.id)
+      const rolesToAdd = selectedRoles.filter(r => !currentRoles.includes(r))
+      const rolesToRemove = currentRoles.filter(r => !selectedRoles.includes(r))
+      
+      if (rolesToAdd.length > 0) {
+        await userManagementApi.assignRoles(editingUser.id, rolesToAdd)
+      }
+      if (rolesToRemove.length > 0) {
+        await userManagementApi.removeRoles(editingUser.id, rolesToRemove)
+      }
+
+      // Update groups
+      const currentGroups = await userManagementApi.getUserGroups(editingUser.id)
+      const groupsToAdd = selectedGroups.filter(g => !currentGroups.includes(g))
+      const groupsToRemove = currentGroups.filter(g => !selectedGroups.includes(g))
+      
+      for (const groupName of groupsToAdd) {
+        const group = groups.find(g => g.name === groupName)
+        if (group) await userManagementApi.addToGroup(editingUser.id, group.id)
+      }
+      for (const groupName of groupsToRemove) {
+        const group = groups.find(g => g.name === groupName)
+        if (group) await userManagementApi.removeFromGroup(editingUser.id, group.id)
+      }
+
+      toast.success('User and permissions updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['keycloak-users'] })
+      handleCloseDialog()
     } else {
-      createMutation.mutate(formData)
+      // Create user with groups
+      const groupNames = selectedGroups
+      const createData = { ...formData, groups: groupNames }
+      const result = await createMutation.mutateAsync(createData)
+      
+      // Assign roles to new user
+      if (selectedRoles.length > 0 && result.id) {
+        await userManagementApi.assignRoles(result.id, selectedRoles)
+      }
+      
+      toast.success('User created successfully with assigned permissions')
+      queryClient.invalidateQueries({ queryKey: ['keycloak-users'] })
+      handleCloseDialog()
     }
   }
 
@@ -239,21 +300,22 @@ export default function UserManagement() {
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Groups</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Email Verified</TableHead>
+                <TableHead>Verified</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -266,6 +328,24 @@ export default function UserManagement() {
                       {user.firstName || user.lastName 
                         ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
                         : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {user.groups && user.groups.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {user.groups.slice(0, 2).map((group, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {group}
+                            </Badge>
+                          ))}
+                          {user.groups.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{user.groups.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.enabled ? 'default' : 'secondary'}>
@@ -391,6 +471,81 @@ export default function UserManagement() {
                 onCheckedChange={(checked) => setFormData({ ...formData, emailVerified: checked })}
               />
               <Label htmlFor="emailVerified">Email Verified</Label>
+            </div>
+
+            {/* Groups Selection */}
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Groups
+              </Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                {groups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No groups available</p>
+                ) : (
+                  groups.map((group) => (
+                    <div key={group.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`group-${group.id}`}
+                        checked={selectedGroups.includes(group.name)}
+                        onCheckedChange={(checked) => {
+                          setSelectedGroups(
+                            checked
+                              ? [...selectedGroups, group.name]
+                              : selectedGroups.filter(g => g !== group.name)
+                          )
+                        }}
+                      />
+                      <label
+                        htmlFor={`group-${group.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {group.name}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Roles Selection */}
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Roles
+              </Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                {roles.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No roles available</p>
+                ) : (
+                  roles.map((role) => (
+                    <div key={role.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role.id}`}
+                        checked={selectedRoles.includes(role.name)}
+                        onCheckedChange={(checked) => {
+                          setSelectedRoles(
+                            checked
+                              ? [...selectedRoles, role.name]
+                              : selectedRoles.filter(r => r !== role.name)
+                          )
+                        }}
+                      />
+                      <label
+                        htmlFor={`role-${role.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {role.name}
+                        {role.description && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({role.description})
+                          </span>
+                        )}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

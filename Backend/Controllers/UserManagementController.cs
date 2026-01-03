@@ -348,7 +348,71 @@ public class UserManagementController : ControllerBase
         }
     }
 
-    private async Task AddUserToGroup(string userId, string groupName)
+    // GET: api/keycloak/users/roles
+    [HttpGet("roles")]
+    public async Task<IActionResult> GetRealmRoles()
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/roles";
+
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var roles = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+            
+            var roleResponses = roles?.Select(r => new KeycloakRoleResponse
+            {
+                Id = r.TryGetProperty("id", out var id) ? id.GetString() : null,
+                Name = r.TryGetProperty("name", out var name) ? name.GetString() : null,
+                Description = r.TryGetProperty("description", out var desc) ? desc.GetString() : null,
+                Composite = r.TryGetProperty("composite", out var comp) && comp.GetBoolean(),
+                ClientRole = r.TryGetProperty("clientRole", out var cr) && cr.GetBoolean()
+            }).Where(r => !r.Name?.StartsWith("default-roles-") ?? true).ToList();
+
+            return Ok(roleResponses);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching realm roles from Keycloak");
+            return StatusCode(500, new { message = "Failed to fetch roles", error = ex.Message });
+        }
+    }
+
+    // GET: api/keycloak/users/{id}/roles
+    [HttpGet("{id}/roles")]
+    public async Task<IActionResult> GetUserRoles(string id)
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/role-mappings/realm";
+
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var roles = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+            var roleNames = roles?.Select(r => 
+                r.TryGetProperty("name", out var name) ? name.GetString() : null
+            ).Where(n => n != null).ToList();
+
+            return Ok(roleNames);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching roles for user {id}");
+            return StatusCode(500, new { message = "Failed to fetch user roles", error = ex.Message });
+        }
+    }
+
+    // POST: api/keycloak/users/{id}/roles
+    [HttpPost("{id}/roles")]
+    public async Task<IActionResult> AssignRolesToUser(string id, [FromBody] List<string> roleNames)
     {
         try
         {
@@ -356,24 +420,144 @@ public class UserManagementController : ControllerBase
             var authority = _configuration["Oidc:Authority"];
             var realm = authority?.Split("/").Last();
             
-            // First, get all groups to find the group ID
-            var groupsUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/groups";
-            var groupsResponse = await client.GetAsync(groupsUrl);
-            groupsResponse.EnsureSuccessStatusCode();
+            // First, get all realm roles to find the role objects
+            var rolesUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/roles";
+            var rolesResponse = await client.GetAsync(rolesUrl);
+            rolesResponse.EnsureSuccessStatusCode();
             
-            var groups = await groupsResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
-            var group = groups?.FirstOrDefault(g => 
-                g.TryGetProperty("name", out var name) && name.GetString() == groupName);
-            
-            if (group.HasValue && group.Value.TryGetProperty("id", out var groupId))
+            var allRoles = await rolesResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
+            var rolesToAssign = allRoles?.Where(r => 
+                r.TryGetProperty("name", out var name) && roleNames.Contains(name.GetString())
+            ).ToList();
+
+            if (rolesToAssign?.Count > 0)
             {
-                var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{userId}/groups/{groupId.GetString()}";
-                await client.PutAsync(url, null);
+                var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/role-mappings/realm";
+                var content = JsonContent.Create(rolesToAssign);
+                var response = await client.PostAsync(url, content);
+                response.EnsureSuccessStatusCode();
             }
+
+            return Ok(new { message = "Roles assigned successfully" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error adding user to group {groupName}");
+            _logger.LogError(ex, $"Error assigning roles to user {id}");
+            return StatusCode(500, new { message = "Failed to assign roles", error = ex.Message });
+        }
+    }
+
+    // DELETE: api/keycloak/users/{id}/roles
+    [HttpDelete("{id}/roles")]
+    public async Task<IActionResult> RemoveRolesFromUser(string id, [FromBody] List<string> roleNames)
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            
+            // Get all realm roles to find the role objects
+            var rolesUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/roles";
+            var rolesResponse = await client.GetAsync(rolesUrl);
+            rolesResponse.EnsureSuccessStatusCode();
+            
+            var allRoles = await rolesResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
+            var rolesToRemove = allRoles?.Where(r => 
+                r.TryGetProperty("name", out var name) && roleNames.Contains(name.GetString())
+            ).ToList();
+
+            if (rolesToRemove?.Count > 0)
+            {
+                var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/role-mappings/realm";
+                var request = new HttpRequestMessage(HttpMethod.Delete, url)
+                {
+                    Content = JsonContent.Create(rolesToRemove)
+                };
+                var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+            }
+
+            return Ok(new { message = "Roles removed successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error removing roles from user {id}");
+            return StatusCode(500, new { message = "Failed to remove roles", error = ex.Message });
+        }
+    }
+
+    // GET: api/keycloak/users/{id}/groups
+    [HttpGet("{id}/groups")]
+    public async Task<IActionResult> GetUserGroups(string id)
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/groups";
+
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var groups = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+            var groupNames = groups?.Select(g => 
+                g.TryGetProperty("name", out var name) ? name.GetString() : null
+            ).Where(n => n != null).ToList();
+
+            return Ok(groupNames);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching groups for user {id}");
+            return StatusCode(500, new { message = "Failed to fetch user groups", error = ex.Message });
+        }
+    }
+
+    // PUT: api/keycloak/users/{id}/groups/{groupId}
+    [HttpPut("{id}/groups/{groupId}")]
+    public async Task<IActionResult> AddUserToGroup(string id, string groupId)
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/groups/{groupId}";
+
+            var response = await client.PutAsync(url, null);
+            response.EnsureSuccessStatusCode();
+
+            return Ok(new { message = "User added to group successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error adding user {id} to group {groupId}");
+            return StatusCode(500, new { message = "Failed to add user to group", error = ex.Message });
+        }
+    }
+
+    // DELETE: api/keycloak/users/{id}/groups/{groupId}
+    [HttpDelete("{id}/groups/{groupId}")]
+    public async Task<IActionResult> RemoveUserFromGroup(string id, string groupId)
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/groups/{groupId}";
+
+            var response = await client.DeleteAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            return Ok(new { message = "User removed from group successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error removing user {id} from group {groupId}");
+            return StatusCode(500, new { message = "Failed to remove user from group", error = ex.Message });
         }
     }
 }

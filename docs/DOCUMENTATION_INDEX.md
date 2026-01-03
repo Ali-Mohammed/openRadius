@@ -56,6 +56,14 @@ Complete guide to all OpenRadius documentation.
 - Role assignment for user management
 - Manual setup instructions
 - Troubleshooting guide
+
+### [KEYCLOAK_PERMISSIONS_GUIDE.md](KEYCLOAK_PERMISSIONS_GUIDE.md)
+**Comprehensive permissions and capabilities guide**
+- Complete breakdown of 10 assigned roles
+- User, group, role, and permission management
+- Permission matrix and use cases
+- API endpoints and security best practices
+- Testing and troubleshooting
 - Environment variables
 - Configuration options
 - Provider settings
