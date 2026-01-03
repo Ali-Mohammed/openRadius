@@ -402,7 +402,7 @@ export default function RadiusGroups() {
             )}
             <div ref={parentRef} className="border rounded-md overflow-auto" style={{ height: '500px' }}>
               <Table>
-                <TableHeader className="sticky top-0 bg-background z-20">
+                <TableHeader className="sticky top-0 bg-muted z-20">
                   <TableRow>
                     {columnVisibility.name && (
                       <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
@@ -424,7 +424,7 @@ export default function RadiusGroups() {
                         Users{getSortIcon('userCount')}
                       </TableHead>
                     )}
-                    <TableHead className="text-right sticky right-0 bg-background">Actions</TableHead>
+                    <TableHead className="text-right sticky right-0 bg-muted">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -435,7 +435,7 @@ export default function RadiusGroups() {
                         {columnVisibility.subscription && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
                         {columnVisibility.status && <TableCell><Skeleton className="h-6 w-16" /></TableCell>}
                         {columnVisibility.users && <TableCell><Skeleton className="h-4 w-12" /></TableCell>}
-                        <TableCell className="text-right sticky right-0 bg-background">
+                        <TableCell className="text-right sticky right-0 bg-card">
                           <Skeleton className="h-8 w-20 ml-auto" />
                         </TableCell>
                       </TableRow>
@@ -461,7 +461,7 @@ export default function RadiusGroups() {
                             </TableCell>
                           )}
                           {columnVisibility.users && <TableCell>{group.usersCount || 0}</TableCell>}
-                          <TableCell className="text-right sticky right-0 bg-background">
+                          <TableCell className="text-right sticky right-0 bg-card">
                             {showTrash ? (
                               <Button
                                 variant="outline"

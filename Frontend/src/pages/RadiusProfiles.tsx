@@ -467,7 +467,7 @@ export default function RadiusProfiles() {
                     <TableHead className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
                     <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-16" /></TableHead>
                     <TableHead className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="sticky right-0 bg-background h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="sticky right-0 bg-muted h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -480,7 +480,7 @@ export default function RadiusProfiles() {
                       <TableCell className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-full" /></TableCell>
                       <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
                       <TableCell className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="sticky right-0 bg-background h-12 px-4 w-[120px]">
+                      <TableCell className="sticky right-0 bg-card h-12 px-4 w-[120px]">
                         <div className="flex justify-end gap-2">
                           <Skeleton className="h-8 w-8 rounded" />
                           <Skeleton className="h-8 w-8 rounded" />
@@ -517,7 +517,7 @@ export default function RadiusProfiles() {
                     {columnVisibility.price && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('price')}>Price{getSortIcon('price')}</TableHead>}
                     {columnVisibility.pool && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('pool')}>Pool{getSortIcon('pool')}</TableHead>}
                     {columnVisibility.users && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('userCount')}>Users{getSortIcon('userCount')}</TableHead>}
-                    <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">Actions</TableHead>
+                    <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
@@ -549,7 +549,7 @@ export default function RadiusProfiles() {
                         {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${profile.price?.toFixed(2) || '0.00'}</TableCell>}
                         {columnVisibility.pool && <TableCell className="h-12 px-4 w-[140px]">{profile.pool || '-'}</TableCell>}
                         {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.usersCount || 0}</TableCell>}
-                        <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
+                        <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
                           <div className="flex justify-end gap-2">
                             {showTrash ? (
                               <Button

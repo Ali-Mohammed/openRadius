@@ -698,7 +698,7 @@ export default function RadiusUsers() {
                       {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[160px] cursor-pointer select-none" onClick={() => handleSort('address')}>Address{getSortIcon('address')}</TableHead>}
                       {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('contractId')}>Contract ID{getSortIcon('contractId')}</TableHead>}
                       {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('simultaneousSessions')}>Sessions{getSortIcon('simultaneousSessions')}</TableHead>}
-                      <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">{t('radiusUsers.actions')}</TableHead>
+                      <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                 
@@ -754,7 +754,7 @@ export default function RadiusUsers() {
                           {columnVisibility.address && <TableCell className="h-12 px-4 w-[160px]">{user.address || '-'}</TableCell>}
                           {columnVisibility.contractId && <TableCell className="h-12 px-4 w-[120px]">{user.contractId || '-'}</TableCell>}
                           {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right w-[100px]">{user.simultaneousSessions || '1'}</TableCell>}
-                          <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
+                          <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
                             <div className="flex justify-end gap-2">
                               {showTrash ? (
                                 <Button
