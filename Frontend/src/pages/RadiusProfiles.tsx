@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw } from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
 
@@ -34,6 +34,9 @@ export default function RadiusProfiles() {
   const [editingProfile, setEditingProfile] = useState<RadiusProfile | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [profileToDelete, setProfileToDelete] = useState<number | null>(null)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [profileToRestore, setProfileToRestore] = useState<number | null>(null)
+  const [showTrash, setShowTrash] = useState(false)
   const [profileFormData, setProfileFormData] = useState({
     name: '',
     downrate: '',
@@ -51,8 +54,10 @@ export default function RadiusProfiles() {
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, error: profilesError } = useQuery({
-    queryKey: ['radius-profiles', workspaceId, currentPage, pageSize, searchQuery],
-    queryFn: () => radiusProfileApi.getAll(workspaceId, currentPage, pageSize, searchQuery),
+    queryKey: ['radius-profiles', workspaceId, currentPage, pageSize, searchQuery, showTrash],
+    queryFn: () => showTrash
+      ? radiusProfileApi.getTrash(workspaceId, currentPage, pageSize)
+      : radiusProfileApi.getAll(workspaceId, currentPage, pageSize, searchQuery),
     enabled: workspaceId > 0,
   })
 
@@ -119,6 +124,17 @@ export default function RadiusProfiles() {
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to delete profile')
+    },
+  })
+
+  const restoreProfileMutation = useMutation({
+    mutationFn: (id: number) => radiusProfileApi.restore(workspaceId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
+      toast.success('Profile restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to restore profile')
     },
   })
 
