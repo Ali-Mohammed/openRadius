@@ -312,6 +312,7 @@ namespace Backend.Models
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? LastSyncedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 
     public class CreateUserRequest
