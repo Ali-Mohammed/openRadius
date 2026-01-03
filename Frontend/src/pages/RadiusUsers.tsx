@@ -120,6 +120,17 @@ export default function RadiusUsers() {
     },
   })
 
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => radiusUserApi.restore(WORKSPACE_ID, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+      toast.success('User restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to restore user')
+    },
+  })
+
   const syncMutation = useMutation({
     mutationFn: () => radiusUserApi.sync(WORKSPACE_ID),
     onSuccess: (response) => {
@@ -228,6 +239,19 @@ export default function RadiusUsers() {
     }
   }
 
+  const handleRestore = (userId: number) => {
+    setUserToRestore(userId)
+    setRestoreDialogOpen(true)
+  }
+
+  const confirmRestore = () => {
+    if (userToRestore) {
+      restoreMutation.mutate(userToRestore)
+      setRestoreDialogOpen(false)
+      setUserToRestore(null)
+    }
+  }
+
   const handleSync = () => {
     syncMutation.mutate()
   }
@@ -259,14 +283,25 @@ export default function RadiusUsers() {
           <p className="text-muted-foreground">{t('radiusUsers.subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleSync} variant="outline" disabled={syncMutation.isPending}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            {t('radiusUsers.syncUsers')}
+          <Button
+            onClick={() => setShowTrash(!showTrash)}
+            variant={showTrash ? 'default' : 'outline'}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
           </Button>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('radiusUsers.addUser')}
-          </Button>
+          {!showTrash && (
+            <>
+              <Button onClick={handleSync} variant="outline" disabled={syncMutation.isPending}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                {t('radiusUsers.syncUsers')}
+              </Button>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('radiusUsers.addUser')}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -412,17 +447,31 @@ export default function RadiusUsers() {
                           <TableCell className="h-12 px-4">{formatDate(user.expiration)}</TableCell>
                           <TableCell className="h-12 px-4 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(user.id)}
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {showTrash ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRestore(user.id!)}
+                                  disabled={restoreMutation.isPending}
+                                  title="Restore user"
+                                >
+                                  <RotateCcw className="h-4 w-4 text-green-600" />
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDelete(user.id)}
+                                    disabled={deleteMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -664,13 +713,31 @@ export default function RadiusUsers() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user.
+              This will move the user to trash. You can restore it later from the trash view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore User?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore the user and make it available again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestore}>
+              Restore
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
