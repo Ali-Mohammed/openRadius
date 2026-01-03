@@ -237,6 +237,19 @@ export default function RadiusProfiles() {
     }
   }
 
+  const handleRestoreProfile = (profileId: number) => {
+    setProfileToRestore(profileId)
+    setRestoreDialogOpen(true)
+  }
+
+  const confirmRestoreProfile = () => {
+    if (profileToRestore) {
+      restoreProfileMutation.mutate(profileToRestore)
+      setRestoreDialogOpen(false)
+      setProfileToRestore(null)
+    }
+  }
+
   const handleSyncProfiles = () => {
     syncProfilesMutation.mutate()
   }
