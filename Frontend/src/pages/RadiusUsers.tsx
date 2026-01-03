@@ -409,6 +409,7 @@ export default function RadiusUsers() {
                           simultaneousSessions: checked,
                         })
                       }}
+                      onSelect={(e) => e.preventDefault()}
                       className="font-semibold"
                     >
                       {Object.values(columnVisibility).every(v => v) ? 'Hide All' : 'Show All'}
@@ -417,114 +418,133 @@ export default function RadiusUsers() {
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.username}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, username: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.username')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.name}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.name')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.email}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, email: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.email')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.phone}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, phone: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.phone')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.profile}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, profile: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.profile')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.status}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.status')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.balance}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, balance: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.balance')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.expiration}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, expiration: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {t('radiusUsers.expiration')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.city}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, city: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       City
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.loanBalance}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, loanBalance: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Loan Balance
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.lastOnline}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, lastOnline: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Last Online
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.onlineStatus}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, onlineStatus: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Online Status
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.remainingDays}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, remainingDays: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Remaining Days
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.debtDays}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, debtDays: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Debt Days
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.staticIp}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, staticIp: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Static IP
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.company}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, company: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Company
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.address}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, address: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Address
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.contractId}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, contractId: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Contract ID
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.simultaneousSessions}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, simultaneousSessions: checked }))}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       Simultaneous Sessions
                     </DropdownMenuCheckboxItem>
@@ -558,30 +578,30 @@ export default function RadiusUsers() {
             </div>
           ) : (
             <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
-              <Table className="table-auto w-full min-w-max">
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
-                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[150px] cursor-pointer select-none" onClick={() => handleSort('username')}>{t('radiusUsers.username')}{getSortIcon('username')}</TableHead>}
-                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>{t('radiusUsers.name')}{getSortIcon('name')}</TableHead>}
-                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[200px] cursor-pointer select-none" onClick={() => handleSort('email')}>{t('radiusUsers.email')}{getSortIcon('email')}</TableHead>}
-                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('phone')}>{t('radiusUsers.phone')}{getSortIcon('phone')}</TableHead>}
-                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('city')}>City{getSortIcon('city')}</TableHead>}
-                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('profile')}>{t('radiusUsers.profile')}{getSortIcon('profile')}</TableHead>}
-                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('enabled')}>{t('radiusUsers.status')}{getSortIcon('enabled')}</TableHead>}
-                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('balance')}>{t('radiusUsers.balance')}{getSortIcon('balance')}</TableHead>}
-                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('loanBalance')}>Loan Balance{getSortIcon('loanBalance')}</TableHead>}
-                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('expiration')}>{t('radiusUsers.expiration')}{getSortIcon('expiration')}</TableHead>}
-                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('lastOnline')}>Last Online{getSortIcon('lastOnline')}</TableHead>}
-                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('onlineStatus')}>Online{getSortIcon('onlineStatus')}</TableHead>}
-                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('remainingDays')}>Remaining Days{getSortIcon('remainingDays')}</TableHead>}
-                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('debtDays')}>Debt Days{getSortIcon('debtDays')}</TableHead>}
-                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('staticIp')}>Static IP{getSortIcon('staticIp')}</TableHead>}
-                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[140px] cursor-pointer select-none" onClick={() => handleSort('company')}>Company{getSortIcon('company')}</TableHead>}
-                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[160px] cursor-pointer select-none" onClick={() => handleSort('address')}>Address{getSortIcon('address')}</TableHead>}
-                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap min-w-[120px] cursor-pointer select-none" onClick={() => handleSort('contractId')}>Contract ID{getSortIcon('contractId')}</TableHead>}
-                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[100px] cursor-pointer select-none" onClick={() => handleSort('simultaneousSessions')}>Sessions{getSortIcon('simultaneousSessions')}</TableHead>}
-                      <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap min-w-[120px]">{t('radiusUsers.actions')}</TableHead>
+                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[150px] cursor-pointer select-none" onClick={() => handleSort('username')}>{t('radiusUsers.username')}{getSortIcon('username')}</TableHead>}
+                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>{t('radiusUsers.name')}{getSortIcon('name')}</TableHead>}
+                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[200px] cursor-pointer select-none" onClick={() => handleSort('email')}>{t('radiusUsers.email')}{getSortIcon('email')}</TableHead>}
+                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('phone')}>{t('radiusUsers.phone')}{getSortIcon('phone')}</TableHead>}
+                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('city')}>City{getSortIcon('city')}</TableHead>}
+                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('profile')}>{t('radiusUsers.profile')}{getSortIcon('profile')}</TableHead>}
+                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('enabled')}>{t('radiusUsers.status')}{getSortIcon('enabled')}</TableHead>}
+                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('balance')}>{t('radiusUsers.balance')}{getSortIcon('balance')}</TableHead>}
+                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('loanBalance')}>Loan Balance{getSortIcon('loanBalance')}</TableHead>}
+                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('expiration')}>{t('radiusUsers.expiration')}{getSortIcon('expiration')}</TableHead>}
+                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('lastOnline')}>Last Online{getSortIcon('lastOnline')}</TableHead>}
+                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('onlineStatus')}>Online{getSortIcon('onlineStatus')}</TableHead>}
+                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('remainingDays')}>Remaining Days{getSortIcon('remainingDays')}</TableHead>}
+                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('debtDays')}>Debt Days{getSortIcon('debtDays')}</TableHead>}
+                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('staticIp')}>Static IP{getSortIcon('staticIp')}</TableHead>}
+                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('company')}>Company{getSortIcon('company')}</TableHead>}
+                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[160px] cursor-pointer select-none" onClick={() => handleSort('address')}>Address{getSortIcon('address')}</TableHead>}
+                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('contractId')}>Contract ID{getSortIcon('contractId')}</TableHead>}
+                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('simultaneousSessions')}>Sessions{getSortIcon('simultaneousSessions')}</TableHead>}
+                      <TableHead className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                 
@@ -604,40 +624,40 @@ export default function RadiusUsers() {
                             tableLayout: 'fixed',
                           }}
                         >
-                          {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap">{user.username}</TableCell>}
-                          {columnVisibility.name && <TableCell className="h-12 px-4">
+                          {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap w-[150px]">{user.username}</TableCell>}
+                          {columnVisibility.name && <TableCell className="h-12 px-4 w-[180px]">
                             {user.firstname || user.lastname
                               ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
                               : '-'}
                           </TableCell>}
-                          {columnVisibility.email && <TableCell className="h-12 px-4 max-w-[200px] truncate" title={user.email || '-'}>
+                          {columnVisibility.email && <TableCell className="h-12 px-4 w-[200px] truncate" title={user.email || '-'}>
                             {user.email || '-'}
                           </TableCell>}
-                          {columnVisibility.phone && <TableCell className="h-12 px-4">{user.phone || '-'}</TableCell>}
-                          {columnVisibility.city && <TableCell className="h-12 px-4">{user.city || '-'}</TableCell>}
-                          {columnVisibility.profile && <TableCell className="h-12 px-4">{user.profileName || '-'}</TableCell>}
-                          {columnVisibility.status && <TableCell className="h-12 px-4">
+                          {columnVisibility.phone && <TableCell className="h-12 px-4 w-[140px]">{user.phone || '-'}</TableCell>}
+                          {columnVisibility.city && <TableCell className="h-12 px-4 w-[140px]">{user.city || '-'}</TableCell>}
+                          {columnVisibility.profile && <TableCell className="h-12 px-4 w-[140px]">{user.profileName || '-'}</TableCell>}
+                          {columnVisibility.status && <TableCell className="h-12 px-4 w-[100px]">
                             <Badge variant={user.enabled ? 'default' : 'secondary'}>
                               {user.enabled ? t('radiusUsers.enabled') : t('radiusUsers.disabled')}
                             </Badge>
                           </TableCell>}
-                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono">${user.balance?.toFixed(2) || '0.00'}</TableCell>}
-                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono">${user.loanBalance?.toFixed(2) || '0.00'}</TableCell>}
-                          {columnVisibility.expiration && <TableCell className="h-12 px-4">{formatDate(user.expiration)}</TableCell>}
-                          {columnVisibility.lastOnline && <TableCell className="h-12 px-4">{formatDate(user.lastOnline)}</TableCell>}
-                          {columnVisibility.onlineStatus && <TableCell className="h-12 px-4">
+                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${user.balance?.toFixed(2) || '0.00'}</TableCell>}
+                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${user.loanBalance?.toFixed(2) || '0.00'}</TableCell>}
+                          {columnVisibility.expiration && <TableCell className="h-12 px-4 w-[120px]">{formatDate(user.expiration)}</TableCell>}
+                          {columnVisibility.lastOnline && <TableCell className="h-12 px-4 w-[120px]">{formatDate(user.lastOnline)}</TableCell>}
+                          {columnVisibility.onlineStatus && <TableCell className="h-12 px-4 w-[100px]">
                             <Badge variant={user.onlineStatus ? 'default' : 'secondary'}>
                               {user.onlineStatus ? 'Online' : 'Offline'}
                             </Badge>
                           </TableCell>}
-                          {columnVisibility.remainingDays && <TableCell className="h-12 px-4 text-right">{user.remainingDays || '0'}</TableCell>}
-                          {columnVisibility.debtDays && <TableCell className="h-12 px-4 text-right">{user.debtDays || '0'}</TableCell>}
-                          {columnVisibility.staticIp && <TableCell className="h-12 px-4">{user.staticIp || '-'}</TableCell>}
-                          {columnVisibility.company && <TableCell className="h-12 px-4">{user.company || '-'}</TableCell>}
-                          {columnVisibility.address && <TableCell className="h-12 px-4">{user.address || '-'}</TableCell>}
-                          {columnVisibility.contractId && <TableCell className="h-12 px-4">{user.contractId || '-'}</TableCell>}
-                          {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right">{user.simultaneousSessions || '1'}</TableCell>}
-                          <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right">
+                          {columnVisibility.remainingDays && <TableCell className="h-12 px-4 text-right w-[120px]">{user.remainingDays || '0'}</TableCell>}
+                          {columnVisibility.debtDays && <TableCell className="h-12 px-4 text-right w-[100px]">{user.debtDays || '0'}</TableCell>}
+                          {columnVisibility.staticIp && <TableCell className="h-12 px-4 w-[140px]">{user.staticIp || '-'}</TableCell>}
+                          {columnVisibility.company && <TableCell className="h-12 px-4 w-[140px]">{user.company || '-'}</TableCell>}
+                          {columnVisibility.address && <TableCell className="h-12 px-4 w-[160px]">{user.address || '-'}</TableCell>}
+                          {columnVisibility.contractId && <TableCell className="h-12 px-4 w-[120px]">{user.contractId || '-'}</TableCell>}
+                          {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right w-[100px]">{user.simultaneousSessions || '1'}</TableCell>}
+                          <TableCell className="sticky right-0 bg-background shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
                             <div className="flex justify-end gap-2">
                               {showTrash ? (
                                 <Button
