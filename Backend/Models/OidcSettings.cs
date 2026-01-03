@@ -49,6 +49,16 @@ public class OidcSettings
     public string? ClientSecret { get; set; }
     
     /// <summary>
+    /// Soft delete flag
+    /// </summary>
+    public bool IsDeleted { get; set; }
+    
+    /// <summary>
+    /// Soft delete timestamp
+    /// </summary>
+    public DateTime? DeletedAt { get; set; }
+    
+    /// <summary>
     /// The redirect URI after successful authentication
     /// </summary>
     public string RedirectUri { get; set; } = string.Empty;

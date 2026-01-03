@@ -27,6 +27,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog'
 import { workspaceApi } from '../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration } from '../api/sasRadiusApi'
 import { SyncProgressDialog } from '../components/SyncProgressDialog'
@@ -47,6 +57,8 @@ export default function WorkspaceSettings() {
   // SAS Radius Integration state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingIntegration, setEditingIntegration] = useState<SasRadiusIntegration | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [integrationToDelete, setIntegrationToDelete] = useState<number | null>(null)
   const [activeSyncId, setActiveSyncId] = useState<string | null>(null)
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
   const [formData, setFormData] = useState<SasRadiusIntegration>({
@@ -192,8 +204,17 @@ export default function WorkspaceSettings() {
   }
 
   const handleDelete = (integration: SasRadiusIntegration) => {
-    if (integration.id && confirm('Are you sure you want to delete this integration?')) {
-      deleteMutation.mutate(integration.id)
+    if (integration.id) {
+      setIntegrationToDelete(integration.id)
+      setDeleteDialogOpen(true)
+    }
+  }
+
+  const confirmDelete = () => {
+    if (integrationToDelete) {
+      deleteMutation.mutate(integrationToDelete)
+      setDeleteDialogOpen(false)
+      setIntegrationToDelete(null)
     }
   }
 
@@ -647,6 +668,24 @@ export default function WorkspaceSettings() {
         syncId={activeSyncId}
         workspaceId={Number(id)}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the SAS RADIUS integration.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

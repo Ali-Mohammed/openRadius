@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -31,6 +32,8 @@ export default function RadiusProfiles() {
   // Profile state
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [editingProfile, setEditingProfile] = useState<RadiusProfile | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [profileToDelete, setProfileToDelete] = useState<number | null>(null)
   const [profileFormData, setProfileFormData] = useState({
     name: '',
     downrate: '',
@@ -204,8 +207,17 @@ export default function RadiusProfiles() {
   }
 
   const handleDeleteProfile = (id?: number) => {
-    if (id && confirm('Are you sure you want to delete this profile?')) {
-      deleteProfileMutation.mutate(id)
+    if (id) {
+      setProfileToDelete(id)
+      setDeleteDialogOpen(true)
+    }
+  }
+
+  const confirmDeleteProfile = () => {
+    if (profileToDelete) {
+      deleteProfileMutation.mutate(profileToDelete)
+      setDeleteDialogOpen(false)
+      setProfileToDelete(null)
     }
   }
 
@@ -607,6 +619,24 @@ export default function RadiusProfiles() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the profile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteProfile} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

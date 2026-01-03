@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
@@ -89,6 +90,8 @@ export default function OidcSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<OidcProvider | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [providerToDelete, setProviderToDelete] = useState<{ id: number; isDefault: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<string>('custom')
@@ -204,16 +207,28 @@ export default function OidcSettingsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this provider?')) return
+  const handleDelete = (id: number, isDefault: boolean) => {
+    if (isDefault) {
+      toast.error('Cannot delete the default OIDC provider')
+      return
+    }
+    setProviderToDelete({ id, isDefault })
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!providerToDelete) return
 
     try {
-      await apiClient.delete(`/api/oidcsettings/${id}`)
+      await apiClient.delete(`/api/oidcsettings/${providerToDelete.id}`)
       toast.success('Provider deleted successfully')
       loadProviders()
     } catch (error) {
       console.error('Failed to delete provider:', error)
       toast.error('Failed to delete provider')
+    } finally {
+      setDeleteDialogOpen(false)
+      setProviderToDelete(null)
     }
   }
 
@@ -266,7 +281,7 @@ export default function OidcSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6" />
@@ -385,9 +400,11 @@ export default function OidcSettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(provider.id!)}
+                            onClick={() => handleDelete(provider.id!, provider.isDefault)}
+                            disabled={provider.isDefault}
+                            title={provider.isDefault ? 'Cannot delete default provider' : 'Delete provider'}
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className={`h-4 w-4 ${provider.isDefault ? 'text-muted-foreground' : 'text-destructive'}`} />
                           </Button>
                         </div>
                       </TableCell>
@@ -583,6 +600,24 @@ export default function OidcSettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the OIDC provider.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

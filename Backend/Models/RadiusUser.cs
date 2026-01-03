@@ -256,6 +256,10 @@ namespace Backend.Models
         public string? ParentUsername { get; set; }
         public int DebtDays { get; set; }
         
+        // Soft Delete
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        
         // Foreign Keys
         public int WorkspaceId { get; set; }
         
