@@ -252,6 +252,27 @@ export default function OidcSettingsPage() {
     }
   }
 
+  const handleRestore = (id: number) => {
+    setProviderToRestore(id)
+    setRestoreDialogOpen(true)
+  }
+
+  const confirmRestore = async () => {
+    if (!providerToRestore) return
+
+    try {
+      await apiClient.post(`/api/oidcsettings/${providerToRestore}/restore`)
+      toast.success('Provider restored successfully')
+      loadDeletedProviders()
+    } catch (error) {
+      console.error('Failed to restore provider:', error)
+      toast.error('Failed to restore provider')
+    } finally {
+      setRestoreDialogOpen(false)
+      setProviderToRestore(null)
+    }
+  }
+
   const handleSetDefault = async (id: number) => {
     try {
       await apiClient.put(`/api/oidcsettings/${id}/set-default`)
