@@ -24,13 +24,6 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
         if (context is not HttpContext httpContext)
             return null;
 
-        // Try to get tenant from custom header first (for tenant switching)
-        var tenantHeader = httpContext.Request.Headers["X-Tenant-Id"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(tenantHeader))
-        {
-            return tenantHeader;
-        }
-
         // Get user email from JWT claims
         var userEmail = httpContext.User.FindFirstValue(ClaimTypes.Email) 
                         ?? httpContext.User.FindFirstValue("email");
@@ -38,7 +31,7 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
         if (string.IsNullOrEmpty(userEmail))
             return null;
 
-        // Look up user's current or default workspace
+        // Look up user's current or default workspace from Users table in master database
         var user = await _masterDbContext.Users
             .Include(u => u.CurrentWorkspace)
             .Include(u => u.DefaultWorkspace)
@@ -48,9 +41,9 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
             return null;
 
         // Use CurrentWorkspace if set, otherwise fall back to DefaultWorkspace
-        var WorkspaceId = user.CurrentWorkspaceId ?? user.DefaultWorkspaceId;
+        var workspaceId = user.CurrentWorkspaceId ?? user.DefaultWorkspaceId;
         
-        return WorkspaceId?.ToString();
+        return workspaceId?.ToString();
     }
 }
 
