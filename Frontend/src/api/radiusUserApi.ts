@@ -118,5 +118,41 @@ export const radiusUserApi = {
     const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/sync`)
     return response.data
   },
+
+  exportToCsv: async (
+    workspaceId: number,
+    search?: string,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc'
+  ): Promise<Blob> => {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    if (sortField) params.append('sortField', sortField)
+    if (sortDirection) params.append('sortDirection', sortDirection)
+    
+    const response = await apiClient.get(
+      `/api/workspaces/${workspaceId}/radius/users/export/csv?${params.toString()}`,
+      { responseType: 'blob' }
+    )
+    return response.data
+  },
+
+  exportToExcel: async (
+    workspaceId: number,
+    search?: string,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc'
+  ): Promise<Blob> => {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    if (sortField) params.append('sortField', sortField)
+    if (sortDirection) params.append('sortDirection', sortDirection)
+    
+    const response = await apiClient.get(
+      `/api/workspaces/${workspaceId}/radius/users/export/excel?${params.toString()}`,
+      { responseType: 'blob' }
+    )
+    return response.data
+  },
 }
 

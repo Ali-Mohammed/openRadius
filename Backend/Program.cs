@@ -9,6 +9,10 @@ using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.Extensions;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
+using OfficeOpenXml;
+
+// Configure EPPlus license for version 8.x - Noncommercial use
+ExcelPackage.License.SetNonCommercialPersonal("OpenRadius Development");
 
 var builder = WebApplication.CreateBuilder(args);
 

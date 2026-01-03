@@ -2,6 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using CsvHelper;
+using CsvHelper.Configuration;
+using System.Globalization;
+using System.Text;
+using OfficeOpenXml;
 
 namespace Backend.Controllers;
 
@@ -441,6 +446,238 @@ public class RadiusUserController : ControllerBase
 
             return StatusCode(500, response);
         }
+    }
+
+    // GET: api/workspaces/{WorkspaceId}/radius/users/export/csv
+    [HttpGet("export/csv")]
+    public async Task<IActionResult> ExportToCsv(
+        int WorkspaceId,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = "asc")
+    {
+        var query = _context.RadiusUsers
+            .Include(u => u.Profile)
+            .Where(u => u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(u =>
+                (u.Username != null && u.Username.ToLower().Contains(searchLower)) ||
+                (u.Firstname != null && u.Firstname.ToLower().Contains(searchLower)) ||
+                (u.Lastname != null && u.Lastname.ToLower().Contains(searchLower)) ||
+                (u.Email != null && u.Email.ToLower().Contains(searchLower)) ||
+                (u.Phone != null && u.Phone.ToLower().Contains(searchLower))
+            );
+        }
+
+        // Apply sorting
+        if (!string.IsNullOrWhiteSpace(sortField))
+        {
+            var isDescending = sortDirection?.ToLower() == "desc";
+            query = sortField.ToLower() switch
+            {
+                "username" => isDescending ? query.OrderByDescending(u => u.Username) : query.OrderBy(u => u.Username),
+                "name" => isDescending ? query.OrderByDescending(u => u.Firstname).ThenByDescending(u => u.Lastname) : query.OrderBy(u => u.Firstname).ThenBy(u => u.Lastname),
+                "email" => isDescending ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+                "phone" => isDescending ? query.OrderByDescending(u => u.Phone) : query.OrderBy(u => u.Phone),
+                "enabled" => isDescending ? query.OrderByDescending(u => u.Enabled) : query.OrderBy(u => u.Enabled),
+                "balance" => isDescending ? query.OrderByDescending(u => u.Balance) : query.OrderBy(u => u.Balance),
+                _ => query.OrderByDescending(u => u.CreatedAt)
+            };
+        }
+        else
+        {
+            query = query.OrderByDescending(u => u.CreatedAt);
+        }
+
+        var users = await query.ToListAsync();
+
+        var memoryStream = new MemoryStream();
+        var writer = new StreamWriter(memoryStream, new UTF8Encoding(true));
+        var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+        });
+
+        // Write headers
+        csv.WriteField("Username");
+        csv.WriteField("First Name");
+        csv.WriteField("Last Name");
+        csv.WriteField("Email");
+        csv.WriteField("Phone");
+        csv.WriteField("City");
+        csv.WriteField("Profile");
+        csv.WriteField("Status");
+        csv.WriteField("Balance");
+        csv.WriteField("Loan Balance");
+        csv.WriteField("Expiration");
+        csv.WriteField("Last Online");
+        csv.WriteField("Online Status");
+        csv.WriteField("Remaining Days");
+        csv.WriteField("Debt Days");
+        csv.WriteField("Static IP");
+        csv.WriteField("Company");
+        csv.WriteField("Address");
+        csv.WriteField("Contract ID");
+        csv.WriteField("Simultaneous Sessions");
+        csv.WriteField("Created At");
+        csv.NextRecord();
+
+        // Write data
+        foreach (var user in users)
+        {
+            csv.WriteField(user.Username ?? "");
+            csv.WriteField(user.Firstname ?? "");
+            csv.WriteField(user.Lastname ?? "");
+            csv.WriteField(user.Email ?? "");
+            csv.WriteField(user.Phone ?? "");
+            csv.WriteField(user.City ?? "");
+            csv.WriteField(user.Profile?.Name ?? "");
+            csv.WriteField(user.Enabled ? "Enabled" : "Disabled");
+            csv.WriteField(user.Balance.ToString("F2"));
+            csv.WriteField(user.LoanBalance.ToString("F2"));
+            csv.WriteField(user.Expiration?.ToString("yyyy-MM-dd") ?? "");
+            csv.WriteField(user.LastOnline?.ToString("yyyy-MM-dd HH:mm:ss") ?? "");
+            csv.WriteField(user.OnlineStatus == 1 ? "Online" : "Offline");
+            csv.WriteField(user.RemainingDays.ToString());
+            csv.WriteField(user.DebtDays.ToString());
+            csv.WriteField(user.StaticIp ?? "");
+            csv.WriteField(user.Company ?? "");
+            csv.WriteField(user.Address ?? "");
+            csv.WriteField(user.ContractId ?? "");
+            csv.WriteField(user.SimultaneousSessions.ToString());
+            csv.WriteField(user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"));
+            csv.NextRecord();
+        }
+
+        await csv.FlushAsync();
+        await writer.FlushAsync();
+        memoryStream.Position = 0;
+
+        var fileName = $"radius_users_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(memoryStream, "text/csv", fileName);
+    }
+
+    // GET: api/workspaces/{WorkspaceId}/radius/users/export/excel
+    [HttpGet("export/excel")]
+    public async Task<IActionResult> ExportToExcel(
+        int WorkspaceId,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = "asc")
+    {
+        var query = _context.RadiusUsers
+            .Include(u => u.Profile)
+            .Where(u => u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(u =>
+                (u.Username != null && u.Username.ToLower().Contains(searchLower)) ||
+                (u.Firstname != null && u.Firstname.ToLower().Contains(searchLower)) ||
+                (u.Lastname != null && u.Lastname.ToLower().Contains(searchLower)) ||
+                (u.Email != null && u.Email.ToLower().Contains(searchLower)) ||
+                (u.Phone != null && u.Phone.ToLower().Contains(searchLower))
+            );
+        }
+
+        // Apply sorting
+        if (!string.IsNullOrWhiteSpace(sortField))
+        {
+            var isDescending = sortDirection?.ToLower() == "desc";
+            query = sortField.ToLower() switch
+            {
+                "username" => isDescending ? query.OrderByDescending(u => u.Username) : query.OrderBy(u => u.Username),
+                "name" => isDescending ? query.OrderByDescending(u => u.Firstname).ThenByDescending(u => u.Lastname) : query.OrderBy(u => u.Firstname).ThenBy(u => u.Lastname),
+                "email" => isDescending ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+                "phone" => isDescending ? query.OrderByDescending(u => u.Phone) : query.OrderBy(u => u.Phone),
+                "enabled" => isDescending ? query.OrderByDescending(u => u.Enabled) : query.OrderBy(u => u.Enabled),
+                "balance" => isDescending ? query.OrderByDescending(u => u.Balance) : query.OrderBy(u => u.Balance),
+                _ => query.OrderByDescending(u => u.CreatedAt)
+            };
+        }
+        else
+        {
+            query = query.OrderByDescending(u => u.CreatedAt);
+        }
+
+        var users = await query.ToListAsync();
+
+        using var package = new ExcelPackage();
+        var worksheet = package.Workbook.Worksheets.Add("RADIUS Users");
+
+        // Headers
+        worksheet.Cells[1, 1].Value = "Username";
+        worksheet.Cells[1, 2].Value = "First Name";
+        worksheet.Cells[1, 3].Value = "Last Name";
+        worksheet.Cells[1, 4].Value = "Email";
+        worksheet.Cells[1, 5].Value = "Phone";
+        worksheet.Cells[1, 6].Value = "City";
+        worksheet.Cells[1, 7].Value = "Profile";
+        worksheet.Cells[1, 8].Value = "Status";
+        worksheet.Cells[1, 9].Value = "Balance";
+        worksheet.Cells[1, 10].Value = "Loan Balance";
+        worksheet.Cells[1, 11].Value = "Expiration";
+        worksheet.Cells[1, 12].Value = "Last Online";
+        worksheet.Cells[1, 13].Value = "Online Status";
+        worksheet.Cells[1, 14].Value = "Remaining Days";
+        worksheet.Cells[1, 15].Value = "Debt Days";
+        worksheet.Cells[1, 16].Value = "Static IP";
+        worksheet.Cells[1, 17].Value = "Company";
+        worksheet.Cells[1, 18].Value = "Address";
+        worksheet.Cells[1, 19].Value = "Contract ID";
+        worksheet.Cells[1, 20].Value = "Simultaneous Sessions";
+        worksheet.Cells[1, 21].Value = "Created At";
+
+        // Style headers
+        using (var range = worksheet.Cells[1, 1, 1, 21])
+        {
+            range.Style.Font.Bold = true;
+            range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+            range.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+        }
+
+        // Data
+        int row = 2;
+        foreach (var user in users)
+        {
+            worksheet.Cells[row, 1].Value = user.Username ?? "";
+            worksheet.Cells[row, 2].Value = user.Firstname ?? "";
+            worksheet.Cells[row, 3].Value = user.Lastname ?? "";
+            worksheet.Cells[row, 4].Value = user.Email ?? "";
+            worksheet.Cells[row, 5].Value = user.Phone ?? "";
+            worksheet.Cells[row, 6].Value = user.City ?? "";
+            worksheet.Cells[row, 7].Value = user.Profile?.Name ?? "";
+            worksheet.Cells[row, 8].Value = user.Enabled ? "Enabled" : "Disabled";
+            worksheet.Cells[row, 9].Value = user.Balance;
+            worksheet.Cells[row, 10].Value = user.LoanBalance;
+            worksheet.Cells[row, 11].Value = user.Expiration?.ToString("yyyy-MM-dd") ?? "";
+            worksheet.Cells[row, 12].Value = user.LastOnline?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
+            worksheet.Cells[row, 13].Value = user.OnlineStatus == 1 ? "Online" : "Offline";
+            worksheet.Cells[row, 14].Value = user.RemainingDays;
+            worksheet.Cells[row, 15].Value = user.DebtDays;
+            worksheet.Cells[row, 16].Value = user.StaticIp ?? "";
+            worksheet.Cells[row, 17].Value = user.Company ?? "";
+            worksheet.Cells[row, 18].Value = user.Address ?? "";
+            worksheet.Cells[row, 19].Value = user.ContractId ?? "";
+            worksheet.Cells[row, 20].Value = user.SimultaneousSessions;
+            worksheet.Cells[row, 21].Value = user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+            row++;
+        }
+
+        // Auto-fit columns
+        worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+        var fileName = $"radius_users_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+        var fileBytes = package.GetAsByteArray();
+
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 }
 

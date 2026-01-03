@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -354,6 +354,50 @@ export default function RadiusUsers() {
     syncMutation.mutate()
   }
 
+  const handleExportCsv = async () => {
+    try {
+      const blob = await radiusUserApi.exportToCsv(
+        WORKSPACE_ID,
+        searchQuery || undefined,
+        sortField || undefined,
+        sortDirection
+      )
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `radius_users_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success('CSV exported successfully')
+    } catch (error) {
+      toast.error('Failed to export CSV')
+    }
+  }
+
+  const handleExportExcel = async () => {
+    try {
+      const blob = await radiusUserApi.exportToExcel(
+        WORKSPACE_ID,
+        searchQuery || undefined,
+        sortField || undefined,
+        sortDirection
+      )
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `radius_users_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success('Excel exported successfully')
+    } catch (error) {
+      toast.error('Failed to export Excel')
+    }
+  }
+
   const handleSearch = () => {
     setSearchQuery(searchInput)
     setCurrentPage(1) // Reset to first page on new search
@@ -425,6 +469,24 @@ export default function RadiusUsers() {
                   title={t('common.refresh')}
                 >
                   <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button 
+                  onClick={handleExportCsv} 
+                  variant="outline" 
+                  size="sm"
+                  title="Export to CSV"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  CSV
+                </Button>
+                <Button 
+                  onClick={handleExportExcel} 
+                  variant="outline" 
+                  size="sm"
+                  title="Export to Excel"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Excel
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
