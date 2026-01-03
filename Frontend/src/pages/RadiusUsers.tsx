@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, memo } from 'react'
+import { useState, useRef, useMemo, useCallback, memo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
@@ -12,10 +12,12 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -27,14 +29,26 @@ export default function RadiusUsers() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(50)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [sortField, setSortField] = useState<string>('')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  // Initialize state from URL params
+  const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'))
+  const [pageSize, setPageSize] = useState(() => parseInt(searchParams.get('pageSize') || '50'))
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '')
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
+  const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc')
+
+  // Update URL params when state changes
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (currentPage !== 1) params.page = currentPage.toString()
+    if (pageSize !== 50) params.pageSize = pageSize.toString()
+    if (searchQuery) params.search = searchQuery
+    if (sortField) params.sortField = sortField
+    if (sortDirection !== 'asc') params.sortDirection = sortDirection
+    setSearchParams(params, { replace: true })
+  }, [currentPage, pageSize, searchQuery, sortField, sortDirection])
 
   // User state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -87,7 +101,7 @@ export default function RadiusUsers() {
   })
 
   // Queries
-  const { data: usersData, isLoading } = useQuery({
+  const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash 
       ? radiusUserApi.getTrash(WORKSPACE_ID, currentPage, pageSize)
@@ -571,15 +585,59 @@ export default function RadiusUsers() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
           {isLoading ? (
-            <div className="text-center py-8">{t('common.loading')}</div>
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow>
+                    <TableHead className="h-12 px-4 w-[150px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[180px]"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[200px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="sticky right-0 bg-background h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="h-12 px-4 w-[150px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[180px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[200px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="sticky right-0 bg-background h-12 px-4 w-[120px]">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-8 rounded" />
+                          <Skeleton className="h-8 w-8 rounded" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {t('radiusUsers.noUsersFound')}
             </div>
           ) : (
             <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+              {isFetching && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
