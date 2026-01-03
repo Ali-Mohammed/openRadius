@@ -16,6 +16,7 @@ import WorkspaceSettings from './pages/WorkspaceSettings'
 import OidcSettings from './pages/OidcSettings'
 import RadiusProfiles from './pages/RadiusProfiles'
 import RadiusUsers from './pages/RadiusUsers'
+import RadiusGroups from './pages/RadiusGroups'
 
 const queryClient = new QueryClient()
 
@@ -41,6 +42,7 @@ function App() {
                           <Route path="/integration/sas-radius" element={<Navigate to="/workspace/1/settings" replace />} />
                           <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
+                          <Route path="/workspace/:id/radius/groups" element={<RadiusGroups />} />
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />

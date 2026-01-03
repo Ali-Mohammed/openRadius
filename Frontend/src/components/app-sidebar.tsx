@@ -61,6 +61,11 @@ const data = {
           url: `/workspace/${DEFAULT_workspace_ID}/radius/profiles`,
           icon: CircleUser,
         },
+        {
+          titleKey: "navigation.groups",
+          url: `/workspace/${DEFAULT_workspace_ID}/radius/groups`,
+          icon: Users,
+        },
       ],
     },
     {

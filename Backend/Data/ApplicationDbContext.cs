@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<RadiusUser> RadiusUsers { get; set; }
     public DbSet<RadiusProfile> RadiusProfiles { get; set; }
+    public DbSet<RadiusGroup> RadiusGroups { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<SyncProgress> SyncProgresses { get; set; }
 
