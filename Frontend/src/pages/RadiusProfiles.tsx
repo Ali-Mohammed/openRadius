@@ -269,8 +269,8 @@ export default function RadiusProfiles() {
   }
 
   return (
-    <div className="flex flex-col p-6 gap-6" style={{ height: '100vh' }}>
-      <div className="flex items-center justify-between flex-shrink-0">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">RADIUS Profiles</h1>
           <p className="text-muted-foreground">Manage RADIUS profiles for your workspace</p>
@@ -298,8 +298,8 @@ export default function RadiusProfiles() {
         </div>
       </div>
 
-      <Card className="flex-1 flex flex-col overflow-hidden">
-        <CardHeader className="flex-shrink-0">
+      <Card>
+        <CardHeader>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
@@ -338,7 +338,7 @@ export default function RadiusProfiles() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-hidden flex-1 flex flex-col">
+        <CardContent className="p-0 overflow-hidden">
           {workspaceId <= 0 ? (
             <div className="text-center py-8 text-red-500">
               <p className="font-semibold mb-2">Invalid Workspace ID</p>
@@ -362,9 +362,9 @@ export default function RadiusProfiles() {
               )}
             </div>
           ) : (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="overflow-hidden">
               {/* Fixed Header */}
-              <div className="bg-muted border-b flex-shrink-0">
+              <div className="bg-muted border-b">
                 <Table className="table-fixed w-full">
                   <colgroup>
                     <col style={{ width: '180px' }} />
@@ -392,7 +392,7 @@ export default function RadiusProfiles() {
               </div>
 
               {/* Scrollable Body */}
-              <div ref={parentRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+              <div ref={parentRef} className="overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100vh - 452px)' }}>
                 <Table className="table-fixed w-full">
                   <colgroup>
                     <col style={{ width: '180px' }} />
