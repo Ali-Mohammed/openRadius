@@ -10,6 +10,18 @@
     "login": "Login",
     "pleaseSignIn": "Please sign in to continue"
   },
+  "navigation": {
+    "integration": "Integration",
+    "sasRadius": "SAS Radius",
+    "radius": "Radius",
+    "users": "Users",
+    "profiles": "Profiles",
+    "workspace": "Workspace",
+    "view": "View",
+    "setting": "Setting",
+    "appSetting": "App Setting",
+    "oidc": "OIDC"
+  },
   "dashboard": {
     "title": "Dashboard",
     "userInfo": "User Information",
@@ -18,6 +30,87 @@
     "usersListDesc": "All users from the database",
     "noUsers": "No users found",
     "loading": "Loading user data..."
+  },
+  "radiusUsers": {
+    "title": "RADIUS Users",
+    "subtitle": "Manage RADIUS users and their access credentials",
+    "viewManage": "View and manage all RADIUS users",
+    "addUser": "Add User",
+    "editUser": "Edit User",
+    "syncUsers": "Sync Users",
+    "searchUsers": "Search users...",
+    "noUsersFound": "No users found. Click \"Add User\" to create one or \"Sync Users\" to fetch from SAS Radius server.",
+    "perPage": "Per page:",
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "users": "users",
+    "username": "Username",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "profile": "Profile",
+    "status": "Status",
+    "balance": "Balance",
+    "expiration": "Expiration",
+    "actions": "Actions",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "city": "City",
+    "profileId": "Profile",
+    "expirationDate": "Expiration Date",
+    "staticIp": "Static IP",
+    "company": "Company",
+    "address": "Address",
+    "contractId": "Contract ID",
+    "sessions": "Sessions",
+    "create": "Create",
+    "update": "Update",
+    "cancel": "Cancel",
+    "fillDetails": "Fill in the details to create a new user.",
+    "updateDetails": "Update the user details below.",
+    "selectProfile": "Select a profile",
+    "deleteConfirm": "Are you sure you want to delete this user?"
+  },
+  "radiusProfiles": {
+    "title": "RADIUS Profiles",
+    "subtitle": "Manage RADIUS user profiles and their configurations",
+    "viewManage": "View and manage all RADIUS profiles",
+    "addProfile": "Add Profile",
+    "editProfile": "Edit Profile",
+    "syncProfiles": "Sync Profiles",
+    "searchProfiles": "Search profiles...",
+    "noProfilesFound": "No profiles found. Click \"Add Profile\" to create one or \"Sync Profiles\" to fetch from SAS Radius server.",
+    "name": "Name",
+    "type": "Type",
+    "speed": "Speed",
+    "pool": "Pool",
+    "price": "Price",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "actions": "Actions",
+    "downrate": "Download Speed",
+    "uprate": "Upload Speed",
+    "monthly": "Monthly Fee",
+    "burstEnabled": "Burst Enabled",
+    "limitExpiration": "Limit Expiration",
+    "expirationAmount": "Expiration Amount",
+    "expirationUnit": "Expiration Unit",
+    "fillDetails": "Fill in the details to create a new profile.",
+    "updateDetails": "Update the profile details below.",
+    "deleteConfirm": "Are you sure you want to delete this profile?"
+  },
+  "workspace": {
+    "title": "Workspace View",
+    "settings": "Workspace Settings",
+    "manage": "Manage workspaces",
+    "viewAll": "View all workspaces"
+  },
+  "integration": {
+    "sasRadius": "SAS Radius Integration",
+    "configure": "Configure SAS Radius integration settings"
   },
   "user": {
     "name": "Name",
@@ -81,7 +174,8 @@
     "appearance": "Appearance",
     "layout": "Layout",
     "boxed": "Boxed",
-    "fullWidth": "Full Width"
+    "fullWidth": "Full Width",
+    "oidcSettings": "OIDC Settings"
   },
   "common": {
     "loading": "Loading...",
@@ -92,6 +186,10 @@
     "edit": "Edit",
     "delete": "Delete",
     "close": "Close",
-    "back": "Back"
+    "back": "Back",
+    "search": "Search",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page"
   }
 }

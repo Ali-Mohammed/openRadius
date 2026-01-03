@@ -10,6 +10,18 @@
     "login": "تسجيل الدخول",
     "pleaseSignIn": "الرجاء تسجيل الدخول للمتابعة"
   },
+  "navigation": {
+    "integration": "التكامل",
+    "sasRadius": "SAS Radius",
+    "radius": "راديوس",
+    "users": "المستخدمون",
+    "profiles": "الملفات الشخصية",
+    "workspace": "مساحة العمل",
+    "view": "عرض",
+    "setting": "الإعدادات",
+    "appSetting": "إعدادات التطبيق",
+    "oidc": "OIDC"
+  },
   "dashboard": {
     "title": "لوحة التحكم",
     "userInfo": "معلومات المستخدم",
@@ -18,6 +30,87 @@
     "usersListDesc": "جميع المستخدمين من قاعدة البيانات",
     "noUsers": "لم يتم العثور على مستخدمين",
     "loading": "جاري تحميل بيانات المستخدم..."
+  },
+  "radiusUsers": {
+    "title": "مستخدمو RADIUS",
+    "subtitle": "إدارة مستخدمي RADIUS وبيانات اعتماد الوصول الخاصة بهم",
+    "viewManage": "عرض وإدارة جميع مستخدمي RADIUS",
+    "addUser": "إضافة مستخدم",
+    "editUser": "تعديل المستخدم",
+    "syncUsers": "مزامنة المستخدمين",
+    "searchUsers": "البحث عن المستخدمين...",
+    "noUsersFound": "لم يتم العثور على مستخدمين. انقر فوق \"إضافة مستخدم\" لإنشاء واحد أو \"مزامنة المستخدمين\" لجلبهم من خادم SAS Radius.",
+    "perPage": "في الصفحة:",
+    "showing": "عرض",
+    "to": "إلى",
+    "of": "من",
+    "users": "مستخدمين",
+    "username": "اسم المستخدم",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "profile": "الملف الشخصي",
+    "status": "الحالة",
+    "balance": "الرصيد",
+    "expiration": "تاريخ الانتهاء",
+    "actions": "الإجراءات",
+    "enabled": "مفعل",
+    "disabled": "معطل",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "city": "المدينة",
+    "profileId": "الملف الشخصي",
+    "expirationDate": "تاريخ الانتهاء",
+    "staticIp": "عنوان IP الثابت",
+    "company": "الشركة",
+    "address": "العنوان",
+    "contractId": "رقم العقد",
+    "sessions": "الجلسات",
+    "create": "إنشاء",
+    "update": "تحديث",
+    "cancel": "إلغاء",
+    "fillDetails": "املأ التفاصيل لإنشاء مستخدم جديد.",
+    "updateDetails": "قم بتحديث تفاصيل المستخدم أدناه.",
+    "selectProfile": "اختر ملف شخصي",
+    "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟"
+  },
+  "radiusProfiles": {
+    "title": "ملفات RADIUS الشخصية",
+    "subtitle": "إدارة ملفات مستخدمي RADIUS وإعداداتهم",
+    "viewManage": "عرض وإدارة جميع ملفات RADIUS الشخصية",
+    "addProfile": "إضافة ملف شخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "syncProfiles": "مزامنة الملفات الشخصية",
+    "searchProfiles": "البحث عن الملفات الشخصية...",
+    "noProfilesFound": "لم يتم العثور على ملفات شخصية. انقر فوق \"إضافة ملف شخصي\" لإنشاء واحد أو \"مزامنة الملفات الشخصية\" لجلبها من خادم SAS Radius.",
+    "name": "الاسم",
+    "type": "النوع",
+    "speed": "السرعة",
+    "pool": "المجموعة",
+    "price": "السعر",
+    "enabled": "مفعل",
+    "disabled": "معطل",
+    "actions": "الإجراءات",
+    "downrate": "سرعة التنزيل",
+    "uprate": "سرعة الرفع",
+    "monthly": "الرسوم الشهرية",
+    "burstEnabled": "تفعيل الاندفاع",
+    "limitExpiration": "حد الانتهاء",
+    "expirationAmount": "مقدار الانتهاء",
+    "expirationUnit": "وحدة الانتهاء",
+    "fillDetails": "املأ التفاصيل لإنشاء ملف شخصي جديد.",
+    "updateDetails": "قم بتحديث تفاصيل الملف الشخصي أدناه.",
+    "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا الملف الشخصي؟"
+  },
+  "workspace": {
+    "title": "عرض مساحة العمل",
+    "settings": "إعدادات مساحة العمل",
+    "manage": "إدارة مساحات العمل",
+    "viewAll": "عرض جميع مساحات العمل"
+  },
+  "integration": {
+    "sasRadius": "تكامل SAS Radius",
+    "configure": "تكوين إعدادات تكامل SAS Radius"
   },
   "user": {
     "name": "الاسم",
@@ -81,7 +174,8 @@
     "appearance": "المظهر",
     "layout": "التخطيط",
     "boxed": "محصور",
-    "fullWidth": "عرض كامل"
+    "fullWidth": "عرض كامل",
+    "oidcSettings": "إعدادات OIDC"
   },
   "common": {
     "loading": "جاري التحميل...",
@@ -92,6 +186,10 @@
     "edit": "تعديل",
     "delete": "حذف",
     "close": "إغلاق",
-    "back": "رجوع"
+    "back": "رجوع",
+    "search": "بحث",
+    "previous": "السابق",
+    "next": "التالي",
+    "page": "صفحة"
   }
 }
