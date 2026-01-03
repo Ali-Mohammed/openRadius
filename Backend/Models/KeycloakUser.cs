@@ -25,6 +25,7 @@ public class KeycloakUserResponse
     public bool EmailVerified { get; set; }
     public long? CreatedTimestamp { get; set; }
     public List<string>? Groups { get; set; }
+    public List<string>? RealmRoles { get; set; }
     public Dictionary<string, List<string>>? Attributes { get; set; }
 }
 

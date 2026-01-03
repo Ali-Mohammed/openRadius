@@ -88,17 +88,63 @@ public class UserManagementController : ControllerBase
 
             var users = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
             
-            var userResponses = users?.Select(u => new KeycloakUserResponse
+            var userResponses = new List<KeycloakUserResponse>();
+            
+            if (users != null)
             {
-                Id = u.TryGetProperty("id", out var id) ? id.GetString() : null,
-                Username = u.TryGetProperty("username", out var username) ? username.GetString() : null,
-                Email = u.TryGetProperty("email", out var email) ? email.GetString() : null,
-                FirstName = u.TryGetProperty("firstName", out var firstName) ? firstName.GetString() : null,
-                LastName = u.TryGetProperty("lastName", out var lastName) ? lastName.GetString() : null,
-                Enabled = u.TryGetProperty("enabled", out var enabled) && enabled.GetBoolean(),
-                EmailVerified = u.TryGetProperty("emailVerified", out var emailVerified) && emailVerified.GetBoolean(),
-                CreatedTimestamp = u.TryGetProperty("createdTimestamp", out var createdTimestamp) ? createdTimestamp.GetInt64() : null
-            }).ToList();
+                foreach (var u in users)
+                {
+                    var userId = u.TryGetProperty("id", out var id) ? id.GetString() : null;
+                    
+                    // Fetch groups for this user
+                    List<string>? userGroups = null;
+                    if (!string.IsNullOrEmpty(userId))
+                    {
+                        try
+                        {
+                            var groupsUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{userId}/groups";
+                            var groupsResponse = await client.GetAsync(groupsUrl);
+                            if (groupsResponse.IsSuccessStatusCode)
+                            {
+                                var groups = await groupsResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
+                                userGroups = groups?.Select(g => g.GetProperty("name").GetString()).Where(n => n != null).Select(n => n!).ToList();
+                            }
+                        }
+                        catch { /* Ignore group fetch errors */ }
+                    }
+                    
+                    // Fetch realm roles for this user
+                    List<string>? realmRoles = null;
+                    if (!string.IsNullOrEmpty(userId))
+                    {
+                        try
+                        {
+                            var rolesUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{userId}/role-mappings/realm";
+                            var rolesResponse = await client.GetAsync(rolesUrl);
+                            if (rolesResponse.IsSuccessStatusCode)
+                            {
+                                var roles = await rolesResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
+                                realmRoles = roles?.Select(r => r.GetProperty("name").GetString()).Where(n => n != null).Select(n => n!).ToList();
+                            }
+                        }
+                        catch { /* Ignore role fetch errors */ }
+                    }
+                    
+                    userResponses.Add(new KeycloakUserResponse
+                    {
+                        Id = userId,
+                        Username = u.TryGetProperty("username", out var username) ? username.GetString() : null,
+                        Email = u.TryGetProperty("email", out var email) ? email.GetString() : null,
+                        FirstName = u.TryGetProperty("firstName", out var firstName) ? firstName.GetString() : null,
+                        LastName = u.TryGetProperty("lastName", out var lastName) ? lastName.GetString() : null,
+                        Enabled = u.TryGetProperty("enabled", out var enabled) && enabled.GetBoolean(),
+                        EmailVerified = u.TryGetProperty("emailVerified", out var emailVerified) && emailVerified.GetBoolean(),
+                        CreatedTimestamp = u.TryGetProperty("createdTimestamp", out var createdTimestamp) ? createdTimestamp.GetInt64() : null,
+                        Groups = userGroups,
+                        RealmRoles = realmRoles
+                    });
+                }
+            }
 
             return Ok(userResponses);
         }

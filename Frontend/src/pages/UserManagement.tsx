@@ -301,6 +301,7 @@ export default function UserManagement() {
                 <TableHead>Email</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Groups</TableHead>
+                <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Verified</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -309,13 +310,13 @@ export default function UserManagement() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -340,6 +341,24 @@ export default function UserManagement() {
                           {user.groups.length > 2 && (
                             <Badge variant="outline" className="text-xs">
                               +{user.groups.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.realmRoles && user.realmRoles.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {user.realmRoles.filter(role => !role.startsWith('default-roles-')).slice(0, 2).map((role, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {role}
+                            </Badge>
+                          ))}
+                          {user.realmRoles.filter(role => !role.startsWith('default-roles-')).length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{user.realmRoles.filter(role => !role.startsWith('default-roles-')).length - 2}
                             </Badge>
                           )}
                         </div>

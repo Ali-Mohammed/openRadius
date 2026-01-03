@@ -10,6 +10,7 @@ export interface KeycloakUser {
   emailVerified?: boolean
   createdTimestamp?: number
   groups?: string[]
+  realmRoles?: string[]
   attributes?: Record<string, string[]>
 }
 
