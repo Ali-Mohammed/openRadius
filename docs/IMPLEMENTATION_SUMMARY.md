@@ -162,6 +162,36 @@ Successfully implemented enterprise-grade authentication for OpenRadius using **
 - ✅ Secure session management
 - ✅ Single Sign-On (SSO) ready
 
+### 🗑️ Soft Delete & Trash Management
+- ✅ Soft delete pattern across all entities
+- ✅ Trash view for deleted items
+- ✅ Restore functionality for all entities
+- ✅ AlertDialog confirmations for destructive actions
+- ✅ Protection for critical items (default OIDC provider)
+- ✅ Complete UI with trash toggle and restore buttons
+- ✅ Toast notifications for user feedback
+
+#### Entities with Soft Delete
+- ✅ **RadiusUser** - Users can be deleted and restored
+- ✅ **RadiusProfile** - Profiles can be deleted and restored
+- ✅ **SasRadiusIntegration** - Integrations can be deleted and restored
+- ✅ **OidcSettings** - OIDC providers can be deleted and restored (except default)
+
+#### Database Implementation
+- ✅ `IsDeleted` (bool) flag on all entities
+- ✅ `DeletedAt` (DateTime?) timestamp on all entities
+- ✅ Database migrations applied to all databases
+- ✅ Queries automatically filter deleted items
+- ✅ Dedicated trash endpoints for each entity
+
+#### Frontend Implementation
+- ✅ Archive button to toggle between active/trash views
+- ✅ Restore button (green RotateCcw icon) in trash view
+- ✅ Restore confirmation dialogs
+- ✅ Updated delete confirmation messages
+- ✅ Conditional UI rendering based on view mode
+- ✅ Integration with TanStack Query for cache invalidation
+
 ### ⚙️ OIDC Provider Management
 - ✅ Configure OIDC provider from admin panel
 - ✅ Multiple OIDC configurations support
@@ -243,7 +273,37 @@ Successfully implemented enterprise-grade authentication for OpenRadius using **
 
 ## Files Created/Modified
 
-### Created (11 files)
+### Soft Delete Implementation (January 3, 2026)
+
+#### Backend Created/Modified
+1. `Backend/Models/RadiusUser.cs` - Added IsDeleted, DeletedAt properties
+2. `Backend/Models/RadiusProfile.cs` - Added IsDeleted, DeletedAt properties
+3. `Backend/Models/SasRadiusIntegration.cs` - Added IsDeleted, DeletedAt properties
+4. `Backend/Models/OidcSettings.cs` - Added IsDeleted, DeletedAt properties
+5. `Backend/Controllers/RadiusUserController.cs` - Added soft delete, restore, trash endpoints
+6. `Backend/Controllers/RadiusProfileController.cs` - Added soft delete, restore, trash endpoints
+7. `Backend/Controllers/SasRadiusIntegrationController.cs` - Added soft delete, restore, trash endpoints
+8. `Backend/Controllers/OidcSettingsController.cs` - Added soft delete, restore, trash endpoints with default protection
+9. `Backend/Migrations/20260103065349_AddSoftDeleteToEntities.cs` - Workspace database migration
+10. `Backend/Migrations/MasterDb/20260103070147_AddSoftDeleteToOidcSettings.cs` - Master database migration
+
+#### Frontend Modified
+1. `Frontend/src/pages/OidcSettings.tsx` - Added trash view, restore functionality, Archive button
+2. `Frontend/src/pages/RadiusUsers.tsx` - Added trash view, restore functionality, Archive button
+3. `Frontend/src/pages/RadiusProfiles.tsx` - Added trash view, restore functionality, Archive button
+4. `Frontend/src/pages/WorkspaceSettings.tsx` - Added trash view, restore functionality, Archive button
+5. `Frontend/src/api/radiusUserApi.ts` - Added restore() and getTrash() methods
+6. `Frontend/src/api/radiusProfileApi.ts` - Added restore() and getTrash() methods
+7. `Frontend/src/api/sasRadiusApi.ts` - Added restore() and getTrash() methods
+
+#### Documentation Updated
+1. `docs/Backend-README.md` - Added soft delete pattern documentation
+2. `docs/Frontend-README.md` - Added trash management features documentation
+3. `docs/IMPLEMENTATION_SUMMARY.md` - Added soft delete implementation details
+
+### OIDC Implementation (December 31, 2025)
+
+#### Created (11 files)
 1. `Backend/Models/OidcSettings.cs`
 2. `Backend/Controllers/OidcSettingsController.cs`
 3. `Backend/Migrations/20251231155115_AddOidcSettings.cs`
@@ -253,7 +313,7 @@ Successfully implemented enterprise-grade authentication for OpenRadius using **
 7. `OIDC_QUICK_REFERENCE.md`
 8. `IMPLEMENTATION_SUMMARY.md` (this file)
 
-### Modified (10 files)
+#### Modified (10 files)
 1. `Backend/Data/ApplicationDbContext.cs` - Added OidcSettings DbSet
 2. `Backend/Program.cs` - Enhanced OIDC authentication
 3. `Backend/appsettings.json` - Full OIDC configuration

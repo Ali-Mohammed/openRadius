@@ -1,8 +1,55 @@
-# React + TypeScript + Vite
+# OpenRadius Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite application with enterprise authentication and comprehensive UI features.
 
-Currently, two official plugins are available:
+## Tech Stack
+
+- **React 19** - Latest React with modern hooks
+- **TypeScript** - Type safety
+- **Vite 7.3** - Fast build tool
+- **TanStack Query v5** - Server state management
+- **React Router v7** - Routing
+- **Tailwind CSS** - Utility-first CSS
+- **shadcn/ui** - High-quality React components
+- **Keycloak JS** - OIDC authentication
+- **Axios** - HTTP client
+
+## Key Features
+
+### 🔐 Authentication
+- OIDC authentication with Keycloak
+- Automatic token refresh
+- Protected routes
+- Role-based access control
+
+### 🗑️ Soft Delete & Trash Management
+All pages support soft delete functionality:
+- **Delete**: Items move to trash instead of permanent deletion
+- **Trash View**: Toggle between active and deleted items
+- **Restore**: Recover deleted items from trash
+- **Confirmation Dialogs**: AlertDialog confirmations for all destructive actions
+
+#### Pages with Trash Support
+1. **RADIUS Users** - Manage user deletions and restores
+2. **RADIUS Profiles** - Manage profile deletions and restores  
+3. **SAS RADIUS Integrations** - Manage integration deletions and restores
+4. **OIDC Providers** - Manage provider deletions and restores (default provider protected)
+
+#### UI Components
+- **Archive Button**: Toggle trash view on/off
+- **Restore Icon**: Green rotate icon for restoring items
+- **Confirmation Dialogs**: Uses shadcn/ui AlertDialog component
+- **Toast Notifications**: Success/error feedback via sonner
+
+### 📊 Data Management
+- Virtual scrolling for large datasets
+- Pagination with configurable page sizes
+- Search and filtering
+- Real-time sync capabilities
+
+## Development
+
+Currently, two official Vite plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh

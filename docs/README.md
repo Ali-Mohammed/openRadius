@@ -14,6 +14,18 @@ Enterprise-grade full-stack application with ASP.NET Core 10 backend, React 19 f
 
 See [OIDC_AUTHENTICATION.md](OIDC_AUTHENTICATION.md) for detailed documentation.
 
+## 🗑️ Soft Delete & Trash Management
+
+**All entities support soft delete with trash/restore functionality.**
+
+- ✅ Items are never permanently deleted
+- ✅ Trash view for all deleted items
+- ✅ One-click restore from trash
+- ✅ Confirmation dialogs for safety
+- ✅ Protection for critical items (default OIDC provider)
+
+See [SOFT_DELETE_IMPLEMENTATION.md](SOFT_DELETE_IMPLEMENTATION.md) for detailed documentation.
+
 ## Tech Stack
 
 ### Backend
@@ -155,6 +167,14 @@ Frontend will run on http://localhost:5173
 - Secure session management
 - Single Sign-On (SSO) support
 
+### 🗑️ Soft Delete & Trash Management
+- **Trash/Restore** for all entities
+- Never lose data with soft delete
+- Archive button to toggle trash view
+- One-click restore with confirmation
+- Protection for critical items
+- Complete audit trail
+
 ### ⚙️ OIDC Admin Panel
 - Configure OIDC provider settings from UI
 - Test OIDC provider connectivity
@@ -243,7 +263,10 @@ OpenRadius/
 
 - **[OIDC Authentication](OIDC_AUTHENTICATION.md)** - Complete guide to OIDC implementation
 - **[Keycloak Setup](KEYCLOAK_SETUP.md)** - Step-by-step Keycloak configuration
+- **[Soft Delete Implementation](SOFT_DELETE_IMPLEMENTATION.md)** - Trash management and restore functionality
 - **[Quick Reference](OIDC_QUICK_REFERENCE.md)** - Quick reference for common tasks
+- **[Backend Guide](Backend-README.md)** - Backend development documentation
+- **[Frontend Guide](Frontend-README.md)** - Frontend development documentation
 
 ## API Endpoints
 
@@ -254,17 +277,45 @@ All endpoints require JWT authentication (Bearer token from OIDC):
 - `GET /api/users/{id}` - Get user by ID
 - `POST /api/users` - Create user
 - `PUT /api/users/{id}` - Update user
-- `DELETE /api/users/{id}` - Delete user
+- `DELETE /api/users/{id}` - Soft delete user
+- `POST /api/users/{id}/restore` - Restore deleted user
+- `GET /api/users/trash` - Get deleted users
 - `GET /api/users/me` - Get current authenticated user info
+
+### RADIUS User API
+- `GET /api/workspaces/{id}/RadiusUser` - Get active RADIUS users
+- `GET /api/workspaces/{id}/RadiusUser/trash` - Get deleted users
+- `POST /api/workspaces/{id}/RadiusUser` - Create user
+- `PUT /api/workspaces/{id}/RadiusUser/{id}` - Update user
+- `DELETE /api/workspaces/{id}/RadiusUser/{id}` - Soft delete user
+- `POST /api/workspaces/{id}/RadiusUser/{id}/restore` - Restore user
+
+### RADIUS Profile API
+- `GET /api/workspaces/{id}/RadiusProfile` - Get active profiles
+- `GET /api/workspaces/{id}/RadiusProfile/trash` - Get deleted profiles
+- `POST /api/workspaces/{id}/RadiusProfile` - Create profile
+- `PUT /api/workspaces/{id}/RadiusProfile/{id}` - Update profile
+- `DELETE /api/workspaces/{id}/RadiusProfile/{id}` - Soft delete profile
+- `POST /api/workspaces/{id}/RadiusProfile/{id}/restore` - Restore profile
+
+### SAS RADIUS Integration API
+- `GET /api/workspaces/{id}/SasRadiusIntegration` - Get active integrations
+- `GET /api/workspaces/{id}/SasRadiusIntegration/trash` - Get deleted integrations
+- `POST /api/workspaces/{id}/SasRadiusIntegration` - Create integration
+- `PUT /api/workspaces/{id}/SasRadiusIntegration/{id}` - Update integration
+- `DELETE /api/workspaces/{id}/SasRadiusIntegration/{id}` - Soft delete integration
+- `POST /api/workspaces/{id}/SasRadiusIntegration/{id}/restore` - Restore integration
 
 ### OIDC Settings API
 - `GET /api/oidcsettings/active` - Get active OIDC configuration
 - `GET /api/oidcsettings` - Get all OIDC configurations
+- `GET /api/oidcsettings/trash` - Get deleted configurations
 - `GET /api/oidcsettings/{id}` - Get specific configuration
 - `POST /api/oidcsettings` - Create new OIDC configuration
 - `PUT /api/oidcsettings/{id}` - Update OIDC configuration
 - `PUT /api/oidcsettings/{id}/activate` - Set configuration as active
-- `DELETE /api/oidcsettings/{id}` - Delete configuration
+- `DELETE /api/oidcsettings/{id}` - Soft delete configuration (cannot delete default)
+- `POST /api/oidcsettings/{id}/restore` - Restore configuration
 - `POST /api/oidcsettings/test` - Test OIDC provider connectivity
 
 ## Environment Variables

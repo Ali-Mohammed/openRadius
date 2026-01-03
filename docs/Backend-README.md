@@ -14,10 +14,68 @@ Apply migrations:
 dotnet ef database update
 ```
 
+### Multi-Context Migrations
+
+The application uses two database contexts:
+
+**ApplicationDbContext** (Workspace databases):
+```powershell
+dotnet ef migrations add MigrationName --context ApplicationDbContext
+$env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=openradius_workspace_1;Username=admin;Password=admin123"
+dotnet ef database update --context ApplicationDbContext
+```
+
+**MasterDbContext** (Master database):
+```powershell
+dotnet ef migrations add MigrationName --context MasterDbContext
+dotnet ef database update --context MasterDbContext
+```
+
 Remove last migration:
 ```powershell
 dotnet ef migrations remove
 ```
+
+## Soft Delete Pattern
+
+The application implements a soft delete pattern across all entities:
+
+### How It Works
+- Items are **never permanently deleted** from the database
+- Deletion sets `IsDeleted = true` and `DeletedAt = DateTime.UtcNow`
+- All queries automatically filter out deleted items
+- Deleted items can be viewed in "trash" views
+- Items can be restored from trash
+
+### Affected Entities
+- **RadiusUser** (workspace databases)
+- **RadiusProfile** (workspace databases)
+- **SasRadiusIntegration** (workspace databases)
+- **OidcSettings** (master database)
+
+### API Endpoints
+
+Each entity has three soft delete endpoints:
+
+**Delete** (soft delete):
+```
+DELETE /api/{entity}/{id}
+```
+
+**Restore**:
+```
+POST /api/{entity}/{id}/restore
+```
+
+**Get Trash**:
+```
+GET /api/{entity}/trash
+```
+
+### Protection Rules
+- Default OIDC provider **cannot be deleted**
+- Soft deleted items are **excluded from all list queries** by default
+- Deleted items maintain all relationships and data
 
 ## Testing with Swagger
 
