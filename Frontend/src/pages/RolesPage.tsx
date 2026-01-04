@@ -579,13 +579,10 @@ export default function RolesPage() {
               Cancel
             </Button>
             <Button 
-              onClick={() => editingRole && assignPermissionsMutation.mutate({
-                roleId: editingRole.id,
-                permissionIds: selectedPermissions
-              })}
-              disabled={assignPermissionsMutation.isPending}
+              onClick={() => editingRole && handleSaveRole(editingRole.id)}
+              disabled={updateRoleMutation.isPending || assignPermissionsMutation.isPending}
             >
-              {assignPermissionsMutation.isPending ? 'Saving...' : 'Save Permissions'}
+              {(updateRoleMutation.isPending || assignPermissionsMutation.isPending) ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
