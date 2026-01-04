@@ -40,6 +40,7 @@ namespace Backend.Controllers
                         t.Description,
                         t.Status,
                         t.Color,
+                        t.Icon,
                         t.CreatedAt,
                         t.UpdatedAt,
                         t.DeletedAt,
@@ -71,6 +72,7 @@ namespace Backend.Controllers
                         t.Description,
                         t.Status,
                         t.Color,
+                        t.Icon,
                         t.CreatedAt,
                         t.UpdatedAt,
                         t.DeletedAt,
@@ -111,6 +113,7 @@ namespace Backend.Controllers
                     Description = request.Description,
                     Status = request.Status ?? "active",
                     Color = request.Color ?? "#3b82f6",
+                    Icon = request.Icon ?? "Tag",
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -124,6 +127,7 @@ namespace Backend.Controllers
                     tag.Description,
                     tag.Status,
                     tag.Color,
+                    tag.Icon,
                     tag.CreatedAt
                 });
             }
@@ -165,6 +169,9 @@ namespace Backend.Controllers
                 
                 if (request.Color != null)
                     tag.Color = request.Color;
+                
+                if (request.Icon != null)
+                    tag.Icon = request.Icon;
 
                 tag.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -262,6 +269,7 @@ namespace Backend.Controllers
         public string? Description { get; set; }
         public string? Status { get; set; }
         public string? Color { get; set; }
+        public string? Icon { get; set; }
     }
 
     public class UpdateRadiusTagRequest
@@ -270,5 +278,6 @@ namespace Backend.Controllers
         public string? Description { get; set; }
         public string? Status { get; set; }
         public string? Color { get; set; }
+        public string? Icon { get; set; }
     }
 }
