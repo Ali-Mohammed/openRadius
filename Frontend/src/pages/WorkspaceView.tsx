@@ -351,10 +351,6 @@ export default function workspaceView() {
         const IconComponent = getIconComponent(iconName)
         return (
           <div className="flex items-center gap-2">
-            <div
-              className="h-4 w-4 rounded"
-              style={{ backgroundColor: color }}
-            />
             <div 
               className="rounded-lg p-1.5 flex items-center justify-center"
               style={{ 
@@ -521,10 +517,6 @@ export default function workspaceView() {
         const IconComponent = getIconComponent(iconName)
         return (
           <div className="flex items-center gap-2">
-            <div
-              className="h-4 w-4 rounded"
-              style={{ backgroundColor: color }}
-            />
             <div 
               className="rounded-lg p-1.5 flex items-center justify-center"
               style={{ 
