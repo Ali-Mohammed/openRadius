@@ -322,21 +322,35 @@ export default function RolesPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDialog(role)}
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Configure Permissions
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingRole(role)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {showDeleted ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => restoreRoleMutation.mutate(role.id)}
+                          disabled={restoreRoleMutation.isPending}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Restore
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(role)}
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Configure Permissions
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingRole(role)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

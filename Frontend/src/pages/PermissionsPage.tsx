@@ -4,6 +4,7 @@ import { userManagementApi, type Permission } from '@/api/userManagementApi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +17,7 @@ const CATEGORIES = ['Users', 'Workspaces', 'RADIUS', 'Reports', 'Settings', 'Gen
 export default function PermissionsPage() {
   const queryClient = useQueryClient()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [deletingPermission, setDeletingPermission] = useState<Permission | null>(null)
   const [newPermissionName, setNewPermissionName] = useState('')
   const [newPermissionDesc, setNewPermissionDesc] = useState('')
   const [newPermissionCategory, setNewPermissionCategory] = useState('General')
@@ -44,12 +46,19 @@ export default function PermissionsPage() {
     mutationFn: userManagementApi.deletePermission,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] })
+      setDeletingPermission(null)
       toast.success('Permission deleted successfully')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to delete permission')
     },
   })
+
+  const confirmDelete = () => {
+    if (deletingPermission) {
+      deletePermissionMutation.mutate(deletingPermission.id)
+    }
+  }
 
   const groupedPermissions = permissions.reduce((acc, permission) => {
     const category = permission.category || 'General'
@@ -106,8 +115,7 @@ export default function PermissionsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => deletePermissionMutation.mutate(permission.id)}
-                          disabled={deletePermissionMutation.isPending}
+                          onClick={() => setDeletingPermission(permission)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -188,6 +196,24 @@ export default function PermissionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingPermission} onOpenChange={(open) => !open && setDeletingPermission(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Permission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingPermission?.name}"? This action cannot be undone and may affect roles that use this permission.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
