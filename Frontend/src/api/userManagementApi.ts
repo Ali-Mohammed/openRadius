@@ -118,6 +118,11 @@ export const userManagementApi = {
     return response.data
   },
 
+  updateRole: async (id: number, data: CreateUserRoleRequest): Promise<Role> => {
+    const response = await apiClient.put(`/api/user-management/roles/${id}`, data)
+    return response.data
+  },
+
   deleteRole: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/api/user-management/roles/${id}`)
     return response.data
