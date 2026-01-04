@@ -19,6 +19,7 @@ import RadiusUsers from './pages/RadiusUsers'
 import RadiusGroups from './pages/RadiusGroups'
 import RadiusTags from './pages/RadiusTags'
 import RadiusNas from './pages/RadiusNas'
+import RadiusIpPools from './pages/RadiusIpPools'
 import UserManagement from './pages/UserManagement'
 import RolesPage from './pages/RolesPage'
 import PermissionsPage from './pages/PermissionsPage'
@@ -51,6 +52,7 @@ function App() {
                           <Route path="/workspace/:id/radius/groups" element={<RadiusGroups />} />
                           <Route path="/workspace/:id/radius/tags" element={<RadiusTags />} />
                           <Route path="/workspace/:id/radius/nas" element={<RadiusNas />} />
+                          <Route path="/workspace/:id/radius/ip-pools" element={<RadiusIpPools />} />
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />

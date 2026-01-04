@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -75,6 +75,11 @@ const data = {
           titleKey: "navigation.nas",
           url: `/workspace/${DEFAULT_workspace_ID}/radius/nas`,
           icon: Server,
+        },
+        {
+          titleKey: "navigation.ipPools",
+          url: `/workspace/${DEFAULT_workspace_ID}/radius/ip-pools`,
+          icon: Network,
         },
       ],
     },
