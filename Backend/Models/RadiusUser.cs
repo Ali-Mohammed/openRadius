@@ -314,6 +314,7 @@ namespace Backend.Models
         public DateTime UpdatedAt { get; set; }
         public DateTime? LastSyncedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public List<RadiusTagResponse> Tags { get; set; } = new();
     }
 
     public class CreateUserRequest

@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
+import { radiusTagApi } from '@/api/radiusTagApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -80,6 +81,7 @@ export default function RadiusUsers() {
     address: false,
     contractId: false,
     simultaneousSessions: false,
+    tags: true,
   })
 
   const [showTrash, setShowTrash] = useState(false)
@@ -102,6 +104,8 @@ export default function RadiusUsers() {
     simultaneousSessions: '1',
   })
 
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+
   // Queries
   const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
@@ -115,9 +119,15 @@ export default function RadiusUsers() {
     queryFn: () => radiusProfileApi.getAll(WORKSPACE_ID, 1, 999999),
   })
 
+  const { data: tagsData } = useQuery({
+    queryKey: ['radius-tags', WORKSPACE_ID],
+    queryFn: () => radiusTagApi.getAll(WORKSPACE_ID, false),
+  })
+
   const users = useMemo(() => usersData?.data || [], [usersData?.data])
   const pagination = usersData?.pagination
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
+  const tags = useMemo(() => tagsData || [], [tagsData])
 
   // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
@@ -132,8 +142,6 @@ export default function RadiusUsers() {
     mutationFn: (data: any) => radiusUserApi.create(WORKSPACE_ID, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
-      toast.success('User created successfully')
-      handleCloseDialog()
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to create user')
@@ -145,8 +153,6 @@ export default function RadiusUsers() {
       radiusUserApi.update(WORKSPACE_ID, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
-      toast.success('User updated successfully')
-      handleCloseDialog()
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to update user')
@@ -172,6 +178,17 @@ export default function RadiusUsers() {
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to restore user')
+    },
+  })
+
+  const assignTagsMutation = useMutation({
+    mutationFn: ({ userId, tagIds }: { userId: number; tagIds: number[] }) =>
+      radiusUserApi.assignTags(WORKSPACE_ID, userId, tagIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to assign tags')
     },
   })
 
@@ -209,6 +226,7 @@ export default function RadiusUsers() {
         contractId: user.contractId || '',
         simultaneousSessions: user.simultaneousSessions?.toString() || '1',
       })
+      setSelectedTagIds(user.tags?.map(t => t.id) || [])
     } else {
       setEditingUser(null)
       setFormData({
@@ -228,6 +246,7 @@ export default function RadiusUsers() {
         contractId: '',
         simultaneousSessions: '1',
       })
+      setSelectedTagIds([])
     }
     setIsDialogOpen(true)
   }
@@ -237,7 +256,7 @@ export default function RadiusUsers() {
     setEditingUser(null)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.username) {
       toast.error('Username is required')
       return
@@ -261,10 +280,23 @@ export default function RadiusUsers() {
       simultaneousSessions: parseInt(formData.simultaneousSessions) || 1,
     }
 
-    if (editingUser && editingUser.id) {
-      updateMutation.mutate({ id: editingUser.id, data })
-    } else {
-      createMutation.mutate(data)
+    try {
+      if (editingUser && editingUser.id) {
+        await updateMutation.mutateAsync({ id: editingUser.id, data })
+        // Assign tags after updating user
+        await assignTagsMutation.mutateAsync({ userId: editingUser.id, tagIds: selectedTagIds })
+        toast.success('User updated successfully')
+      } else {
+        const newUser = await createMutation.mutateAsync(data)
+        // Assign tags after creating user
+        if (newUser.id) {
+          await assignTagsMutation.mutateAsync({ userId: newUser.id, tagIds: selectedTagIds })
+        }
+        toast.success('User created successfully')
+      }
+      handleCloseDialog()
+    } catch (error) {
+      // Error already handled by mutations
     }
   }
 
@@ -697,6 +729,13 @@ export default function RadiusUsers() {
                     >
                       Simultaneous Sessions
                     </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.tags}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, tags: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Tags
+                    </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -796,6 +835,7 @@ export default function RadiusUsers() {
                       {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[160px] cursor-pointer select-none" onClick={() => handleSort('address')}>Address{getSortIcon('address')}</TableHead>}
                       {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('contractId')}>Contract ID{getSortIcon('contractId')}</TableHead>}
                       {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('simultaneousSessions')}>Sessions{getSortIcon('simultaneousSessions')}</TableHead>}
+                      {columnVisibility.tags && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[200px]">Tags</TableHead>}
                       <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -852,6 +892,27 @@ export default function RadiusUsers() {
                           {columnVisibility.address && <TableCell className="h-12 px-4 w-[160px]">{user.address || '-'}</TableCell>}
                           {columnVisibility.contractId && <TableCell className="h-12 px-4 w-[120px]">{user.contractId || '-'}</TableCell>}
                           {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right w-[100px]">{user.simultaneousSessions || '1'}</TableCell>}
+                          {columnVisibility.tags && <TableCell className="h-12 px-4 w-[200px]">
+                            <div className="flex flex-wrap gap-1">
+                              {user.tags && user.tags.length > 0 ? (
+                                user.tags.map((tag) => (
+                                  <Badge 
+                                    key={tag.id} 
+                                    variant="outline"
+                                    className="text-xs"
+                                    style={{ 
+                                      borderColor: tag.color,
+                                      color: tag.color
+                                    }}
+                                  >
+                                    {tag.title}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </div>
+                          </TableCell>}
                           <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
                             <div className="flex justify-end gap-2">
                               {showTrash ? (
@@ -1123,6 +1184,43 @@ export default function RadiusUsers() {
                 onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
                 placeholder="e.g., CONTRACT-2024-001"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="tags">Tags</Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                {tags.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tags available</p>
+                ) : (
+                  tags.filter(tag => tag.status === 'active').map((tag) => (
+                    <div key={tag.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`tag-${tag.id}`}
+                        checked={selectedTagIds.includes(tag.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTagIds([...selectedTagIds, tag.id])
+                          } else {
+                            setSelectedTagIds(selectedTagIds.filter(id => id !== tag.id))
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <label
+                        htmlFor={`tag-${tag.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.title}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between">

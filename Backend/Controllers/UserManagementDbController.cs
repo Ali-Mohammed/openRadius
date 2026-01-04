@@ -211,7 +211,7 @@ public class UserManagementDbController : ControllerBase
                 await _context.SaveChangesAsync();
             }
 
-            // Load the created user with relationships
+            // Load the created user with relationships (without circular Supervisor reference)
             var createdUser = await _context.Users
                 .AsNoTracking()
                 .Where(u => u.Id == newUser.Id)
@@ -221,7 +221,14 @@ public class UserManagementDbController : ControllerBase
                     u.FirstName,
                     u.LastName,
                     u.Email,
-                    u.SupervisorId,
+                    SupervisorId = u.SupervisorId,
+                    Supervisor = u.SupervisorId.HasValue ? new
+                    {
+                        Id = u.Supervisor!.Id,
+                        FirstName = u.Supervisor.FirstName,
+                        LastName = u.Supervisor.LastName,
+                        Email = u.Supervisor.Email
+                    } : null,
                     Roles = u.UserRoles.Select(ur => new
                     {
                         ur.Role.Id,

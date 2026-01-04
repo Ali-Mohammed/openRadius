@@ -26,4 +26,15 @@ namespace Backend.Models
 
         public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
     }
+
+    public class RadiusTagResponse
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Status { get; set; } = "active";
+        public string Color { get; set; } = "#3b82f6";
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
 }

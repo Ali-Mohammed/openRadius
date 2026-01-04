@@ -22,9 +22,31 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+    public async Task<ActionResult<object>> GetUsers()
     {
-        return await _context.Users.ToListAsync();
+        var users = await _context.Users
+            .Include(u => u.Supervisor)
+            .ToListAsync();
+        
+        var response = users.Select(u => new
+        {
+            u.Id,
+            u.Email,
+            u.FirstName,
+            u.LastName,
+            u.CreatedAt,
+            u.KeycloakUserId,
+            u.SupervisorId,
+            Supervisor = u.SupervisorId.HasValue ? new
+            {
+                Id = u.Supervisor!.Id,
+                FirstName = u.Supervisor.FirstName,
+                LastName = u.Supervisor.LastName,
+                Email = u.Supervisor.Email
+            } : null
+        });
+        
+        return Ok(response);
     }
 
     [HttpGet("me")]
@@ -168,20 +190,53 @@ public class UsersController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
-        return Ok(user);
+        
+        // Project to DTO to avoid circular reference
+        var response = new
+        {
+            user.Id,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            user.CreatedAt,
+            user.KeycloakUserId,
+            user.SupervisorId
+        };
+        
+        return Ok(response);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<User>> GetUser(int id)
+    public async Task<ActionResult<object>> GetUser(int id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.Supervisor)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
             return NotFound();
         }
 
-        return user;
+        var response = new
+        {
+            user.Id,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            user.CreatedAt,
+            user.KeycloakUserId,
+            user.SupervisorId,
+            Supervisor = user.SupervisorId.HasValue ? new
+            {
+                Id = user.Supervisor!.Id,
+                FirstName = user.Supervisor.FirstName,
+                LastName = user.Supervisor.LastName,
+                Email = user.Supervisor.Email
+            } : null
+        };
+
+        return Ok(response);
     }
 
     [HttpPost]

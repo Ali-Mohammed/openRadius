@@ -36,6 +36,8 @@ public class RadiusUserController : ControllerBase
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
+            .Include(u => u.RadiusUserTags)
+                .ThenInclude(ut => ut.RadiusTag)
             .Where(u => u.WorkspaceId == WorkspaceId && (includeDeleted || !u.IsDeleted));
 
         // Apply search filter
@@ -119,7 +121,17 @@ public class RadiusUserController : ControllerBase
             SimultaneousSessions = u.SimultaneousSessions,
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
-            LastSyncedAt = u.LastSyncedAt
+            LastSyncedAt = u.LastSyncedAt,
+            Tags = u.RadiusUserTags.Select(ut => new RadiusTagResponse
+            {
+                Id = ut.RadiusTag.Id,
+                Title = ut.RadiusTag.Title,
+                Description = ut.RadiusTag.Description,
+                Status = ut.RadiusTag.Status,
+                Color = ut.RadiusTag.Color,
+                CreatedAt = ut.RadiusTag.CreatedAt,
+                UpdatedAt = ut.RadiusTag.UpdatedAt
+            }).ToList()
         });
 
         return Ok(new

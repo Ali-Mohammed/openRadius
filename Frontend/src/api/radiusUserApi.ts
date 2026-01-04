@@ -1,5 +1,15 @@
 import { apiClient } from '../lib/api'
 
+export interface RadiusTag {
+  id: number
+  title: string
+  description?: string
+  status: string
+  color: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface RadiusUser {
   id?: number
   externalId?: number
@@ -27,6 +37,7 @@ export interface RadiusUser {
   createdAt?: string
   updatedAt?: string
   lastSyncedAt?: string
+  tags?: RadiusTag[]
 }
 
 export interface SyncUsersResponse {
@@ -153,6 +164,16 @@ export const radiusUserApi = {
       { responseType: 'blob' }
     )
     return response.data
+  },
+
+  // Tag operations
+  getUserTags: async (workspaceId: number, userId: number): Promise<RadiusTag[]> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users/${userId}/tags`)
+    return response.data
+  },
+
+  assignTags: async (workspaceId: number, userId: number, tagIds: number[]): Promise<void> => {
+    await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/${userId}/tags`, tagIds)
   },
 }
 
