@@ -383,6 +383,8 @@ export default function RadiusProfiles() {
       enabled: profileFormData.enabled,
       burstEnabled: profileFormData.burstEnabled,
       limitExpiration: profileFormData.limitExpiration,
+      color: profileFormData.color,
+      icon: profileFormData.icon,
     }
 
     if (editingProfile && editingProfile.id) {
