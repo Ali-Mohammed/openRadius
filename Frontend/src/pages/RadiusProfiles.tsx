@@ -821,6 +821,83 @@ export default function RadiusProfiles() {
                   />
                 </div>
               </div>
+
+              {/* Color and Icon Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Color</Label>
+                  <Select
+                    value={profileFormData.color}
+                    onValueChange={(value) => setProfileFormData({ ...profileFormData, color: value })}
+                  >
+                    <SelectTrigger>
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 rounded" style={{ backgroundColor: profileFormData.color }} />
+                        <span>{PREDEFINED_COLORS.find(c => c.value === profileFormData.color)?.label || 'Blue'}</span>
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_COLORS.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
+                            <span>{color.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Icon</Label>
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+                    >
+                      {(() => {
+                        const IconComponent = getIconComponent(profileFormData.icon)
+                        return (
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="rounded-lg p-1.5 flex items-center justify-center"
+                              style={{ backgroundColor: `${profileFormData.color}15`, color: profileFormData.color }}
+                            >
+                              <IconComponent className="h-4 w-4" />
+                            </div>
+                            <span>{profileFormData.icon}</span>
+                          </div>
+                        )
+                      })()}
+                    </Button>
+                    {iconPopoverOpen && (
+                      <div className="absolute z-50 mt-1 w-[320px] rounded-md border bg-popover p-4 text-popover-foreground shadow-md">
+                        <div className="grid grid-cols-6 gap-2 max-h-[240px] overflow-y-auto">
+                          {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                            <Button
+                              key={name}
+                              type="button"
+                              variant={profileFormData.icon === name ? "default" : "outline"}
+                              size="sm"
+                              className="h-10 w-10 p-0"
+                              onClick={() => {
+                                setProfileFormData({ ...profileFormData, icon: name })
+                                setIconPopoverOpen(false)
+                              }}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="downrate">Download Speed (Kbps)</Label>
