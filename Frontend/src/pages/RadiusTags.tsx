@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { 
   Plus, Trash2, Tag as TagIcon, Edit, Star, Heart, Zap, Trophy, Crown, Shield, 
   Users, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
@@ -22,7 +23,6 @@ import {
   Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
 } from 'lucide-react'
 import { apiClient } from '@/lib/api'
-import * as LucideIcons from 'lucide-react'
 
 interface RadiusTag {
   id: number
@@ -58,7 +58,6 @@ const AVAILABLE_ICONS = [
   { name: 'Shield', icon: Shield },
   { name: 'Users', icon: Users },
   { name: 'User', icon: User },
-  const [newTagIcon, setNewTagIcon] = useState('Tag')
   { name: 'Building', icon: Building },
   { name: 'Briefcase', icon: Briefcase },
   { name: 'Rocket', icon: Rocket },
@@ -145,6 +144,8 @@ export default function RadiusTags() {
   const [newTagDescription, setNewTagDescription] = useState('')
   const [newTagStatus, setNewTagStatus] = useState('active')
   const [newTagColor, setNewTagColor] = useState('#3b82f6')
+  const [newTagIcon, setNewTagIcon] = useState('Tag')
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
 
   const { data: tags = [], isLoading } = useQuery({
     queryKey: ['radiusTags', workspaceId],
@@ -154,8 +155,8 @@ export default function RadiusTags() {
     },
   })
 
-  const createTagMutation = useMutation({; icon?: string
-    mutationFn: async (data: { title: string; description?: string; status: string; color: string }) => {
+  const createTagMutation = useMutation({
+    mutationFn: async (data: { title: string; description?: string; status: string; color: string; icon?: string }) => {
       const response = await apiClient.post(`/api/workspace/${workspaceId}/radius/tags`, data)
       return response.data
     },
@@ -249,6 +250,9 @@ export default function RadiusTags() {
       id: editingTag.id,
       data: {
         title: newTagTitle,
+        description: newTagDescription,
+        status: newTagStatus,
+        color: newTagColor,
         icon: newTagIcon,
       },
     })
@@ -257,10 +261,7 @@ export default function RadiusTags() {
   const getIconComponent = (iconName?: string) => {
     if (!iconName) return TagIcon
     const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
-    return iconData?.icon || TagIcon  status: newTagStatus,
-        color: newTagColor,
-      },
-    })
+    return iconData?.icon || TagIcon
   }
 
   if (isLoading) {
@@ -279,72 +280,72 @@ export default function RadiusTags() {
           Add Tag
         </Button>
       </div>
-{
-            const IconComponent = getIconComponent(tag.icon)
-            return (
-            <Card key={tag.id} className={tag.isDeleted ? 'opacity-50' : ''}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <IconComponent 
-                      className="w-5 h-5" 
-                      style={{ c
+
+      {tags.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No tags found. Create your first tag to get started.
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tags.map((tag: RadiusTag) => (
-            <Card key={tag.id} className={tag.isDeleted ? 'opacity-50' : ''}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    <CardTitle className="text-lg">{tag.title}</CardTitle>
+          {tags.map((tag: RadiusTag) => {
+            const IconComponent = getIconComponent(tag.icon)
+            return (
+              <Card key={tag.id} className={tag.isDeleted ? 'opacity-50' : ''}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <IconComponent 
+                        className="w-5 h-5" 
+                        style={{ color: tag.color }}
+                      />
+                      <CardTitle className="text-lg">{tag.title}</CardTitle>
+                    </div>
+                    <div className="flex gap-1">
+                      {!tag.isDeleted && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(tag)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteTagMutation.mutate(tag.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    {!tag.isDeleted && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(tag)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteTagMutation.mutate(tag.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
+                  {tag.description && (
+                    <CardDescription>{tag.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={tag.status === 'active' ? 'default' : 'secondary'}>
+                      {tag.status}
+                    </Badge>
+                    {tag.isDeleted && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => restoreTagMutation.mutate(tag.id)}
+                      >
+                        Restore
+                      </Button>
                     )}
                   </div>
-                </div>
-                {tag.description && (
-                  <CardDescription>{tag.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <Badge variant={tag.status === 'active' ? 'default' : 'secondary'}>
-                    {tag.status}
-                  </Badge>
-                  {tag.isDeleted && (
-           }         <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => restoreTagMutation.mutate(tag.id)}
-                    >
-                      Restore
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
@@ -399,21 +400,40 @@ export default function RadiusTags() {
                     <SelectItem key={color.value} value={color.value}>
                       <div className="flex items-center gap-2">
                         <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: color.value }}
+                        />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="icon">Icon</Label>
-              <Select value={newTagIcon} onValueChange={setNewTagIcon}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <div className="grid grid-cols-6 gap-1 p-2">
+              <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start" type="button">
+                    {(() => {
+                      const SelectedIcon = getIconComponent(newTagIcon)
+                      return <SelectedIcon className="w-4 h-4 mr-2" />
+                    })()}
+                    {newTagIcon}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
                     {AVAILABLE_ICONS.map((iconData) => {
                       const IconComponent = iconData.icon
                       return (
                         <button
                           key={iconData.name}
                           type="button"
-                          onClick={() => setNewTagIcon(iconData.name)}
+                          onClick={() => {
+                            setNewTagIcon(iconData.name)
+                            setIconPopoverOpen(false)
+                          }}
                           className={`p-2 rounded hover:bg-accent ${
                             newTagIcon === iconData.name ? 'bg-accent' : ''
                           }`}
@@ -424,18 +444,8 @@ export default function RadiusTags() {
                       )
                     })}
                   </div>
-                </SelectContent>
-              </Select>
-            </div>
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: color.value }}
-                        />
-                        {color.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter>
@@ -474,21 +484,34 @@ export default function RadiusTags() {
               <Label htmlFor="edit-description">Description</Label>
               <Input
                 id="edit-description"
+                value={newTagDescription}
+                onChange={(e) => setNewTagDescription(e.target.value)}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-icon">Icon</Label>
-              <Select value={newTagIcon} onValueChange={setNewTagIcon}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <div className="grid grid-cols-6 gap-1 p-2">
+              <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start" type="button">
+                    {(() => {
+                      const SelectedIcon = getIconComponent(newTagIcon)
+                      return <SelectedIcon className="w-4 h-4 mr-2" />
+                    })()}
+                    {newTagIcon}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
                     {AVAILABLE_ICONS.map((iconData) => {
                       const IconComponent = iconData.icon
                       return (
                         <button
                           key={iconData.name}
                           type="button"
-                          onClick={() => setNewTagIcon(iconData.name)}
+                          onClick={() => {
+                            setNewTagIcon(iconData.name)
+                            setIconPopoverOpen(false)
+                          }}
                           className={`p-2 rounded hover:bg-accent ${
                             newTagIcon === iconData.name ? 'bg-accent' : ''
                           }`}
@@ -499,12 +522,8 @@ export default function RadiusTags() {
                       )
                     })}
                   </div>
-                </SelectContent>
-              </Select>
-            </div>
-                value={newTagDescription}
-                onChange={(e) => setNewTagDescription(e.target.value)}
-              />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-status">Status</Label>

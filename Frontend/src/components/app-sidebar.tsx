@@ -189,7 +189,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenu>
                     {item.items.map((subItem) => (
                       <SidebarMenuItem key={subItem.titleKey}>
-                        <SidebarMenuButton asChild isActive={location.pathname === subItem.url}>
+                        <SidebarMenuButton asChild isActive={location.pathname === subItem.url} className="ml-4">
                           <Link to={subItem.url}>
                             <subItem.icon className="mr-2 h-4 w-4 text-primary" />
                             {t(subItem.titleKey)}

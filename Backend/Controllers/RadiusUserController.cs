@@ -129,6 +129,7 @@ public class RadiusUserController : ControllerBase
                 Description = ut.RadiusTag.Description,
                 Status = ut.RadiusTag.Status,
                 Color = ut.RadiusTag.Color,
+                Icon = ut.RadiusTag.Icon,
                 CreatedAt = ut.RadiusTag.CreatedAt,
                 UpdatedAt = ut.RadiusTag.UpdatedAt
             }).ToList()
