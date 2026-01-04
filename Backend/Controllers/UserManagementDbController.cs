@@ -543,6 +543,40 @@ public class UserManagementDbController : ControllerBase
         }
     }
 
+    // PUT: api/user-management/roles/{id}
+    [HttpPut("roles/{id}")]
+    public async Task<IActionResult> UpdateRole(int id, [FromBody] CreateUserRoleRequest request)
+    {
+        try
+        {
+            var role = await _context.Roles.FindAsync(id);
+            if (role == null)
+            {
+                return NotFound(new { message = "Role not found" });
+            }
+
+            // Check if another role has the same name (excluding current role)
+            if (await _context.Roles.AnyAsync(r => r.Name == request.Name && r.Id != id))
+            {
+                return BadRequest(new { message = "Role with this name already exists" });
+            }
+
+            role.Name = request.Name;
+            role.Description = request.Description;
+            role.Icon = request.Icon;
+            role.Color = request.Color;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(role);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating role {RoleId}", id);
+            return StatusCode(500, new { message = "Failed to update role", error = ex.Message });
+        }
+    }
+
     // DELETE: api/user-management/roles/{id}
     [HttpDelete("roles/{id}")]
     public async Task<IActionResult> DeleteRole(int id)
