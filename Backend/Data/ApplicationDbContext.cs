@@ -29,6 +29,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusTag> RadiusTags { get; set; }
     public DbSet<RadiusUserTag> RadiusUserTags { get; set; }
     public DbSet<RadiusNas> RadiusNasDevices { get; set; }
+    public DbSet<RadiusIpPool> RadiusIpPools { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<SyncProgress> SyncProgresses { get; set; }
 
@@ -72,6 +73,12 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Nasname);
             entity.HasIndex(e => e.Shortname);
+        });
+
+        modelBuilder.Entity<RadiusIpPool>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
         });
     }
 }

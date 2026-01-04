@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, 
+  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, 
   ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { radiusIpPoolApi, type RadiusIpPool } from '@/api/radiusIpPoolApi'
@@ -302,10 +302,9 @@ export default function RadiusIpPoolsPage() {
 
       {/* Main Card */}
       <Card className="overflow-hidden">
-        <CardContent className="pt-6">
-          {/* Search and Filters */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 flex gap-2">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 flex-1">
               <Input
                 placeholder="Search IP pools..."
                 value={searchInput}
@@ -313,8 +312,16 @@ export default function RadiusIpPoolsPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="max-w-sm"
               />
-              <Button onClick={handleSearch} variant="secondary">
+              <Button onClick={handleSearch} variant="outline" size="icon">
                 <Search className="h-4 w-4" />
+              </Button>
+              <Button 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-ip-pools', workspaceId] })} 
+                variant="outline" 
+                size="icon"
+                title="Refresh"
+              >
+                <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
@@ -329,8 +336,8 @@ export default function RadiusIpPoolsPage() {
               </SelectContent>
             </Select>
           </div>
-
-          {/* Table */}
+        </CardHeader>
+        <CardContent>
           <div className="border rounded-md">
             <Table>
               <TableHeader>
