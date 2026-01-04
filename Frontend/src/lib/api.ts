@@ -53,6 +53,7 @@ export interface Workspace {
   comments: string
   status: 'active' | 'inactive'
   color: string
+  icon: string
   createdAt: string
   updatedAt: string
   createdBy: string
@@ -69,6 +70,7 @@ export interface WorkspaceCreateDto {
   comments: string
   status: 'active' | 'inactive'
   color: string
+  icon: string
 }
 
 export const workspaceApi = {

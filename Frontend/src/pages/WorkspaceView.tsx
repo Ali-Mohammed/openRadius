@@ -875,24 +875,88 @@ export default function workspaceView() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="color">Color</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="color"
-                        type="color"
-                        value={formData.color}
-                        onChange={(e) =>
-                          setFormData({ ...formData, color: e.target.value })
-                        }
-                        className="w-20"
-                      />
-                      <Input
-                        value={formData.color}
-                        onChange={(e) =>
-                          setFormData({ ...formData, color: e.target.value })
-                        }
-                        className="flex-1"
-                      />
-                    </div>
+                    <Select
+                      value={formData.color}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, color: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: formData.color }}
+                          />
+                          <span>
+                            {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Select Color'}
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_COLORS.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded-full border"
+                                style={{ backgroundColor: color.value }}
+                              />
+                              {color.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="icon">Icon</Label>
+                  <div className="relative">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start" 
+                      type="button"
+                      onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+                    >
+                      {(() => {
+                        const IconComponent = getIconComponent(formData.icon)
+                        return <IconComponent className="w-4 h-4 mr-2" />
+                      })()}
+                      {formData.icon || 'Building2'}
+                    </Button>
+                    {iconPopoverOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border rounded-md shadow-lg z-50">
+                        <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                          {AVAILABLE_ICONS.map((iconData) => {
+                            const IconComponent = iconData.icon
+                            const isSelected = formData.icon === iconData.name
+                            return (
+                              <button
+                                key={iconData.name}
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setFormData({ ...formData, icon: iconData.name })
+                                  setIconPopoverOpen(false)
+                                }}
+                                className={`p-2 rounded flex items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
+                                style={{
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s'
+                                }}
+                                title={iconData.name}
+                              >
+                                <IconComponent className="w-4 h-4" />
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
