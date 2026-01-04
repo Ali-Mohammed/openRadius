@@ -344,6 +344,30 @@ export default function workspaceView() {
           </Button>
         )
       },
+      cell: ({ row }) => {
+        const title = row.getValue('title') as string
+        const color = row.original.color
+        const iconName = row.original.icon
+        const IconComponent = getIconComponent(iconName)
+        return (
+          <div className="flex items-center gap-2">
+            <div
+              className="h-4 w-4 rounded"
+              style={{ backgroundColor: color }}
+            />
+            <div 
+              className="rounded-lg p-1.5 flex items-center justify-center"
+              style={{ 
+                backgroundColor: `${color}15`,
+                color: color 
+              }}
+            >
+              <IconComponent className="h-4 w-4" />
+            </div>
+            <span>{title}</span>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'name',
@@ -403,45 +427,6 @@ export default function workspaceView() {
           <Badge variant={status === 'active' ? 'default' : 'secondary'}>
             {status}
           </Badge>
-        )
-      },
-    },
-    {
-      accessorKey: 'color',
-      header: 'Color',
-      cell: ({ row }) => {
-        const color = row.getValue('color') as string
-        return (
-          <div className="flex items-center gap-2">
-            <div
-              className="h-6 w-6 rounded border"
-              style={{ backgroundColor: color }}
-            />
-            <span className="text-sm text-muted-foreground">{color}</span>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'icon',
-      header: 'Icon',
-      cell: ({ row }) => {
-        const iconName = row.getValue('icon') as string
-        const IconComponent = getIconComponent(iconName)
-        const color = row.original.color
-        return (
-          <div className="flex items-center gap-2">
-            <div 
-              className="rounded-lg p-2 flex items-center justify-center"
-              style={{ 
-                backgroundColor: `${color}15`,
-                color: color 
-              }}
-            >
-              <IconComponent className="h-4 w-4" />
-            </div>
-            <span className="text-sm text-muted-foreground">{iconName || 'Building2'}</span>
-          </div>
         )
       },
     },
@@ -529,6 +514,30 @@ export default function workspaceView() {
     {
       accessorKey: 'title',
       header: 'Title',
+      cell: ({ row }) => {
+        const title = row.getValue('title') as string
+        const color = row.original.color
+        const iconName = row.original.icon
+        const IconComponent = getIconComponent(iconName)
+        return (
+          <div className="flex items-center gap-2">
+            <div
+              className="h-4 w-4 rounded"
+              style={{ backgroundColor: color }}
+            />
+            <div 
+              className="rounded-lg p-1.5 flex items-center justify-center"
+              style={{ 
+                backgroundColor: `${color}15`,
+                color: color 
+              }}
+            >
+              <IconComponent className="h-4 w-4" />
+            </div>
+            <span>{title}</span>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'name',

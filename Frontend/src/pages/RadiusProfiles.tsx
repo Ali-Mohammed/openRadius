@@ -14,10 +14,114 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { 
+  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
+  Star, Heart, Zap, Trophy, Crown, Shield, Users, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
+  CheckCircle, XCircle, AlertCircle, Info, Settings, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
+  ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Lock, Key, Eye, Bell, MessageCircle, 
+  Send, Bookmark, FileText, Folder, Download, Upload, Share, Link, Layers, Grid, List, Filter, MoreHorizontal, 
+  Circle, Square, Triangle, Diamond, Hexagon, Octagon, Sparkles, Coffee, Music, Camera, Image, Video, Mic, 
+  Headphones, Speaker, Monitor, Smartphone, Tablet, Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
+} from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+
+const PREDEFINED_COLORS = [
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#10b981', label: 'Green' },
+  { value: '#f59e0b', label: 'Orange' },
+  { value: '#ef4444', label: 'Red' },
+  { value: '#8b5cf6', label: 'Purple' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#6366f1', label: 'Indigo' },
+  { value: '#14b8a6', label: 'Teal' },
+]
+
+const AVAILABLE_ICONS = [
+  { name: 'Package', icon: Package },
+  { name: 'Star', icon: Star },
+  { name: 'Heart', icon: Heart },
+  { name: 'Zap', icon: Zap },
+  { name: 'Trophy', icon: Trophy },
+  { name: 'Crown', icon: Crown },
+  { name: 'Shield', icon: Shield },
+  { name: 'Users', icon: Users },
+  { name: 'User', icon: User },
+  { name: 'Building', icon: Building },
+  { name: 'Briefcase', icon: Briefcase },
+  { name: 'Rocket', icon: Rocket },
+  { name: 'Target', icon: Target },
+  { name: 'Award', icon: Award },
+  { name: 'Medal', icon: Medal },
+  { name: 'Flag', icon: Flag },
+  { name: 'CheckCircle', icon: CheckCircle },
+  { name: 'XCircle', icon: XCircle },
+  { name: 'AlertCircle', icon: AlertCircle },
+  { name: 'Info', icon: Info },
+  { name: 'Settings', icon: Settings },
+  { name: 'Home', icon: Home },
+  { name: 'Mail', icon: Mail },
+  { name: 'Phone', icon: Phone },
+  { name: 'Calendar', icon: Calendar },
+  { name: 'Clock', icon: Clock },
+  { name: 'DollarSign', icon: DollarSign },
+  { name: 'CreditCard', icon: CreditCard },
+  { name: 'ShoppingCart', icon: ShoppingCart },
+  { name: 'Truck', icon: Truck },
+  { name: 'MapPin', icon: MapPin },
+  { name: 'Globe', icon: Globe },
+  { name: 'Wifi', icon: Wifi },
+  { name: 'Database', icon: Database },
+  { name: 'Server', icon: Server },
+  { name: 'Cloud', icon: Cloud },
+  { name: 'Lock', icon: Lock },
+  { name: 'Key', icon: Key },
+  { name: 'Eye', icon: Eye },
+  { name: 'Bell', icon: Bell },
+  { name: 'MessageCircle', icon: MessageCircle },
+  { name: 'Send', icon: Send },
+  { name: 'Bookmark', icon: Bookmark },
+  { name: 'Archive', icon: Archive },
+  { name: 'FileText', icon: FileText },
+  { name: 'Folder', icon: Folder },
+  { name: 'Download', icon: Download },
+  { name: 'Upload', icon: Upload },
+  { name: 'Share', icon: Share },
+  { name: 'Link', icon: Link },
+  { name: 'Layers', icon: Layers },
+  { name: 'Grid', icon: Grid },
+  { name: 'List', icon: List },
+  { name: 'Filter', icon: Filter },
+  { name: 'Search', icon: Search },
+  { name: 'MoreHorizontal', icon: MoreHorizontal },
+  { name: 'Circle', icon: Circle },
+  { name: 'Square', icon: Square },
+  { name: 'Triangle', icon: Triangle },
+  { name: 'Diamond', icon: Diamond },
+  { name: 'Hexagon', icon: Hexagon },
+  { name: 'Octagon', icon: Octagon },
+  { name: 'Sparkles', icon: Sparkles },
+  { name: 'Coffee', icon: Coffee },
+  { name: 'Music', icon: Music },
+  { name: 'Camera', icon: Camera },
+  { name: 'Image', icon: Image },
+  { name: 'Video', icon: Video },
+  { name: 'Mic', icon: Mic },
+  { name: 'Headphones', icon: Headphones },
+  { name: 'Speaker', icon: Speaker },
+  { name: 'Monitor', icon: Monitor },
+  { name: 'Smartphone', icon: Smartphone },
+  { name: 'Tablet', icon: Tablet },
+  { name: 'Watch', icon: Watch },
+  { name: 'Printer', icon: Printer },
+  { name: 'Cpu', icon: Cpu },
+  { name: 'HardDrive', icon: HardDrive },
+  { name: 'Battery', icon: Battery },
+  { name: 'Bluetooth', icon: Bluetooth },
+  { name: 'Radio', icon: Radio },
+  { name: 'Rss', icon: Rss },
+]
 
 export default function RadiusProfiles() {
   const { id } = useParams<{ id: string }>()
@@ -54,6 +158,9 @@ export default function RadiusProfiles() {
   const [profileToRestore, setProfileToRestore] = useState<number | null>(null)
   const [showTrash, setShowTrash] = useState(false)
 
+  // Color and Icon picker state
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
+
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState({
     name: true,
@@ -78,7 +185,16 @@ export default function RadiusProfiles() {
     enabled: true,
     burstEnabled: false,
     limitExpiration: false,
+    color: '#3b82f6',
+    icon: 'Package',
   })
+
+  // Helper function to get icon component
+  const getIconComponent = (iconName?: string) => {
+    if (!iconName) return Package
+    const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
+    return iconData?.icon || Package
+  }
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, isFetching, error: profilesError } = useQuery({

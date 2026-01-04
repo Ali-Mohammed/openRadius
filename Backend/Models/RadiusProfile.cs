@@ -116,6 +116,8 @@ public class RadiusProfile
     public int? SiteId { get; set; }
     public int OnlineUsersCount { get; set; }
     public int UsersCount { get; set; }
+    public string Color { get; set; } = "#3b82f6";
+    public string Icon { get; set; } = "Package";
     public int WorkspaceId { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
@@ -144,6 +146,8 @@ public class RadiusProfileResponse
     public int? SiteId { get; set; }
     public int OnlineUsersCount { get; set; }
     public int UsersCount { get; set; }
+    public string Color { get; set; } = "#3b82f6";
+    public string Icon { get; set; } = "Package";
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime LastSyncedAt { get; set; }

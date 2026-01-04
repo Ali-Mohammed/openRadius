@@ -19,6 +19,8 @@ export interface RadiusProfile {
   onlineUsersCount?: number
   usersCount?: number
   userCount?: number  // Alias for usersCount
+  color?: string
+  icon?: string
   createdAt?: string
   updatedAt?: string
   lastSyncedAt?: string
