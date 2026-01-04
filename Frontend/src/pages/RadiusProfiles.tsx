@@ -664,7 +664,6 @@ export default function RadiusProfiles() {
                         {columnVisibility.name && (
                           <TableCell className="h-12 px-4 font-medium w-[180px]">
                             <div className="flex items-center gap-2">
-                              <div className="h-4 w-4 rounded" style={{ backgroundColor: profile.color || '#3b82f6' }} />
                               <div 
                                 className="rounded-lg p-1.5 flex items-center justify-center"
                                 style={{ backgroundColor: `${profile.color || '#3b82f6'}15`, color: profile.color || '#3b82f6' }}

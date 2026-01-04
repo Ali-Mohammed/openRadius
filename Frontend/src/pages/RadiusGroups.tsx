@@ -587,10 +587,10 @@ export default function RadiusGroups() {
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <div 
-                                  className="w-8 h-8 rounded-md flex items-center justify-center text-white"
-                                  style={{ backgroundColor: group.color || '#3b82f6' }}
+                                  className="rounded-lg p-1.5 flex items-center justify-center"
+                                  style={{ backgroundColor: `${group.color || '#3b82f6'}15`, color: group.color || '#3b82f6' }}
                                 >
-                                  <GroupIcon className="w-4 h-4" />
+                                  <GroupIcon className="h-4 w-4" />
                                 </div>
                                 {group.name}
                               </div>
