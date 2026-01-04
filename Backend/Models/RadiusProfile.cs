@@ -183,6 +183,8 @@ public class CreateProfileRequest
     public int ExpirationAmount { get; set; }
     public int ExpirationUnit { get; set; }
     public int? SiteId { get; set; }
+    public string Color { get; set; } = "#3b82f6";
+    public string Icon { get; set; } = "Package";
 }
 
 public class UpdateProfileRequest

@@ -136,6 +136,8 @@ public class RadiusProfileController : ControllerBase
                 SiteId = p.SiteId,
                 OnlineUsersCount = p.OnlineUsersCount,
                 UsersCount = userCount,
+                Color = p.Color,
+                Icon = p.Icon,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 LastSyncedAt = p.LastSyncedAt
@@ -192,6 +194,8 @@ public class RadiusProfileController : ControllerBase
             SiteId = profile.SiteId,
             OnlineUsersCount = profile.OnlineUsersCount,
             UsersCount = userCount,
+            Color = profile.Color,
+            Icon = profile.Icon,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt,
             LastSyncedAt = profile.LastSyncedAt
@@ -224,6 +228,8 @@ public class RadiusProfileController : ControllerBase
             ExpirationAmount = request.ExpirationAmount,
             ExpirationUnit = request.ExpirationUnit,
             SiteId = request.SiteId,
+            Color = request.Color,
+            Icon = request.Icon,
             WorkspaceId = WorkspaceId,
             ExternalId = 0,
             OnlineUsersCount = 0,
@@ -257,6 +263,8 @@ public class RadiusProfileController : ControllerBase
             SiteId = profile.SiteId,
             OnlineUsersCount = profile.OnlineUsersCount,
             UsersCount = profile.UsersCount,
+            Color = profile.Color,
+            Icon = profile.Icon,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt,
             LastSyncedAt = profile.LastSyncedAt
@@ -289,6 +297,8 @@ public class RadiusProfileController : ControllerBase
         profile.ExpirationAmount = request.ExpirationAmount;
         profile.ExpirationUnit = request.ExpirationUnit;
         profile.SiteId = request.SiteId;
+        profile.Color = request.Color;
+        profile.Icon = request.Icon;
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -384,6 +394,8 @@ public class RadiusProfileController : ControllerBase
                 SiteId = p.SiteId,
                 OnlineUsersCount = p.OnlineUsersCount,
                 UsersCount = userCount,
+                Color = p.Color,
+                Icon = p.Icon,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 LastSyncedAt = p.LastSyncedAt
