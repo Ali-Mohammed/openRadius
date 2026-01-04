@@ -177,14 +177,50 @@ export default function RolesPage() {
       userManagementApi.assignPermissionsToRole(roleId, permissionIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] })
-      setEditingRole(null)
-      setSelectedPermissions([])
       toast.success('Permissions updated successfully')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to update permissions')
     },
   })
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      userManagementApi.updateRole(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] })
+      setEditingRole(null)
+      setSelectedPermissions([])
+      toast.success('Role updated successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update role')
+    },
+  })
+
+  const handleSaveRole = async () => {
+    if (!editingRole) return
+    
+    // Update role details (name, description, icon, color)
+    await updateRoleMutation.mutateAsync({
+      id: editingRole.id,
+      data: {
+        name: editingRole.name,
+        description: editingRole.description,
+        icon: selectedIcon,
+        color: selectedColor
+      }
+    })
+    
+    // Update permissions
+    await assignPermissionsMutation.mutateAsync({
+      roleId: editingRole.id,
+      permissionIds: selectedPermissions
+    })
+    
+    setEditingRole(null)
+    setSelectedPermissions([])
+  }
 
   const openEditDialog = async (role: Role) => {
     setEditingRole(role)
