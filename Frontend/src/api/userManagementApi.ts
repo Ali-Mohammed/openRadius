@@ -29,6 +29,19 @@ export interface Group {
   description?: string
 }
 
+export interface Permission {
+  id: number
+  name: string
+  description?: string
+  category: string
+}
+
+export interface CreatePermissionRequest {
+  name: string
+  description?: string
+  category?: string
+}
+
 export interface CreateUserRequest {
   username: string
   email?: string
@@ -124,6 +137,32 @@ export const userManagementApi = {
 
   assignGroupsToUser: async (userId: number, groupIds: number[]): Promise<{ message: string }> => {
     const response = await apiClient.post(`/api/user-management/${userId}/groups`, groupIds)
+    return response.data
+  },
+
+  // Permission endpoints
+  getPermissions: async (): Promise<Permission[]> => {
+    const response = await apiClient.get('/api/user-management/permissions')
+    return response.data
+  },
+
+  createPermission: async (data: CreatePermissionRequest): Promise<Permission> => {
+    const response = await apiClient.post('/api/user-management/permissions', data)
+    return response.data
+  },
+
+  deletePermission: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.delete(`/api/user-management/permissions/${id}`)
+    return response.data
+  },
+
+  getRolePermissions: async (roleId: number): Promise<Permission[]> => {
+    const response = await apiClient.get(`/api/user-management/roles/${roleId}/permissions`)
+    return response.data
+  },
+
+  assignPermissionsToRole: async (roleId: number, permissionIds: number[]): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/user-management/roles/${roleId}/permissions`, permissionIds)
     return response.data
   },
 }
