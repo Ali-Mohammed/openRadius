@@ -130,6 +130,41 @@ public class UserManagementController : ControllerBase
                         catch { /* Ignore role fetch errors */ }
                     }
                     
+                    // Extract supervisor from attributes
+                    string? supervisorId = null;
+                    string? supervisorName = null;
+                    if (u.TryGetProperty("attributes", out var attrs) && attrs.TryGetProperty("supervisorId", out var supIdArray))
+                    {
+                        supervisorId = supIdArray.EnumerateArray().FirstOrDefault().GetString();
+                        
+                        // Fetch supervisor details if supervisorId exists
+                        if (!string.IsNullOrEmpty(supervisorId))
+                        {
+                            try
+                            {
+                                var supervisorUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{supervisorId}";
+                                var supervisorResponse = await client.GetAsync(supervisorUrl);
+                                if (supervisorResponse.IsSuccessStatusCode)
+                                {
+                                    var supervisor = await supervisorResponse.Content.ReadFromJsonAsync<JsonElement>();
+                                    var supFirstName = supervisor.TryGetProperty("firstName", out var fn) ? fn.GetString() : null;
+                                    var supLastName = supervisor.TryGetProperty("lastName", out var ln) ? ln.GetString() : null;
+                                    var supUsername = supervisor.TryGetProperty("username", out var un) ? un.GetString() : null;
+                                    
+                                    if (!string.IsNullOrEmpty(supFirstName) || !string.IsNullOrEmpty(supLastName))
+                                    {
+                                        supervisorName = $"{supFirstName} {supLastName}".Trim();
+                                    }
+                                    else
+                                    {
+                                        supervisorName = supUsername;
+                                    }
+                                }
+                            }
+                            catch { /* Ignore supervisor fetch errors */ }
+                        }
+                    }
+                    
                     userResponses.Add(new KeycloakUserResponse
                     {
                         Id = userId,
@@ -141,7 +176,9 @@ public class UserManagementController : ControllerBase
                         EmailVerified = u.TryGetProperty("emailVerified", out var emailVerified) && emailVerified.GetBoolean(),
                         CreatedTimestamp = u.TryGetProperty("createdTimestamp", out var createdTimestamp) ? createdTimestamp.GetInt64() : null,
                         Groups = userGroups,
-                        RealmRoles = realmRoles
+                        RealmRoles = realmRoles,
+                        SupervisorId = supervisorId,
+                        Supervisor = supervisorName
                     });
                 }
             }
@@ -215,7 +252,7 @@ public class UserManagementController : ControllerBase
                 lastName = request.LastName,
                 enabled = request.Enabled,
                 emailVerified = request.EmailVerified,
-                attributes = request.Attributes,
+                attributes = BuildAttributes(request.Attributes, request.SupervisorId),
                 credentials = !string.IsNullOrWhiteSpace(request.Password) ? new[]
                 {
                     new
@@ -267,17 +304,40 @@ public class UserManagementController : ControllerBase
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
             var realm = authority?.Split("/").Last();
+            
+            // First, get the current user to preserve existing attributes
+            var getUserUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}";
+            var getUserResponse = await client.GetAsync(getUserUrl);
+            getUserResponse.EnsureSuccessStatusCode();
+            var currentUser = await getUserResponse.Content.ReadFromJsonAsync<JsonElement>();
+            
+            // Extract existing attributes
+            Dictionary<string, List<string>>? existingAttributes = null;
+            if (currentUser.TryGetProperty("attributes", out var attrsElement))
+            {
+                existingAttributes = new Dictionary<string, List<string>>();
+                foreach (var prop in attrsElement.EnumerateObject())
+                {
+                    var values = new List<string>();
+                    foreach (var val in prop.Value.EnumerateArray())
+                    {
+                        var strVal = val.GetString();
+                        if (strVal != null) values.Add(strVal);
+                    }
+                    existingAttributes[prop.Name] = values;
+                }
+            }
+            
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}";
 
             var userPayload = new
             {
-                username = request.Username,
                 email = request.Email,
                 firstName = request.FirstName,
                 lastName = request.LastName,
                 enabled = request.Enabled,
                 emailVerified = request.EmailVerified,
-                attributes = request.Attributes
+                attributes = BuildAttributes(existingAttributes, request.SupervisorId)
             };
 
             var content = new StringContent(JsonSerializer.Serialize(userPayload), Encoding.UTF8, "application/json");
@@ -605,5 +665,22 @@ public class UserManagementController : ControllerBase
             _logger.LogError(ex, $"Error removing user {id} from group {groupId}");
             return StatusCode(500, new { message = "Failed to remove user from group", error = ex.Message });
         }
+    }
+
+    private Dictionary<string, List<string>> BuildAttributes(Dictionary<string, List<string>>? existingAttributes, string? supervisorId)
+    {
+        var attributes = existingAttributes ?? new Dictionary<string, List<string>>();
+        
+        if (!string.IsNullOrEmpty(supervisorId))
+        {
+            attributes["supervisorId"] = new List<string> { supervisorId };
+        }
+        else
+        {
+            // Remove supervisorId if it was previously set but now empty
+            attributes.Remove("supervisorId");
+        }
+        
+        return attributes;
     }
 }

@@ -1,0 +1,691 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Backend.Data;
+using Backend.Models;
+using System.Text.Json;
+
+namespace Backend.Controllers;
+
+[ApiController]
+[Route("api/user-management")]
+[Authorize]
+public class UserManagementDbController : ControllerBase
+{
+    private readonly MasterDbContext _context;
+    private readonly ILogger<UserManagementDbController> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public UserManagementDbController(
+        MasterDbContext context, 
+        ILogger<UserManagementDbController> logger,
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
+    {
+        _context = context;
+        _logger = logger;
+        _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
+    }
+
+    // POST: api/user-management/sync-keycloak-users
+    [HttpPost("sync-keycloak-users")]
+    public async Task<IActionResult> SyncKeycloakUsers()
+    {
+        try
+        {
+            var client = await GetAuthenticatedKeycloakClient();
+            var authority = _configuration["Oidc:Authority"];
+            var realm = authority?.Split("/").Last();
+            
+            var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users?max=1000";
+
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var keycloakUsers = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+            
+            if (keycloakUsers == null)
+            {
+                return Ok(new { message = "No users found in Keycloak", syncedCount = 0 });
+            }
+
+            int syncedCount = 0;
+            int updatedCount = 0;
+
+            foreach (var kUser in keycloakUsers)
+            {
+                var keycloakUserId = kUser.TryGetProperty("id", out var id) ? id.GetString() : null;
+                if (string.IsNullOrEmpty(keycloakUserId)) continue;
+
+                var email = kUser.TryGetProperty("email", out var e) ? e.GetString() : null;
+                var firstName = kUser.TryGetProperty("firstName", out var fn) ? fn.GetString() : null;
+                var lastName = kUser.TryGetProperty("lastName", out var ln) ? ln.GetString() : null;
+                var username = kUser.TryGetProperty("username", out var un) ? un.GetString() : null;
+
+                var finalEmail = email ?? username ?? $"user-{keycloakUserId}";
+
+                // Check if user already exists (by KeycloakUserId or Email)
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.KeycloakUserId == keycloakUserId || u.Email == finalEmail);
+
+                if (existingUser == null)
+                {
+                    // Create new user
+                    var newUser = new User
+                    {
+                        KeycloakUserId = keycloakUserId,
+                        Email = finalEmail,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Users.Add(newUser);
+                    syncedCount++;
+                }
+                else
+                {
+                    // Update existing user
+                    if (string.IsNullOrEmpty(existingUser.KeycloakUserId))
+                    {
+                        existingUser.KeycloakUserId = keycloakUserId;
+                    }
+                    existingUser.Email = finalEmail;
+                    existingUser.FirstName = firstName;
+                    existingUser.LastName = lastName;
+                    updatedCount++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new 
+            { 
+                message = "Keycloak users synced successfully",
+                syncedCount = syncedCount,
+                updatedCount = updatedCount,
+                totalProcessed = keycloakUsers.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing Keycloak users");
+            return StatusCode(500, new { error = "Failed to sync Keycloak users", message = ex.Message });
+        }
+    }
+
+    private async Task<HttpClient> GetAuthenticatedKeycloakClient()
+    {
+        var client = _httpClientFactory.CreateClient();
+        var authority = _configuration["Oidc:Authority"];
+        var realm = authority?.Split("/").Last();
+        var tokenUrl = $"{authority.Replace($"/realms/{realm}", "")}/realms/{realm}/protocol/openid-connect/token";
+
+        var tokenRequest = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("grant_type", "client_credentials"),
+            new KeyValuePair<string, string>("client_id", _configuration["KeycloakAdmin:ClientId"] ?? "openradius-admin"),
+            new KeyValuePair<string, string>("client_secret", _configuration["KeycloakAdmin:ClientSecret"] ?? "")
+        });
+
+        var tokenResponse = await client.PostAsync(tokenUrl, tokenRequest);
+        tokenResponse.EnsureSuccessStatusCode();
+
+        var tokenData = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var accessToken = tokenData.GetProperty("access_token").GetString();
+
+        var authenticatedClient = _httpClientFactory.CreateClient();
+        authenticatedClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        return authenticatedClient;
+    }
+
+    // GET: api/user-management
+    [HttpGet]
+    public async Task<IActionResult> GetUsers()
+    {
+        try
+        {
+            var users = await _context.Users
+                .Include(u => u.Supervisor)
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Include(u => u.UserGroups)
+                    .ThenInclude(ug => ug.Group)
+                .ToListAsync();
+
+            var userResponses = users.Select(u => new
+            {
+                u.Id,
+                u.KeycloakUserId,
+                u.FirstName,
+                u.LastName,
+                u.Email,
+                SupervisorId = u.SupervisorId,
+                Supervisor = u.Supervisor != null ? new
+                {
+                    u.Supervisor.Id,
+                    u.Supervisor.FirstName,
+                    u.Supervisor.LastName,
+                    u.Supervisor.Email
+                } : null,
+                Roles = u.UserRoles.Select(ur => new
+                {
+                    ur.Role.Id,
+                    ur.Role.Name,
+                    ur.Role.Description
+                }).ToList(),
+                Groups = u.UserGroups.Select(ug => new
+                {
+                    ug.Group.Id,
+                    ug.Group.Name,
+                    ug.Group.Description
+                }).ToList()
+            }).ToList();
+
+            return Ok(userResponses);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching users");
+            return StatusCode(500, new { message = "Failed to fetch users", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUser(int id)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.Supervisor)
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Include(u => u.UserGroups)
+                    .ThenInclude(ug => ug.Group)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            var userResponse = new
+            {
+                user.Id,
+                user.KeycloakUserId,
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                SupervisorId = user.SupervisorId,
+                Supervisor = user.Supervisor != null ? new
+                {
+                    user.Supervisor.Id,
+                    user.Supervisor.FirstName,
+                    user.Supervisor.LastName,
+                    user.Supervisor.Email
+                } : null,
+                Roles = user.UserRoles.Select(ur => new
+                {
+                    ur.Role.Id,
+                    ur.Role.Name,
+                    ur.Role.Description
+                }).ToList(),
+                Groups = user.UserGroups.Select(ug => new
+                {
+                    ug.Group.Id,
+                    ug.Group.Name,
+                    ug.Group.Description
+                }).ToList()
+            };
+
+            return Ok(userResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to fetch user", error = ex.Message });
+        }
+    }
+
+    // PUT: api/user-management/{id}/supervisor
+    [HttpPut("{id}/supervisor")]
+    public async Task<IActionResult> UpdateSupervisor(int id, [FromBody] UpdateSupervisorRequest request)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Validate supervisor exists if provided
+            if (request.SupervisorId.HasValue)
+            {
+                var supervisor = await _context.Users.FindAsync(request.SupervisorId.Value);
+                if (supervisor == null)
+                {
+                    return BadRequest(new { message = "Supervisor not found" });
+                }
+
+                // Prevent self-supervision
+                if (request.SupervisorId.Value == id)
+                {
+                    return BadRequest(new { message = "User cannot be their own supervisor" });
+                }
+            }
+
+            user.SupervisorId = request.SupervisorId;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Supervisor updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating supervisor for user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to update supervisor", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/roles
+    [HttpGet("roles")]
+    public async Task<IActionResult> GetRoles()
+    {
+        try
+        {
+            var roles = await _context.Roles.ToListAsync();
+            return Ok(roles);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching roles");
+            return StatusCode(500, new { message = "Failed to fetch roles", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/roles
+    [HttpPost("roles")]
+    public async Task<IActionResult> CreateRole([FromBody] CreateUserRoleRequest request)
+    {
+        try
+        {
+            // Check if role with same name already exists
+            if (await _context.Roles.AnyAsync(r => r.Name == request.Name))
+            {
+                return BadRequest(new { message = "Role with this name already exists" });
+            }
+
+            var role = new Role
+            {
+                Name = request.Name,
+                Description = request.Description,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Roles.Add(role);
+            await _context.SaveChangesAsync();
+
+            return Ok(role);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating role");
+            return StatusCode(500, new { message = "Failed to create role", error = ex.Message });
+        }
+    }
+
+    // DELETE: api/user-management/roles/{id}
+    [HttpDelete("roles/{id}")]
+    public async Task<IActionResult> DeleteRole(int id)
+    {
+        try
+        {
+            var role = await _context.Roles.FindAsync(id);
+            if (role == null)
+            {
+                return NotFound(new { message = "Role not found" });
+            }
+
+            _context.Roles.Remove(role);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Role deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting role {RoleId}", id);
+            return StatusCode(500, new { message = "Failed to delete role", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/groups
+    [HttpGet("groups")]
+    public async Task<IActionResult> GetGroups()
+    {
+        try
+        {
+            var groups = await _context.Groups.ToListAsync();
+            return Ok(groups);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching groups");
+            return StatusCode(500, new { message = "Failed to fetch groups", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/groups
+    [HttpPost("groups")]
+    public async Task<IActionResult> CreateGroup([FromBody] CreateUserGroupRequest request)
+    {
+        try
+        {
+            // Check if group with same name already exists
+            if (await _context.Groups.AnyAsync(g => g.Name == request.Name))
+            {
+                return BadRequest(new { message = "Group with this name already exists" });
+            }
+
+            var group = new Group
+            {
+                Name = request.Name,
+                Description = request.Description,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Groups.Add(group);
+            await _context.SaveChangesAsync();
+
+            return Ok(group);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating group");
+            return StatusCode(500, new { message = "Failed to create group", error = ex.Message });
+        }
+    }
+
+    // DELETE: api/user-management/groups/{id}
+    [HttpDelete("groups/{id}")]
+    public async Task<IActionResult> DeleteGroup(int id)
+    {
+        try
+        {
+            var group = await _context.Groups.FindAsync(id);
+            if (group == null)
+            {
+                return NotFound(new { message = "Group not found" });
+            }
+
+            _context.Groups.Remove(group);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Group deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting group {GroupId}", id);
+            return StatusCode(500, new { message = "Failed to delete group", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/{id}/roles
+    [HttpPost("{id}/roles")]
+    public async Task<IActionResult> AssignRolesToUser(int id, [FromBody] List<int> roleIds)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Remove existing roles
+            _context.UserRoles.RemoveRange(user.UserRoles);
+
+            // Add new roles
+            foreach (var roleId in roleIds)
+            {
+                var role = await _context.Roles.FindAsync(roleId);
+                if (role != null)
+                {
+                    _context.UserRoles.Add(new UserRole
+                    {
+                        UserId = id,
+                        RoleId = roleId,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Roles assigned successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning roles to user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to assign roles", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/{id}/groups
+    [HttpPost("{id}/groups")]
+    public async Task<IActionResult> AssignGroupsToUser(int id, [FromBody] List<int> groupIds)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserGroups)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Remove existing groups
+            _context.UserGroups.RemoveRange(user.UserGroups);
+
+            // Add new groups
+            foreach (var groupId in groupIds)
+            {
+                var group = await _context.Groups.FindAsync(groupId);
+                if (group != null)
+                {
+                    _context.UserGroups.Add(new UserGroup
+                    {
+                        UserId = id,
+                        GroupId = groupId,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Groups assigned successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning groups to user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to assign groups", error = ex.Message });
+        }
+    }
+
+    // ===== PERMISSIONS API =====
+
+    // GET: api/user-management/permissions
+    [HttpGet("permissions")]
+    public async Task<IActionResult> GetPermissions()
+    {
+        try
+        {
+            var permissions = await _context.Permissions.ToListAsync();
+            return Ok(permissions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching permissions");
+            return StatusCode(500, new { message = "Failed to fetch permissions", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/permissions
+    [HttpPost("permissions")]
+    public async Task<IActionResult> CreatePermission([FromBody] CreatePermissionRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return BadRequest(new { message = "Permission name is required" });
+            }
+
+            var permission = new Permission
+            {
+                Name = request.Name.Trim(),
+                Description = request.Description?.Trim(),
+                Category = request.Category?.Trim() ?? "General",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Permissions.Add(permission);
+            await _context.SaveChangesAsync();
+
+            return Ok(permission);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("IX_Permissions_Name") == true)
+        {
+            return Conflict(new { message = "A permission with this name already exists" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating permission");
+            return StatusCode(500, new { message = "Failed to create permission", error = ex.Message });
+        }
+    }
+
+    // DELETE: api/user-management/permissions/{id}
+    [HttpDelete("permissions/{id}")]
+    public async Task<IActionResult> DeletePermission(int id)
+    {
+        try
+        {
+            var permission = await _context.Permissions.FindAsync(id);
+            if (permission == null)
+            {
+                return NotFound(new { message = "Permission not found" });
+            }
+
+            _context.Permissions.Remove(permission);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Permission deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting permission {PermissionId}", id);
+            return StatusCode(500, new { message = "Failed to delete permission", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/roles/{roleId}/permissions
+    [HttpGet("roles/{roleId}/permissions")]
+    public async Task<IActionResult> GetRolePermissions(int roleId)
+    {
+        try
+        {
+            var rolePermissions = await _context.RolePermissions
+                .Include(rp => rp.Permission)
+                .Where(rp => rp.RoleId == roleId)
+                .Select(rp => rp.Permission)
+                .ToListAsync();
+
+            return Ok(rolePermissions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching permissions for role {RoleId}", roleId);
+            return StatusCode(500, new { message = "Failed to fetch role permissions", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/roles/{roleId}/permissions
+    [HttpPost("roles/{roleId}/permissions")]
+    public async Task<IActionResult> AssignPermissionsToRole(int roleId, [FromBody] List<int> permissionIds)
+    {
+        try
+        {
+            var role = await _context.Roles.FindAsync(roleId);
+            if (role == null)
+            {
+                return NotFound(new { message = "Role not found" });
+            }
+
+            // Remove existing permissions
+            var existing = await _context.RolePermissions
+                .Where(rp => rp.RoleId == roleId)
+                .ToListAsync();
+            _context.RolePermissions.RemoveRange(existing);
+
+            // Add new permissions
+            foreach (var permissionId in permissionIds)
+            {
+                var permission = await _context.Permissions.FindAsync(permissionId);
+                if (permission != null)
+                {
+                    _context.RolePermissions.Add(new RolePermission
+                    {
+                        RoleId = roleId,
+                        PermissionId = permissionId,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Permissions assigned successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning permissions to role {RoleId}", roleId);
+            return StatusCode(500, new { message = "Failed to assign permissions", error = ex.Message });
+        }
+    }
+}
+
+// Request models
+public class UpdateSupervisorRequest
+{
+    public int? SupervisorId { get; set; }
+}
+
+public class CreateUserRoleRequest
+{
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+}
+
+public class CreateUserGroupRequest
+{
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+}
+
+public class CreatePermissionRequest
+{
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public string? Category { get; set; }
+}

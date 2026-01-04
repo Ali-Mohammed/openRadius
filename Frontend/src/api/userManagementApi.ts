@@ -1,17 +1,32 @@
 import { apiClient } from '../lib/api'
 
-export interface KeycloakUser {
-  id?: string
-  username: string
-  email?: string
+export interface User {
+  id: number
+  keycloakUserId?: string
   firstName?: string
   lastName?: string
-  enabled: boolean
-  emailVerified?: boolean
-  createdTimestamp?: number
-  groups?: string[]
-  realmRoles?: string[]
-  attributes?: Record<string, string[]>
+  email?: string
+  supervisorId?: number
+  supervisor?: {
+    id: number
+    firstName?: string
+    lastName?: string
+    email?: string
+  }
+  roles: Role[]
+  groups: Group[]
+}
+
+export interface Role {
+  id: number
+  name: string
+  description?: string
+}
+
+export interface Group {
+  id: number
+  name: string
+  description?: string
 }
 
 export interface CreateUserRequest {
@@ -22,23 +37,24 @@ export interface CreateUserRequest {
   enabled?: boolean
   emailVerified?: boolean
   groups?: string[]
+  supervisorId?: number
   attributes?: Record<string, string[]>
   password?: string
   temporaryPassword?: boolean
 }
 
-export interface KeycloakGroup {
-  id: string
-  name: string
-  path: string
+export interface UpdateSupervisorRequest {
+  supervisorId?: number
 }
 
-export interface KeycloakRole {
-  id: string
+export interface CreateUserRoleRequest {
   name: string
   description?: string
-  composite: boolean
-  clientRole: boolean
+}
+
+export interface CreateUserGroupRequest {
+  name: string
+  description?: string
 }
 
 export interface SetPasswordRequest {
@@ -47,78 +63,67 @@ export interface SetPasswordRequest {
 }
 
 export const userManagementApi = {
-  getAll: async (first?: number, max?: number, search?: string): Promise<KeycloakUser[]> => {
-    const params = new URLSearchParams()
-    if (first !== undefined) params.append('first', first.toString())
-    if (max !== undefined) params.append('max', max.toString())
-    if (search) params.append('search', search)
-    
-    const response = await apiClient.get(`/api/keycloak/users?${params.toString()}`)
+  // Sync Keycloak users
+  syncKeycloakUsers: async (): Promise<{ message: string; syncedCount: number; updatedCount: number; totalProcessed: number }> => {
+    const response = await apiClient.post('/api/user-management/sync-keycloak-users')
     return response.data
   },
 
-  getById: async (id: string): Promise<KeycloakUser> => {
-    const response = await apiClient.get(`/api/keycloak/users/${id}`)
+  // User endpoints
+  getAll: async (): Promise<User[]> => {
+    const response = await apiClient.get('/api/user-management')
     return response.data
   },
 
-  create: async (data: CreateUserRequest): Promise<{ id: string; message: string }> => {
-    const response = await apiClient.post('/api/keycloak/users', data)
+  getById: async (id: number): Promise<User> => {
+    const response = await apiClient.get(`/api/user-management/${id}`)
     return response.data
   },
 
-  update: async (id: string, data: Partial<KeycloakUser>): Promise<{ message: string }> => {
-    const response = await apiClient.put(`/api/keycloak/users/${id}`, data)
+  updateSupervisor: async (id: number, data: UpdateSupervisorRequest): Promise<{ message: string }> => {
+    const response = await apiClient.put(`/api/user-management/${id}/supervisor`, data)
     return response.data
   },
 
-  delete: async (id: string): Promise<{ message: string }> => {
-    const response = await apiClient.delete(`/api/keycloak/users/${id}`)
+  // Role endpoints
+  getRoles: async (): Promise<Role[]> => {
+    const response = await apiClient.get('/api/user-management/roles')
     return response.data
   },
 
-  resetPassword: async (id: string, data: SetPasswordRequest): Promise<{ message: string }> => {
-    const response = await apiClient.put(`/api/keycloak/users/${id}/reset-password`, data)
+  createRole: async (data: CreateUserRoleRequest): Promise<Role> => {
+    const response = await apiClient.post('/api/user-management/roles', data)
     return response.data
   },
 
-  getGroups: async (): Promise<KeycloakGroup[]> => {
-    const response = await apiClient.get('/api/keycloak/users/groups')
+  deleteRole: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.delete(`/api/user-management/roles/${id}`)
     return response.data
   },
 
-  getRoles: async (): Promise<KeycloakRole[]> => {
-    const response = await apiClient.get('/api/keycloak/users/roles')
+  assignRolesToUser: async (userId: number, roleIds: number[]): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/user-management/${userId}/roles`, roleIds)
     return response.data
   },
 
-  getUserRoles: async (id: string): Promise<string[]> => {
-    const response = await apiClient.get(`/api/keycloak/users/${id}/roles`)
+  // Group endpoints
+  getGroups: async (): Promise<Group[]> => {
+    const response = await apiClient.get('/api/user-management/groups')
     return response.data
   },
 
-  assignRoles: async (id: string, roleNames: string[]): Promise<{ message: string }> => {
-    const response = await apiClient.post(`/api/keycloak/users/${id}/roles`, roleNames)
+  createGroup: async (data: CreateUserGroupRequest): Promise<Group> => {
+    const response = await apiClient.post('/api/user-management/groups', data)
     return response.data
   },
 
-  removeRoles: async (id: string, roleNames: string[]): Promise<{ message: string }> => {
-    const response = await apiClient.delete(`/api/keycloak/users/${id}/roles`, { data: roleNames })
+  deleteGroup: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.delete(`/api/user-management/groups/${id}`)
     return response.data
   },
 
-  getUserGroups: async (id: string): Promise<string[]> => {
-    const response = await apiClient.get(`/api/keycloak/users/${id}/groups`)
-    return response.data
-  },
-
-  addToGroup: async (id: string, groupId: string): Promise<{ message: string }> => {
-    const response = await apiClient.put(`/api/keycloak/users/${id}/groups/${groupId}`)
-    return response.data
-  },
-
-  removeFromGroup: async (id: string, groupId: string): Promise<{ message: string }> => {
-    const response = await apiClient.delete(`/api/keycloak/users/${id}/groups/${groupId}`)
+  assignGroupsToUser: async (userId: number, groupIds: number[]): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/user-management/${userId}/groups`, groupIds)
     return response.data
   },
 }

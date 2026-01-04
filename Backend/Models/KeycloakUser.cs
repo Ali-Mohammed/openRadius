@@ -9,6 +9,7 @@ public class KeycloakUserRequest
     public bool Enabled { get; set; } = true;
     public bool EmailVerified { get; set; } = false;
     public List<string>? Groups { get; set; }
+    public string? SupervisorId { get; set; }
     public Dictionary<string, List<string>>? Attributes { get; set; }
     public string? Password { get; set; }
     public bool TemporaryPassword { get; set; } = false;
@@ -26,6 +27,8 @@ public class KeycloakUserResponse
     public long? CreatedTimestamp { get; set; }
     public List<string>? Groups { get; set; }
     public List<string>? RealmRoles { get; set; }
+    public string? SupervisorId { get; set; }
+    public string? Supervisor { get; set; }
     public Dictionary<string, List<string>>? Attributes { get; set; }
 }
 

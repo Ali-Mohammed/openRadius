@@ -79,7 +79,29 @@ public class WorkspaceController : ControllerBase
             query = query.OrderByDescending(i => i.CreatedAt);
         }
 
-        return await query.ToListAsync();
+        var workspaces = await query.ToListAsync();
+        
+        // Return DTOs to avoid circular references
+        var workspaceResponses = workspaces.Select(w => new
+        {
+            w.Id,
+            w.Title,
+            w.Name,
+            w.Location,
+            w.Description,
+            w.Comments,
+            w.Status,
+            w.Color,
+            w.Currency,
+            w.CreatedAt,
+            w.UpdatedAt,
+            w.CreatedBy,
+            w.UpdatedBy,
+            w.DeletedAt,
+            w.DeletedBy
+        }).ToList();
+        
+        return Ok(workspaceResponses);
     }
 
     [HttpGet("{id}")]

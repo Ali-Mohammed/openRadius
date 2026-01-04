@@ -3,6 +3,7 @@ using System;
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.MasterDb
 {
     [DbContext(typeof(MasterDbContext))]
-    partial class MasterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260103210929_AddUserPermissionsAndSupervisor")]
+    partial class AddUserPermissionsAndSupervisor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -138,38 +141,6 @@ namespace Backend.Migrations.MasterDb
                     b.ToTable("OidcSettings");
                 });
 
-            modelBuilder.Entity("Backend.Models.Permission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Permissions");
-                });
-
             modelBuilder.Entity("Backend.Models.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -195,24 +166,6 @@ namespace Backend.Migrations.MasterDb
                         .IsUnique();
 
                     b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("Backend.Models.RolePermission", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PermissionId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("RoleId", "PermissionId");
-
-                    b.HasIndex("PermissionId");
-
-                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("Backend.Models.User", b =>
@@ -368,25 +321,6 @@ namespace Backend.Migrations.MasterDb
                     b.ToTable("Workspaces");
                 });
 
-            modelBuilder.Entity("Backend.Models.RolePermission", b =>
-                {
-                    b.HasOne("Backend.Models.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Backend.Models.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.HasOne("Backend.Models.Workspace", "CurrentWorkspace")
@@ -454,15 +388,8 @@ namespace Backend.Migrations.MasterDb
                     b.Navigation("UserGroups");
                 });
 
-            modelBuilder.Entity("Backend.Models.Permission", b =>
-                {
-                    b.Navigation("RolePermissions");
-                });
-
             modelBuilder.Entity("Backend.Models.Role", b =>
                 {
-                    b.Navigation("RolePermissions");
-
                     b.Navigation("UserRoles");
                 });
 
