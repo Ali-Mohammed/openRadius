@@ -423,6 +423,29 @@ export default function workspaceView() {
       },
     },
     {
+      accessorKey: 'icon',
+      header: 'Icon',
+      cell: ({ row }) => {
+        const iconName = row.getValue('icon') as string
+        const IconComponent = getIconComponent(iconName)
+        const color = row.original.color
+        return (
+          <div className="flex items-center gap-2">
+            <div 
+              className="rounded-lg p-2 flex items-center justify-center"
+              style={{ 
+                backgroundColor: `${color}15`,
+                color: color 
+              }}
+            >
+              <IconComponent className="h-4 w-4" />
+            </div>
+            <span className="text-sm text-muted-foreground">{iconName || 'Building2'}</span>
+          </div>
+        )
+      },
+    },
+    {
       accessorKey: 'createdBy',
       header: 'Created By',
       cell: ({ row }) => {
