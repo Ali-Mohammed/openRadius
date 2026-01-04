@@ -174,8 +174,10 @@ export const userManagementApi = {
   },
 
   // Permission endpoints
-  getPermissions: async (): Promise<Permission[]> => {
-    const response = await apiClient.get('/api/user-management/permissions')
+  getPermissions: async (includeDeleted = false): Promise<Permission[]> => {
+    const response = await apiClient.get('/api/user-management/permissions', {
+      params: { includeDeleted }
+    })
     return response.data
   },
 
@@ -186,6 +188,11 @@ export const userManagementApi = {
 
   deletePermission: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/api/user-management/permissions/${id}`)
+    return response.data
+  },
+
+  restorePermission: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/user-management/permissions/${id}/restore`)
     return response.data
   },
 

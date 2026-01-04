@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, Trash2, Lock, Shield } from 'lucide-react'
+import { Plus, Trash2, Lock, Shield, RotateCcw } from 'lucide-react'
 
 const CATEGORIES = ['Users', 'Workspaces', 'RADIUS', 'Reports', 'Settings', 'General']
 
@@ -18,13 +18,14 @@ export default function PermissionsPage() {
   const queryClient = useQueryClient()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [deletingPermission, setDeletingPermission] = useState<Permission | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
   const [newPermissionName, setNewPermissionName] = useState('')
   const [newPermissionDesc, setNewPermissionDesc] = useState('')
   const [newPermissionCategory, setNewPermissionCategory] = useState('General')
 
   const { data: permissions = [], isLoading } = useQuery({
-    queryKey: ['permissions'],
-    queryFn: userManagementApi.getPermissions,
+    queryKey: ['permissions', showDeleted],
+    queryFn: () => userManagementApi.getPermissions(showDeleted),
   })
 
   const createPermissionMutation = useMutation({
@@ -54,6 +55,17 @@ export default function PermissionsPage() {
     },
   })
 
+  const restorePermissionMutation = useMutation({
+    mutationFn: userManagementApi.restorePermission,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] })
+      toast.success('Permission restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to restore permission')
+    },
+  })
+
   const confirmDelete = () => {
     if (deletingPermission) {
       deletePermissionMutation.mutate(deletingPermission.id)
@@ -76,10 +88,19 @@ export default function PermissionsPage() {
           <h1 className="text-3xl font-bold">Permissions</h1>
           <p className="text-muted-foreground">Define granular permissions for your application</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Permission
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowDeleted(!showDeleted)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {showDeleted ? 'Show Active' : 'Show Deleted'}
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Permission
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

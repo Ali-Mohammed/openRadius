@@ -866,11 +866,13 @@ public class UserManagementDbController : ControllerBase
 
     // GET: api/user-management/permissions
     [HttpGet("permissions")]
-    public async Task<IActionResult> GetPermissions()
+    public async Task<IActionResult> GetPermissions([FromQuery] bool includeDeleted = false)
     {
         try
         {
-            var permissions = await _context.Permissions.Where(p => !p.IsDeleted).ToListAsync();
+            var permissions = includeDeleted
+                ? await _context.Permissions.Where(p => p.IsDeleted).ToListAsync()
+                : await _context.Permissions.Where(p => !p.IsDeleted).ToListAsync();
             return Ok(permissions);
         }
         catch (Exception ex)
@@ -937,6 +939,31 @@ public class UserManagementDbController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting permission {PermissionId}", id);
             return StatusCode(500, new { message = "Failed to delete permission", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/permissions/{id}/restore
+    [HttpPost("permissions/{id}/restore")]
+    public async Task<IActionResult> RestorePermission(int id)
+    {
+        try
+        {
+            var permission = await _context.Permissions.FindAsync(id);
+            if (permission == null)
+            {
+                return NotFound(new { message = "Permission not found" });
+            }
+
+            permission.IsDeleted = false;
+            permission.DeletedAt = null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Permission restored successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring permission {PermissionId}", id);
+            return StatusCode(500, new { message = "Failed to restore permission", error = ex.Message });
         }
     }
 
