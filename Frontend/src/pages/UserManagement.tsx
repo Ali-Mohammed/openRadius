@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus } from 'lucide-react'
+import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -18,7 +18,11 @@ export default function UserManagement() {
   const queryClient = useQueryClient()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [temporaryPassword, setTemporaryPassword] = useState(true)
   
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
@@ -98,6 +102,20 @@ export default function UserManagement() {
     onSuccess: () => {
       toast.success('Groups updated successfully')
       queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ userId, password, temporary }: { userId: string; password: string; temporary: boolean }) =>
+      userManagementApi.resetPassword(userId, { password, temporary }),
+    onSuccess: () => {
+      toast.success('Password reset successfully')
+      setIsPasswordDialogOpen(false)
+      setResetPasswordUser(null)
+      setNewPassword('')
     },
     onError: (error: any) => {
       toast.error(formatApiError(error))
@@ -274,8 +292,22 @@ export default function UserManagement() {
                           onClick={() => handleOpenDialog(user)}
                           variant="ghost"
                           size="icon"
+                          title="Edit user"
                         >
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setResetPasswordUser(user)
+                            setIsPasswordDialogOpen(true)
+                            setNewPassword('')
+                            setTemporaryPassword(true)
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          title="Reset password"
+                        >
+                          <Key className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -458,6 +490,69 @@ export default function UserManagement() {
             </Button>
             <Button onClick={handleSave} disabled={!editingUser && !email}>
               {editingUser ? 'Save Changes' : 'Create User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Reset password for {resetPasswordUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="temporary"
+                checked={temporaryPassword}
+                onCheckedChange={(checked) => setTemporaryPassword(checked as boolean)}
+              />
+              <label
+                htmlFor="temporary"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Require password change on next login
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsPasswordDialogOpen(false)
+                setResetPasswordUser(null)
+                setNewPassword('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (resetPasswordUser && newPassword) {
+                  resetPasswordMutation.mutate({
+                    userId: resetPasswordUser.keycloakId,
+                    password: newPassword,
+                    temporary: temporaryPassword,
+                  })
+                }
+              }}
+              disabled={!newPassword || resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
             </Button>
           </DialogFooter>
         </DialogContent>

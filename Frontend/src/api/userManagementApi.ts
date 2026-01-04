@@ -165,4 +165,10 @@ export const userManagementApi = {
     const response = await apiClient.post(`/api/user-management/roles/${roleId}/permissions`, permissionIds)
     return response.data
   },
+
+  // Password reset
+  resetPassword: async (userId: string, data: SetPasswordRequest): Promise<{ message: string }> => {
+    const response = await apiClient.put(`/api/keycloak/users/${userId}/reset-password`, data)
+    return response.data
+  },
 }
