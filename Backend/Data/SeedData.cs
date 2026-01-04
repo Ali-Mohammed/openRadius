@@ -268,7 +268,8 @@ public static class SeedData
         }
 
         // Administrator - All except system settings
-        var admin = roles.First(r => r.Name == "Administrator");
+        var admin = roles.FirstOrDefault(r => r.Name == "Administrator");
+        if (admin == null) return;
         var adminPermissions = permissions.Where(p =>
             !p.Name.StartsWith("settings.oidc") &&
             !p.Name.Contains("permissions.") &&
@@ -284,7 +285,8 @@ public static class SeedData
         }
 
         // Workspace Manager
-        var workspaceManager = roles.First(r => r.Name == "Workspace Manager");
+        var workspaceManager = roles.FirstOrDefault(r => r.Name == "Workspace Manager");
+        if (workspaceManager == null) return;
         var workspacePermissions = permissions.Where(p =>
             p.Name.StartsWith("workspace.") ||
             p.Name.StartsWith("radius.") ||
@@ -302,7 +304,8 @@ public static class SeedData
         }
 
         // RADIUS Operator
-        var radiusOperator = roles.First(r => r.Name == "RADIUS Operator");
+        var radiusOperator = roles.FirstOrDefault(r => r.Name == "RADIUS Operator");
+        if (radiusOperator == null) return;
         var radiusOperatorPermissions = permissions.Where(p =>
             p.Name.StartsWith("radius.") ||
             p.Name == "workspace.view" ||
@@ -319,7 +322,8 @@ public static class SeedData
         }
 
         // RADIUS Viewer
-        var radiusViewer = roles.First(r => r.Name == "RADIUS Viewer");
+        var radiusViewer = roles.FirstOrDefault(r => r.Name == "RADIUS Viewer");
+        if (radiusViewer == null) return;
         var radiusViewerPermissions = permissions.Where(p =>
             p.Name.EndsWith(".view") &&
             (p.Name.StartsWith("radius.") || p.Name == "workspace.view" || p.Name == "dashboard.view")
@@ -334,7 +338,8 @@ public static class SeedData
         }
 
         // Integration Manager
-        var integrationManager = roles.First(r => r.Name == "Integration Manager");
+        var integrationManager = roles.FirstOrDefault(r => r.Name == "Integration Manager");
+        if (integrationManager == null) return;
         var integrationPermissions = permissions.Where(p =>
             p.Name.StartsWith("integration.") ||
             p.Name == "radius.users.view" ||
@@ -353,7 +358,8 @@ public static class SeedData
         }
 
         // User Manager
-        var userManager = roles.First(r => r.Name == "User Manager");
+        var userManager = roles.FirstOrDefault(r => r.Name == "User Manager");
+        if (userManager == null) return;
         var userManagerPermissions = permissions.Where(p =>
             p.Name.StartsWith("users.") ||
             p.Name == "groups.view" ||
@@ -370,7 +376,8 @@ public static class SeedData
         }
 
         // Auditor
-        var auditor = roles.First(r => r.Name == "Auditor");
+        var auditor = roles.FirstOrDefault(r => r.Name == "Auditor");
+        if (auditor == null) return;
         var auditorPermissions = permissions.Where(p =>
             p.Name.EndsWith(".view") ||
             p.Name == "audit.view" ||
@@ -387,7 +394,8 @@ public static class SeedData
         }
 
         // Viewer
-        var viewer = roles.First(r => r.Name == "Viewer");
+        var viewer = roles.FirstOrDefault(r => r.Name == "Viewer");
+        if (viewer == null) return;
         var viewerPermissions = permissions.Where(p =>
             p.Name == "dashboard.view" ||
             p.Name == "workspace.view"
