@@ -597,6 +597,8 @@ public class UserManagementDbController : ControllerBase
             {
                 Name = request.Name,
                 Description = request.Description,
+                Icon = request.Icon,
+                Color = request.Color,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -609,6 +611,40 @@ public class UserManagementDbController : ControllerBase
         {
             _logger.LogError(ex, "Error creating group");
             return StatusCode(500, new { message = "Failed to create group", error = ex.Message });
+        }
+    }
+
+    // PUT: api/user-management/groups/{id}
+    [HttpPut("groups/{id}")]
+    public async Task<IActionResult> UpdateGroup(int id, [FromBody] CreateUserGroupRequest request)
+    {
+        try
+        {
+            var group = await _context.Groups.FindAsync(id);
+            if (group == null)
+            {
+                return NotFound(new { message = "Group not found" });
+            }
+
+            // Check if another group has the same name (excluding current group)
+            if (await _context.Groups.AnyAsync(g => g.Name == request.Name && g.Id != id))
+            {
+                return BadRequest(new { message = "Group with this name already exists" });
+            }
+
+            group.Name = request.Name;
+            group.Description = request.Description;
+            group.Icon = request.Icon;
+            group.Color = request.Color;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(group);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating group {GroupId}", id);
+            return StatusCode(500, new { message = "Failed to update group", error = ex.Message });
         }
     }
 
@@ -893,6 +929,8 @@ public class CreateUserGroupRequest
 {
     public required string Name { get; set; }
     public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
 }
 
 public class CreatePermissionRequest
