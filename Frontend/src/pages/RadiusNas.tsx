@@ -380,13 +380,7 @@ export default function RadiusNasPage() {
 
       {/* Main Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>NAS Devices</CardTitle>
-          <CardDescription>
-            {showTrash ? 'Deleted NAS devices' : 'Active NAS devices'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {/* Search and Filters */}
           <div className="flex gap-4 mb-6">
             <div className="flex-1 flex gap-2">
