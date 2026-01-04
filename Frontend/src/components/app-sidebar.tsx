@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -84,6 +84,43 @@ const data = {
       ],
     },
     {
+      titleKey: "navigation.billing",
+      url: "#",
+      icon: CreditCard,
+      items: [
+        {
+          titleKey: "navigation.billingProfiles",
+          url: `/workspace/${DEFAULT_workspace_ID}/billing/profiles`,
+          icon: FileText,
+        },
+        {
+          titleKey: "navigation.addons",
+          url: `/workspace/${DEFAULT_workspace_ID}/billing/addons`,
+          icon: Package,
+        },
+        {
+          titleKey: "navigation.cashbacks",
+          url: `/workspace/${DEFAULT_workspace_ID}/billing/cashbacks`,
+          icon: Gift,
+        },
+        {
+          titleKey: "navigation.wallets",
+          url: `/workspace/${DEFAULT_workspace_ID}/billing/wallets`,
+          icon: Wallet,
+        },
+        {
+          titleKey: "navigation.walletsHistory",
+          url: `/workspace/${DEFAULT_workspace_ID}/billing/wallets-history`,
+          icon: History,
+        },
+        {
+          titleKey: "navigation.balances",
+          url: `/workspace/${DEFAULT_workspace_ID}/billing/balances`,
+          icon: Coins,
+        },
+      ],
+    },
+    {
       titleKey: "navigation.workspace",
       url: "#",
       icon: Building2,
@@ -125,7 +162,7 @@ const data = {
         {
           titleKey: "navigation.users",
           url: "/users",
-          icon: Users,
+          icon: UserCheck,
         },
         {
           titleKey: "navigation.roles",
