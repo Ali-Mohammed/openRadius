@@ -35,6 +35,8 @@ public class Role
     public string? Icon { get; set; }
     public string? Color { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
     
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
@@ -48,6 +50,8 @@ public class Group
     public string? Icon { get; set; }
     public string? Color { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
     
     public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
 }
@@ -59,6 +63,8 @@ public class Permission
     public string? Description { get; set; }
     public string Category { get; set; } = "General"; // e.g., "Users", "Workspaces", "RADIUS", "Reports"
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
     
     public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }
