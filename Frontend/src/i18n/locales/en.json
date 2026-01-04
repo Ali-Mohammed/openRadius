@@ -19,6 +19,7 @@
     "groups": "Groups",
     "tags": "Tags",
     "nas": "NAS",
+    "ipPools": "IP Pools",
     "workspace": "Workspace",
     "view": "View",
     "setting": "Setting",
