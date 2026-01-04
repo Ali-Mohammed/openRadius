@@ -133,13 +133,24 @@ export default function PermissionsPage() {
                             <p className="text-sm text-muted-foreground mt-1 ml-6">{permission.description}</p>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingPermission(permission)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {showDeleted ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => restorePermissionMutation.mutate(permission.id)}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Restore
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingPermission(permission)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
