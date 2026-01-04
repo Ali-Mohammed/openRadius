@@ -15,10 +15,114 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { 
+  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
+  Star, Heart, Zap, Trophy, Crown, Shield, Users, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
+  CheckCircle, XCircle, AlertCircle, Info, Settings, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
+  ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Lock, Key, Eye, Bell, MessageCircle, 
+  Send, Bookmark, FileText, Folder, Download, Upload, Share, Link, Layers, Grid, List, Filter, MoreHorizontal, 
+  Circle, Square, Triangle, Diamond, Hexagon, Octagon, Sparkles, Coffee, Music, Camera, Image, Video, Mic, 
+  Headphones, Speaker, Monitor, Smartphone, Tablet, Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
+} from 'lucide-react'
 import { radiusGroupApi, type RadiusGroup } from '@/api/radiusGroupApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+
+const PREDEFINED_COLORS = [
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#10b981', label: 'Green' },
+  { value: '#f59e0b', label: 'Orange' },
+  { value: '#ef4444', label: 'Red' },
+  { value: '#8b5cf6', label: 'Purple' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#6366f1', label: 'Indigo' },
+  { value: '#14b8a6', label: 'Teal' },
+]
+
+const AVAILABLE_ICONS = [
+  { name: 'Users', icon: Users },
+  { name: 'Star', icon: Star },
+  { name: 'Heart', icon: Heart },
+  { name: 'Zap', icon: Zap },
+  { name: 'Trophy', icon: Trophy },
+  { name: 'Crown', icon: Crown },
+  { name: 'Shield', icon: Shield },
+  { name: 'User', icon: User },
+  { name: 'Building', icon: Building },
+  { name: 'Briefcase', icon: Briefcase },
+  { name: 'Rocket', icon: Rocket },
+  { name: 'Target', icon: Target },
+  { name: 'Award', icon: Award },
+  { name: 'Medal', icon: Medal },
+  { name: 'Flag', icon: Flag },
+  { name: 'CheckCircle', icon: CheckCircle },
+  { name: 'XCircle', icon: XCircle },
+  { name: 'AlertCircle', icon: AlertCircle },
+  { name: 'Info', icon: Info },
+  { name: 'Settings', icon: Settings },
+  { name: 'Home', icon: Home },
+  { name: 'Mail', icon: Mail },
+  { name: 'Phone', icon: Phone },
+  { name: 'Calendar', icon: Calendar },
+  { name: 'Clock', icon: Clock },
+  { name: 'DollarSign', icon: DollarSign },
+  { name: 'CreditCard', icon: CreditCard },
+  { name: 'ShoppingCart', icon: ShoppingCart },
+  { name: 'Package', icon: Package },
+  { name: 'Truck', icon: Truck },
+  { name: 'MapPin', icon: MapPin },
+  { name: 'Globe', icon: Globe },
+  { name: 'Wifi', icon: Wifi },
+  { name: 'Database', icon: Database },
+  { name: 'Server', icon: Server },
+  { name: 'Cloud', icon: Cloud },
+  { name: 'Lock', icon: Lock },
+  { name: 'Key', icon: Key },
+  { name: 'Eye', icon: Eye },
+  { name: 'Bell', icon: Bell },
+  { name: 'MessageCircle', icon: MessageCircle },
+  { name: 'Send', icon: Send },
+  { name: 'Bookmark', icon: Bookmark },
+  { name: 'Archive', icon: Archive },
+  { name: 'FileText', icon: FileText },
+  { name: 'Folder', icon: Folder },
+  { name: 'Download', icon: Download },
+  { name: 'Upload', icon: Upload },
+  { name: 'Share', icon: Share },
+  { name: 'Link', icon: Link },
+  { name: 'Layers', icon: Layers },
+  { name: 'Grid', icon: Grid },
+  { name: 'List', icon: List },
+  { name: 'Filter', icon: Filter },
+  { name: 'Search', icon: Search },
+  { name: 'MoreHorizontal', icon: MoreHorizontal },
+  { name: 'Circle', icon: Circle },
+  { name: 'Square', icon: Square },
+  { name: 'Triangle', icon: Triangle },
+  { name: 'Diamond', icon: Diamond },
+  { name: 'Hexagon', icon: Hexagon },
+  { name: 'Octagon', icon: Octagon },
+  { name: 'Sparkles', icon: Sparkles },
+  { name: 'Coffee', icon: Coffee },
+  { name: 'Music', icon: Music },
+  { name: 'Camera', icon: Camera },
+  { name: 'Image', icon: Image },
+  { name: 'Video', icon: Video },
+  { name: 'Mic', icon: Mic },
+  { name: 'Headphones', icon: Headphones },
+  { name: 'Speaker', icon: Speaker },
+  { name: 'Monitor', icon: Monitor },
+  { name: 'Smartphone', icon: Smartphone },
+  { name: 'Tablet', icon: Tablet },
+  { name: 'Watch', icon: Watch },
+  { name: 'Printer', icon: Printer },
+  { name: 'Cpu', icon: Cpu },
+  { name: 'HardDrive', icon: HardDrive },
+  { name: 'Battery', icon: Battery },
+  { name: 'Bluetooth', icon: Bluetooth },
+  { name: 'Radio', icon: Radio },
+  { name: 'Rss', icon: Rss },
+]
 
 export default function RadiusGroups() {
   const { t } = useTranslation()
@@ -56,6 +160,12 @@ export default function RadiusGroups() {
   const [groupToRestore, setGroupToRestore] = useState<number | null>(null)
   const [showTrash, setShowTrash] = useState(false)
 
+  // Color and Icon picker state
+  const [newGroupColor, setNewGroupColor] = useState('#3b82f6')
+  const [newGroupIcon, setNewGroupIcon] = useState('Users')
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
+  const [editIconPopoverOpen, setEditIconPopoverOpen] = useState(false)
+
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState({
     name: true,
@@ -68,7 +178,16 @@ export default function RadiusGroups() {
     name: '',
     subscription: '',
     isActive: true,
+    color: '#3b82f6',
+    icon: 'Users',
   })
+
+  // Helper function to get icon component
+  const getIconComponent = (iconName?: string) => {
+    if (!iconName) return Users
+    const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
+    return iconData?.icon || Users
+  }
 
   // Group queries
   const { data: groupsData, isLoading: isLoadingGroups, isFetching, error: groupsError } = useQuery({
@@ -201,8 +320,14 @@ export default function RadiusGroups() {
       name: '',
       subscription: '',
       isActive: true,
+      color: '#3b82f6',
+      icon: 'Users',
     })
+    setNewGroupColor('#3b82f6')
+    setNewGroupIcon('Users')
     setEditingGroup(null)
+    setIconPopoverOpen(false)
+    setEditIconPopoverOpen(false)
   }
 
   const handleCreateGroup = () => {
@@ -217,7 +342,11 @@ export default function RadiusGroups() {
       name: group.name,
       subscription: group.subscription || '',
       isActive: group.isActive,
+      color: group.color || '#3b82f6',
+      icon: group.icon || 'Users',
     })
+    setNewGroupColor(group.color || '#3b82f6')
+    setNewGroupIcon(group.icon || 'Users')
     setIsGroupDialogOpen(true)
   }
 
@@ -226,6 +355,8 @@ export default function RadiusGroups() {
       name: groupFormData.name,
       subscription: groupFormData.subscription || undefined,
       isActive: groupFormData.isActive,
+      color: editingGroup ? newGroupColor : groupFormData.color,
+      icon: editingGroup ? newGroupIcon : groupFormData.icon,
     }
 
     if (editingGroup) {
@@ -449,9 +580,22 @@ export default function RadiusGroups() {
                   ) : (
                     rowVirtualizer.getVirtualItems().map((virtualRow) => {
                       const group = groups[virtualRow.index]
+                      const GroupIcon = getIconComponent(group.icon)
                       return (
                         <TableRow key={group.id} style={{ height: `${virtualRow.size}px` }}>
-                          {columnVisibility.name && <TableCell className="font-medium">{group.name}</TableCell>}
+                          {columnVisibility.name && (
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-8 h-8 rounded-md flex items-center justify-center text-white"
+                                  style={{ backgroundColor: group.color || '#3b82f6' }}
+                                >
+                                  <GroupIcon className="w-4 h-4" />
+                                </div>
+                                {group.name}
+                              </div>
+                            </TableCell>
+                          )}
                           {columnVisibility.subscription && <TableCell>{group.subscription || '-'}</TableCell>}
                           {columnVisibility.status && (
                             <TableCell>
@@ -578,47 +722,174 @@ export default function RadiusGroups() {
       {/* Create/Edit Dialog */}
       {isGroupDialogOpen && (
         <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>{editingGroup ? 'Edit Group' : 'Create New Group'}</DialogTitle>
+              <DialogTitle className="text-2xl">{editingGroup ? 'Edit Group' : 'Create New Group'}</DialogTitle>
               <DialogDescription>
                 {editingGroup ? 'Update the group details' : 'Add a new RADIUS group'}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-5 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Name <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="name"
                   value={groupFormData.name}
                   onChange={(e) => setGroupFormData({ ...groupFormData, name: e.target.value })}
-                  placeholder="Group name"
+                  placeholder="e.g., VIP Members, Premium Users, Corporate Access"
+                  className="h-10"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="subscription">Subscription</Label>
+                <Label htmlFor="subscription" className="text-sm font-medium">Subscription</Label>
                 <Input
                   id="subscription"
                   value={groupFormData.subscription}
                   onChange={(e) => setGroupFormData({ ...groupFormData, subscription: e.target.value })}
-                  placeholder="Subscription type"
+                  placeholder="Subscription type (optional)"
+                  className="h-10"
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="isActive">Active Status</Label>
-                <Switch
-                  id="isActive"
-                  checked={groupFormData.isActive}
-                  onCheckedChange={(checked) => setGroupFormData({ ...groupFormData, isActive: checked })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="color" className="text-sm font-medium">Color</Label>
+                  <Select 
+                    value={editingGroup ? newGroupColor : groupFormData.color} 
+                    onValueChange={(value) => {
+                      if (editingGroup) {
+                        setNewGroupColor(value)
+                      } else {
+                        setGroupFormData({ ...groupFormData, color: value })
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-10">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-4 h-4 rounded-full border" 
+                          style={{ backgroundColor: editingGroup ? newGroupColor : groupFormData.color }}
+                        />
+                        <span>
+                          {PREDEFINED_COLORS.find(c => c.value === (editingGroup ? newGroupColor : groupFormData.color))?.label || 'Select Color'}
+                        </span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_COLORS.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: color.value }}
+                            />
+                            {color.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="flex items-center h-10 px-3 border rounded-md">
+                    <Label htmlFor="isActive" className="flex-1 cursor-pointer">Active</Label>
+                    <Switch
+                      id="isActive"
+                      checked={groupFormData.isActive}
+                      onCheckedChange={(checked) => setGroupFormData({ ...groupFormData, isActive: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="icon" className="text-sm font-medium">Icon</Label>
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start h-10" 
+                    type="button"
+                    onClick={() => {
+                      if (editingGroup) {
+                        setEditIconPopoverOpen(!editIconPopoverOpen)
+                      } else {
+                        setIconPopoverOpen(!iconPopoverOpen)
+                      }
+                    }}
+                  >
+                    {(() => {
+                      const SelectedIcon = getIconComponent(editingGroup ? newGroupIcon : groupFormData.icon)
+                      return <SelectedIcon className="w-4 h-4 mr-2" />
+                    })()}
+                    {editingGroup ? newGroupIcon : groupFormData.icon}
+                  </Button>
+                  {(editingGroup ? editIconPopoverOpen : iconPopoverOpen) && (
+                    <div className="absolute top-full left-0 mt-1 w-80 bg-white border rounded-md shadow-lg z-50">
+                      <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                        {AVAILABLE_ICONS.map((iconData) => {
+                          const IconComponent = iconData.icon
+                          const isSelected = (editingGroup ? newGroupIcon : groupFormData.icon) === iconData.name
+                          return (
+                            <button
+                              key={iconData.name}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (editingGroup) {
+                                  setNewGroupIcon(iconData.name)
+                                  setEditIconPopoverOpen(false)
+                                } else {
+                                  setGroupFormData({ ...groupFormData, icon: iconData.name })
+                                  setIconPopoverOpen(false)
+                                }
+                              }}
+                              className={`p-2 rounded flex items-center justify-center ${
+                                isSelected
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-gray-100 hover:bg-gray-200'
+                              }`}
+                              style={{
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title={iconData.name}
+                            >
+                              <IconComponent className="w-4 h-4" />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsGroupDialogOpen(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsGroupDialogOpen(false)}
+                className="gap-2"
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSaveGroup} disabled={!groupFormData.name}>
-                {editingGroup ? 'Update' : 'Create'}
+              <Button 
+                onClick={handleSaveGroup} 
+                disabled={!groupFormData.name}
+                className="gap-2"
+              >
+                {editingGroup ? (
+                  <>
+                    <Pencil className="h-4 w-4" />
+                    Update Group
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Create Group
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
