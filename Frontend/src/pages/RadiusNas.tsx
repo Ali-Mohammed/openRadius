@@ -19,6 +19,7 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Circle
 } from 'lucide-react'
 import { radiusNasApi, type RadiusNas } from '@/api/radiusNasApi'
+import { radiusIpPoolApi, type RadiusIpPool } from '@/api/radiusIpPoolApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -112,6 +113,15 @@ export default function RadiusNasPage() {
 
   const nasDevices = nasData?.data || []
   const pagination = nasData?.pagination
+
+  // IP Pools query for dropdown
+  const { data: ipPoolsData } = useQuery({
+    queryKey: ['radius-ip-pools-all', workspaceId],
+    queryFn: () => radiusIpPoolApi.getAll(workspaceId, 1, 200, '', '', 'asc', false),
+    enabled: workspaceId > 0,
+  })
+
+  const ipPools = ipPoolsData?.data || []
 
   // Sorting handlers
   const handleSort = useCallback((field: string) => {
@@ -693,6 +703,26 @@ export default function RadiusNasPage() {
                   placeholder="Optional description"
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="poolName">IP Pool</Label>
+                <Select
+                  value={nasFormData.poolName || undefined}
+                  onValueChange={(value) => setNasFormData({ ...nasFormData, poolName: value === 'none' ? '' : value })}
+                >
+                  <SelectTrigger id="poolName">
+                    <SelectValue placeholder="Select an IP pool" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {ipPools.map((pool) => (
+                      <SelectItem key={pool.id} value={pool.name}>
+                        {pool.name} ({pool.startIp} - {pool.endIp})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center space-x-6">
