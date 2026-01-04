@@ -6,6 +6,7 @@ export interface User {
   firstName?: string
   lastName?: string
   email?: string
+  enabled?: boolean
   supervisorId?: number
   supervisor?: {
     id: number
@@ -169,6 +170,23 @@ export const userManagementApi = {
   // Password reset
   resetPassword: async (userId: string, data: SetPasswordRequest): Promise<{ message: string }> => {
     const response = await apiClient.put(`/api/keycloak/users/${userId}/reset-password`, data)
+    return response.data
+  },
+
+  // Toggle user status
+  toggleUserStatus: async (userId: string, enabled: boolean): Promise<{ message: string }> => {
+    // First get the user details
+    const userResponse = await apiClient.get(`/api/keycloak/users/${userId}`)
+    const user = userResponse.data
+    
+    // Then update with the new enabled status
+    const response = await apiClient.put(`/api/keycloak/users/${userId}`, {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      enabled: enabled,
+      emailVerified: user.emailVerified,
+    })
     return response.data
   },
 }

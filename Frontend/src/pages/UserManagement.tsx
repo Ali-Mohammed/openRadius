@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key } from 'lucide-react'
+import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -116,6 +116,18 @@ export default function UserManagement() {
       setIsPasswordDialogOpen(false)
       setResetPasswordUser(null)
       setNewPassword('')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: ({ userId, enabled }: { userId: string; enabled: boolean }) =>
+      userManagementApi.toggleUserStatus(userId, enabled),
+    onSuccess: (_, variables) => {
+      toast.success(`User ${variables.enabled ? 'enabled' : 'disabled'} successfully`)
+      queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: (error: any) => {
       toast.error(formatApiError(error))
@@ -242,6 +254,7 @@ export default function UserManagement() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Supervisor</TableHead>
                   <TableHead>Groups</TableHead>
                   <TableHead>Roles</TableHead>
@@ -250,13 +263,18 @@ export default function UserManagement() {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className={!user.enabled ? 'opacity-60' : ''}>
                     <TableCell>
                       {user.firstName || user.lastName
                         ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
                         : user.email}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.enabled ? "default" : "destructive"}>
+                        {user.enabled ? 'Active' : 'Disabled'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       {user.supervisor ? (
                         <span className="text-sm">
@@ -308,6 +326,26 @@ export default function UserManagement() {
                           title="Reset password"
                         >
                           <Key className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (user.keycloakUserId) {
+                              toggleUserStatusMutation.mutate({
+                                userId: user.keycloakUserId,
+                                enabled: !user.enabled,
+                              })
+                            }
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          title={user.enabled ? 'Disable user' : 'Enable user'}
+                          disabled={toggleUserStatusMutation.isPending}
+                        >
+                          {user.enabled ? (
+                            <UserX className="h-4 w-4 text-red-600" />
+                          ) : (
+                            <UserCheck className="h-4 w-4 text-green-600" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
