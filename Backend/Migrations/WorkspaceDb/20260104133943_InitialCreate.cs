@@ -7,11 +7,33 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.WorkspaceDb
 {
     /// <inheritdoc />
-    public partial class InitialWorkspaceDb : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "RadiusGroups",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Subscription = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: false),
+                    Icon = table.Column<string>(type: "text", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RadiusGroups", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "RadiusProfiles",
                 columns: table => new
@@ -34,7 +56,11 @@ namespace Backend.Migrations.WorkspaceDb
                     SiteId = table.Column<int>(type: "integer", nullable: true),
                     OnlineUsersCount = table.Column<int>(type: "integer", nullable: false),
                     UsersCount = table.Column<int>(type: "integer", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: false),
+                    Icon = table.Column<string>(type: "text", nullable: false),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     LastSyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -42,6 +68,26 @@ namespace Backend.Migrations.WorkspaceDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RadiusProfiles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RadiusTags",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: false),
+                    Icon = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RadiusTags", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -60,6 +106,8 @@ namespace Backend.Migrations.WorkspaceDb
                     Action = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -144,6 +192,8 @@ namespace Backend.Migrations.WorkspaceDb
                     AvailableTraffic = table.Column<long>(type: "bigint", nullable: false),
                     ParentUsername = table.Column<string>(type: "text", nullable: true),
                     DebtDays = table.Column<int>(type: "integer", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -160,23 +210,67 @@ namespace Backend.Migrations.WorkspaceDb
                         onDelete: ReferentialAction.SetNull);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "RadiusUserTags",
+                columns: table => new
+                {
+                    RadiusUserId = table.Column<int>(type: "integer", nullable: false),
+                    RadiusTagId = table.Column<int>(type: "integer", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RadiusUserTags", x => new { x.RadiusUserId, x.RadiusTagId });
+                    table.ForeignKey(
+                        name: "FK_RadiusUserTags_RadiusTags_RadiusTagId",
+                        column: x => x.RadiusTagId,
+                        principalTable: "RadiusTags",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RadiusUserTags_RadiusUsers_RadiusUserId",
+                        column: x => x.RadiusUserId,
+                        principalTable: "RadiusUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusTags_Title",
+                table: "RadiusTags",
+                column: "Title");
+
             migrationBuilder.CreateIndex(
                 name: "IX_RadiusUsers_ProfileId",
                 table: "RadiusUsers",
                 column: "ProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusUserTags_RadiusTagId",
+                table: "RadiusUserTags",
+                column: "RadiusTagId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "RadiusUsers");
+                name: "RadiusGroups");
+
+            migrationBuilder.DropTable(
+                name: "RadiusUserTags");
 
             migrationBuilder.DropTable(
                 name: "SasRadiusIntegrations");
 
             migrationBuilder.DropTable(
                 name: "SyncProgresses");
+
+            migrationBuilder.DropTable(
+                name: "RadiusTags");
+
+            migrationBuilder.DropTable(
+                name: "RadiusUsers");
 
             migrationBuilder.DropTable(
                 name: "RadiusProfiles");

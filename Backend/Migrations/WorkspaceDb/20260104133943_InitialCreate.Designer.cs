@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.WorkspaceDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260104105720_AddColorAndIconToRadiusProfiles")]
-    partial class AddColorAndIconToRadiusProfiles
+    [Migration("20260104133943_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
