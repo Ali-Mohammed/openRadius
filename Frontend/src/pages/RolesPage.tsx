@@ -188,6 +188,8 @@ export default function RolesPage() {
 
   const openEditDialog = async (role: Role) => {
     setEditingRole(role)
+    setSelectedIcon(role.icon || 'Shield')
+    setSelectedColor(role.color || '#3b82f6')
     try {
       const rolePermissions = await userManagementApi.getRolePermissions(role.id)
       setSelectedPermissions(rolePermissions.map(p => p.id))
