@@ -382,11 +382,11 @@ export default function RadiusIpPoolsPage() {
                   ipPools.map((pool) => (
                     <TableRow key={pool.id}>
                       <TableCell className="font-medium">{pool.name}</TableCell>
-                      <TableCell>{pool.start_ip}</TableCell>
-                      <TableCell>{pool.end_ip}</TableCell>
-                      <TableCell>{pool.lease_time}</TableCell>
+                      <TableCell>{pool.startIp}</TableCell>
+                      <TableCell>{pool.endIp}</TableCell>
+                      <TableCell>{pool.leaseTime}</TableCell>
                       <TableCell>
-                        {pool.created_at ? new Date(pool.created_at).toLocaleDateString() : '-'}
+                        {pool.createdAt ? new Date(pool.createdAt).toLocaleDateString() : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
