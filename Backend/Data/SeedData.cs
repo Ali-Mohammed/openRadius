@@ -239,13 +239,25 @@ public static class SeedData
 
     private static void SeedRolePermissions(MasterDbContext context)
     {
-        var roles = context.Roles.ToList();
-        var permissions = context.Permissions.ToList();
+        // Reload data from database to ensure we have the saved entities
+        var roles = context.Roles.AsNoTracking().ToList();
+        var permissions = context.Permissions.AsNoTracking().ToList();
+
+        if (!roles.Any() || !permissions.Any())
+        {
+            Console.WriteLine("⚠ Roles or Permissions not found. Skipping RolePermissions seeding.");
+            return;
+        }
 
         var rolePermissions = new List<RolePermission>();
 
         // Super Administrator - All permissions
-        var superAdmin = roles.First(r => r.Name == "Super Administrator");
+        var superAdmin = roles.FirstOrDefault(r => r.Name == "Super Administrator");
+        if (superAdmin == null)
+        {
+            Console.WriteLine("⚠ Super Administrator role not found.");
+            return;
+        }
         foreach (var permission in permissions)
         {
             rolePermissions.Add(new RolePermission
