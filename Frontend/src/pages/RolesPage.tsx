@@ -4,6 +4,7 @@ import { userManagementApi, type Role, type Permission } from '@/api/userManagem
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -124,6 +125,7 @@ export default function RolesPage() {
   const queryClient = useQueryClient()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null)
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleDesc, setNewRoleDesc] = useState('')
   const [selectedIcon, setSelectedIcon] = useState<string>('Shield')
@@ -165,12 +167,19 @@ export default function RolesPage() {
     mutationFn: userManagementApi.deleteRole,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] })
+      setDeletingRole(null)
       toast.success('Role deleted successfully')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to delete role')
     },
   })
+
+  const confirmDelete = () => {
+    if (deletingRole) {
+      deleteRoleMutation.mutate(deletingRole.id)
+    }
+  }
 
   const assignPermissionsMutation = useMutation({
     mutationFn: ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) =>
