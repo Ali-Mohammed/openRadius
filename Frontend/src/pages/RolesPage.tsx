@@ -476,46 +476,103 @@ export default function RolesPage() {
       <Dialog open={!!editingRole} onOpenChange={(open) => !open && setEditingRole(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Configure Permissions for {editingRole?.name}</DialogTitle>
+            <DialogTitle>Edit Role: {editingRole?.name}</DialogTitle>
             <DialogDescription>
-              Select the permissions for this role
+              Update role details and permissions
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            {permissionsLoading ? (
-              <p className="text-sm text-muted-foreground">Loading permissions...</p>
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                  <div key={category} className="space-y-2">
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      {category}
-                    </p>
-                    <div className="ml-6 space-y-2">
-                      {categoryPermissions.map(permission => (
-                        <div key={permission.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`edit-perm-${permission.id}`}
-                            checked={selectedPermissions.includes(permission.id)}
-                            onCheckedChange={() => handlePermissionToggle(permission.id)}
-                          />
-                          <label
-                            htmlFor={`edit-perm-${permission.id}`}
-                            className="text-sm cursor-pointer flex-1"
-                          >
-                            {permission.name}
-                            {permission.description && (
-                              <span className="text-muted-foreground ml-2">- {permission.description}</span>
-                            )}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+          <div className="py-4 space-y-4">
+            {/* Icon Picker */}
+            <div className="grid gap-2">
+              <Label>Icon</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start gap-2">
+                    {(() => {
+                      const IconComponent = getIconComponent(selectedIcon)
+                      return <IconComponent className="h-4 w-4" style={{ color: selectedColor }} />
+                    })()}
+                    <span>{selectedIcon}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
+                    {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                      <button
+                        key={name}
+                        onClick={() => setSelectedIcon(name)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-md border hover:bg-accent hover:text-accent-foreground ${
+                          selectedIcon === name ? 'bg-accent' : ''
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Color Picker */}
+            <div className="grid gap-2">
+              <Label>Color</Label>
+              <Select value={selectedColor} onValueChange={setSelectedColor}>
+                <SelectTrigger>
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded" style={{ backgroundColor: selectedColor }} />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {PREDEFINED_COLORS.map(color => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded" style={{ backgroundColor: color.value }} />
+                        <span>{color.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
+              {permissionsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading permissions...</p>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
+                    <div key={category} className="space-y-2">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        {category}
+                      </p>
+                      <div className="ml-6 space-y-2">
+                        {categoryPermissions.map(permission => (
+                          <div key={permission.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-perm-${permission.id}`}
+                              checked={selectedPermissions.includes(permission.id)}
+                              onCheckedChange={() => handlePermissionToggle(permission.id)}
+                            />
+                            <label
+                              htmlFor={`edit-perm-${permission.id}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {permission.name}
+                              {permission.description && (
+                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingRole(null)}>
