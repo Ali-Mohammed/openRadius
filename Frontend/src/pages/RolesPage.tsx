@@ -312,8 +312,7 @@ export default function RolesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteRoleMutation.mutate(role.id)}
-                        disabled={deleteRoleMutation.isPending}
+                        onClick={() => setDeletingRole(role)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
