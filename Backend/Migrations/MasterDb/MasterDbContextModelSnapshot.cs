@@ -340,6 +340,10 @@ namespace Backend.Migrations.MasterDb
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("text");
