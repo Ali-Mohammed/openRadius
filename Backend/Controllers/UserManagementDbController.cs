@@ -150,11 +150,19 @@ public class UserManagementDbController : ControllerBase
         try
         {
             var users = await _context.Users
-                .Include(u => u.Supervisor)
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.UserGroups)
                     .ThenInclude(ug => ug.Group)
+                .ToListAsync();
+
+            // Load supervisors separately to avoid circular reference
+            var supervisorIds = users.Where(u => u.SupervisorId.HasValue).Select(u => u.SupervisorId!.Value).Distinct().ToList();
+            var supervisors = await _context.Users
+                .AsNoTracking()
+                .Where(u => supervisorIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
                 .ToListAsync();
 
             var userResponses = users.Select(u => new
@@ -165,13 +173,9 @@ public class UserManagementDbController : ControllerBase
                 u.LastName,
                 u.Email,
                 SupervisorId = u.SupervisorId,
-                Supervisor = u.Supervisor != null ? new
-                {
-                    u.Supervisor.Id,
-                    u.Supervisor.FirstName,
-                    u.Supervisor.LastName,
-                    u.Supervisor.Email
-                } : null,
+                Supervisor = u.SupervisorId.HasValue
+                    ? supervisors.FirstOrDefault(s => s.Id == u.SupervisorId.Value)
+                    : null,
                 Roles = u.UserRoles.Select(ur => new
                 {
                     ur.Role.Id,
