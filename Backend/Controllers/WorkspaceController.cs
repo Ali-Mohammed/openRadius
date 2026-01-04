@@ -92,6 +92,7 @@ public class WorkspaceController : ControllerBase
             w.Comments,
             w.Status,
             w.Color,
+            w.Icon,
             w.Currency,
             w.CreatedAt,
             w.UpdatedAt,
@@ -131,6 +132,7 @@ public class WorkspaceController : ControllerBase
             Comments = dto.Comments,
             Status = dto.Status,
             Color = dto.Color,
+            Icon = dto.Icon,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             CreatedBy = userName,
@@ -219,6 +221,7 @@ public class WorkspaceController : ControllerBase
         workspace.Comments = dto.Comments;
         workspace.Status = dto.Status;
         workspace.Color = dto.Color;
+        workspace.Icon = dto.Icon;
         workspace.UpdatedAt = DateTime.UtcNow;
         workspace.UpdatedBy = userName;
 
