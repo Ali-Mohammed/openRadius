@@ -108,8 +108,10 @@ export const userManagementApi = {
   },
 
   // Role endpoints
-  getRoles: async (): Promise<Role[]> => {
-    const response = await apiClient.get('/api/user-management/roles')
+  getRoles: async (includeDeleted = false): Promise<Role[]> => {
+    const response = await apiClient.get('/api/user-management/roles', {
+      params: { includeDeleted }
+    })
     return response.data
   },
 
@@ -128,14 +130,21 @@ export const userManagementApi = {
     return response.data
   },
 
+  restoreRole: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/user-management/roles/${id}/restore`)
+    return response.data
+  },
+
   assignRolesToUser: async (userId: number, roleIds: number[]): Promise<{ message: string }> => {
     const response = await apiClient.post(`/api/user-management/${userId}/roles`, roleIds)
     return response.data
   },
 
   // Group endpoints
-  getGroups: async (): Promise<Group[]> => {
-    const response = await apiClient.get('/api/user-management/groups')
+  getGroups: async (includeDeleted = false): Promise<Group[]> => {
+    const response = await apiClient.get('/api/user-management/groups', {
+      params: { includeDeleted }
+    })
     return response.data
   },
 
@@ -151,6 +160,11 @@ export const userManagementApi = {
 
   deleteGroup: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/api/user-management/groups/${id}`)
+    return response.data
+  },
+
+  restoreGroup: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/api/user-management/groups/${id}/restore`)
     return response.data
   },
 

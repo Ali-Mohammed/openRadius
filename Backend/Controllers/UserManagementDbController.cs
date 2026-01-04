@@ -496,11 +496,13 @@ public class UserManagementDbController : ControllerBase
 
     // GET: api/user-management/roles
     [HttpGet("roles")]
-    public async Task<IActionResult> GetRoles()
+    public async Task<IActionResult> GetRoles([FromQuery] bool includeDeleted = false)
     {
         try
         {
-            var roles = await _context.Roles.Where(r => !r.IsDeleted).ToListAsync();
+            var roles = includeDeleted
+                ? await _context.Roles.Where(r => r.IsDeleted).ToListAsync()
+                : await _context.Roles.Where(r => !r.IsDeleted).ToListAsync();
             return Ok(roles);
         }
         catch (Exception ex)
@@ -604,11 +606,13 @@ public class UserManagementDbController : ControllerBase
 
     // GET: api/user-management/groups
     [HttpGet("groups")]
-    public async Task<IActionResult> GetGroups()
+    public async Task<IActionResult> GetGroups([FromQuery] bool includeDeleted = false)
     {
         try
         {
-            var groups = await _context.Groups.Where(g => !g.IsDeleted).ToListAsync();
+            var groups = includeDeleted 
+                ? await _context.Groups.Where(g => g.IsDeleted).ToListAsync()
+                : await _context.Groups.Where(g => !g.IsDeleted).ToListAsync();
             return Ok(groups);
         }
         catch (Exception ex)

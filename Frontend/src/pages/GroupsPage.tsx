@@ -135,6 +135,7 @@ export default function GroupsPage() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
   const [groupForm, setGroupForm] = useState({
     name: '',
     description: '',
@@ -144,8 +145,8 @@ export default function GroupsPage() {
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
 
   const { data: groups = [], isLoading } = useQuery<Group[]>({
-    queryKey: ['groups'],
-    queryFn: userManagementApi.getGroups,
+    queryKey: ['groups', showDeleted],
+    queryFn: () => userManagementApi.getGroups(showDeleted),
   })
 
   const createGroupMutation = useMutation({
@@ -190,6 +191,17 @@ export default function GroupsPage() {
       deleteGroupMutation.mutate(deletingGroup.id)
     }
   }
+
+  const restoreGroupMutation = useMutation({
+    mutationFn: userManagementApi.restoreGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+      toast.success('Group restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to restore group')
+    },
+  })
 
   const handleOpenDialog = (group?: Group) => {
     if (group) {
@@ -241,10 +253,19 @@ export default function GroupsPage() {
           <h1 className="text-3xl font-bold">Groups</h1>
           <p className="text-muted-foreground">Organize users into groups for easier management</p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Group
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={showDeleted ? "secondary" : "outline"}
+            onClick={() => setShowDeleted(!showDeleted)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {showDeleted ? 'Show Active' : 'Show Deleted'}
+          </Button>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Group
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -274,20 +295,34 @@ export default function GroupsPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 ml-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenDialog(group)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingGroup(group)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {showDeleted ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => restoreGroupMutation.mutate(group.id)}
+                          disabled={restoreGroupMutation.isPending}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Restore
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDialog(group)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingGroup(group)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

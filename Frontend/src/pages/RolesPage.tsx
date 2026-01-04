@@ -126,6 +126,7 @@ export default function RolesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [deletingRole, setDeletingRole] = useState<Role | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleDesc, setNewRoleDesc] = useState('')
   const [selectedIcon, setSelectedIcon] = useState<string>('Shield')
@@ -134,8 +135,8 @@ export default function RolesPage() {
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ['roles'],
-    queryFn: userManagementApi.getRoles,
+    queryKey: ['roles', showDeleted],
+    queryFn: () => userManagementApi.getRoles(showDeleted),
   })
 
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
@@ -180,6 +181,17 @@ export default function RolesPage() {
       deleteRoleMutation.mutate(deletingRole.id)
     }
   }
+
+  const restoreRoleMutation = useMutation({
+    mutationFn: userManagementApi.restoreRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] })
+      toast.success('Role restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to restore role')
+    },
+  })
 
   const assignPermissionsMutation = useMutation({
     mutationFn: ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) =>
@@ -268,10 +280,19 @@ export default function RolesPage() {
           <h1 className="text-3xl font-bold">Roles</h1>
           <p className="text-muted-foreground">Manage user roles and their permissions</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Role
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={showDeleted ? "secondary" : "outline"}
+            onClick={() => setShowDeleted(!showDeleted)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {showDeleted ? 'Show Active' : 'Show Deleted'}
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Role
+          </Button>
+        </div>
       </div>
 
       {rolesLoading ? (
