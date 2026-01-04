@@ -175,18 +175,24 @@ export const userManagementApi = {
 
   // Toggle user status
   toggleUserStatus: async (userId: string, enabled: boolean): Promise<{ message: string }> => {
-    // First get the user details
+    // First get the user details from Keycloak
     const userResponse = await apiClient.get(`/api/keycloak/users/${userId}`)
     const user = userResponse.data
     
-    // Then update with the new enabled status
-    const response = await apiClient.put(`/api/keycloak/users/${userId}`, {
+    // Update in Keycloak
+    await apiClient.put(`/api/keycloak/users/${userId}`, {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       enabled: enabled,
       emailVerified: user.emailVerified,
     })
+    
+    // Update in local database
+    const response = await apiClient.put(`/api/user-management/${userId}/status`, {
+      enabled: enabled
+    })
+    
     return response.data
   },
 }
