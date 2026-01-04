@@ -134,6 +134,7 @@ export default function GroupsPage() {
   const queryClient = useQueryClient()
   const [showDialog, setShowDialog] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null)
   const [groupForm, setGroupForm] = useState({
     name: '',
     description: '',
