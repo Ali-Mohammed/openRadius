@@ -500,7 +500,7 @@ public class UserManagementDbController : ControllerBase
     {
         try
         {
-            var roles = await _context.Roles.ToListAsync();
+            var roles = await _context.Roles.Where(r => !r.IsDeleted).ToListAsync();
             return Ok(roles);
         }
         catch (Exception ex)
@@ -584,12 +584,13 @@ public class UserManagementDbController : ControllerBase
         try
         {
             var role = await _context.Roles.FindAsync(id);
-            if (role == null)
+            if (role == null || role.IsDeleted)
             {
                 return NotFound(new { message = "Role not found" });
             }
 
-            _context.Roles.Remove(role);
+            role.IsDeleted = true;
+            role.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Role deleted successfully" });
@@ -607,7 +608,7 @@ public class UserManagementDbController : ControllerBase
     {
         try
         {
-            var groups = await _context.Groups.ToListAsync();
+            var groups = await _context.Groups.Where(g => !g.IsDeleted).ToListAsync();
             return Ok(groups);
         }
         catch (Exception ex)
@@ -691,12 +692,13 @@ public class UserManagementDbController : ControllerBase
         try
         {
             var group = await _context.Groups.FindAsync(id);
-            if (group == null)
+            if (group == null || group.IsDeleted)
             {
                 return NotFound(new { message = "Group not found" });
             }
 
-            _context.Groups.Remove(group);
+            group.IsDeleted = true;
+            group.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Group deleted successfully" });
@@ -705,6 +707,66 @@ public class UserManagementDbController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting group {GroupId}", id);
             return StatusCode(500, new { message = "Failed to delete group", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/roles/{id}/restore
+    [HttpPost("roles/{id}/restore")]
+    public async Task<IActionResult> RestoreRole(int id)
+    {
+        try
+        {
+            var role = await _context.Roles.FindAsync(id);
+            if (role == null)
+            {
+                return NotFound(new { message = "Role not found" });
+            }
+
+            if (!role.IsDeleted)
+            {
+                return BadRequest(new { message = "Role is not deleted" });
+            }
+
+            role.IsDeleted = false;
+            role.DeletedAt = null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Role restored successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring role {RoleId}", id);
+            return StatusCode(500, new { message = "Failed to restore role", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/groups/{id}/restore
+    [HttpPost("groups/{id}/restore")]
+    public async Task<IActionResult> RestoreGroup(int id)
+    {
+        try
+        {
+            var group = await _context.Groups.FindAsync(id);
+            if (group == null)
+            {
+                return NotFound(new { message = "Group not found" });
+            }
+
+            if (!group.IsDeleted)
+            {
+                return BadRequest(new { message = "Group is not deleted" });
+            }
+
+            group.IsDeleted = false;
+            group.DeletedAt = null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Group restored successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring group {GroupId}", id);
+            return StatusCode(500, new { message = "Failed to restore group", error = ex.Message });
         }
     }
 
@@ -804,7 +866,7 @@ public class UserManagementDbController : ControllerBase
     {
         try
         {
-            var permissions = await _context.Permissions.ToListAsync();
+            var permissions = await _context.Permissions.Where(p => !p.IsDeleted).ToListAsync();
             return Ok(permissions);
         }
         catch (Exception ex)
