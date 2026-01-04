@@ -9,6 +9,8 @@ public class RadiusGroup
     public required string Name { get; set; }
     public string? Subscription { get; set; }
     public bool IsActive { get; set; } = true;
+    public string Color { get; set; } = "#3b82f6"; // Default blue color
+    public string Icon { get; set; } = "Users"; // Default icon
     
     // Soft Delete
     public bool IsDeleted { get; set; }
@@ -29,6 +31,8 @@ public class RadiusGroupResponse
     public string Name { get; set; } = string.Empty;
     public string? Subscription { get; set; }
     public bool IsActive { get; set; }
+    public string Color { get; set; } = string.Empty;
+    public string Icon { get; set; } = string.Empty;
     public int UsersCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -40,6 +44,8 @@ public class CreateGroupRequest
     public required string Name { get; set; }
     public string? Subscription { get; set; }
     public bool IsActive { get; set; } = true;
+    public string Color { get; set; } = "#3b82f6";
+    public string Icon { get; set; } = "Users";
 }
 
 public class UpdateGroupRequest
@@ -47,4 +53,6 @@ public class UpdateGroupRequest
     public string? Name { get; set; }
     public string? Subscription { get; set; }
     public bool? IsActive { get; set; }
+    public string? Color { get; set; }
+    public string? Icon { get; set; }
 }

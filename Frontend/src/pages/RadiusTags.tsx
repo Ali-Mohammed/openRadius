@@ -266,26 +266,58 @@ export default function RadiusTags() {
   }
 
   if (isLoading) {
-    return <div className="p-6">Loading tags...</div>
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-9 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-96 bg-muted animate-pulse rounded mt-2" />
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-6 w-32 bg-muted rounded" />
+                <div className="h-4 w-full bg-muted rounded mt-2" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-20 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">RADIUS Tags</h1>
-          <p className="text-muted-foreground">Manage tags for organizing RADIUS users</p>
+          <h1 className="text-3xl font-bold tracking-tight">RADIUS Tags</h1>
+          <p className="text-muted-foreground mt-1">Organize and manage your RADIUS users with custom tags</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Tag
+        <Button onClick={() => setShowCreateDialog(true)} size="lg" className="gap-2">
+          <Plus className="h-5 w-5" />
+          Create Tag
         </Button>
       </div>
 
       {tags.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            No tags found. Create your first tag to get started.
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-primary/10 p-6 mb-4">
+              <TagIcon className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No tags yet</h3>
+            <p className="text-muted-foreground text-center max-w-sm mb-6">
+              Get started by creating your first tag to organize your RADIUS users
+            </p>
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Your First Tag
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -293,59 +325,76 @@ export default function RadiusTags() {
           {tags.map((tag: RadiusTag) => {
             const IconComponent = getIconComponent(tag.icon)
             return (
-              <Card key={tag.id} className={tag.isDeleted ? 'opacity-50' : ''}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <IconComponent 
-                        className="w-5 h-5" 
-                        style={{ color: tag.color }}
-                      />
-                      <CardTitle className="text-lg">{tag.title}</CardTitle>
+              <Card 
+                key={tag.id} 
+                className={`transition-all hover:shadow-lg ${
+                  tag.isDeleted ? 'opacity-50' : 'hover:border-primary/50'
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div 
+                        className="rounded-lg p-2.5 flex-shrink-0"
+                        style={{ 
+                          backgroundColor: `${tag.color}15`,
+                          color: tag.color 
+                        }}
+                      >
+                        <IconComponent className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg mb-1 truncate">{tag.title}</CardTitle>
+                        {tag.description && (
+                          <CardDescription className="line-clamp-2">{tag.description}</CardDescription>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex gap-1">
-                      {!tag.isDeleted && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(tag)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteTagMutation.mutate(tag.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    {!tag.isDeleted && (
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                          onClick={() => handleEdit(tag)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => deleteTagMutation.mutate(tag.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  {tag.description && (
-                    <CardDescription>{tag.description}</CardDescription>
-                  )}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant={tag.status === 'active' ? 'default' : 'secondary'}>
+                      <Badge 
+                        variant={tag.status === 'active' ? 'default' : 'secondary'}
+                        className="font-medium"
+                      >
                         {tag.status}
                       </Badge>
                       {tag.isDeleted && (
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-7"
                           onClick={() => restoreTagMutation.mutate(tag.id)}
                         >
                           Restore
                         </Button>
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {tag.usersCount ?? 0} {tag.usersCount === 1 ? 'user' : 'users'}
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      <span className="font-medium">{tag.usersCount ?? 0}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -357,67 +406,81 @@ export default function RadiusTags() {
 
       {/* Create Tag Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Create New Tag</DialogTitle>
+            <DialogTitle className="text-2xl">Create New Tag</DialogTitle>
             <DialogDescription>
-              Add a new tag for organizing RADIUS users
+              Create a custom tag to organize and categorize your RADIUS users
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-5 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title" className="text-sm font-medium">
+                Title <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="title"
-                placeholder="e.g., VIP, Premium, Corporate"
+                placeholder="e.g., VIP Users, Premium Members, Corporate Access"
                 value={newTagTitle}
                 onChange={(e) => setNewTagTitle(e.target.value)}
+                className="h-10"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium">Description</Label>
               <Input
                 id="description"
-                placeholder="Brief description of this tag"
+                placeholder="Add a brief description (optional)"
                 value={newTagDescription}
                 onChange={(e) => setNewTagDescription(e.target.value)}
+                className="h-10"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={newTagStatus} onValueChange={setNewTagStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                <Select value={newTagStatus} onValueChange={setNewTagStatus}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">✓ Active</SelectItem>
+                    <SelectItem value="inactive">⊘ Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="color" className="text-sm font-medium">Color</Label>
+                <Select value={newTagColor} onValueChange={setNewTagColor}>
+                  <SelectTrigger className="h-10">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded-full border" 
+                        style={{ backgroundColor: newTagColor }}
+                      />
+                      <span>
+                        {PREDEFINED_COLORS.find(c => c.value === newTagColor)?.label || 'Select Color'}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_COLORS.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: color.value }}
+                          />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="color">Color</Label>
-              <Select value={newTagColor} onValueChange={setNewTagColor}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_COLORS.map((color) => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: color.value }}
-                        />
-                        {color.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="icon">Icon</Label>
+              <Label htmlFor="icon" className="text-sm font-medium">Icon</Label>
               <div className="relative">
                 <Button 
                   variant="outline" 
@@ -471,13 +534,19 @@ export default function RadiusTags() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCreateDialog(false)}
+              className="gap-2"
+            >
               Cancel
             </Button>
             <Button
               onClick={handleCreate}
               disabled={!newTagTitle.trim() || createTagMutation.isPending}
+              className="gap-2"
             >
+              <Plus className="h-4 w-4" />
               {createTagMutation.isPending ? 'Creating...' : 'Create Tag'}
             </Button>
           </DialogFooter>
@@ -486,32 +555,81 @@ export default function RadiusTags() {
 
       {/* Edit Tag Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Tag</DialogTitle>
+            <DialogTitle className="text-2xl">Edit Tag</DialogTitle>
             <DialogDescription>
-              Update tag details
+              Update tag information and settings
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-5 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-title">Title *</Label>
+              <Label htmlFor="edit-title" className="text-sm font-medium">
+                Title <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="edit-title"
+                placeholder="Enter tag title"
                 value={newTagTitle}
                 onChange={(e) => setNewTagTitle(e.target.value)}
+                className="h-10"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description" className="text-sm font-medium">Description</Label>
               <Input
                 id="edit-description"
+                placeholder="Add a brief description (optional)"
                 value={newTagDescription}
                 onChange={(e) => setNewTagDescription(e.target.value)}
+                className="h-10"
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status" className="text-sm font-medium">Status</Label>
+                <Select value={newTagStatus} onValueChange={setNewTagStatus}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">✓ Active</SelectItem>
+                    <SelectItem value="inactive">⊘ Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-color" className="text-sm font-medium">Color</Label>
+                <Select value={newTagColor} onValueChange={setNewTagColor}>
+                  <SelectTrigger className="h-10">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded-full border" 
+                        style={{ backgroundColor: newTagColor }}
+                      />
+                      <span>
+                        {PREDEFINED_COLORS.find(c => c.value === newTagColor)?.label || 'Select Color'}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_COLORS.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border" 
+                            style={{ backgroundColor: color.value }}
+                          />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-icon">Icon</Label>
+              <Label htmlFor="edit-icon" className="text-sm font-medium">Icon</Label>
               <div className="relative">
                 <Button 
                   variant="outline" 
@@ -563,48 +681,21 @@ export default function RadiusTags() {
                 )}
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select value={newTagStatus} onValueChange={setNewTagStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-color">Color</Label>
-              <Select value={newTagColor} onValueChange={setNewTagColor}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_COLORS.map((color) => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: color.value }}
-                        />
-                        {color.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowEditDialog(false)}
+              className="gap-2"
+            >
               Cancel
             </Button>
             <Button
               onClick={handleUpdate}
               disabled={!newTagTitle.trim() || updateTagMutation.isPending}
+              className="gap-2"
             >
+              <Edit className="h-4 w-4" />
               {updateTagMutation.isPending ? 'Updating...' : 'Update Tag'}
             </Button>
           </DialogFooter>
