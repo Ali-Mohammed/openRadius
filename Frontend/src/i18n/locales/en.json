@@ -133,6 +133,7 @@
     "id": "ID",
     "tokenClaims": "Token Claims",
     "profile": "Profile",
+    "logout": "Logout",
     "editProfile": "Edit Profile",
     "editProfileDesc": "Make changes to your profile here. Click save when you're done.",
     "saveChanges": "Save Changes",
