@@ -148,6 +148,8 @@ public class UserManagementDbController : ControllerBase
         var authenticatedClient = _httpClientFactory.CreateClient();
         authenticatedClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        authenticatedClient.DefaultRequestHeaders.CacheControl = 
+            new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true, NoStore = true };
 
         return authenticatedClient;
     }
@@ -272,15 +274,15 @@ public class UserManagementDbController : ControllerBase
                     u.SupervisorId,
                     Roles = u.UserRoles.Select(ur => new
                     {
-                        ur.Role.Id,
-                        ur.Role.Name,
-                        ur.Role.Description
+                        id = ur.Role.Id,
+                        name = ur.Role.Name,
+                        description = ur.Role.Description
                     }).ToList(),
                     Groups = u.UserGroups.Select(ug => new
                     {
-                        ug.Group.Id,
-                        ug.Group.Name,
-                        ug.Group.Description
+                        id = ug.Group.Id,
+                        name = ug.Group.Name,
+                        description = ug.Group.Description
                     }).ToList()
                 })
                 .ToListAsync();
@@ -290,7 +292,7 @@ public class UserManagementDbController : ControllerBase
             var supervisors = await _context.Users
                 .AsNoTracking()
                 .Where(u => supervisorIds.Contains(u.Id))
-                .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
+                .Select(u => new { id = u.Id, firstName = u.FirstName, lastName = u.LastName, email = u.Email })
                 .ToListAsync();
 
             // Fetch enabled status from Keycloak for users with KeycloakUserId
@@ -337,22 +339,28 @@ public class UserManagementDbController : ControllerBase
             // Combine the data
             var userResponses = users.Select(u => new
             {
-                u.Id,
-                u.KeycloakUserId,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                Enabled = !string.IsNullOrEmpty(u.KeycloakUserId) && enabledStatusMap.ContainsKey(u.KeycloakUserId)
+                id = u.Id,
+                keycloakUserId = u.KeycloakUserId,
+                firstName = u.FirstName,
+                lastName = u.LastName,
+                email = u.Email,
+                enabled = !string.IsNullOrEmpty(u.KeycloakUserId) && enabledStatusMap.ContainsKey(u.KeycloakUserId)
                     ? enabledStatusMap[u.KeycloakUserId]
                     : true,
-                SupervisorId = u.SupervisorId,
-                Supervisor = u.SupervisorId.HasValue
-                    ? supervisors.FirstOrDefault(s => s.Id == u.SupervisorId.Value)
+                supervisorId = u.SupervisorId,
+                supervisor = u.SupervisorId.HasValue
+                    ? supervisors.FirstOrDefault(s => s.id == u.SupervisorId.Value)
                     : null,
-                u.Roles,
-                u.Groups
+                roles = u.Roles,
+                groups = u.Groups
             }).ToList();
 
+            _logger.LogInformation($"Returning {userResponses.Count} users with roles and groups");
+
+            Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            Response.Headers.Append("Pragma", "no-cache");
+            Response.Headers.Append("Expires", "0");
+            
             return Ok(userResponses);
         }
         catch (Exception ex)
@@ -409,31 +417,31 @@ public class UserManagementDbController : ControllerBase
 
             var userResponse = new
             {
-                user.Id,
-                user.KeycloakUserId,
-                user.FirstName,
-                user.LastName,
-                user.Email,
-                Enabled = enabled,
-                SupervisorId = user.SupervisorId,
-                Supervisor = user.Supervisor != null ? new
+                id = user.Id,
+                keycloakUserId = user.KeycloakUserId,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                email = user.Email,
+                enabled = enabled,
+                supervisorId = user.SupervisorId,
+                supervisor = user.Supervisor != null ? new
                 {
-                    user.Supervisor.Id,
-                    user.Supervisor.FirstName,
-                    user.Supervisor.LastName,
-                    user.Supervisor.Email
+                    id = user.Supervisor.Id,
+                    firstName = user.Supervisor.FirstName,
+                    lastName = user.Supervisor.LastName,
+                    email = user.Supervisor.Email
                 } : null,
-                Roles = user.UserRoles.Select(ur => new
+                roles = user.UserRoles.Select(ur => new
                 {
-                    ur.Role.Id,
-                    ur.Role.Name,
-                    ur.Role.Description
+                    id = ur.Role.Id,
+                    name = ur.Role.Name,
+                    description = ur.Role.Description
                 }).ToList(),
-                Groups = user.UserGroups.Select(ug => new
+                groups = user.UserGroups.Select(ug => new
                 {
-                    ug.Group.Id,
-                    ug.Group.Name,
-                    ug.Group.Description
+                    id = ug.Group.Id,
+                    name = ug.Group.Name,
+                    description = ug.Group.Description
                 }).ToList()
             };
 

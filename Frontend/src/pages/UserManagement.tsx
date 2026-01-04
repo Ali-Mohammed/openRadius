@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 
 export default function UserManagement() {
   const queryClient = useQueryClient()
+  const [refreshKey, setRefreshKey] = useState(Date.now())
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
@@ -33,10 +34,22 @@ export default function UserManagement() {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
 
+  // Force refetch on mount
+  useEffect(() => {
+    setRefreshKey(Date.now())
+  }, [])
+
   // Queries
   const { data: users = [], isLoading, refetch } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => userManagementApi.getAll(),
+    queryKey: ['users', refreshKey],
+    queryFn: async () => {
+      const data = await userManagementApi.getAll()
+      console.log('Users data received:', data)
+      console.log('First user:', data[0])
+      return data
+    },
+    staleTime: 0,
+    gcTime: 0,
   })
 
   const { data: groups = [] } = useQuery({
@@ -232,7 +245,14 @@ export default function UserManagement() {
             <Download className="h-4 w-4 mr-2" />
             {syncUsersMutation.isPending ? 'Syncing...' : 'Sync Keycloak Users'}
           </Button>
-          <Button onClick={() => refetch()} variant="outline" size="icon">
+          <Button 
+            onClick={() => {
+              setRefreshKey(Date.now())
+              queryClient.invalidateQueries({ queryKey: ['users'] })
+            }} 
+            variant="outline" 
+            size="icon"
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -263,7 +283,7 @@ export default function UserManagement() {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id} className={!user.enabled ? 'opacity-60' : ''}>
+                  <TableRow key={user.id} className={user.enabled === false ? 'opacity-60' : ''}>
                     <TableCell>
                       {user.firstName || user.lastName
                         ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
@@ -272,10 +292,10 @@ export default function UserManagement() {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge 
-                        variant={user.enabled ? "outline" : "secondary"}
-                        className={user.enabled ? "border-green-600 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-400" : "border-red-600 text-red-700 bg-red-50 dark:bg-red-950 dark:text-red-400"}
+                        variant={user.enabled !== false ? "outline" : "secondary"}
+                        className={user.enabled !== false ? "border-green-600 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-400" : "border-red-600 text-red-700 bg-red-50 dark:bg-red-950 dark:text-red-400"}
                       >
-                        {user.enabled ? 'Active' : 'Disabled'}
+                        {user.enabled !== false ? 'Active' : 'Disabled'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -335,16 +355,16 @@ export default function UserManagement() {
                             if (user.keycloakUserId) {
                               toggleUserStatusMutation.mutate({
                                 userId: user.keycloakUserId,
-                                enabled: !user.enabled,
+                                enabled: user.enabled === false,
                               })
                             }
                           }}
                           variant="ghost"
                           size="icon"
-                          title={user.enabled ? 'Disable user' : 'Enable user'}
+                          title={user.enabled !== false ? 'Disable user' : 'Enable user'}
                           disabled={toggleUserStatusMutation.isPending}
                         >
-                          {user.enabled ? (
+                          {user.enabled !== false ? (
                             <UserX className="h-4 w-4 text-red-600" />
                           ) : (
                             <UserCheck className="h-4 w-4 text-green-600" />

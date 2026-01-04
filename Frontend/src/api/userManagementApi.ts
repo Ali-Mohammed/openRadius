@@ -14,8 +14,8 @@ export interface User {
     lastName?: string
     email?: string
   }
-  roles: Role[]
-  groups: Group[]
+  roles?: Role[]
+  groups?: Group[]
 }
 
 export interface Role {

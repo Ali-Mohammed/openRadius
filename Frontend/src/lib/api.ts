@@ -5,6 +5,11 @@ import keycloak from '../keycloak'
 // Create axios instance with default config
 export const apiClient = axios.create({
   baseURL: appConfig.api.baseUrl,
+  headers: {
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  },
 })
 
 // Add auth interceptor
