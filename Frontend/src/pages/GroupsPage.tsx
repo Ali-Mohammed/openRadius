@@ -177,12 +177,19 @@ export default function GroupsPage() {
     mutationFn: userManagementApi.deleteGroup,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] })
+      setDeletingGroup(null)
       toast.success('Group deleted successfully')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to delete group')
     },
   })
+
+  const confirmDelete = () => {
+    if (deletingGroup) {
+      deleteGroupMutation.mutate(deletingGroup.id)
+    }
+  }
 
   const handleOpenDialog = (group?: Group) => {
     if (group) {
@@ -277,8 +284,7 @@ export default function GroupsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteGroupMutation.mutate(group.id)}
-                        disabled={deleteGroupMutation.isPending}
+                        onClick={() => setDeletingGroup(group)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -419,6 +425,24 @@ export default function GroupsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingGroup} onOpenChange={(open) => !open && setDeletingGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingGroup?.name}"? This action can be undone later by restoring the group.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
