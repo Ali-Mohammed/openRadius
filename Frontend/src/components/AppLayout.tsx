@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -44,6 +44,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius', icon: Radio }
     if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
+    if (location.pathname.includes('/radius/nas')) return { parent: null, current: 'Network Access Servers', icon: Server }
     if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Wrench }
     if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Key }
     return { parent: null, current: 'Dashboard', icon: Home }
