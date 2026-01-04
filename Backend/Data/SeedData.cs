@@ -14,29 +14,68 @@ public static class SeedData
         // Ensure database is created
         context.Database.EnsureCreated();
 
+        Console.WriteLine("=== Checking seed data status ===");
+        
+        var permissionsCount = context.Permissions.Count();
+        var rolesCount = context.Roles.Count();
+        var groupsCount = context.Groups.Count();
+        var rolePermissionsCount = context.RolePermissions.Count();
+
+        Console.WriteLine($"Current counts - Permissions: {permissionsCount}, Roles: {rolesCount}, Groups: {groupsCount}, RolePermissions: {rolePermissionsCount}");
+
         // Seed Permissions
-        if (!context.Permissions.Any())
+        if (permissionsCount == 0)
         {
+            Console.WriteLine("Seeding Permissions...");
             SeedPermissions(context);
+            permissionsCount = context.Permissions.Count();
+            Console.WriteLine($"✓ {permissionsCount} Permissions seeded");
+        }
+        else
+        {
+            Console.WriteLine($"⊘ Skipping Permissions (already exists: {permissionsCount})");
         }
 
         // Seed Roles
-        if (!context.Roles.Any())
+        if (rolesCount == 0)
         {
+            Console.WriteLine("Seeding Roles...");
             SeedRoles(context);
+            rolesCount = context.Roles.Count();
+            Console.WriteLine($"✓ {rolesCount} Roles seeded");
+        }
+        else
+        {
+            Console.WriteLine($"⊘ Skipping Roles (already exists: {rolesCount})");
         }
 
         // Seed Groups
-        if (!context.Groups.Any())
+        if (groupsCount == 0)
         {
+            Console.WriteLine("Seeding Groups...");
             SeedGroups(context);
+            groupsCount = context.Groups.Count();
+            Console.WriteLine($"✓ {groupsCount} Groups seeded");
+        }
+        else
+        {
+            Console.WriteLine($"⊘ Skipping Groups (already exists: {groupsCount})");
         }
 
         // Seed Role-Permission mappings
-        if (!context.RolePermissions.Any())
+        if (rolePermissionsCount == 0 && rolesCount > 0 && permissionsCount > 0)
         {
+            Console.WriteLine("Seeding Role-Permission mappings...");
             SeedRolePermissions(context);
+            rolePermissionsCount = context.RolePermissions.Count();
+            Console.WriteLine($"✓ {rolePermissionsCount} Role-Permission mappings seeded");
         }
+        else if (rolePermissionsCount > 0)
+        {
+            Console.WriteLine($"⊘ Skipping RolePermissions (already exists: {rolePermissionsCount})");
+        }
+        
+        Console.WriteLine("=== Seed data check complete ===");
     }
 
     private static void SeedPermissions(MasterDbContext context)

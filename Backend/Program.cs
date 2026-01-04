@@ -136,7 +136,6 @@ using (var scope = app.Services.CreateScope())
     
     // Seed roles, permissions, and groups
     SeedData.Initialize(masterContext);
-    Console.WriteLine("✓ Roles, Permissions, and Groups seeded");
     
     // Seed default OIDC provider if no providers exist
     if (!masterContext.OidcSettings.Any())
