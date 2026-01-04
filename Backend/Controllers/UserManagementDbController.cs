@@ -526,6 +526,8 @@ public class UserManagementDbController : ControllerBase
             {
                 Name = request.Name,
                 Description = request.Description,
+                Icon = request.Icon,
+                Color = request.Color,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -923,6 +925,8 @@ public class CreateUserRoleRequest
 {
     public required string Name { get; set; }
     public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
 }
 
 public class CreateUserGroupRequest

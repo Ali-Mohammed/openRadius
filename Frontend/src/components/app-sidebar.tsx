@@ -141,6 +141,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { theme, primaryColor } = useTheme()
   const { t } = useTranslation()
   const location = useLocation()
+  const [searchQuery, setSearchQuery] = React.useState("")
+
+  // Filter and sort menu items based on search query
+  const filteredNavMain = React.useMemo(() => {
+    if (!searchQuery.trim()) {
+      // Sort alphabetically by translated title when no search
+      return [...data.navMain].sort((a, b) => 
+        t(a.titleKey).localeCompare(t(b.titleKey))
+      )
+    }
+
+    const query = searchQuery.toLowerCase()
+    return data.navMain
+      .map(item => {
+        const parentMatch = t(item.titleKey).toLowerCase().includes(query)
+        const filteredItems = item.items.filter(subItem =>
+          t(subItem.titleKey).toLowerCase().includes(query)
+        )
+        
+        // Include parent if it matches or has matching children
+        if (parentMatch || filteredItems.length > 0) {
+          return {
+            ...item,
+            items: filteredItems.length > 0 ? filteredItems : item.items
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
+      .sort((a, b) => t(a!.titleKey).localeCompare(t(b!.titleKey)))
+  }, [searchQuery, t])
 
   return (
     <Sidebar {...props}>
@@ -162,11 +193,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </div>
         </Link>
         <WorkspaceSwitcher />
-        <SearchForm />
+        <SearchForm searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       </SidebarHeader>
       <SidebarContent className="gap-0">
         {/* We create a collapsible SidebarGroup for each parent. */}
-        {data.navMain.map((item) => (
+        {filteredNavMain.map((item) => (
           <Collapsible
             key={item.titleKey}
             title={t(item.titleKey)}

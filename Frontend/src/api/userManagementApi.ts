@@ -22,6 +22,8 @@ export interface Role {
   id: number
   name: string
   description?: string
+  icon?: string
+  color?: string
 }
 
 export interface Group {
@@ -61,6 +63,8 @@ export interface UpdateSupervisorRequest {
 export interface CreateUserRoleRequest {
   name: string
   description?: string
+  icon?: string
+  color?: string
 }
 
 export interface CreateUserGroupRequest {
