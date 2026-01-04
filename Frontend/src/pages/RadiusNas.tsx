@@ -381,38 +381,38 @@ export default function RadiusNasPage() {
       {/* Main Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>NAS Devices</CardTitle>
-              <CardDescription>
-                {showTrash ? 'Deleted NAS devices' : 'Active NAS devices'}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={showTrash ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setShowTrash(!showTrash)
-                  setCurrentPage(1)
-                }}
-              >
-                {showTrash ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    View Active
-                  </>
-                ) : (
-                  <>
-                    <Archive className="mr-2 h-4 w-4" />
-                    View Trash
-                  </>
-                )}
-              </Button>
-           CardTitle>NAS Devices</CardTitle>
+          <CardTitle>NAS Devices</CardTitle>
           <CardDescription>
             {showTrash ? 'Deleted NAS devices' : 'Active NAS devices'}
           </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Search and Filters */}
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1 flex gap-2">
+              <Input
+                placeholder="Search NAS devices..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="max-w-sm"
+              />
+              <Button onClick={handleSearch} variant="secondary">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25 / page</SelectItem>
+                <SelectItem value="50">50 / page</SelectItem>
+                <SelectItem value="100">100 / page</SelectItem>
+                <SelectItem value="200">200 / page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Table */}
           <div className="border rounded-md">
