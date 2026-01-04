@@ -501,9 +501,32 @@ public class UserManagementDbController : ControllerBase
         try
         {
             var roles = includeDeleted
-                ? await _context.Roles.Where(r => r.IsDeleted).ToListAsync()
-                : await _context.Roles.Where(r => !r.IsDeleted).ToListAsync();
-            return Ok(roles);
+                ? await _context.Roles
+                    .Include(r => r.UserRoles)
+                    .Include(r => r.RolePermissions)
+                    .Where(r => r.IsDeleted)
+                    .ToListAsync()
+                : await _context.Roles
+                    .Include(r => r.UserRoles)
+                    .Include(r => r.RolePermissions)
+                    .Where(r => !r.IsDeleted)
+                    .ToListAsync();
+            
+            var rolesWithCount = roles.Select(r => new
+            {
+                r.Id,
+                r.Name,
+                r.Description,
+                r.Icon,
+                r.Color,
+                r.CreatedAt,
+                r.IsDeleted,
+                r.DeletedAt,
+                UserCount = r.UserRoles.Count,
+                PermissionCount = r.RolePermissions.Count
+            });
+            
+            return Ok(rolesWithCount);
         }
         catch (Exception ex)
         {
@@ -611,9 +634,29 @@ public class UserManagementDbController : ControllerBase
         try
         {
             var groups = includeDeleted 
-                ? await _context.Groups.Where(g => g.IsDeleted).ToListAsync()
-                : await _context.Groups.Where(g => !g.IsDeleted).ToListAsync();
-            return Ok(groups);
+                ? await _context.Groups
+                    .Include(g => g.UserGroups)
+                    .Where(g => g.IsDeleted)
+                    .ToListAsync()
+                : await _context.Groups
+                    .Include(g => g.UserGroups)
+                    .Where(g => !g.IsDeleted)
+                    .ToListAsync();
+            
+            var groupsWithCount = groups.Select(g => new
+            {
+                g.Id,
+                g.Name,
+                g.Description,
+                g.Icon,
+                g.Color,
+                g.CreatedAt,
+                g.IsDeleted,
+                g.DeletedAt,
+                UserCount = g.UserGroups.Count
+            });
+            
+            return Ok(groupsWithCount);
         }
         catch (Exception ex)
         {

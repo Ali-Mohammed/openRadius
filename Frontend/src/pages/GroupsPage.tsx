@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import { toast } from "sonner"
-import { Plus, Trash2, Pencil, 
+import { Plus, Trash2, Pencil, Users, 
   Star, Heart, Zap, Trophy, Crown, Shield, Users as UsersIcon, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
   CheckCircle, XCircle, AlertCircle, Info, Settings, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
   ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Lock, Key, Eye, Bell, MessageCircle, 
@@ -291,6 +292,14 @@ export default function GroupsPage() {
                         <CardTitle className="text-lg truncate">{group.name}</CardTitle>
                         {group.description && (
                           <CardDescription className="mt-1 line-clamp-2">{group.description}</CardDescription>
+                        )}
+                        {group.userCount !== undefined && (
+                          <div className="mt-2">
+                            <Badge variant="secondary" className="text-xs">
+                              <Users className="h-3 w-3 mr-1" />
+                              {group.userCount} {group.userCount === 1 ? 'user' : 'users'}
+                            </Badge>
+                          </div>
                         )}
                       </div>
                     </div>

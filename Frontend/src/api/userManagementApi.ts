@@ -24,6 +24,8 @@ export interface Role {
   description?: string
   icon?: string
   color?: string
+  userCount?: number
+  permissionCount?: number
 }
 
 export interface Group {
@@ -32,6 +34,7 @@ export interface Group {
   description?: string
   icon?: string
   color?: string
+  userCount?: number
 }
 
 export interface Permission {

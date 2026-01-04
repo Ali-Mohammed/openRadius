@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from 'sonner'
-import { Plus, Trash2, Shield as ShieldIcon, Lock, Settings, Pencil, RotateCcw,
+import { Plus, Trash2, Shield as ShieldIcon, Lock, Settings, Pencil, RotateCcw, Users,
   Star, Heart, Zap, Trophy, Crown, Shield, Users as UsersIcon, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
   CheckCircle, XCircle, AlertCircle, Info, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
   ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Key, Eye, Bell, MessageCircle, 
@@ -319,6 +319,20 @@ export default function RolesPage() {
                         {role.description && (
                           <CardDescription className="mt-1 line-clamp-2">{role.description}</CardDescription>
                         )}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {role.userCount !== undefined && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Users className="h-3 w-3 mr-1" />
+                              {role.userCount} {role.userCount === 1 ? 'user' : 'users'}
+                            </Badge>
+                          )}
+                          {role.permissionCount !== undefined && (
+                            <Badge variant="outline" className="text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              {role.permissionCount} {role.permissionCount === 1 ? 'permission' : 'permissions'}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1 ml-2">
