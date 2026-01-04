@@ -22,6 +22,25 @@ import { radiusNasApi, type RadiusNas } from '@/api/radiusNasApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+// NAS Type mapping
+const NAS_TYPES: Record<number, string> = {
+  1: 'Cisco',
+  2: 'Mikrotik',
+  3: 'Nokia',
+  4: 'Huawei',
+  5: 'Juniper',
+  6: 'ZTE',
+  7: 'Ericsson',
+  8: 'Alcatel',
+  9: 'HP',
+  10: 'Dell',
+  11: 'Other',
+}
+
+const getNasTypeName = (type: number): string => {
+  return NAS_TYPES[type] || 'Unknown'
+}
+
 export default function RadiusNasPage() {
   const { id } = useParams<{ id: string }>()
   const workspaceId = parseInt(id || '0')
@@ -419,6 +438,9 @@ export default function RadiusNasPage() {
                   <TableHead className="cursor-pointer" onClick={() => handleSort('shortname')}>
                     Short Name {getSortIcon('shortname')}
                   </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('type')}>
+                    Type {getSortIcon('type')}
+                  </TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('version')}>
                     Version {getSortIcon('version')}
                   </TableHead>
@@ -438,6 +460,7 @@ export default function RadiusNasPage() {
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -447,7 +470,7 @@ export default function RadiusNasPage() {
                   ))
                 ) : nasDevices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {showTrash ? 'No deleted NAS devices found' : 'No NAS devices found'}
                     </TableCell>
                   </TableRow>
@@ -456,6 +479,7 @@ export default function RadiusNasPage() {
                     <TableRow key={nas.id}>
                       <TableCell className="font-medium">{nas.nasname}</TableCell>
                       <TableCell>{nas.shortname}</TableCell>
+                      <TableCell>{getNasTypeName(nas.type)}</TableCell>
                       <TableCell>{nas.version || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={nas.enabled === 1 ? 'default' : 'secondary'}>
@@ -604,13 +628,28 @@ export default function RadiusNasPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="type">Type</Label>
-                  <Input
-                    id="type"
-                    type="number"
+                  <Label htmlFor="type">Type *</Label>
+                  <Select
                     value={nasFormData.type}
-                    onChange={(e) => setNasFormData({ ...nasFormData, type: e.target.value })}
-                  />
+                    onValueChange={(value) => setNasFormData({ ...nasFormData, type: value })}
+                  >
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="Select NAS type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Cisco</SelectItem>
+                      <SelectItem value="2">Mikrotik</SelectItem>
+                      <SelectItem value="3">Nokia</SelectItem>
+                      <SelectItem value="4">Huawei</SelectItem>
+                      <SelectItem value="5">Juniper</SelectItem>
+                      <SelectItem value="6">ZTE</SelectItem>
+                      <SelectItem value="7">Ericsson</SelectItem>
+                      <SelectItem value="8">Alcatel</SelectItem>
+                      <SelectItem value="9">HP</SelectItem>
+                      <SelectItem value="10">Dell</SelectItem>
+                      <SelectItem value="11">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="version">Version</Label>
