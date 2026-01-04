@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from 'sonner'
-import { Plus, Trash2, Shield as ShieldIcon, Lock, Settings,
+import { Plus, Trash2, Shield as ShieldIcon, Lock, Settings, Pencil, RotateCcw,
   Star, Heart, Zap, Trophy, Crown, Shield, Users as UsersIcon, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
   CheckCircle, XCircle, AlertCircle, Info, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
   ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Key, Eye, Bell, MessageCircle, 
@@ -298,7 +298,7 @@ export default function RolesPage() {
       {rolesLoading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {roles.map(role => {
             const RoleIcon = getIconComponent(role.icon)
             const roleColor = role.color || '#3b82f6'
@@ -306,22 +306,22 @@ export default function RolesPage() {
             return (
               <Card key={role.id}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3 flex-1">
                       <div 
-                        className="flex h-10 w-10 items-center justify-center rounded-lg"
+                        className="p-2.5 rounded-lg flex items-center justify-center" 
                         style={{ backgroundColor: `${roleColor}15`, color: roleColor }}
                       >
                         <RoleIcon className="h-5 w-5" />
                       </div>
-                      <div>
-                        <CardTitle>{role.name}</CardTitle>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{role.name}</CardTitle>
                         {role.description && (
-                          <CardDescription className="mt-1">{role.description}</CardDescription>
+                          <CardDescription className="mt-1 line-clamp-2">{role.description}</CardDescription>
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 ml-2">
                       {showDeleted ? (
                         <Button
                           variant="outline"
@@ -329,18 +329,17 @@ export default function RolesPage() {
                           onClick={() => restoreRoleMutation.mutate(role.id)}
                           disabled={restoreRoleMutation.isPending}
                         >
-                          <Settings className="h-4 w-4 mr-2" />
+                          <RotateCcw className="h-4 w-4 mr-2" />
                           Restore
                         </Button>
                       ) : (
                         <>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => openEditDialog(role)}
                           >
-                            <Settings className="h-4 w-4 mr-2" />
-                            Configure Permissions
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -359,7 +358,7 @@ export default function RolesPage() {
           })}
 
           {roles.length === 0 && (
-            <Card>
+            <Card className="col-span-full">
               <CardContent className="text-center py-12">
                 <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No roles created yet. Click "Add Role" to create one.</p>
