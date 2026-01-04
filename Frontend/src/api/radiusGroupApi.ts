@@ -5,6 +5,8 @@ export interface RadiusGroup {
   name: string
   subscription?: string
   isActive: boolean
+  color?: string
+  icon?: string
   usersCount?: number
   createdAt?: string
   updatedAt?: string

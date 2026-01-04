@@ -76,6 +76,8 @@ public class RadiusGroupController : ControllerBase
                     Name = item.Group.Name,
                     Subscription = item.Group.Subscription,
                     IsActive = item.Group.IsActive,
+                    Color = item.Group.Color,
+                    Icon = item.Group.Icon,
                     UsersCount = item.UserCount,
                     CreatedAt = item.Group.CreatedAt,
                     UpdatedAt = item.Group.UpdatedAt
@@ -133,6 +135,8 @@ public class RadiusGroupController : ControllerBase
                 Name = group.Name,
                 Subscription = group.Subscription,
                 IsActive = group.IsActive,
+                Color = group.Color,
+                Icon = group.Icon,
                 UsersCount = userCount,
                 CreatedAt = group.CreatedAt,
                 UpdatedAt = group.UpdatedAt
@@ -173,6 +177,8 @@ public class RadiusGroupController : ControllerBase
             Name = group.Name,
             Subscription = group.Subscription,
             IsActive = group.IsActive,
+            Color = group.Color,
+            Icon = group.Icon,
             UsersCount = userCount,
             CreatedAt = group.CreatedAt,
             UpdatedAt = group.UpdatedAt
@@ -190,6 +196,8 @@ public class RadiusGroupController : ControllerBase
             Name = request.Name,
             Subscription = request.Subscription,
             IsActive = request.IsActive,
+            Color = request.Color ?? "#3b82f6",
+            Icon = request.Icon ?? "Users",
             WorkspaceId = WorkspaceId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -204,6 +212,8 @@ public class RadiusGroupController : ControllerBase
             Name = group.Name,
             Subscription = group.Subscription,
             IsActive = group.IsActive,
+            Color = group.Color,
+            Icon = group.Icon,
             UsersCount = 0,
             CreatedAt = group.CreatedAt,
             UpdatedAt = group.UpdatedAt
@@ -228,6 +238,8 @@ public class RadiusGroupController : ControllerBase
         if (request.Name != null) group.Name = request.Name;
         if (request.Subscription != null) group.Subscription = request.Subscription;
         if (request.IsActive.HasValue) group.IsActive = request.IsActive.Value;
+        if (request.Color != null) group.Color = request.Color;
+        if (request.Icon != null) group.Icon = request.Icon;
 
         group.UpdatedAt = DateTime.UtcNow;
 
@@ -242,6 +254,8 @@ public class RadiusGroupController : ControllerBase
             Name = group.Name,
             Subscription = group.Subscription,
             IsActive = group.IsActive,
+            Color = group.Color,
+            Icon = group.Icon,
             UsersCount = userCount,
             CreatedAt = group.CreatedAt,
             UpdatedAt = group.UpdatedAt
