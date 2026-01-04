@@ -44,7 +44,8 @@ namespace Backend.Controllers
                         t.CreatedAt,
                         t.UpdatedAt,
                         t.DeletedAt,
-                        IsDeleted = t.DeletedAt != null
+                        IsDeleted = t.DeletedAt != null,
+                        UsersCount = t.RadiusUserTags.Count(rut => rut.RadiusUser.DeletedAt == null)
                     })
                     .ToListAsync();
 

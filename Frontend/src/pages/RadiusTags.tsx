@@ -35,6 +35,7 @@ interface RadiusTag {
   updatedAt?: string
   deletedAt?: string
   isDeleted: boolean
+  usersCount?: number
 }
 
 const PREDEFINED_COLORS = [
@@ -328,19 +329,24 @@ export default function RadiusTags() {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={tag.status === 'active' ? 'default' : 'secondary'}>
-                      {tag.status}
-                    </Badge>
-                    {tag.isDeleted && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => restoreTagMutation.mutate(tag.id)}
-                      >
-                        Restore
-                      </Button>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={tag.status === 'active' ? 'default' : 'secondary'}>
+                        {tag.status}
+                      </Badge>
+                      {tag.isDeleted && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => restoreTagMutation.mutate(tag.id)}
+                        >
+                          Restore
+                        </Button>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {tag.usersCount ?? 0} {tag.usersCount === 1 ? 'user' : 'users'}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
