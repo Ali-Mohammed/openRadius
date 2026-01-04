@@ -7,6 +7,7 @@ namespace Backend.Models
         public string? Description { get; set; }
         public string Status { get; set; } = "active"; // active, inactive
         public string Color { get; set; } = "#3b82f6"; // Default blue color
+        public string Icon { get; set; } = "Tag"; // Lucide icon name
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
@@ -34,6 +35,7 @@ namespace Backend.Models
         public string? Description { get; set; }
         public string Status { get; set; } = "active";
         public string Color { get; set; } = "#3b82f6";
+        public string Icon { get; set; } = "Tag";
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

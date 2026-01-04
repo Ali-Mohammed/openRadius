@@ -9,8 +9,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, Tag as TagIcon, Edit } from 'lucide-react'
+import { 
+  Plus, Trash2, Tag as TagIcon, Edit, Star, Heart, Zap, Trophy, Crown, Shield, 
+  Users, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
+  CheckCircle, XCircle, AlertCircle, Info, Settings, Home, Mail, Phone,
+  Calendar, Clock, DollarSign, CreditCard, ShoppingCart, Package, Truck,
+  MapPin, Globe, Wifi, Database, Server, Cloud, Lock, Key, Eye, Bell,
+  MessageCircle, Send, Bookmark, Archive, FileText, Folder, Download, Upload,
+  Share, Link, Layers, Grid, List, Filter, Search, MoreHorizontal, Circle,
+  Square, Triangle, Diamond, Hexagon, Octagon, Sparkles, Coffee, Music,
+  Camera, Image, Video, Mic, Headphones, Speaker, Monitor, Smartphone, Tablet,
+  Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
+} from 'lucide-react'
 import { apiClient } from '@/lib/api'
+import * as LucideIcons from 'lucide-react'
 
 interface RadiusTag {
   id: number
@@ -18,6 +30,7 @@ interface RadiusTag {
   description?: string
   status: string
   color: string
+  icon?: string
   createdAt: string
   updatedAt?: string
   deletedAt?: string
@@ -33,6 +46,93 @@ const PREDEFINED_COLORS = [
   { value: '#ec4899', label: 'Pink' },
   { value: '#6366f1', label: 'Indigo' },
   { value: '#14b8a6', label: 'Teal' },
+]
+
+const AVAILABLE_ICONS = [
+  { name: 'Tag', icon: TagIcon },
+  { name: 'Star', icon: Star },
+  { name: 'Heart', icon: Heart },
+  { name: 'Zap', icon: Zap },
+  { name: 'Trophy', icon: Trophy },
+  { name: 'Crown', icon: Crown },
+  { name: 'Shield', icon: Shield },
+  { name: 'Users', icon: Users },
+  { name: 'User', icon: User },
+  const [newTagIcon, setNewTagIcon] = useState('Tag')
+  { name: 'Building', icon: Building },
+  { name: 'Briefcase', icon: Briefcase },
+  { name: 'Rocket', icon: Rocket },
+  { name: 'Target', icon: Target },
+  { name: 'Award', icon: Award },
+  { name: 'Medal', icon: Medal },
+  { name: 'Flag', icon: Flag },
+  { name: 'CheckCircle', icon: CheckCircle },
+  { name: 'XCircle', icon: XCircle },
+  { name: 'AlertCircle', icon: AlertCircle },
+  { name: 'Info', icon: Info },
+  { name: 'Settings', icon: Settings },
+  { name: 'Home', icon: Home },
+  { name: 'Mail', icon: Mail },
+  { name: 'Phone', icon: Phone },
+  { name: 'Calendar', icon: Calendar },
+  { name: 'Clock', icon: Clock },
+  { name: 'DollarSign', icon: DollarSign },
+  { name: 'CreditCard', icon: CreditCard },
+  { name: 'ShoppingCart', icon: ShoppingCart },
+  { name: 'Package', icon: Package },
+  { name: 'Truck', icon: Truck },
+  { name: 'MapPin', icon: MapPin },
+  { name: 'Globe', icon: Globe },
+  { name: 'Wifi', icon: Wifi },
+  { name: 'Database', icon: Database },
+  { name: 'Server', icon: Server },
+  { name: 'Cloud', icon: Cloud },
+  { name: 'Lock', icon: Lock },
+  { name: 'Key', icon: Key },
+  { name: 'Eye', icon: Eye },
+  { name: 'Bell', icon: Bell },
+  { name: 'MessageCircle', icon: MessageCircle },
+  { name: 'Send', icon: Send },
+  { name: 'Bookmark', icon: Bookmark },
+  { name: 'Archive', icon: Archive },
+  { name: 'FileText', icon: FileText },
+  { name: 'Folder', icon: Folder },
+  { name: 'Download', icon: Download },
+  { name: 'Upload', icon: Upload },
+  { name: 'Share', icon: Share },
+  { name: 'Link', icon: Link },
+  { name: 'Layers', icon: Layers },
+  { name: 'Grid', icon: Grid },
+  { name: 'List', icon: List },
+  { name: 'Filter', icon: Filter },
+  { name: 'Search', icon: Search },
+  { name: 'MoreHorizontal', icon: MoreHorizontal },
+  { name: 'Circle', icon: Circle },
+  { name: 'Square', icon: Square },
+  { name: 'Triangle', icon: Triangle },
+  { name: 'Diamond', icon: Diamond },
+  { name: 'Hexagon', icon: Hexagon },
+  { name: 'Octagon', icon: Octagon },
+  { name: 'Sparkles', icon: Sparkles },
+  { name: 'Coffee', icon: Coffee },
+  { name: 'Music', icon: Music },
+  { name: 'Camera', icon: Camera },
+  { name: 'Image', icon: Image },
+  { name: 'Video', icon: Video },
+  { name: 'Mic', icon: Mic },
+  { name: 'Headphones', icon: Headphones },
+  { name: 'Speaker', icon: Speaker },
+  { name: 'Monitor', icon: Monitor },
+  { name: 'Smartphone', icon: Smartphone },
+  { name: 'Tablet', icon: Tablet },
+  { name: 'Watch', icon: Watch },
+  { name: 'Printer', icon: Printer },
+  { name: 'Cpu', icon: Cpu },
+  { name: 'HardDrive', icon: HardDrive },
+  { name: 'Battery', icon: Battery },
+  { name: 'Bluetooth', icon: Bluetooth },
+  { name: 'Radio', icon: Radio },
+  { name: 'Rss', icon: Rss },
 ]
 
 export default function RadiusTags() {
@@ -54,7 +154,7 @@ export default function RadiusTags() {
     },
   })
 
-  const createTagMutation = useMutation({
+  const createTagMutation = useMutation({; icon?: string
     mutationFn: async (data: { title: string; description?: string; status: string; color: string }) => {
       const response = await apiClient.post(`/api/workspace/${workspaceId}/radius/tags`, data)
       return response.data
@@ -119,6 +219,7 @@ export default function RadiusTags() {
     setNewTagTitle('')
     setNewTagDescription('')
     setNewTagStatus('active')
+    setNewTagIcon('Tag')
     setNewTagColor('#3b82f6')
   }
 
@@ -127,6 +228,7 @@ export default function RadiusTags() {
       title: newTagTitle,
       description: newTagDescription,
       status: newTagStatus,
+      icon: newTagIcon,
       color: newTagColor,
     })
   }
@@ -135,6 +237,7 @@ export default function RadiusTags() {
     setEditingTag(tag)
     setNewTagTitle(tag.title)
     setNewTagDescription(tag.description || '')
+    setNewTagIcon(tag.icon || 'Tag')
     setNewTagStatus(tag.status)
     setNewTagColor(tag.color)
     setShowEditDialog(true)
@@ -146,8 +249,15 @@ export default function RadiusTags() {
       id: editingTag.id,
       data: {
         title: newTagTitle,
-        description: newTagDescription,
-        status: newTagStatus,
+        icon: newTagIcon,
+      },
+    })
+  }
+
+  const getIconComponent = (iconName?: string) => {
+    if (!iconName) return TagIcon
+    const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
+    return iconData?.icon || TagIcon  status: newTagStatus,
         color: newTagColor,
       },
     })
@@ -169,14 +279,16 @@ export default function RadiusTags() {
           Add Tag
         </Button>
       </div>
-
-      {tags.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <TagIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No tags created yet. Click "Add Tag" to create one.</p>
-          </CardContent>
-        </Card>
+{
+            const IconComponent = getIconComponent(tag.icon)
+            return (
+            <Card key={tag.id} className={tag.isDeleted ? 'opacity-50' : ''}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <IconComponent 
+                      className="w-5 h-5" 
+                      style={{ c
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {tags.map((tag: RadiusTag) => (
@@ -221,7 +333,7 @@ export default function RadiusTags() {
                     {tag.status}
                   </Badge>
                   {tag.isDeleted && (
-                    <Button
+           }         <Button
                       variant="outline"
                       size="sm"
                       onClick={() => restoreTagMutation.mutate(tag.id)}
@@ -287,6 +399,34 @@ export default function RadiusTags() {
                     <SelectItem key={color.value} value={color.value}>
                       <div className="flex items-center gap-2">
                         <div
+            <div className="grid gap-2">
+              <Label htmlFor="icon">Icon</Label>
+              <Select value={newTagIcon} onValueChange={setNewTagIcon}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  <div className="grid grid-cols-6 gap-1 p-2">
+                    {AVAILABLE_ICONS.map((iconData) => {
+                      const IconComponent = iconData.icon
+                      return (
+                        <button
+                          key={iconData.name}
+                          type="button"
+                          onClick={() => setNewTagIcon(iconData.name)}
+                          className={`p-2 rounded hover:bg-accent ${
+                            newTagIcon === iconData.name ? 'bg-accent' : ''
+                          }`}
+                          title={iconData.name}
+                        >
+                          <IconComponent className="w-4 h-4" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
                           className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: color.value }}
                         />
@@ -334,6 +474,34 @@ export default function RadiusTags() {
               <Label htmlFor="edit-description">Description</Label>
               <Input
                 id="edit-description"
+            <div className="grid gap-2">
+              <Label htmlFor="edit-icon">Icon</Label>
+              <Select value={newTagIcon} onValueChange={setNewTagIcon}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  <div className="grid grid-cols-6 gap-1 p-2">
+                    {AVAILABLE_ICONS.map((iconData) => {
+                      const IconComponent = iconData.icon
+                      return (
+                        <button
+                          key={iconData.name}
+                          type="button"
+                          onClick={() => setNewTagIcon(iconData.name)}
+                          className={`p-2 rounded hover:bg-accent ${
+                            newTagIcon === iconData.name ? 'bg-accent' : ''
+                          }`}
+                          title={iconData.name}
+                        >
+                          <IconComponent className="w-4 h-4" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
                 value={newTagDescription}
                 onChange={(e) => setNewTagDescription(e.target.value)}
               />
