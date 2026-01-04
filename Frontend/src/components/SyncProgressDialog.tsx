@@ -124,27 +124,6 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId }: 
                 Live
               </Badge>
             )}
-            {canCancel && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => cancelMutation.mutate()}
-                disabled={cancelMutation.isPending}
-                className="ml-auto"
-              >
-                {cancelMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    Cancelling...
-                  </>
-                ) : (
-                  <>
-                    <X className="w-3 h-3 mr-1" />
-                    Cancel Sync
-                  </>
-                )}
-              </Button>
-            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -303,6 +282,28 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId }: 
                 <div>Completed: {formatRelativeTime(currentProgress.completedAt)}</div>
               )}
             </div>
+
+            {/* Cancel Button at Bottom */}
+            {canCancel && (
+              <Button
+                variant="outline"
+                onClick={() => cancelMutation.mutate()}
+                disabled={cancelMutation.isPending}
+                className="w-full"
+              >
+                {cancelMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel Sync
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         ) : fetchError ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
