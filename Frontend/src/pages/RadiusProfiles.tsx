@@ -334,6 +334,8 @@ export default function RadiusProfiles() {
         enabled: profile.enabled ?? true,
         burstEnabled: profile.burstEnabled ?? false,
         limitExpiration: profile.limitExpiration ?? false,
+        color: profile.color || '#3b82f6',
+        icon: profile.icon || 'Package',
       })
     } else {
       setEditingProfile(null)
@@ -350,6 +352,8 @@ export default function RadiusProfiles() {
         enabled: true,
         burstEnabled: false,
         limitExpiration: false,
+        color: '#3b82f6',
+        icon: 'Package',
       })
     }
     setIsProfileDialogOpen(true)
