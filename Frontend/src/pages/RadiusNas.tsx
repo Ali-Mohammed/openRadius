@@ -368,12 +368,12 @@ export default function RadiusNasPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Network Access Servers</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold">Network Access Servers</h1>
+          <p className="text-muted-foreground">
             Manage RADIUS NAS devices for network authentication
           </p>
         </div>
@@ -398,7 +398,7 @@ export default function RadiusNasPage() {
       </div>
 
       {/* Main Card */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="pt-6">
           {/* Search and Filters */}
           <div className="flex gap-4 mb-6">
