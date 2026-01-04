@@ -804,11 +804,6 @@ public class UpdateSupervisorRequest
     public int? SupervisorId { get; set; }
 }
 
-public class UpdateUserStatusRequest
-{
-    public bool Enabled { get; set; }
-}
-
 public class CreateUserRoleRequest
 {
     public required string Name { get; set; }

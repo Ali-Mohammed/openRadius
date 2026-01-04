@@ -179,7 +179,7 @@ export const userManagementApi = {
     const userResponse = await apiClient.get(`/api/keycloak/users/${userId}`)
     const user = userResponse.data
     
-    // Update in Keycloak
+    // Update in Keycloak (source of truth for user enabled status)
     await apiClient.put(`/api/keycloak/users/${userId}`, {
       email: user.email,
       firstName: user.firstName,
@@ -188,11 +188,7 @@ export const userManagementApi = {
       emailVerified: user.emailVerified,
     })
     
-    // Update in local database
-    const response = await apiClient.put(`/api/user-management/${userId}/status`, {
-      enabled: enabled
-    })
-    
-    return response.data
+    return { message: 'User status updated successfully' }
   },
+
 }
