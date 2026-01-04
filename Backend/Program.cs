@@ -134,6 +134,10 @@ using (var scope = app.Services.CreateScope())
     // Ensure master database is created and migrations are applied
     masterContext.Database.Migrate();
     
+    // Seed roles, permissions, and groups
+    SeedData.Initialize(masterContext);
+    Console.WriteLine("✓ Roles, Permissions, and Groups seeded");
+    
     // Seed default OIDC provider if no providers exist
     if (!masterContext.OidcSettings.Any())
     {
