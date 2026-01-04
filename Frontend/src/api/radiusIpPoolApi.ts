@@ -3,27 +3,27 @@ import { apiClient } from '../lib/api'
 export interface RadiusIpPool {
   id?: number
   name: string
-  start_ip: string
-  end_ip: string
-  lease_time: number
-  created_at?: string
-  updated_at?: string
-  deleted_at?: string | null
+  startIp: string
+  endIp: string
+  leaseTime: number
+  createdAt?: string
+  updatedAt?: string
+  deletedAt?: string | null
   workspaceId?: number
 }
 
 export interface CreateRadiusIpPoolRequest {
   name: string
-  start_ip: string
-  end_ip: string
-  lease_time: number
+  startIp: string
+  endIp: string
+  leaseTime: number
 }
 
 export interface UpdateRadiusIpPoolRequest {
   name?: string
-  start_ip?: string
-  end_ip?: string
-  lease_time?: number
+  startIp?: string
+  endIp?: string
+  leaseTime?: number
 }
 
 export interface PaginatedIpPoolResponse {

@@ -179,9 +179,9 @@ export default function RadiusIpPoolsPage() {
       setEditingPool(pool)
       setFormData({
         name: pool.name || '',
-        start_ip: pool.start_ip || '',
-        end_ip: pool.end_ip || '',
-        lease_time: pool.lease_time?.toString() || '24',
+        start_ip: pool.startIp || '',
+        end_ip: pool.endIp || '',
+        lease_time: pool.leaseTime?.toString() || '24',
       })
     } else {
       setEditingPool(null)
@@ -216,9 +216,9 @@ export default function RadiusIpPoolsPage() {
 
     const data = {
       name: formData.name,
-      start_ip: formData.start_ip,
-      end_ip: formData.end_ip,
-      lease_time: parseInt(formData.lease_time),
+      startIp: formData.start_ip,
+      endIp: formData.end_ip,
+      leaseTime: parseInt(formData.lease_time),
     }
 
     if (editingPool && editingPool.id) {
