@@ -18,6 +18,7 @@
     "profiles": "Profiles",
     "groups": "Groups",
     "tags": "Tags",
+    "nas": "NAS",
     "workspace": "Workspace",
     "view": "View",
     "setting": "Setting",
