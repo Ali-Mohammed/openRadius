@@ -17,7 +17,11 @@ import OidcSettings from './pages/OidcSettings'
 import RadiusProfiles from './pages/RadiusProfiles'
 import RadiusUsers from './pages/RadiusUsers'
 import RadiusGroups from './pages/RadiusGroups'
+import RadiusTags from './pages/RadiusTags'
 import UserManagement from './pages/UserManagement'
+import RolesPage from './pages/RolesPage'
+import PermissionsPage from './pages/PermissionsPage'
+import GroupsPage from './pages/GroupsPage'
 
 const queryClient = new QueryClient()
 
@@ -44,10 +48,14 @@ function App() {
                           <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
                           <Route path="/workspace/:id/radius/groups" element={<RadiusGroups />} />
+                          <Route path="/workspace/:id/radius/tags" element={<RadiusTags />} />
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
                           <Route path="/users" element={<UserManagement />} />
+                          <Route path="/roles" element={<RolesPage />} />
+                          <Route path="/permissions" element={<PermissionsPage />} />
+                          <Route path="/groups" element={<GroupsPage />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>

@@ -227,6 +227,7 @@ namespace Backend.Models
         
         // Navigation properties
         public RadiusProfile? Profile { get; set; }
+        public ICollection<RadiusUserTag> RadiusUserTags { get; set; } = new List<RadiusUserTag>();
         
         public decimal Balance { get; set; }
         public decimal LoanBalance { get; set; }

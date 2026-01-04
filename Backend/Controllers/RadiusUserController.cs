@@ -679,7 +679,72 @@ public class RadiusUserController : ControllerBase
 
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
+
+    // POST: api/workspaces/{WorkspaceId}/radius/users/{id}/tags
+    [HttpPost("{id}/tags")]
+    public async Task<IActionResult> AssignTags(int WorkspaceId, int id, [FromBody] List<int> tagIds)
+    {
+        try
+        {
+            var user = await _context.RadiusUsers
+                .Include(u => u.RadiusUserTags)
+                .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Remove existing tags
+            _context.RadiusUserTags.RemoveRange(user.RadiusUserTags);
+
+            // Add new tags
+            foreach (var tagId in tagIds)
+            {
+                user.RadiusUserTags.Add(new RadiusUserTag
+                {
+                    RadiusUserId = id,
+                    RadiusTagId = tagId,
+                    AssignedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tags updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning tags to user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to assign tags" });
+        }
+    }
+
+    // GET: api/workspaces/{WorkspaceId}/radius/users/{id}/tags
+    [HttpGet("{id}/tags")]
+    public async Task<ActionResult<IEnumerable<object>>> GetUserTags(int WorkspaceId, int id)
+    {
+        try
+        {
+            var tags = await _context.RadiusUserTags
+                .Where(rut => rut.RadiusUserId == id)
+                .Select(rut => new
+                {
+                    rut.RadiusTag.Id,
+                    rut.RadiusTag.Title,
+                    rut.RadiusTag.Description,
+                    rut.RadiusTag.Status,
+                    rut.RadiusTag.Color,
+                    rut.AssignedAt
+                })
+                .ToListAsync();
+
+            return Ok(tags);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching tags for user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to fetch user tags" });
+        }
+    }
 }
-
-
-

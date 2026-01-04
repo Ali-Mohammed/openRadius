@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, RefreshCw, Users as UsersIcon, Shield, X, Download, Plus, Trash2 } from 'lucide-react'
+import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 
 export default function UserManagement() {
   const queryClient = useQueryClient()
@@ -20,16 +20,14 @@ export default function UserManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   
-  const [showRoleDialog, setShowRoleDialog] = useState(false)
-  const [showGroupDialog, setShowGroupDialog] = useState(false)
-  const [newRoleName, setNewRoleName] = useState('')
-  const [newRoleDesc, setNewRoleDesc] = useState('')
-  const [newGroupName, setNewGroupName] = useState('')
-  const [newGroupDesc, setNewGroupDesc] = useState('')
-  
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
+  
+  // Form fields for creating a new user
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
 
   // Queries
   const { data: users = [], isLoading, refetch } = useQuery({
@@ -59,11 +57,10 @@ export default function UserManagement() {
     },
   })
 
-  const updateSupervisorMutation = useMutation({
-    mutationFn: ({ userId, supervisorId }: { userId: number; supervisorId?: number }) =>
-      userManagementApi.updateSupervisor(userId, { supervisorId }),
+  const createUserMutation = useMutation({
+    mutationFn: userManagementApi.createUser,
     onSuccess: () => {
-      toast.success('Supervisor updated successfully')
+      toast.success('User created successfully')
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: (error: any) => {
@@ -71,52 +68,12 @@ export default function UserManagement() {
     },
   })
 
-  const createRoleMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string }) =>
-      userManagementApi.createRole(data),
+  const updateSupervisorMutation = useMutation({
+    mutationFn: ({ userId, supervisorId }: { userId: number; supervisorId?: number }) =>
+      userManagementApi.updateSupervisor(userId, { supervisorId }),
     onSuccess: () => {
-      toast.success('Role created successfully')
-      queryClient.invalidateQueries({ queryKey: ['roles'] })
-      setShowRoleDialog(false)
-      setNewRoleName('')
-      setNewRoleDesc('')
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error))
-    },
-  })
-
-  const deleteRoleMutation = useMutation({
-    mutationFn: (id: number) => userManagementApi.deleteRole(id),
-    onSuccess: () => {
-      toast.success('Role deleted successfully')
-      queryClient.invalidateQueries({ queryKey: ['roles'] })
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error))
-    },
-  })
-
-  const createGroupMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string }) =>
-      userManagementApi.createGroup(data),
-    onSuccess: () => {
-      toast.success('Group created successfully')
-      queryClient.invalidateQueries({ queryKey: ['groups'] })
-      setShowGroupDialog(false)
-      setNewGroupName('')
-      setNewGroupDesc('')
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error))
-    },
-  })
-
-  const deleteGroupMutation = useMutation({
-    mutationFn: (id: number) => userManagementApi.deleteGroup(id),
-    onSuccess: () => {
-      toast.success('Group deleted successfully')
-      queryClient.invalidateQueries({ queryKey: ['groups'] })
+      toast.success('Supervisor updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: (error: any) => {
       toast.error(formatApiError(error))
@@ -154,7 +111,11 @@ export default function UserManagement() {
       setSelectedGroupIds(user.groups?.map(g => g.id) || [])
       setSelectedSupervisorId(user.supervisorId || undefined)
     } else {
+      // Creating new user
       setEditingUser(null)
+      setFirstName('')
+      setLastName('')
+      setEmail('')
       setSelectedRoleIds([])
       setSelectedGroupIds([])
       setSelectedSupervisorId(undefined)
@@ -165,34 +126,56 @@ export default function UserManagement() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false)
     setEditingUser(null)
+    setFirstName('')
+    setLastName('')
+    setEmail('')
   }
 
   const handleSave = async () => {
-    if (!editingUser) {
-      toast.error('No user selected for editing')
-      return
-    }
+    if (editingUser) {
+      // Editing existing user
+      try {
+        await updateSupervisorMutation.mutateAsync({
+          userId: editingUser.id,
+          supervisorId: selectedSupervisorId,
+        })
 
-    try {
-      await updateSupervisorMutation.mutateAsync({
-        userId: editingUser.id,
-        supervisorId: selectedSupervisorId,
-      })
+        await assignRolesMutation.mutateAsync({
+          userId: editingUser.id,
+          roleIds: selectedRoleIds,
+        })
 
-      await assignRolesMutation.mutateAsync({
-        userId: editingUser.id,
-        roleIds: selectedRoleIds,
-      })
+        await assignGroupsMutation.mutateAsync({
+          userId: editingUser.id,
+          groupIds: selectedGroupIds,
+        })
 
-      await assignGroupsMutation.mutateAsync({
-        userId: editingUser.id,
-        groupIds: selectedGroupIds,
-      })
+        toast.success('User updated successfully')
+        handleCloseDialog()
+      } catch (error: any) {
+        toast.error(formatApiError(error))
+      }
+    } else {
+      // Creating new user
+      if (!email) {
+        toast.error('Email is required')
+        return
+      }
 
-      toast.success('User updated successfully')
-      handleCloseDialog()
-    } catch (error: any) {
-      toast.error(formatApiError(error))
+      try {
+        await createUserMutation.mutateAsync({
+          firstName,
+          lastName,
+          email,
+          supervisorId: selectedSupervisorId,
+          roleIds: selectedRoleIds,
+          groupIds: selectedGroupIds,
+        })
+
+        handleCloseDialog()
+      } catch (error: any) {
+        toast.error(formatApiError(error))
+      }
     }
   }
 
@@ -200,13 +183,20 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage user permissions, roles, groups, and supervisors</p>
+          <h1 className="text-3xl font-bold">Users</h1>
+          <p className="text-muted-foreground">Manage users and assign roles, groups, and supervisors</p>
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={() => syncUsersMutation.mutate()} 
+            onClick={() => handleOpenDialog()} 
             variant="default"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+          <Button 
+            onClick={() => syncUsersMutation.mutate()} 
+            variant="outline"
             disabled={syncUsersMutation.isPending}
           >
             <Download className="h-4 w-4 mr-2" />
@@ -217,82 +207,6 @@ export default function UserManagement() {
           </Button>
         </div>
       </div>
-
-      {/* Roles Management Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Roles
-              </h2>
-              <p className="text-sm text-muted-foreground">Define user roles for permission management</p>
-            </div>
-            <Button onClick={() => setShowRoleDialog(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Role
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {roles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No roles created yet. Click "Add Role" to create one.</p>
-            ) : (
-              roles.map((role) => (
-                <Badge key={role.id} variant="outline" className="px-3 py-1 text-sm">
-                  {role.name}
-                  <button
-                    onClick={() => deleteRoleMutation.mutate(role.id)}
-                    className="ml-2 hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Groups Management Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <UsersIcon className="h-5 w-5" />
-                Groups
-              </h2>
-              <p className="text-sm text-muted-foreground">Organize users into groups</p>
-            </div>
-            <Button onClick={() => setShowGroupDialog(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Group
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {groups.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No groups created yet. Click "Add Group" to create one.</p>
-            ) : (
-              groups.map((group) => (
-                <Badge key={group.id} variant="secondary" className="px-3 py-1 text-sm">
-                  {group.name}
-                  <button
-                    onClick={() => deleteGroupMutation.mutate(group.id)}
-                    className="ml-2 hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Users Table */}
       <Card>
@@ -373,17 +287,19 @@ export default function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* Edit User Dialog */}
+      {/* Edit/Create User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit User Permissions</DialogTitle>
+            <DialogTitle>{editingUser ? 'Edit User Permissions' : 'Create New User'}</DialogTitle>
             <DialogDescription>
-              Update user's supervisor, roles, and groups
+              {editingUser 
+                ? "Update user's supervisor, roles, and groups" 
+                : "Create a new user and assign supervisor, roles, and groups"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {editingUser && (
+            {editingUser ? (
               <div className="grid gap-2">
                 <Label>User</Label>
                 <div className="text-sm">
@@ -395,6 +311,39 @@ export default function UserManagement() {
                   <div className="text-muted-foreground">{editingUser.email}</div>
                 </div>
               </div>
+            ) : (
+              <>
+                {/* New User Form Fields */}
+                <div className="grid gap-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter first name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Enter last name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    required
+                  />
+                </div>
+              </>
             )}
             
             {/* Supervisor Selection */}
@@ -436,7 +385,7 @@ export default function UserManagement() {
             {/* Groups Selection */}
             <div className="grid gap-2">
               <Label className="flex items-center gap-2">
-                <UsersIcon className="h-4 w-4" />
+                <Users className="h-4 w-4" />
                 Groups
               </Label>
               <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
@@ -507,94 +456,8 @@ export default function UserManagement() {
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Role Dialog */}
-      <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Role</DialogTitle>
-            <DialogDescription>
-              Add a new role that can be assigned to users
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="role-name">Role Name *</Label>
-              <Input
-                id="role-name"
-                placeholder="e.g., Admin, Manager, Viewer"
-                value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="role-desc">Description</Label>
-              <Input
-                id="role-desc"
-                placeholder="Brief description of this role"
-                value={newRoleDesc}
-                onChange={(e) => setNewRoleDesc(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRoleDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => createRoleMutation.mutate({ name: newRoleName, description: newRoleDesc })}
-              disabled={!newRoleName.trim() || createRoleMutation.isPending}
-            >
-              {createRoleMutation.isPending ? 'Creating...' : 'Create Role'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Group Dialog */}
-      <Dialog open={showGroupDialog} onOpenChange={setShowGroupDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
-            <DialogDescription>
-              Add a new group that users can be assigned to
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="group-name">Group Name *</Label>
-              <Input
-                id="group-name"
-                placeholder="e.g., Engineering, Sales, Support"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="group-desc">Description</Label>
-              <Input
-                id="group-desc"
-                placeholder="Brief description of this group"
-                value={newGroupDesc}
-                onChange={(e) => setNewGroupDesc(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGroupDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => createGroupMutation.mutate({ name: newGroupName, description: newGroupDesc })}
-              disabled={!newGroupName.trim() || createGroupMutation.isPending}
-            >
-              {createGroupMutation.isPending ? 'Creating...' : 'Create Group'}
+            <Button onClick={handleSave} disabled={!editingUser && !email}>
+              {editingUser ? 'Save Changes' : 'Create User'}
             </Button>
           </DialogFooter>
         </DialogContent>

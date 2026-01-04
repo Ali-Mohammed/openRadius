@@ -17,13 +17,17 @@
     "users": "Users",
     "profiles": "Profiles",
     "groups": "Groups",
+    "tags": "Tags",
     "workspace": "Workspace",
     "view": "View",
     "setting": "Setting",
     "appSetting": "App Setting",
     "general": "General",
     "oidc": "OIDC",
-    "userManagement": "User Management"
+    "userManagement": "User Management",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "userGroups": "Groups"
   },
   "dashboard": {
     "title": "Dashboard",

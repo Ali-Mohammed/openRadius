@@ -43,17 +43,12 @@ export interface CreatePermissionRequest {
 }
 
 export interface CreateUserRequest {
-  username: string
-  email?: string
   firstName?: string
   lastName?: string
-  enabled?: boolean
-  emailVerified?: boolean
-  groups?: string[]
+  email?: string
   supervisorId?: number
-  attributes?: Record<string, string[]>
-  password?: string
-  temporaryPassword?: boolean
+  roleIds?: number[]
+  groupIds?: number[]
 }
 
 export interface UpdateSupervisorRequest {
@@ -90,6 +85,11 @@ export const userManagementApi = {
 
   getById: async (id: number): Promise<User> => {
     const response = await apiClient.get(`/api/user-management/${id}`)
+    return response.data
+  },
+
+  createUser: async (data: CreateUserRequest): Promise<User> => {
+    const response = await apiClient.post('/api/user-management', data)
     return response.data
   },
 

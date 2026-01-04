@@ -15,13 +15,17 @@
     "sasRadius": "SAS Radius",
     "radius": "راديوس",
     "users": "المستخدمون",
-    "profiles": "الملفات الشخصية",    "groups": "المجموعات",    "workspace": "مساحة العمل",
+    "profiles": "الملفات الشخصية",    "groups": "المجموعات",    "tags": "الوسوم",
+    "workspace": "مساحة العمل",
     "view": "عرض",
     "setting": "الإعدادات",
     "appSetting": "إعدادات التطبيق",
     "general": "عام",
     "oidc": "OIDC",
-    "userManagement": "إدارة المستخدمين"
+    "userManagement": "إدارة المستخدمين",
+    "roles": "الأدوار",
+    "permissions": "الصلاحيات",
+    "userGroups": "المجموعات"
   },
   "dashboard": {
     "title": "لوحة التحكم",

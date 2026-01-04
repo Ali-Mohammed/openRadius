@@ -1,0 +1,274 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Backend.Data;
+using Backend.Models;
+
+namespace Backend.Controllers
+{
+    [ApiController]
+    [Route("api/workspace/{workspaceId}/radius/tags")]
+    public class RadiusTagController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<RadiusTagController> _logger;
+
+        public RadiusTagController(ApplicationDbContext context, ILogger<RadiusTagController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        // GET: api/workspace/{workspaceId}/radius/tags
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<object>>> GetTags([FromRoute] int workspaceId, [FromQuery] bool includeDeleted = false)
+        {
+            try
+            {
+                var query = _context.RadiusTags.AsQueryable();
+
+                if (!includeDeleted)
+                {
+                    query = query.Where(t => t.DeletedAt == null);
+                }
+
+                var tags = await query
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Select(t => new
+                    {
+                        t.Id,
+                        t.Title,
+                        t.Description,
+                        t.Status,
+                        t.Color,
+                        t.CreatedAt,
+                        t.UpdatedAt,
+                        t.DeletedAt,
+                        IsDeleted = t.DeletedAt != null
+                    })
+                    .ToListAsync();
+
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching RADIUS tags");
+                return StatusCode(500, new { message = "Failed to fetch tags" });
+            }
+        }
+
+        // GET: api/workspace/{workspaceId}/radius/tags/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<object>> GetTag([FromRoute] int workspaceId, int id)
+        {
+            try
+            {
+                var tag = await _context.RadiusTags
+                    .Where(t => t.Id == id)
+                    .Select(t => new
+                    {
+                        t.Id,
+                        t.Title,
+                        t.Description,
+                        t.Status,
+                        t.Color,
+                        t.CreatedAt,
+                        t.UpdatedAt,
+                        t.DeletedAt,
+                        UsersCount = t.RadiusUserTags.Count(rut => rut.RadiusUser.DeletedAt == null)
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (tag == null)
+                {
+                    return NotFound(new { message = "Tag not found" });
+                }
+
+                return Ok(tag);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching tag {TagId}", id);
+                return StatusCode(500, new { message = "Failed to fetch tag" });
+            }
+        }
+
+        // POST: api/workspace/{workspaceId}/radius/tags
+        [HttpPost]
+        public async Task<ActionResult<object>> CreateTag([FromRoute] int workspaceId, [FromBody] CreateRadiusTagRequest request)
+        {
+            try
+            {
+                // Check if tag with same title exists
+                var exists = await _context.RadiusTags.AnyAsync(t => t.Title == request.Title && t.DeletedAt == null);
+                if (exists)
+                {
+                    return BadRequest(new { message = "A tag with this title already exists" });
+                }
+
+                var tag = new RadiusTag
+                {
+                    Title = request.Title,
+                    Description = request.Description,
+                    Status = request.Status ?? "active",
+                    Color = request.Color ?? "#3b82f6",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.RadiusTags.Add(tag);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetTag), new { workspaceId, id = tag.Id }, new
+                {
+                    tag.Id,
+                    tag.Title,
+                    tag.Description,
+                    tag.Status,
+                    tag.Color,
+                    tag.CreatedAt
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating tag");
+                return StatusCode(500, new { message = "Failed to create tag" });
+            }
+        }
+
+        // PUT: api/workspace/{workspaceId}/radius/tags/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTag([FromRoute] int workspaceId, int id, [FromBody] UpdateRadiusTagRequest request)
+        {
+            try
+            {
+                var tag = await _context.RadiusTags.FindAsync(id);
+                if (tag == null || tag.DeletedAt != null)
+                {
+                    return NotFound(new { message = "Tag not found" });
+                }
+
+                // Check if another tag with the same title exists
+                if (request.Title != null && request.Title != tag.Title)
+                {
+                    var exists = await _context.RadiusTags.AnyAsync(t => t.Title == request.Title && t.Id != id && t.DeletedAt == null);
+                    if (exists)
+                    {
+                        return BadRequest(new { message = "A tag with this title already exists" });
+                    }
+                    tag.Title = request.Title;
+                }
+
+                if (request.Description != null)
+                    tag.Description = request.Description;
+                
+                if (request.Status != null)
+                    tag.Status = request.Status;
+                
+                if (request.Color != null)
+                    tag.Color = request.Color;
+
+                tag.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Tag updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating tag {TagId}", id);
+                return StatusCode(500, new { message = "Failed to update tag" });
+            }
+        }
+
+        // DELETE: api/workspace/{workspaceId}/radius/tags/{id} (Soft delete)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTag([FromRoute] int workspaceId, int id)
+        {
+            try
+            {
+                var tag = await _context.RadiusTags.FindAsync(id);
+                if (tag == null)
+                {
+                    return NotFound(new { message = "Tag not found" });
+                }
+
+                tag.DeletedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Tag deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting tag {TagId}", id);
+                return StatusCode(500, new { message = "Failed to delete tag" });
+            }
+        }
+
+        // POST: api/workspace/{workspaceId}/radius/tags/{id}/restore
+        [HttpPost("{id}/restore")]
+        public async Task<IActionResult> RestoreTag([FromRoute] int workspaceId, int id)
+        {
+            try
+            {
+                var tag = await _context.RadiusTags.FindAsync(id);
+                if (tag == null)
+                {
+                    return NotFound(new { message = "Tag not found" });
+                }
+
+                tag.DeletedAt = null;
+                tag.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Tag restored successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error restoring tag {TagId}", id);
+                return StatusCode(500, new { message = "Failed to restore tag" });
+            }
+        }
+
+        // GET: api/workspace/{workspaceId}/radius/tags/{id}/users
+        [HttpGet("{id}/users")]
+        public async Task<ActionResult<IEnumerable<object>>> GetTagUsers([FromRoute] int workspaceId, int id)
+        {
+            try
+            {
+                var users = await _context.RadiusUserTags
+                    .Where(rut => rut.RadiusTagId == id && rut.RadiusUser.DeletedAt == null)
+                    .Select(rut => new
+                    {
+                        rut.RadiusUser.Id,
+                        rut.RadiusUser.Username,
+                        rut.RadiusUser.Firstname,
+                        rut.RadiusUser.Lastname,
+                        rut.RadiusUser.Email,
+                        rut.AssignedAt
+                    })
+                    .ToListAsync();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching users for tag {TagId}", id);
+                return StatusCode(500, new { message = "Failed to fetch tag users" });
+            }
+        }
+    }
+
+    public class CreateRadiusTagRequest
+    {
+        public required string Title { get; set; }
+        public string? Description { get; set; }
+        public string? Status { get; set; }
+        public string? Color { get; set; }
+    }
+
+    public class UpdateRadiusTagRequest
+    {
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? Status { get; set; }
+        public string? Color { get; set; }
+    }
+}

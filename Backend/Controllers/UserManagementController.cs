@@ -81,6 +81,10 @@ public class UserManagementController : ControllerBase
             if (!string.IsNullOrWhiteSpace(search)) queryParams.Add($"search={Uri.EscapeDataString(search)}");
             
             var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users{queryString}";
 
             var response = await client.GetAsync(url);
@@ -200,7 +204,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}";
 
             var response = await client.GetAsync(url);
@@ -241,7 +249,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users";
 
             var userPayload = new
@@ -303,7 +315,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                throw new InvalidOperationException("Oidc:Authority configuration is missing");
+            }
+            var realm = authority.Split("/").Last();
             
             // First, get the current user to preserve existing attributes
             var getUserUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}";
@@ -366,7 +382,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}";
 
             var response = await client.DeleteAsync(url);
@@ -394,7 +414,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/reset-password";
 
             var passwordPayload = new
@@ -430,7 +454,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/groups";
 
             var response = await client.GetAsync(url);
@@ -462,7 +490,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/roles";
 
             var response = await client.GetAsync(url);
@@ -496,7 +528,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/role-mappings/realm";
 
             var response = await client.GetAsync(url);
@@ -524,7 +560,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                throw new InvalidOperationException("Oidc:Authority configuration is missing");
+            }
+            var realm = authority.Split("/").Last();
             
             // First, get all realm roles to find the role objects
             var rolesUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/roles";
@@ -533,7 +573,7 @@ public class UserManagementController : ControllerBase
             
             var allRoles = await rolesResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
             var rolesToAssign = allRoles?.Where(r => 
-                r.TryGetProperty("name", out var name) && roleNames.Contains(name.GetString())
+                r.TryGetProperty("name", out var name) && name.GetString() != null && roleNames.Contains(name.GetString()!)
             ).ToList();
 
             if (rolesToAssign?.Count > 0)
@@ -561,7 +601,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                throw new InvalidOperationException("Oidc:Authority configuration is missing");
+            }
+            var realm = authority.Split("/").Last();
             
             // Get all realm roles to find the role objects
             var rolesUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/roles";
@@ -570,7 +614,7 @@ public class UserManagementController : ControllerBase
             
             var allRoles = await rolesResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
             var rolesToRemove = allRoles?.Where(r => 
-                r.TryGetProperty("name", out var name) && roleNames.Contains(name.GetString())
+                r.TryGetProperty("name", out var name) && name.GetString() != null && roleNames.Contains(name.GetString()!)
             ).ToList();
 
             if (rolesToRemove?.Count > 0)
@@ -601,7 +645,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/groups";
 
             var response = await client.GetAsync(url);
@@ -629,7 +677,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/groups/{groupId}";
 
             var response = await client.PutAsync(url, null);
@@ -652,7 +704,11 @@ public class UserManagementController : ControllerBase
         {
             var client = await GetAuthenticatedClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{id}/groups/{groupId}";
 
             var response = await client.DeleteAsync(url);

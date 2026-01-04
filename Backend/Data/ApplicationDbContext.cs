@@ -26,6 +26,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusUser> RadiusUsers { get; set; }
     public DbSet<RadiusProfile> RadiusProfiles { get; set; }
     public DbSet<RadiusGroup> RadiusGroups { get; set; }
+    public DbSet<RadiusTag> RadiusTags { get; set; }
+    public DbSet<RadiusUserTag> RadiusUserTags { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<SyncProgress> SyncProgresses { get; set; }
 
@@ -41,6 +43,27 @@ public class ApplicationDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.ProfileId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<RadiusTag>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Title);
+        });
+
+        modelBuilder.Entity<RadiusUserTag>(entity =>
+        {
+            entity.HasKey(rut => new { rut.RadiusUserId, rut.RadiusTagId });
+
+            entity.HasOne(rut => rut.RadiusUser)
+                  .WithMany(ru => ru.RadiusUserTags)
+                  .HasForeignKey(rut => rut.RadiusUserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rut => rut.RadiusTag)
+                  .WithMany(rt => rt.RadiusUserTags)
+                  .HasForeignKey(rut => rut.RadiusTagId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

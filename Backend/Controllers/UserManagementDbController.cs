@@ -37,8 +37,12 @@ public class UserManagementDbController : ControllerBase
         {
             var client = await GetAuthenticatedKeycloakClient();
             var authority = _configuration["Oidc:Authority"];
-            var realm = authority?.Split("/").Last();
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
             
+            var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users?max=1000";
 
             var response = await client.GetAsync(url);
@@ -77,8 +81,8 @@ public class UserManagementDbController : ControllerBase
                     {
                         KeycloakUserId = keycloakUserId,
                         Email = finalEmail,
-                        FirstName = firstName,
-                        LastName = lastName,
+                        FirstName = firstName ?? string.Empty,
+                        LastName = lastName ?? string.Empty,
                         CreatedAt = DateTime.UtcNow
                     };
 
@@ -93,8 +97,8 @@ public class UserManagementDbController : ControllerBase
                         existingUser.KeycloakUserId = keycloakUserId;
                     }
                     existingUser.Email = finalEmail;
-                    existingUser.FirstName = firstName;
-                    existingUser.LastName = lastName;
+                    existingUser.FirstName = firstName ?? string.Empty;
+                    existingUser.LastName = lastName ?? string.Empty;
                     updatedCount++;
                 }
             }
@@ -120,7 +124,12 @@ public class UserManagementDbController : ControllerBase
     {
         var client = _httpClientFactory.CreateClient();
         var authority = _configuration["Oidc:Authority"];
-        var realm = authority?.Split("/").Last();
+        if (string.IsNullOrEmpty(authority))
+        {
+            throw new InvalidOperationException("Oidc:Authority configuration is missing");
+        }
+        
+        var realm = authority.Split("/").Last();
         var tokenUrl = $"{authority.Replace($"/realms/{realm}", "")}/realms/{realm}/protocol/openid-connect/token";
 
         var tokenRequest = new FormUrlEncodedContent(new[]
@@ -143,21 +152,133 @@ public class UserManagementDbController : ControllerBase
         return authenticatedClient;
     }
 
+    // POST: api/user-management
+    [HttpPost]
+    public async Task<IActionResult> CreateUser([FromBody] CreateMasterUserRequest request)
+    {
+        try
+        {
+            // Check if user already exists with this email
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == request.Email);
+                if (existingUser != null)
+                {
+                    return BadRequest(new { message = "User with this email already exists" });
+                }
+            }
+
+            var newUser = new User
+            {
+                FirstName = request.FirstName ?? string.Empty,
+                LastName = request.LastName ?? string.Empty,
+                Email = request.Email ?? string.Empty,
+                SupervisorId = request.SupervisorId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+
+            // Assign roles if provided
+            if (request.RoleIds != null && request.RoleIds.Any())
+            {
+                foreach (var roleId in request.RoleIds)
+                {
+                    _context.UserRoles.Add(new UserRole
+                    {
+                        UserId = newUser.Id,
+                        RoleId = roleId,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            // Assign groups if provided
+            if (request.GroupIds != null && request.GroupIds.Any())
+            {
+                foreach (var groupId in request.GroupIds)
+                {
+                    _context.UserGroups.Add(new UserGroup
+                    {
+                        UserId = newUser.Id,
+                        GroupId = groupId,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            // Load the created user with relationships
+            var createdUser = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == newUser.Id)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.SupervisorId,
+                    Roles = u.UserRoles.Select(ur => new
+                    {
+                        ur.Role.Id,
+                        ur.Role.Name,
+                        ur.Role.Description
+                    }).ToList(),
+                    Groups = u.UserGroups.Select(ug => new
+                    {
+                        ug.Group.Id,
+                        ug.Group.Name,
+                        ug.Group.Description
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(createdUser);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user");
+            return StatusCode(500, new { message = "Failed to create user", error = ex.Message });
+        }
+    }
+
     // GET: api/user-management
     [HttpGet]
     public async Task<IActionResult> GetUsers()
     {
         try
         {
+            // Project to DTOs immediately to avoid loading Supervisor navigation property
             var users = await _context.Users
                 .AsNoTracking()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .Include(u => u.UserGroups)
-                    .ThenInclude(ug => ug.Group)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.KeycloakUserId,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.SupervisorId,
+                    Roles = u.UserRoles.Select(ur => new
+                    {
+                        ur.Role.Id,
+                        ur.Role.Name,
+                        ur.Role.Description
+                    }).ToList(),
+                    Groups = u.UserGroups.Select(ug => new
+                    {
+                        ug.Group.Id,
+                        ug.Group.Name,
+                        ug.Group.Description
+                    }).ToList()
+                })
                 .ToListAsync();
 
-            // Load supervisors separately to avoid circular reference
+            // Load supervisor details separately
             var supervisorIds = users.Where(u => u.SupervisorId.HasValue).Select(u => u.SupervisorId!.Value).Distinct().ToList();
             var supervisors = await _context.Users
                 .AsNoTracking()
@@ -165,6 +286,7 @@ public class UserManagementDbController : ControllerBase
                 .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
                 .ToListAsync();
 
+            // Combine the data
             var userResponses = users.Select(u => new
             {
                 u.Id,
@@ -176,18 +298,8 @@ public class UserManagementDbController : ControllerBase
                 Supervisor = u.SupervisorId.HasValue
                     ? supervisors.FirstOrDefault(s => s.Id == u.SupervisorId.Value)
                     : null,
-                Roles = u.UserRoles.Select(ur => new
-                {
-                    ur.Role.Id,
-                    ur.Role.Name,
-                    ur.Role.Description
-                }).ToList(),
-                Groups = u.UserGroups.Select(ug => new
-                {
-                    ug.Group.Id,
-                    ug.Group.Name,
-                    ug.Group.Description
-                }).ToList()
+                Roles = u.Roles,
+                Groups = u.Groups
             }).ToList();
 
             return Ok(userResponses);
@@ -670,6 +782,16 @@ public class UserManagementDbController : ControllerBase
 }
 
 // Request models
+public class CreateMasterUserRequest
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public int? SupervisorId { get; set; }
+    public List<int>? RoleIds { get; set; }
+    public List<int>? GroupIds { get; set; }
+}
+
 public class UpdateSupervisorRequest
 {
     public int? SupervisorId { get; set; }
