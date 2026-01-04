@@ -591,8 +591,15 @@ export default function workspaceView() {
       comments: '',
       status: 'active',
       color: '#3b82f6',
+      icon: 'Building2',
     })
     setEditingworkspace(null)
+  }
+
+  const getIconComponent = (iconName?: string) => {
+    if (!iconName) return Building2
+    const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
+    return iconData?.icon || Building2
   }
 
   const handleEdit = (Workspace: Workspace) => {
@@ -605,6 +612,7 @@ export default function workspaceView() {
       comments: Workspace.comments,
       status: Workspace.status,
       color: Workspace.color,
+      icon: Workspace.icon || 'Building2',
     })
     setOpen(true)
   }
