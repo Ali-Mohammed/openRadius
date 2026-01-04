@@ -310,8 +310,8 @@ public class UserManagementDbController : ControllerBase
                 Supervisor = u.SupervisorId.HasValue
                     ? supervisors.FirstOrDefault(s => s.Id == u.SupervisorId.Value)
                     : null,
-                Roles = u.Roles,
-                Groups = u.Groups
+                u.Roles,
+                u.Groups
             }).ToList();
 
             return Ok(userResponses);

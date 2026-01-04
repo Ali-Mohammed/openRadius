@@ -15,7 +15,10 @@ namespace Backend.Migrations.MasterDb
                 table: "Users",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: true);
+
+            // Update any existing users that might have been set to false
+            migrationBuilder.Sql("UPDATE \"Users\" SET \"Enabled\" = true WHERE \"Enabled\" = false;");
         }
 
         /// <inheritdoc />

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.MasterDb
 {
     [DbContext(typeof(MasterDbContext))]
-    [Migration("20260104114525_AddEnabledToUser")]
-    partial class AddEnabledToUser
+    [Migration("20260104115048_AddEnabledColumnToUser")]
+    partial class AddEnabledColumnToUser
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
