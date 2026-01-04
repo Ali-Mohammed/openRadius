@@ -271,7 +271,10 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.enabled ? "default" : "destructive"}>
+                      <Badge 
+                        variant={user.enabled ? "outline" : "secondary"}
+                        className={user.enabled ? "border-green-600 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-400" : "border-red-600 text-red-700 bg-red-50 dark:bg-red-950 dark:text-red-400"}
+                      >
                         {user.enabled ? 'Active' : 'Disabled'}
                       </Badge>
                     </TableCell>
