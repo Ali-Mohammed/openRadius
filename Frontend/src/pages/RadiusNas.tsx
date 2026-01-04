@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { 
   Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, 
-  ArrowUpDown, ArrowUp, ArrowDown, Server, Eye, EyeOff, Wifi, Activity, Circle
+  ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Circle
 } from 'lucide-react'
 import { radiusNasApi, type RadiusNas } from '@/api/radiusNasApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -91,12 +91,6 @@ export default function RadiusNasPage() {
     enabled: workspaceId > 0,
   })
 
-  const { data: statsData } = useQuery({
-    queryKey: ['radius-nas-stats', workspaceId],
-    queryFn: () => radiusNasApi.getStats(workspaceId),
-    enabled: workspaceId > 0,
-  })
-
   const nasDevices = nasData?.data || []
   const pagination = nasData?.pagination
 
@@ -148,7 +142,6 @@ export default function RadiusNasPage() {
     mutationFn: (data: any) => radiusNasApi.create(workspaceId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
-      queryClient.invalidateQueries({ queryKey: ['radius-nas-stats', workspaceId] })
       toast.success('NAS device created successfully')
       handleCloseNasDialog()
     },
@@ -162,7 +155,6 @@ export default function RadiusNasPage() {
       radiusNasApi.update(workspaceId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
-      queryClient.invalidateQueries({ queryKey: ['radius-nas-stats', workspaceId] })
       toast.success('NAS device updated successfully')
       handleCloseNasDialog()
     },
@@ -175,7 +167,6 @@ export default function RadiusNasPage() {
     mutationFn: (id: number) => radiusNasApi.delete(workspaceId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
-      queryClient.invalidateQueries({ queryKey: ['radius-nas-stats', workspaceId] })
       toast.success('NAS device deleted successfully')
     },
     onError: (error: any) => {
@@ -187,7 +178,6 @@ export default function RadiusNasPage() {
     mutationFn: (id: number) => radiusNasApi.restore(workspaceId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
-      queryClient.invalidateQueries({ queryKey: ['radius-nas-stats', workspaceId] })
       toast.success('NAS device restored successfully')
     },
     onError: (error: any) => {
@@ -368,53 +358,25 @@ export default function RadiusNasPage() {
             Manage RADIUS NAS devices for network authentication
           </p>
         </div>
-        <Button onClick={() => handleOpenNasDialog()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add NAS Device
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      {statsData && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total NAS</CardTitle>
-              <Server className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Enabled</CardTitle>
-              <Wifi className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData.enabled}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monitored</CardTitle>
-              <Activity className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData.monitored}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Deleted</CardTitle>
-              <Archive className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData.deleted}</div>
-            </CardContent>
-          </Card>
+        <div className="flex gap-2">
+          <Button
+            variant={showTrash ? 'default' : 'outline'}
+            onClick={() => {
+              setShowTrash(!showTrash)
+              setCurrentPage(1)
+            }}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
+          </Button>
+          {!showTrash && (
+            <Button onClick={() => handleOpenNasDialog()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add NAS Device
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Main Card */}
       <Card>
@@ -447,36 +409,10 @@ export default function RadiusNasPage() {
                   </>
                 )}
               </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Search and Filters */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 flex gap-2">
-              <Input
-                placeholder="Search NAS devices..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="max-w-sm"
-              />
-              <Button onClick={handleSearch} variant="secondary">
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-                <SelectItem value="100">100 / page</SelectItem>
-                <SelectItem value="200">200 / page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+           CardTitle>NAS Devices</CardTitle>
+          <CardDescription>
+            {showTrash ? 'Deleted NAS devices' : 'Active NAS devices'}
+          </CardDescription>
 
           {/* Table */}
           <div className="border rounded-md">
