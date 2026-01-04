@@ -381,6 +381,32 @@ public class UserManagementDbController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
+            // Fetch enabled status from Keycloak if user has KeycloakUserId
+            bool enabled = true;
+            if (!string.IsNullOrEmpty(user.KeycloakUserId))
+            {
+                try
+                {
+                    var client = await GetAuthenticatedKeycloakClient();
+                    var authority = _configuration["Oidc:Authority"];
+                    if (!string.IsNullOrEmpty(authority))
+                    {
+                        var realm = authority.Split("/").Last();
+                        var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{user.KeycloakUserId}";
+                        var response = await client.GetAsync(url);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var keycloakUser = await response.Content.ReadFromJsonAsync<JsonElement>();
+                            enabled = keycloakUser.TryGetProperty("enabled", out var enabledProp) ? enabledProp.GetBoolean() : true;
+                        }
+                    }
+                }
+                catch
+                {
+                    // If we can't fetch from Keycloak, default to true
+                }
+            }
+
             var userResponse = new
             {
                 user.Id,
@@ -388,6 +414,7 @@ public class UserManagementDbController : ControllerBase
                 user.FirstName,
                 user.LastName,
                 user.Email,
+                Enabled = enabled,
                 SupervisorId = user.SupervisorId,
                 Supervisor = user.Supervisor != null ? new
                 {
