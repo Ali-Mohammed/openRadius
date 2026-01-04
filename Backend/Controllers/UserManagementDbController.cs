@@ -67,6 +67,7 @@ public class UserManagementDbController : ControllerBase
                 var firstName = kUser.TryGetProperty("firstName", out var fn) ? fn.GetString() : null;
                 var lastName = kUser.TryGetProperty("lastName", out var ln) ? ln.GetString() : null;
                 var username = kUser.TryGetProperty("username", out var un) ? un.GetString() : null;
+                var enabled = kUser.TryGetProperty("enabled", out var en) && en.GetBoolean();
 
                 var finalEmail = email ?? username ?? $"user-{keycloakUserId}";
 
@@ -83,6 +84,7 @@ public class UserManagementDbController : ControllerBase
                         Email = finalEmail,
                         FirstName = firstName ?? string.Empty,
                         LastName = lastName ?? string.Empty,
+                        Enabled = enabled,
                         CreatedAt = DateTime.UtcNow
                     };
 
@@ -99,6 +101,7 @@ public class UserManagementDbController : ControllerBase
                     existingUser.Email = finalEmail;
                     existingUser.FirstName = firstName ?? string.Empty;
                     existingUser.LastName = lastName ?? string.Empty;
+                    existingUser.Enabled = enabled;
                     updatedCount++;
                 }
             }
@@ -269,6 +272,7 @@ public class UserManagementDbController : ControllerBase
                     u.FirstName,
                     u.LastName,
                     u.Email,
+                    u.Enabled,
                     u.SupervisorId,
                     Roles = u.UserRoles.Select(ur => new
                     {
@@ -301,6 +305,7 @@ public class UserManagementDbController : ControllerBase
                 u.FirstName,
                 u.LastName,
                 u.Email,
+                u.Enabled,
                 SupervisorId = u.SupervisorId,
                 Supervisor = u.SupervisorId.HasValue
                     ? supervisors.FirstOrDefault(s => s.Id == u.SupervisorId.Value)
@@ -412,6 +417,30 @@ public class UserManagementDbController : ControllerBase
         {
             _logger.LogError(ex, "Error updating supervisor for user {UserId}", id);
             return StatusCode(500, new { message = "Failed to update supervisor", error = ex.Message });
+        }
+    }
+
+    // PUT: api/user-management/{keycloakUserId}/status
+    [HttpPut("{keycloakUserId}/status")]
+    public async Task<IActionResult> UpdateUserStatus(string keycloakUserId, [FromBody] UpdateUserStatusRequest request)
+    {
+        try
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == keycloakUserId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            user.Enabled = request.Enabled;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "User status updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user status for {KeycloakUserId}", keycloakUserId);
+            return StatusCode(500, new { message = "Failed to update user status", error = ex.Message });
         }
     }
 

@@ -10,6 +10,7 @@ public class User
     
     // Keycloak integration
     public string? KeycloakUserId { get; set; }
+    public bool Enabled { get; set; } = true;
     
     // Supervisor relationship
     public int? SupervisorId { get; set; }
