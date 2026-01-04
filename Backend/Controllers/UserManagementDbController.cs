@@ -927,7 +927,8 @@ public class UserManagementDbController : ControllerBase
                 return NotFound(new { message = "Permission not found" });
             }
 
-            _context.Permissions.Remove(permission);
+            permission.IsDeleted = true;
+            permission.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Permission deleted successfully" });
