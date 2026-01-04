@@ -28,6 +28,8 @@ export interface Group {
   id: number
   name: string
   description?: string
+  icon?: string
+  color?: string
 }
 
 export interface Permission {
@@ -64,6 +66,8 @@ export interface CreateUserRoleRequest {
 export interface CreateUserGroupRequest {
   name: string
   description?: string
+  icon?: string
+  color?: string
 }
 
 export interface SetPasswordRequest {
@@ -128,6 +132,11 @@ export const userManagementApi = {
 
   createGroup: async (data: CreateUserGroupRequest): Promise<Group> => {
     const response = await apiClient.post('/api/user-management/groups', data)
+    return response.data
+  },
+
+  updateGroup: async (id: number, data: CreateUserGroupRequest): Promise<Group> => {
+    const response = await apiClient.put(`/api/user-management/groups/${id}`, data)
     return response.data
   },
 
