@@ -176,8 +176,8 @@ public class UserManagementController : ControllerBase
                         Email = u.TryGetProperty("email", out var email) ? email.GetString() : null,
                         FirstName = u.TryGetProperty("firstName", out var firstName) ? firstName.GetString() : null,
                         LastName = u.TryGetProperty("lastName", out var lastName) ? lastName.GetString() : null,
-                        Enabled = u.TryGetProperty("enabled", out var enabled) && enabled.GetBoolean(),
-                        EmailVerified = u.TryGetProperty("emailVerified", out var emailVerified) && emailVerified.GetBoolean(),
+                        Enabled = u.TryGetProperty("enabled", out var enabled) ? enabled.GetBoolean() : true,
+                        EmailVerified = u.TryGetProperty("emailVerified", out var emailVerified) ? emailVerified.GetBoolean() : false,
                         CreatedTimestamp = u.TryGetProperty("createdTimestamp", out var createdTimestamp) ? createdTimestamp.GetInt64() : null,
                         Groups = userGroups,
                         RealmRoles = realmRoles,
@@ -223,8 +223,8 @@ public class UserManagementController : ControllerBase
                 Email = user.TryGetProperty("email", out var email) ? email.GetString() : null,
                 FirstName = user.TryGetProperty("firstName", out var firstName) ? firstName.GetString() : null,
                 LastName = user.TryGetProperty("lastName", out var lastName) ? lastName.GetString() : null,
-                Enabled = user.TryGetProperty("enabled", out var enabled) && enabled.GetBoolean(),
-                EmailVerified = user.TryGetProperty("emailVerified", out var emailVerified) && emailVerified.GetBoolean(),
+                Enabled = user.TryGetProperty("enabled", out var enabled) ? enabled.GetBoolean() : true,
+                EmailVerified = user.TryGetProperty("emailVerified", out var emailVerified) ? emailVerified.GetBoolean() : false,
                 CreatedTimestamp = user.TryGetProperty("createdTimestamp", out var createdTimestamp) ? createdTimestamp.GetInt64() : null
             };
 

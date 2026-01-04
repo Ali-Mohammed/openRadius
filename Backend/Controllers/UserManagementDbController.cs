@@ -293,6 +293,47 @@ public class UserManagementDbController : ControllerBase
                 .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
                 .ToListAsync();
 
+            // Fetch enabled status from Keycloak for users with KeycloakUserId
+            var enabledStatusMap = new Dictionary<string, bool>();
+            var usersWithKeycloakId = users.Where(u => !string.IsNullOrEmpty(u.KeycloakUserId)).ToList();
+            
+            if (usersWithKeycloakId.Any())
+            {
+                try
+                {
+                    var client = await GetAuthenticatedKeycloakClient();
+                    var authority = _configuration["Oidc:Authority"];
+                    if (!string.IsNullOrEmpty(authority))
+                    {
+                        var realm = authority.Split("/").Last();
+                        
+                        foreach (var user in usersWithKeycloakId)
+                        {
+                            try
+                            {
+                                var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users/{user.KeycloakUserId}";
+                                var response = await client.GetAsync(url);
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    var keycloakUser = await response.Content.ReadFromJsonAsync<JsonElement>();
+                                    var enabled = keycloakUser.TryGetProperty("enabled", out var enabledProp) ? enabledProp.GetBoolean() : true;
+                                    enabledStatusMap[user.KeycloakUserId!] = enabled;
+                                }
+                            }
+                            catch
+                            {
+                                // If we can't fetch from Keycloak, default to true
+                                enabledStatusMap[user.KeycloakUserId!] = true;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // If Keycloak is unreachable, default all to true
+                }
+            }
+
             // Combine the data
             var userResponses = users.Select(u => new
             {
@@ -301,6 +342,9 @@ public class UserManagementDbController : ControllerBase
                 u.FirstName,
                 u.LastName,
                 u.Email,
+                Enabled = !string.IsNullOrEmpty(u.KeycloakUserId) && enabledStatusMap.ContainsKey(u.KeycloakUserId)
+                    ? enabledStatusMap[u.KeycloakUserId]
+                    : true,
                 SupervisorId = u.SupervisorId,
                 Supervisor = u.SupervisorId.HasValue
                     ? supervisors.FirstOrDefault(s => s.Id == u.SupervisorId.Value)
