@@ -314,11 +314,18 @@ public class DebeziumController : ControllerBase
             var debeziumUrl = await GetDebeziumUrl();
             var client = _httpClientFactory.CreateClient();
 
+            // Convert localhost/127.0.0.1 to Docker service name for Debezium (running in container)
+            var hostname = connector.DatabaseHostname;
+            if (hostname == "localhost" || hostname == "127.0.0.1")
+            {
+                hostname = "openradius-postgres";
+            }
+
             // Build Debezium connector config
             var config = new Dictionary<string, object>
             {
                 { "connector.class", connector.ConnectorClass },
-                { "database.hostname", connector.DatabaseHostname },
+                { "database.hostname", hostname },
                 { "database.port", connector.DatabasePort.ToString() },
                 { "database.user", connector.DatabaseUser },
                 { "database.password", connector.DatabasePassword },
@@ -389,11 +396,18 @@ public class DebeziumController : ControllerBase
             var debeziumUrl = await GetDebeziumUrl();
             var client = _httpClientFactory.CreateClient();
 
+            // Convert localhost/127.0.0.1 to Docker service name for Debezium (running in container)
+            var hostname = connector.DatabaseHostname;
+            if (hostname == "localhost" || hostname == "127.0.0.1")
+            {
+                hostname = "openradius-postgres";
+            }
+
             // Build Debezium connector config
             var config = new Dictionary<string, object>
             {
                 { "connector.class", connector.ConnectorClass },
-                { "database.hostname", connector.DatabaseHostname },
+                { "database.hostname", hostname },
                 { "database.port", connector.DatabasePort.ToString() },
                 { "database.user", connector.DatabaseUser },
                 { "database.password", connector.DatabasePassword },
