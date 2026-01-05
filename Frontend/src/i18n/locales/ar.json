@@ -34,7 +34,10 @@
     "userManagement": "إدارة المستخدمين",
     "roles": "الأدوار",
     "permissions": "الصلاحيات",
-    "userGroups": "المجموعات"
+    "userGroups": "المجموعات",
+    "connectors": "الموصلات",
+    "connectorList": "موصلات CDC",
+    "connectorSettings": "الإعدادات"
   },
   "dashboard": {
     "title": "لوحة التحكم",

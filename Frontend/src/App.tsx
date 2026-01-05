@@ -24,6 +24,8 @@ import UserManagement from './pages/UserManagement'
 import RolesPage from './pages/RolesPage'
 import PermissionsPage from './pages/PermissionsPage'
 import GroupsPage from './pages/GroupsPage'
+import Connectors from './pages/Connectors'
+import DebeziumSettings from './pages/DebeziumSettings'
 
 const queryClient = new QueryClient()
 
@@ -60,6 +62,8 @@ function App() {
                           <Route path="/roles" element={<RolesPage />} />
                           <Route path="/permissions" element={<PermissionsPage />} />
                           <Route path="/groups" element={<GroupsPage />} />
+                          <Route path="/connectors" element={<Connectors />} />
+                          <Route path="/connectors/settings" element={<DebeziumSettings />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>

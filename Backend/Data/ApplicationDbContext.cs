@@ -32,6 +32,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusIpPool> RadiusIpPools { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<SyncProgress> SyncProgresses { get; set; }
+    public DbSet<DebeziumSettings> DebeziumSettings { get; set; }
+    public DbSet<DebeziumConnector> DebeziumConnectors { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

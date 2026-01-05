@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
@@ -117,6 +117,23 @@ const data = {
           titleKey: "navigation.balances",
           url: `/workspace/${DEFAULT_workspace_ID}/billing/balances`,
           icon: Coins,
+        },
+      ],
+    },
+    {
+      titleKey: "navigation.connectors",
+      url: "#",
+      icon: Database,
+      items: [
+        {
+          titleKey: "navigation.connectorList",
+          url: "/connectors",
+          icon: Database,
+        },
+        {
+          titleKey: "navigation.connectorSettings",
+          url: "/connectors/settings",
+          icon: Settings,
         },
       ],
     },

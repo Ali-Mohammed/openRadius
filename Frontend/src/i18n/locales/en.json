@@ -36,7 +36,10 @@
     "userManagement": "User Management",
     "roles": "Roles",
     "permissions": "Permissions",
-    "userGroups": "Groups"
+    "userGroups": "Groups",
+    "connectors": "Connectors",
+    "connectorList": "CDC Connectors",
+    "connectorSettings": "Settings"
   },
   "dashboard": {
     "title": "Dashboard",
