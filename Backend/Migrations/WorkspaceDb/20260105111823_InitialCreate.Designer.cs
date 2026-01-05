@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.WorkspaceDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260104133943_InitialCreate")]
+    [Migration("20260105111823_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -69,6 +69,167 @@ namespace Backend.Migrations.WorkspaceDb
                     b.HasKey("Id");
 
                     b.ToTable("RadiusGroups");
+                });
+
+            modelBuilder.Entity("Backend.Models.RadiusIpPool", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("EndIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("end_ip");
+
+                    b.Property<int>("LeaseTime")
+                        .HasColumnType("integer")
+                        .HasColumnName("lease_time");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("StartIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("start_ip");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workspace_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("radius_ip_pools");
+                });
+
+            modelBuilder.Entity("Backend.Models.RadiusNas", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApiPassword")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ApiPort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ApiUsername")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CoaPort")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Enabled")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HttpPort")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IpAccountingEnabled")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Monitor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Nasname")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PingLoss")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PingTime")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PoolName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Secret")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Server")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Shortname")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SiteId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SnmpCommunity")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SshPassword")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SshPort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SshUsername")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("text");
+
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nasname");
+
+                    b.HasIndex("Shortname");
+
+                    b.ToTable("RadiusNasDevices");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusProfile", b =>

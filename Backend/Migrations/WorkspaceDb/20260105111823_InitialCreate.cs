@@ -13,6 +13,26 @@ namespace Backend.Migrations.WorkspaceDb
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "radius_ip_pools",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    start_ip = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: false),
+                    end_ip = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: false),
+                    lease_time = table.Column<int>(type: "integer", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    workspace_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_radius_ip_pools", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RadiusGroups",
                 columns: table => new
                 {
@@ -32,6 +52,47 @@ namespace Backend.Migrations.WorkspaceDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RadiusGroups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RadiusNasDevices",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Nasname = table.Column<string>(type: "text", nullable: false),
+                    Shortname = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    Secret = table.Column<string>(type: "text", nullable: false),
+                    ApiUsername = table.Column<string>(type: "text", nullable: true),
+                    ApiPassword = table.Column<string>(type: "text", nullable: true),
+                    CoaPort = table.Column<int>(type: "integer", nullable: false),
+                    Version = table.Column<string>(type: "text", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Server = table.Column<string>(type: "text", nullable: true),
+                    Enabled = table.Column<int>(type: "integer", nullable: false),
+                    SiteId = table.Column<int>(type: "integer", nullable: true),
+                    HttpPort = table.Column<int>(type: "integer", nullable: false),
+                    Monitor = table.Column<int>(type: "integer", nullable: false),
+                    PingTime = table.Column<int>(type: "integer", nullable: false),
+                    PingLoss = table.Column<int>(type: "integer", nullable: false),
+                    IpAccountingEnabled = table.Column<int>(type: "integer", nullable: false),
+                    PoolName = table.Column<string>(type: "text", nullable: true),
+                    ApiPort = table.Column<int>(type: "integer", nullable: true),
+                    SnmpCommunity = table.Column<string>(type: "text", nullable: true),
+                    SshUsername = table.Column<string>(type: "text", nullable: true),
+                    SshPassword = table.Column<string>(type: "text", nullable: true),
+                    SshPort = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RadiusNasDevices", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -236,6 +297,21 @@ namespace Backend.Migrations.WorkspaceDb
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_radius_ip_pools_name",
+                table: "radius_ip_pools",
+                column: "name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusNasDevices_Nasname",
+                table: "RadiusNasDevices",
+                column: "Nasname");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusNasDevices_Shortname",
+                table: "RadiusNasDevices",
+                column: "Shortname");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RadiusTags_Title",
                 table: "RadiusTags",
                 column: "Title");
@@ -255,7 +331,13 @@ namespace Backend.Migrations.WorkspaceDb
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "radius_ip_pools");
+
+            migrationBuilder.DropTable(
                 name: "RadiusGroups");
+
+            migrationBuilder.DropTable(
+                name: "RadiusNasDevices");
 
             migrationBuilder.DropTable(
                 name: "RadiusUserTags");
