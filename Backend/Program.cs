@@ -113,11 +113,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 
 // Configure CORS
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+    ?? new[] { "http://localhost:5173", "http://localhost:5174" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+        policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -140,6 +143,9 @@ using (var scope = app.Services.CreateScope())
     // Seed default OIDC provider if no providers exist
     if (!masterContext.OidcSettings.Any())
     {
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var oidcConfig = configuration.GetSection("Oidc");
+        
         masterContext.OidcSettings.Add(new Backend.Models.OidcSettings
         {
             ProviderName = "keycloak",
@@ -147,16 +153,16 @@ using (var scope = app.Services.CreateScope())
             Description = "Login using Keycloak OpenID Connect",
             LogoUrl = "/keycloak-logo.svg",
             DisplayOrder = 1,
-            Authority = "http://localhost:8080/realms/openradius",
-            ClientId = "openradius-web",
-            ClientSecret = "",
-            RedirectUri = "http://localhost:5173",
-            PostLogoutRedirectUri = "http://localhost:5173",
-            ResponseType = "code",
-            Scope = "openid profile email",
+            Authority = oidcConfig["Authority"] ?? "http://localhost:8080/realms/openradius",
+            ClientId = oidcConfig["ClientId"] ?? "openradius-web",
+            ClientSecret = oidcConfig["ClientSecret"] ?? "",
+            RedirectUri = oidcConfig["RedirectUri"] ?? "http://localhost:5173",
+            PostLogoutRedirectUri = oidcConfig["PostLogoutRedirectUri"] ?? "http://localhost:5173",
+            ResponseType = oidcConfig["ResponseType"] ?? "code",
+            Scope = oidcConfig["Scope"] ?? "openid profile email",
             IsActive = true,
             IsDefault = true,
-            RequireHttpsMetadata = false,
+            RequireHttpsMetadata = oidcConfig.GetValue<bool>("RequireHttpsMetadata", false),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
