@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { workspaceApi, usersApi } from "@/lib/api"
 import type { Workspace } from "@/lib/api"
 import { toast } from "sonner"
+import { useWorkspace } from "@/contexts/WorkspaceContext"
 
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ import {
 export function WorkspaceSwitcher() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [currentWorkspaceId, setCurrentWorkspaceId] = React.useState<number | null>(null)
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace()
 
   // Fetch all workspaces
   const { data: workspaces = [], isLoading } = useQuery({
@@ -59,7 +60,7 @@ export function WorkspaceSwitcher() {
     },
   })
 
-  // Get current workspace from user data or local state
+  // Get current workspace from context or user data
   const activeWorkspace = React.useMemo(() => {
     if (currentWorkspaceId) {
       return workspaces.find(w => w.id === currentWorkspaceId)

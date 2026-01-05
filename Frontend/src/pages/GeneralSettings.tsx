@@ -9,26 +9,27 @@ import { Button } from '@/components/ui/button'
 import { DollarSign, Save } from 'lucide-react'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 export default function GeneralSettings() {
-  const { id } = useParams<{ id: string }>()
-  const workspaceId = parseInt(id || '0')
+  const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
   const queryClient = useQueryClient()
   const [currency, setCurrency] = useState('USD')
 
   const { isLoading } = useQuery({
-    queryKey: ['general-settings', workspaceId],
-    queryFn: () => settingsApi.getGeneralSettings(workspaceId),
-    enabled: workspaceId > 0,
+    queryKey: ['general-settings', currentWorkspaceId],
+    queryFn: () => settingsApi.getGeneralSettings(currentWorkspaceId!),
+    enabled: currentWorkspaceId !== null, // Only fetch when workspace ID is available
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent duplicate requests
     onSuccess: (data) => {
       setCurrency(data.currency)
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (currency: string) => settingsApi.updateGeneralSettings(workspaceId, { currency }),
+    mutationFn: (currency: string) => settingsApi.updateGeneralSettings(currentWorkspaceId!, { currency }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['general-settings', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['general-settings', currentWorkspaceId] })
       toast.success('Settings saved successfully')
     },
     onError: (error: any) => {
@@ -40,7 +41,7 @@ export default function GeneralSettings() {
     updateMutation.mutate(currency)
   }
 
-  if (isLoading) {
+  if (isLoadingWorkspace || isLoading) {
     return <div className="p-6">Loading...</div>
   }
 

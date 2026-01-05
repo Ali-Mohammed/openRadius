@@ -1,6 +1,7 @@
 import * as React from "react"
 import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
+import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
 
@@ -28,10 +29,10 @@ import {
 } from "@/components/ui/sidebar"
 
 // This is sample data.
-// TODO: Make workspace ID dynamic based on selected/active workspace
-const DEFAULT_workspace_ID = 1
+const DEFAULT_workspace_ID = 1 // Fallback
 
-const data = {
+// Function to create nav data with dynamic workspace ID
+const getNavData = (workspaceId: number) => ({
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
     {
@@ -53,32 +54,32 @@ const data = {
       items: [
         {
           titleKey: "navigation.users",
-          url: `/workspace/${DEFAULT_workspace_ID}/radius/users`,
+          url: `/workspace/${workspaceId}/radius/users`,
           icon: Users,
         },
         {
           titleKey: "navigation.profiles",
-          url: `/workspace/${DEFAULT_workspace_ID}/radius/profiles`,
+          url: `/workspace/${workspaceId}/radius/profiles`,
           icon: CircleUser,
         },
         {
           titleKey: "navigation.groups",
-          url: `/workspace/${DEFAULT_workspace_ID}/radius/groups`,
+          url: `/workspace/${workspaceId}/radius/groups`,
           icon: UsersRound,
         },
         {
           titleKey: "navigation.tags",
-          url: `/workspace/${DEFAULT_workspace_ID}/radius/tags`,
+          url: `/workspace/${workspaceId}/radius/tags`,
           icon: Tag,
         },
         {
           titleKey: "navigation.nas",
-          url: `/workspace/${DEFAULT_workspace_ID}/radius/nas`,
+          url: `/workspace/${workspaceId}/radius/nas`,
           icon: Server,
         },
         {
           titleKey: "navigation.ipPools",
-          url: `/workspace/${DEFAULT_workspace_ID}/radius/ip-pools`,
+          url: `/workspace/${workspaceId}/radius/ip-pools`,
           icon: Network,
         },
       ],
@@ -90,32 +91,32 @@ const data = {
       items: [
         {
           titleKey: "navigation.billingProfiles",
-          url: `/workspace/${DEFAULT_workspace_ID}/billing/profiles`,
+          url: `/workspace/${workspaceId}/billing/profiles`,
           icon: FileText,
         },
         {
           titleKey: "navigation.addons",
-          url: `/workspace/${DEFAULT_workspace_ID}/billing/addons`,
+          url: `/workspace/${workspaceId}/billing/addons`,
           icon: Package,
         },
         {
           titleKey: "navigation.cashbacks",
-          url: `/workspace/${DEFAULT_workspace_ID}/billing/cashbacks`,
+          url: `/workspace/${workspaceId}/billing/cashbacks`,
           icon: Gift,
         },
         {
           titleKey: "navigation.wallets",
-          url: `/workspace/${DEFAULT_workspace_ID}/billing/wallets`,
+          url: `/workspace/${workspaceId}/billing/wallets`,
           icon: Wallet,
         },
         {
           titleKey: "navigation.walletsHistory",
-          url: `/workspace/${DEFAULT_workspace_ID}/billing/wallets-history`,
+          url: `/workspace/${workspaceId}/billing/wallets-history`,
           icon: History,
         },
         {
           titleKey: "navigation.balances",
-          url: `/workspace/${DEFAULT_workspace_ID}/billing/balances`,
+          url: `/workspace/${workspaceId}/billing/balances`,
           icon: Coins,
         },
       ],
@@ -161,7 +162,7 @@ const data = {
       items: [
         {
           titleKey: "navigation.general",
-          url: `/workspace/${DEFAULT_workspace_ID}/settings/general`,
+          url: `/workspace/${workspaceId}/settings/general`,
           icon: DollarSign,
         },
         {
@@ -199,13 +200,17 @@ const data = {
       ],
     },
   ],
-}
+})
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { theme, primaryColor } = useTheme()
+  const { currentWorkspaceId } = useWorkspace()
   const { t } = useTranslation()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState("")
+
+  // Get nav data with current workspace ID (fallback to 1 if not loaded yet)
+  const data = React.useMemo(() => getNavData(currentWorkspaceId || 1), [currentWorkspaceId])
 
   // Filter and sort menu items based on search query
   const filteredNavMain = React.useMemo(() => {

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { KeycloakProvider } from './contexts/KeycloakContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { WorkspaceGuard } from './components/WorkspaceGuard'
 import { AppLayout } from './components/AppLayout'
@@ -34,7 +35,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <KeycloakProvider>
-          <BrowserRouter>
+          <WorkspaceProvider>
+            <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route
@@ -74,9 +76,10 @@ function App() {
             </Routes>
           </BrowserRouter>
           <Toaster richColors position="top-right" />
-        </KeycloakProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </WorkspaceProvider>
+      </KeycloakProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
   )
 }
 
