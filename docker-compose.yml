@@ -8,6 +8,14 @@ services:
       POSTGRES_DB: openradius
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
     ports:
       - "5432:5432"
     volumes:
@@ -69,6 +77,43 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+
+  redpanda:
+    image: redpandadata/redpanda:v24.2.3
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+    networks:
+      - openradius-network
+
+  connect_cloud:
+    image: debezium/connect:2.6
+    container_name: connect_cloud
+    depends_on:
+      - postgres
+      - redpanda
+    environment:
+      BOOTSTRAP_SERVERS: redpanda:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_status
+    ports:
+      - "8083:8083"
+    networks:
+      - openradius-network
 
 volumes:
   postgres_data:
