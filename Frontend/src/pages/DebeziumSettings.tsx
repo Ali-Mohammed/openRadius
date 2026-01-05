@@ -85,17 +85,6 @@ export default function DebeziumSettings() {
       setTesting(false);
     }
   };
-      } else {
-        setConnectionStatus('failed');
-        toast.error('Unable to connect to Debezium Connect');
-      }
-    } catch (error: any) {
-      setConnectionStatus('failed');
-      toast.error(error.message || 'Connection failed');
-    } finally {
-      setTesting(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
