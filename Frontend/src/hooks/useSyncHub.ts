@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
+import { appConfig } from '@/config/app.config';
 
 export enum SyncStatus {
   Starting = 0,
@@ -57,7 +58,7 @@ export const useSyncHub = (syncId?: string) => {
 
   useEffect(() => {
     const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5000/hubs/sassync', {
+      .withUrl(`${appConfig.api.baseUrl}/hubs/sassync`, {
         skipNegotiation: true,
         transport: signalR.HttpTransportType.WebSockets,
       })
