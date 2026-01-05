@@ -203,13 +203,14 @@ export default function workspaceView() {
 
   // Fetch workspaces
   const { data: workspaces = [], isLoading, refetch } = useQuery({
-    queryKey: ['workspaces-view', globalFilter, sorting[0]?.id, sorting[0]?.desc ? 'desc' : 'asc'],
+    queryKey: ['workspaces-view', globalFilter, sorting[0]?.id || '', sorting[0]?.desc || false],
     queryFn: () => workspaceApi.getAll({
       search: globalFilter,
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     }),
     staleTime: 30 * 1000, // Cache for 30 seconds
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching
   })
 
   // Fetch deleted workspaces

@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api'
 import { appConfig } from '@/config/app.config'
 
@@ -86,8 +87,7 @@ const PROVIDER_PRESETS = {
 }
 
 export default function OidcSettingsPage() {
-  const [providers, setProviders] = useState<OidcProvider[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<OidcProvider | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -98,7 +98,6 @@ export default function OidcSettingsPage() {
   const [testing, setTesting] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<string>('custom')
   const [showTrash, setShowTrash] = useState(false)
-  const initialLoadRef = useRef(true)
   
   const [formData, setFormData] = useState<OidcProvider>({
     providerName: '',
@@ -122,54 +121,16 @@ export default function OidcSettingsPage() {
     isDefault: false,
   })
 
-  useEffect(() => {
-    // Prevent duplicate calls from React Strict Mode double-mounting
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false
-      if (showTrash) {
-        loadDeletedProviders()
-      } else {
-        loadProviders()
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    // Only run when showTrash changes (not on initial mount)
-    if (!initialLoadRef.current) {
-      if (showTrash) {
-        loadDeletedProviders()
-      } else {
-        loadProviders()
-      }
-    }
-  }, [showTrash])
-
-  const loadProviders = async () => {
-    try {
-      setLoading(true)
-      const { data } = await apiClient.get('/api/oidcsettings')
-      setProviders(data)
-    } catch (error) {
-      console.error('Failed to load OIDC providers:', error)
-      toast.error('Failed to load OIDC providers')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadDeletedProviders = async () => {
-    try {
-      setLoading(true)
-      const { data } = await apiClient.get('/api/oidcsettings/trash')
-      setProviders(data)
-    } catch (error) {
-      console.error('Failed to load deleted OIDC providers:', error)
-      toast.error('Failed to load deleted OIDC providers')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Fetch OIDC providers using React Query
+  const { data: providers = [], isLoading: loading } = useQuery({
+    queryKey: ['oidc-providers', showTrash],
+    queryFn: async () => {
+      const endpoint = showTrash ? '/api/oidcsettings/trash' : '/api/oidcsettings'
+      const { data } = await apiClient.get(endpoint)
+      return data
+    },
+    staleTime: 30 * 1000, // Cache for 30 seconds
+  })
 
   const handlePresetChange = (preset: string) => {
     setSelectedPreset(preset)
@@ -234,7 +195,7 @@ export default function OidcSettingsPage() {
 
       toast.success(`OIDC provider ${editingProvider ? 'updated' : 'created'} successfully`)
       setDialogOpen(false)
-      loadProviders()
+      queryClient.invalidateQueries({ queryKey: ['oidc-providers'] })
     } catch (error) {
       console.error('Failed to save OIDC provider:', error)
       toast.error('Failed to save OIDC provider')
@@ -258,7 +219,7 @@ export default function OidcSettingsPage() {
     try {
       await apiClient.delete(`/api/oidcsettings/${providerToDelete.id}`)
       toast.success('Provider deleted successfully')
-      loadProviders()
+      queryClient.invalidateQueries({ queryKey: ['oidc-providers'] })
     } catch (error) {
       console.error('Failed to delete provider:', error)
       toast.error('Failed to delete provider')
@@ -279,7 +240,7 @@ export default function OidcSettingsPage() {
     try {
       await apiClient.post(`/api/oidcsettings/${providerToRestore}/restore`)
       toast.success('Provider restored successfully')
-      loadDeletedProviders()
+      queryClient.invalidateQueries({ queryKey: ['oidc-providers'] })
     } catch (error) {
       console.error('Failed to restore provider:', error)
       toast.error('Failed to restore provider')
@@ -293,7 +254,7 @@ export default function OidcSettingsPage() {
     try {
       await apiClient.put(`/api/oidcsettings/${id}/set-default`)
       toast.success('Default provider updated')
-      loadProviders()
+      queryClient.invalidateQueries({ queryKey: ['oidc-providers'] })
     } catch (error) {
       console.error('Failed to set default provider:', error)
       toast.error('Failed to set default provider')
@@ -304,7 +265,7 @@ export default function OidcSettingsPage() {
     try {
       await apiClient.put(`/api/oidcsettings/${id}/toggle-active`)
       toast.success('Provider status updated')
-      loadProviders()
+      queryClient.invalidateQueries({ queryKey: ['oidc-providers'] })
     } catch (error) {
       console.error('Failed to toggle provider:', error)
       toast.error('Failed to toggle provider')
