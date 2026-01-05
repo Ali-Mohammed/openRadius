@@ -67,6 +67,38 @@ public class DebeziumController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("settings/test")]
+    public async Task<ActionResult> TestConnection([FromBody] DebeziumSettings settings)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.GetAsync($"{settings.ConnectUrl}/");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return Ok(new { 
+                    connected = true, 
+                    message = "Successfully connected to Debezium Connect",
+                    version = content 
+                });
+            }
+            
+            return StatusCode((int)response.StatusCode, new { 
+                connected = false, 
+                message = $"Failed to connect: {response.ReasonPhrase}" 
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { 
+                connected = false, 
+                message = $"Connection error: {ex.Message}" 
+            });
+        }
+    }
+
     // Get Debezium Connect URL
     private async Task<string> GetDebeziumUrl()
     {

@@ -61,13 +61,30 @@ export default function DebeziumSettings() {
       setTesting(true);
       setConnectionStatus('unknown');
       
-      const response = await fetch(`${formData.connectUrl}/`, {
-        method: 'GET',
+      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/settings/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (result.connected) {
         setConnectionStatus('connected');
-        toast.success('Successfully connected to Debezium Connect');
+        toast.success(result.message || 'Successfully connected to Debezium Connect');
+      } else {
+        setConnectionStatus('failed');
+        toast.error(result.message || 'Connection failed');
+      }
+    } catch (error: any) {
+      setConnectionStatus('failed');
+      toast.error(error.message || 'Connection test failed');
+    } finally {
+      setTesting(false);
+    }
+  };
       } else {
         setConnectionStatus('failed');
         toast.error('Unable to connect to Debezium Connect');
@@ -101,23 +118,14 @@ export default function DebeziumSettings() {
         throw new Error('Failed to save settings');
       }
 
-      toast({
-        title: 'Success',
-        description: 'Settings saved successfully',
-      });
-
+      toast.success('Settings saved successfully');
       fetchSettings();
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });.success('Settings saved successfully');
-
-      fetchSettings();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save settings'
-  }
+      toast.error(error.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="p-6">
