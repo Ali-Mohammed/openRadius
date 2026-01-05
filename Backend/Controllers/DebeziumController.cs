@@ -162,6 +162,80 @@ public class DebeziumController : ControllerBase
         }
     }
 
+    [HttpPost("get-tables")]
+    public async Task<ActionResult> GetDatabaseTables([FromBody] DatabaseConnectionTest connectionTest)
+    {
+        try
+        {
+            var tables = new List<string>();
+            
+            if (connectionTest.ConnectorClass.Contains("PostgresConnector"))
+            {
+                var connectionString = $"Host={connectionTest.DatabaseHostname};Port={connectionTest.DatabasePort};Database={connectionTest.DatabaseName};Username={connectionTest.DatabaseUser};Password={connectionTest.DatabasePassword};Timeout=5;";
+                
+                using (var connection = new Npgsql.NpgsqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        SELECT table_schema || '.' || table_name as full_table_name
+                        FROM information_schema.tables
+                        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                        AND table_type = 'BASE TABLE'
+                        ORDER BY table_schema, table_name";
+                    
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            tables.Add(reader.GetString(0));
+                        }
+                    }
+                }
+            }
+            else if (connectionTest.ConnectorClass.Contains("MySqlConnector"))
+            {
+                var connectionString = $"Server={connectionTest.DatabaseHostname};Port={connectionTest.DatabasePort};Database={connectionTest.DatabaseName};Uid={connectionTest.DatabaseUser};Pwd={connectionTest.DatabasePassword};ConnectionTimeout=5;";
+                
+                using (var connection = new MySql.Data.MySqlClient.MySqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        SELECT CONCAT(TABLE_SCHEMA, '.', TABLE_NAME) as full_table_name
+                        FROM information_schema.tables
+                        WHERE TABLE_SCHEMA = DATABASE()
+                        AND TABLE_TYPE = 'BASE TABLE'
+                        ORDER BY TABLE_NAME";
+                    
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            tables.Add(reader.GetString(0));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                return BadRequest(new { 
+                    error = "Unsupported connector type. Only PostgreSQL and MySQL are supported." 
+                });
+            }
+
+            return Ok(new { tables });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { 
+                error = $"Failed to fetch tables: {ex.Message}"
+            });
+        }
+    }
+
 
     // Get Debezium Connect URL
     private async Task<string> GetDebeziumUrl()
@@ -250,6 +324,7 @@ public class DebeziumController : ControllerBase
                 { "database.password", connector.DatabasePassword },
                 { "database.dbname", connector.DatabaseName },
                 { "database.server.name", connector.DatabaseServerName },
+                { "topic.prefix", connector.DatabaseServerName },
                 { "plugin.name", connector.PluginName },
                 { "slot.name", connector.SlotName },
                 { "publication.autocreate.mode", connector.PublicationAutocreateMode },
@@ -324,6 +399,7 @@ public class DebeziumController : ControllerBase
                 { "database.password", connector.DatabasePassword },
                 { "database.dbname", connector.DatabaseName },
                 { "database.server.name", connector.DatabaseServerName },
+                { "topic.prefix", connector.DatabaseServerName },
                 { "plugin.name", connector.PluginName },
                 { "slot.name", connector.SlotName },
                 { "publication.autocreate.mode", connector.PublicationAutocreateMode },

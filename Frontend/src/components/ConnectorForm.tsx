@@ -54,6 +54,8 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'failed'>('unknown');
+  const [availableTables, setAvailableTables] = useState<string[]>([]);
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [formData, setFormData] = useState<Connector>({
     name: '',
     connectorClass: 'io.debezium.connector.postgresql.PostgresConnector',
@@ -74,6 +76,9 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
   useEffect(() => {
     if (connector) {
       setFormData(connector);
+      if (connector.tableIncludeList) {
+        setSelectedTables(connector.tableIncludeList.split(',').map(t => t.trim()));
+      }
     }
   }, [connector]);
 
@@ -82,6 +87,35 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     // Reset connection status when database fields change
     if (['databaseHostname', 'databasePort', 'databaseUser', 'databasePassword', 'databaseName'].includes(field)) {
       setConnectionStatus('unknown');
+    }
+  };
+
+  const fetchTables = async () => {
+    try {
+      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/get-tables`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          connectorClass: formData.connectorClass,
+          databaseHostname: formData.databaseHostname,
+          databasePort: formData.databasePort,
+          databaseUser: formData.databaseUser,
+          databasePassword: formData.databasePassword,
+          databaseName: formData.databaseName,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.tables) {
+        setAvailableTables(data.tables);
+      } else {
+        toast.error('Failed to fetch tables: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error fetching tables:', error);
+      toast.error('Failed to fetch tables from database');
     }
   };
 
@@ -110,6 +144,8 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
       if (result.connected) {
         setConnectionStatus('connected');
         toast.success(result.message || 'Successfully connected to database');
+        // Fetch available tables after successful connection
+        await fetchTables();
       } else {
         setConnectionStatus('failed');
         toast.error(result.message || 'Failed to connect to database');
@@ -126,10 +162,16 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     e.preventDefault();
     setLoading(true);
 
+    // Update tableIncludeList from selectedTables
+    const updatedFormData = {
+      ...formData,
+      tableIncludeList: selectedTables.join(',')
+    };
+
     try {
       // Auto-generate slot name if empty
-      if (!formData.slotName) {
-        formData.slotName = `${formData.name.replace(/-/g, '_')}_slot`;
+      if (!updatedFormData.slotName) {
+        updatedFormData.slotName = `${updatedFormData.name.replace(/-/g, '_')}_slot`;
       }
 
       const url = connector?.id
@@ -141,7 +183,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updatedFormData),
       });
 
       if (!response.ok) {
@@ -640,21 +682,68 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                           <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="max-w-xs">Comma-separated list of tables to track changes from. Format: schema.table (e.g., public.users,public.orders)</p>
+                          <p className="max-w-xs">Select tables to track changes from. Test database connection first to load available tables.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <Input
-                    id="tableIncludeList"
-                    value={formData.tableIncludeList}
-                    onChange={(e) => handleChange('tableIncludeList', e.target.value)}
-                    placeholder="e.g., public.users,public.orders"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Only changes from these tables will be captured
-                  </p>
+                  
+                  {availableTables.length > 0 ? (
+                    <div className="border rounded-md p-4 max-h-60 overflow-y-auto space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          id="select-all"
+                          checked={selectedTables.length === availableTables.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedTables([...availableTables]);
+                            } else {
+                              setSelectedTables([]);
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <label htmlFor="select-all" className="font-medium text-sm">
+                          Select All ({availableTables.length} tables)
+                        </label>
+                      </div>
+                      <div className="border-t pt-2">
+                        {availableTables.map((table) => (
+                          <div key={table} className="flex items-center gap-2 py-1">
+                            <input
+                              type="checkbox"
+                              id={`table-${table}`}
+                              checked={selectedTables.includes(table)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedTables([...selectedTables, table]);
+                                } else {
+                                  setSelectedTables(selectedTables.filter(t => t !== table));
+                                }
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            <label htmlFor={`table-${table}`} className="text-sm cursor-pointer">
+                              {table}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border rounded-md p-4 text-center text-sm text-muted-foreground">
+                      {connectionStatus === 'connected' 
+                        ? 'Loading tables...' 
+                        : 'Test database connection first to load available tables'}
+                    </div>
+                  )}
+                  
+                  {selectedTables.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected {selectedTables.length} table{selectedTables.length !== 1 ? 's' : ''}: {selectedTables.join(', ')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
