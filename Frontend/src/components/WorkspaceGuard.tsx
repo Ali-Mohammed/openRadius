@@ -14,12 +14,14 @@ export const WorkspaceGuard = ({ children }: { children: ReactNode }) => {
     queryKey: ['workspaces'],
     queryFn: () => workspaceApi.getAll(),
     retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
   const { data: deletedWorkspaces = [] } = useQuery({
     queryKey: ['workspaces-deleted'],
     queryFn: () => workspaceApi.getDeleted(),
     retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
   useEffect(() => {

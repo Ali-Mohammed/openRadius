@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -98,6 +98,7 @@ export default function OidcSettingsPage() {
   const [testing, setTesting] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<string>('custom')
   const [showTrash, setShowTrash] = useState(false)
+  const initialLoadRef = useRef(true)
   
   const [formData, setFormData] = useState<OidcProvider>({
     providerName: '',
@@ -122,10 +123,25 @@ export default function OidcSettingsPage() {
   })
 
   useEffect(() => {
-    if (showTrash) {
-      loadDeletedProviders()
-    } else {
-      loadProviders()
+    // Prevent duplicate calls from React Strict Mode double-mounting
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false
+      if (showTrash) {
+        loadDeletedProviders()
+      } else {
+        loadProviders()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // Only run when showTrash changes (not on initial mount)
+    if (!initialLoadRef.current) {
+      if (showTrash) {
+        loadDeletedProviders()
+      } else {
+        loadProviders()
+      }
     }
   }, [showTrash])
 

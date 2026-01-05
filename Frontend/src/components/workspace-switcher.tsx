@@ -30,12 +30,7 @@ export function WorkspaceSwitcher() {
   const { data: workspaces = [], isLoading } = useQuery({
     queryKey: ['workspaces'],
     queryFn: () => workspaceApi.getAll(),
-  })
-
-  // Fetch current user to get their current workspace
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => usersApi.getCurrentUser(),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
   // Set workspace mutation
@@ -60,19 +55,14 @@ export function WorkspaceSwitcher() {
     },
   })
 
-  // Get current workspace from context or user data
+  // Get current workspace from context
   const activeWorkspace = React.useMemo(() => {
     if (currentWorkspaceId) {
       return workspaces.find(w => w.id === currentWorkspaceId)
     }
-    // Try to get from current user data
-    const userWorkspaceId = currentUser?.user?.currentWorkspaceId || currentUser?.user?.defaultWorkspaceId
-    if (userWorkspaceId) {
-      return workspaces.find(w => w.id === userWorkspaceId)
-    }
     // Fallback to first workspace
     return workspaces[0]
-  }, [currentWorkspaceId, workspaces, currentUser])
+  }, [currentWorkspaceId, workspaces])
 
   const handleWorkspaceSwitch = (workspace: Workspace) => {
     setWorkspaceMutation.mutate(workspace.id)
