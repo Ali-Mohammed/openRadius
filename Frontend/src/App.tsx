@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { KeycloakProvider } from './contexts/KeycloakContext'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { WorkspaceProvider } from './contexts/WorkspaceContext'
+import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { WorkspaceGuard } from './components/WorkspaceGuard'
 import { AppLayout } from './components/AppLayout'
@@ -28,6 +28,12 @@ import GroupsPage from './pages/GroupsPage'
 import Connectors from './pages/Connectors'
 import DebeziumSettings from './pages/DebeziumSettings'
 
+// Redirect component that uses dynamic workspace ID
+const WorkspaceSettingsRedirect = () => {
+  const { currentWorkspaceId } = useWorkspace()
+  return <Navigate to={`/workspace/${currentWorkspaceId || 1}/settings`} replace />
+}
+
 const queryClient = new QueryClient()
 
 function App() {
@@ -50,7 +56,7 @@ function App() {
                           <Route path="/profile" element={<ProfileSettings />} />
                           <Route path="/workspace/view" element={<WorkspaceView />} />
                           <Route path="/workspace/:id/settings" element={<WorkspaceSettings />} />
-                          <Route path="/integration/sas-radius" element={<Navigate to="/workspace/1/settings" replace />} />
+                          <Route path="/integration/sas-radius" element={<WorkspaceSettingsRedirect />} />
                           <Route path="/workspace/:id/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/workspace/:id/radius/users" element={<RadiusUsers />} />
                           <Route path="/workspace/:id/radius/groups" element={<RadiusGroups />} />

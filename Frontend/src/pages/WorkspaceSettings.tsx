@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -42,9 +41,10 @@ import { sasRadiusApi, type SasRadiusIntegration } from '../api/sasRadiusApi'
 import { SyncProgressDialog } from '../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../utils/errorHandler'
+import { useWorkspace } from '../contexts/WorkspaceContext'
 
 export default function WorkspaceSettings() {
-  const { id } = useParams<{ id: string }>()
+  const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
   const queryClient = useQueryClient()
   
   // Sync history pagination state
@@ -77,30 +77,30 @@ export default function WorkspaceSettings() {
   })
 
   const { data: workspace, isLoading } = useQuery({
-    queryKey: ['workspace', id],
-    queryFn: () => workspaceApi.getById(Number(id)),
-    enabled: !!id,
+    queryKey: ['workspace', currentWorkspaceId],
+    queryFn: () => workspaceApi.getById(Number(currentWorkspaceId)),
+    enabled: currentWorkspaceId !== null,
   })
 
   const { data: integrations = [], isLoading: isLoadingIntegrations } = useQuery({
-    queryKey: ['sas-radius-integrations', id, showTrash],
+    queryKey: ['sas-radius-integrations', currentWorkspaceId, showTrash],
     queryFn: () => showTrash
-      ? sasRadiusApi.getTrash(Number(id))
-      : sasRadiusApi.getAll(Number(id)),
-    enabled: !!id,
+      ? sasRadiusApi.getTrash(Number(currentWorkspaceId))
+      : sasRadiusApi.getAll(Number(currentWorkspaceId)),
+    enabled: currentWorkspaceId !== null,
   })
 
   const { data: activeSyncs = [] } = useQuery({
-    queryKey: ['active-syncs', id],
-    queryFn: () => sasRadiusApi.getActiveSyncs(Number(id)),
-    enabled: !!id,
+    queryKey: ['active-syncs', currentWorkspaceId],
+    queryFn: () => sasRadiusApi.getActiveSyncs(Number(currentWorkspaceId)),
+    enabled: currentWorkspaceId !== null,
     refetchInterval: 3000, // Poll every 3 seconds for active syncs
   })
 
   const { data: recentSyncsData } = useQuery({
-    queryKey: ['recent-syncs', id, syncPage, syncPageSize, syncSortBy, syncSortDirection, syncStatusFilter],
-    queryFn: () => sasRadiusApi.getAllSyncs(Number(id), syncPage, syncPageSize, syncSortBy, syncSortDirection, syncStatusFilter),
-    enabled: !!id,
+    queryKey: ['recent-syncs', currentWorkspaceId, syncPage, syncPageSize, syncSortBy, syncSortDirection, syncStatusFilter],
+    queryFn: () => sasRadiusApi.getAllSyncs(Number(currentWorkspaceId), syncPage, syncPageSize, syncSortBy, syncSortDirection, syncStatusFilter),
+    enabled: currentWorkspaceId !== null,
     refetchInterval: 5000, // Poll every 5 seconds for history
   })
 
@@ -108,9 +108,9 @@ export default function WorkspaceSettings() {
   const syncPagination = recentSyncsData?.pagination
 
   const createMutation = useMutation({
-    mutationFn: (data: SasRadiusIntegration) => sasRadiusApi.create(Number(id), data),
+    mutationFn: (data: SasRadiusIntegration) => sasRadiusApi.create(Number(currentWorkspaceId), data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', id] })
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
       toast.success('Integration added successfully')
       handleCloseDialog()
     },
@@ -121,9 +121,9 @@ export default function WorkspaceSettings() {
 
   const updateMutation = useMutation({
     mutationFn: ({ integrationId, data }: { integrationId: number; data: SasRadiusIntegration }) =>
-      sasRadiusApi.update(Number(id), integrationId, data),
+      sasRadiusApi.update(Number(currentWorkspaceId), integrationId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', id] })
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
       toast.success('Integration updated successfully')
       handleCloseDialog()
     },
@@ -133,9 +133,9 @@ export default function WorkspaceSettings() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (integrationId: number) => sasRadiusApi.delete(Number(id), integrationId),
+    mutationFn: (integrationId: number) => sasRadiusApi.delete(Number(currentWorkspaceId), integrationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', id] })
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
       toast.success('Integration deleted successfully')
     },
     onError: (error: any) => {
@@ -144,9 +144,9 @@ export default function WorkspaceSettings() {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: (integrationId: number) => sasRadiusApi.restore(Number(id), integrationId),
+    mutationFn: (integrationId: number) => sasRadiusApi.restore(Number(currentWorkspaceId), integrationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', id] })
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
       toast.success('Integration restored successfully')
     },
     onError: (error: any) => {
@@ -155,14 +155,14 @@ export default function WorkspaceSettings() {
   })
 
   const syncMutation = useMutation({
-    mutationFn: (integrationId: number) => sasRadiusApi.sync(Number(id), integrationId),
+    mutationFn: (integrationId: number) => sasRadiusApi.sync(Number(currentWorkspaceId), integrationId),
     onSuccess: async (response) => {
       setActiveSyncId(response.syncId)
       setIsSyncDialogOpen(true)
       // Small delay to ensure sync is in database before dialog fetches it
       await new Promise(resolve => setTimeout(resolve, 100))
-      queryClient.invalidateQueries({ queryKey: ['active-syncs', id] })
-      queryClient.invalidateQueries({ queryKey: ['recent-syncs', id] })
+      queryClient.invalidateQueries({ queryKey: ['active-syncs', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['recent-syncs', currentWorkspaceId] })
       toast.success(`Sync started successfully`)
     },
     onError: (error: any) => {
@@ -720,7 +720,7 @@ export default function WorkspaceSettings() {
         open={isSyncDialogOpen}
         onOpenChange={setIsSyncDialogOpen}
         syncId={activeSyncId}
-        workspaceId={Number(id)}
+        workspaceId={Number(currentWorkspaceId)}
       />
 
       {/* Delete Confirmation Dialog */}
