@@ -140,8 +140,9 @@ export default function RolesPage() {
   })
 
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['permissions'],
-    queryFn: userManagementApi.getPermissions,
+    queryKey: ['permissions', false],
+    queryFn: () => userManagementApi.getPermissions(false),
+    staleTime: 30 * 1000, // Cache for 30 seconds
   })
 
   const createRoleMutation = useMutation({

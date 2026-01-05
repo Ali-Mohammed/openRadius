@@ -26,6 +26,7 @@ export default function PermissionsPage() {
   const { data: permissions = [], isLoading } = useQuery({
     queryKey: ['permissions', showDeleted],
     queryFn: () => userManagementApi.getPermissions(showDeleted),
+    staleTime: 30 * 1000, // Cache for 30 seconds
   })
 
   const createPermissionMutation = useMutation({
