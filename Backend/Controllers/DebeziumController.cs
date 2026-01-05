@@ -7,6 +7,16 @@ using System.Text;
 
 namespace Backend.Controllers;
 
+public class DatabaseConnectionTest
+{
+    public string ConnectorClass { get; set; } = string.Empty;
+    public string DatabaseHostname { get; set; } = string.Empty;
+    public int DatabasePort { get; set; }
+    public string DatabaseUser { get; set; } = string.Empty;
+    public string DatabasePassword { get; set; } = string.Empty;
+    public string DatabaseName { get; set; } = string.Empty;
+}
+
 [ApiController]
 [Route("api/[controller]")]
 public class DebeziumController : ControllerBase
@@ -98,6 +108,60 @@ public class DebeziumController : ControllerBase
             });
         }
     }
+
+    [HttpPost("test-connection")]
+    public async Task<ActionResult> TestDatabaseConnection([FromBody] DatabaseConnectionTest connectionTest)
+    {
+        try
+        {
+            string connectionString;
+            
+            // Build connection string based on connector class
+            if (connectionTest.ConnectorClass.Contains("PostgresConnector"))
+            {
+                connectionString = $"Host={connectionTest.DatabaseHostname};Port={connectionTest.DatabasePort};Database={connectionTest.DatabaseName};Username={connectionTest.DatabaseUser};Password={connectionTest.DatabasePassword};Timeout=5;";
+                
+                using (var connection = new Npgsql.NpgsqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+                    return Ok(new { 
+                        connected = true, 
+                        message = "Successfully connected to PostgreSQL database",
+                        serverVersion = connection.ServerVersion
+                    });
+                }
+            }
+            else if (connectionTest.ConnectorClass.Contains("MySqlConnector"))
+            {
+                connectionString = $"Server={connectionTest.DatabaseHostname};Port={connectionTest.DatabasePort};Database={connectionTest.DatabaseName};Uid={connectionTest.DatabaseUser};Pwd={connectionTest.DatabasePassword};ConnectionTimeout=5;";
+                
+                using (var connection = new MySql.Data.MySqlClient.MySqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+                    return Ok(new { 
+                        connected = true, 
+                        message = "Successfully connected to MySQL database",
+                        serverVersion = connection.ServerVersion
+                    });
+                }
+            }
+            else
+            {
+                return BadRequest(new { 
+                    connected = false, 
+                    message = "Unsupported connector type. Only PostgreSQL and MySQL are supported for connection testing." 
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { 
+                connected = false, 
+                message = $"Connection failed: {ex.Message}"
+            });
+        }
+    }
+
 
     // Get Debezium Connect URL
     private async Task<string> GetDebeziumUrl()

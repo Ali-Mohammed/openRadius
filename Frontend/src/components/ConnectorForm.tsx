@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield } from 'lucide-react';
+import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +52,8 @@ interface ConnectorFormProps {
 
 export default function ConnectorForm({ connector, onClose, onSuccess }: ConnectorFormProps) {
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'failed'>('unknown');
   const [formData, setFormData] = useState<Connector>({
     name: '',
     connectorClass: 'io.debezium.connector.postgresql.PostgresConnector',
@@ -77,6 +79,47 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
 
   const handleChange = (field: keyof Connector, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Reset connection status when database fields change
+    if (['databaseHostname', 'databasePort', 'databaseUser', 'databasePassword', 'databaseName'].includes(field)) {
+      setConnectionStatus('unknown');
+    }
+  };
+
+  const testDatabaseConnection = async () => {
+    try {
+      setTesting(true);
+      setConnectionStatus('unknown');
+
+      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/test-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          connectorClass: formData.connectorClass,
+          databaseHostname: formData.databaseHostname,
+          databasePort: formData.databasePort,
+          databaseUser: formData.databaseUser,
+          databasePassword: formData.databasePassword,
+          databaseName: formData.databaseName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.connected) {
+        setConnectionStatus('connected');
+        toast.success(result.message || 'Successfully connected to database');
+      } else {
+        setConnectionStatus('failed');
+        toast.error(result.message || 'Failed to connect to database');
+      }
+    } catch (error: any) {
+      setConnectionStatus('failed');
+      toast.error(error.message || 'Connection test failed');
+    } finally {
+      setTesting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -350,6 +393,34 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     Used as Kafka topic prefix (e.g., openradius.public.users)
                   </p>
                 </div>
+              </div>
+
+              {/* Test Connection Button */}
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={testDatabaseConnection}
+                  disabled={testing || !formData.databaseHostname || !formData.databaseUser || !formData.databasePassword || !formData.databaseName}
+                  className="flex items-center gap-2"
+                >
+                  {testing ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : connectionStatus === 'connected' ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  ) : connectionStatus === 'failed' ? (
+                    <XCircle className="h-4 w-4 text-red-600" />
+                  ) : (
+                    <Database className="h-4 w-4" />
+                  )}
+                  {testing ? 'Testing Connection...' : 'Test Database Connection'}
+                </Button>
+                {connectionStatus === 'connected' && (
+                  <span className="text-sm text-green-600 font-medium">✓ Connection successful</span>
+                )}
+                {connectionStatus === 'failed' && (
+                  <span className="text-sm text-red-600 font-medium">✗ Connection failed</span>
+                )}
               </div>
             </div>
 
