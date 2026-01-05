@@ -34,7 +34,7 @@ export default function LoginPage() {
   const loadProviders = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${appConfig.api.baseUrl}/api/oidcsettings/providers`)
+      const response = await fetch(`${appConfig.api.baseUrl}/api/OidcSettings/providers`)
       
       if (response.ok) {
         const data = await response.json()
