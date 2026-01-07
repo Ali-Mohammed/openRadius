@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Wallet, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, Wallet, Edit, Trash2, GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -394,6 +394,7 @@ export default function CustomWallets() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center"
                           style={{ backgroundColor: wallet.color + '20' }}
