@@ -702,11 +702,17 @@ export default function CustomWallets() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {iconOptions.map((icon) => (
-                        <SelectItem key={icon.value} value={icon.value}>
-                          {icon.label}
-                        </SelectItem>
-                      ))}
+                      {iconOptions.map((iconOption) => {
+                        const IconComp = iconOption.icon
+                        return (
+                          <SelectItem key={iconOption.value} value={iconOption.value}>
+                            <div className="flex items-center gap-2">
+                              <IconComp className="h-4 w-4" />
+                              {iconOption.label}
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
