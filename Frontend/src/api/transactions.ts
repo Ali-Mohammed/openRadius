@@ -21,6 +21,9 @@ export interface Transaction {
   reference?: string
   paymentMethod?: string
   relatedTransactionId?: number
+  isDeleted?: boolean
+  deletedAt?: string
+  deletedBy?: string
   createdAt: string
   createdBy?: string
 }
@@ -46,6 +49,7 @@ export interface TransactionFilters {
   status?: string
   startDate?: string
   endDate?: string
+  includeDeleted?: boolean
   page?: number
   pageSize?: number
 }
