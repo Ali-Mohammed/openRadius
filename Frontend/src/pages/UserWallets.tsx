@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus,
@@ -8,6 +8,7 @@ import {
   DollarSign,
   Check,
   X,
+  ChevronsUpDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -83,6 +84,129 @@ const statuses = [
   { value: 'disabled', label: 'Disabled', color: '#6b7280' },
   { value: 'suspended', label: 'Suspended', color: '#f59e0b' },
 ]
+
+// Custom User Combobox Component
+interface UserComboboxProps {
+  users: Array<{ id: number; firstName?: string; lastName?: string; email?: string }>
+  value: string
+  onValueChange: (value: string) => void
+  placeholder?: string
+}
+
+function UserCombobox({ users, value, onValueChange, placeholder = 'Select a user' }: UserComboboxProps) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const selectedUser = users.find((user) => user.id.toString() === value)
+
+  const filteredUsers = useMemo(() => {
+    if (!search) return users
+    return users.filter(
+      (user) =>
+        user.email?.toLowerCase().includes(search.toLowerCase()) ||
+        user.firstName?.toLowerCase().includes(search.toLowerCase()) ||
+        user.lastName?.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [users, search])
+
+  useEffect(() => {
+    if (open && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 0)
+    }
+  }, [open])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  const handleSelect = (userId: string) => {
+    onValueChange(userId)
+    setOpen(false)
+    setSearch('')
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        {selectedUser ? (
+          <div className="flex flex-col items-start text-left">
+            <span className="font-medium">
+              {selectedUser.firstName} {selectedUser.lastName}
+            </span>
+            <span className="text-xs text-muted-foreground">{selectedUser.email}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">{placeholder}</span>
+        )}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </button>
+
+      {open && (
+        <div className="absolute z-[100] mt-1 w-full rounded-md border bg-popover shadow-md">
+          <div className="flex items-center border-b px-3">
+            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto p-1">
+            {filteredUsers.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">No users found</div>
+            ) : (
+              filteredUsers.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={() => handleSelect(user.id.toString())}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
+                    value === user.id.toString() ? 'bg-accent' : ''
+                  }`}
+                >
+                  <div className="flex flex-1 flex-col items-start">
+                    <span className="font-medium">
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </div>
+                  {value === user.id.toString() && <Check className="ml-2 h-4 w-4" />}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function UserWallets() {
   const queryClient = useQueryClient()
