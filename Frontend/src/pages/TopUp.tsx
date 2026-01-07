@@ -266,8 +266,7 @@ export default function TopUp() {
                         </CommandList>
                       </Command>
                     </PopoverContent>
-                  </PopoverctContent>
-                  </Select>
+                  </Popover>
                 </div>
               )}
 
