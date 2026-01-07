@@ -699,7 +699,17 @@ export default function CustomWallets() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {formData.icon && (
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const SelectedIcon = iconMap[formData.icon] || Wallet
+                              return <SelectedIcon className="h-4 w-4" />
+                            })()}
+                            {iconOptions.find(i => i.value === formData.icon)?.label || formData.icon}
+                          </div>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {iconOptions.map((iconOption) => {
