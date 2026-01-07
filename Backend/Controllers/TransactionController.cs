@@ -133,7 +133,7 @@ public class TransactionController : ControllerBase
                     UserEmail = user?.Email,
                     UserName = user != null ? $"{user.FirstName} {user.LastName}" : null,
                     t.TransactionType,
-                    t.IsCredit,
+                    t.AmountType,
                     t.Amount,
                     t.Status,
                     t.BalanceBefore,
@@ -201,7 +201,7 @@ public class TransactionController : ControllerBase
                 UserEmail = user?.GetType().GetProperty("Email")?.GetValue(user),
                 UserName = user != null ? $"{user.GetType().GetProperty("FirstName")?.GetValue(user)} {user.GetType().GetProperty("LastName")?.GetValue(user)}" : null,
                 transaction.TransactionType,
-                transaction.IsCredit,
+                transaction.AmountType,
                 transaction.Amount,
                 transaction.Status,
                 transaction.BalanceBefore,
@@ -251,8 +251,8 @@ public class TransactionController : ControllerBase
                 }
 
                 balanceBefore = wallet.CurrentBalance;
-                var isCredit = Backend.Models.TransactionType.IsCredit(request.TransactionType);
-                wallet.CurrentBalance += isCredit ? request.Amount : -request.Amount;
+                var amountType = Backend.Models.TransactionType.GetAmountType(request.TransactionType);
+                wallet.CurrentBalance += amountType == "credit" ? request.Amount : -request.Amount;
                 balanceAfter = wallet.CurrentBalance;
                 wallet.UpdatedAt = DateTime.UtcNow;
             }
@@ -270,8 +270,8 @@ public class TransactionController : ControllerBase
                 }
 
                 balanceBefore = wallet.CurrentBalance;
-                var isCredit = Backend.Models.TransactionType.IsCredit(request.TransactionType);
-                wallet.CurrentBalance += isCredit ? request.Amount : -request.Amount;
+                var amountType = Backend.Models.TransactionType.GetAmountType(request.TransactionType);
+                wallet.CurrentBalance += amountType == "credit" ? request.Amount : -request.Amount;
                 balanceAfter = wallet.CurrentBalance;
                 wallet.UpdatedAt = DateTime.UtcNow;
                 userId = wallet.UserId;
@@ -288,7 +288,7 @@ public class TransactionController : ControllerBase
                 UserWalletId = request.UserWalletId,
                 UserId = userId,
                 TransactionType = request.TransactionType,
-                IsCredit = Backend.Models.TransactionType.IsCredit(request.TransactionType),
+                AmountType = Backend.Models.TransactionType.GetAmountType(request.TransactionType),
                 Amount = request.Amount,
                 Status = "completed",
                 BalanceBefore = balanceBefore,
@@ -311,7 +311,7 @@ public class TransactionController : ControllerBase
                 UserWalletId = request.UserWalletId,
                 UserId = userId,
                 TransactionType = request.TransactionType,
-                IsCredit = transaction.IsCredit,
+                AmountType = transaction.AmountType,
                 Amount = request.Amount,
                 BalanceBefore = balanceBefore,
                 BalanceAfter = balanceAfter,
@@ -377,7 +377,7 @@ public class TransactionController : ControllerBase
                 {
                     reversedBalanceBefore = wallet.CurrentBalance;
                     // Reverse: if it was credit, deduct; if it was debit, add back
-                    wallet.CurrentBalance += transaction.IsCredit ? -transaction.Amount : transaction.Amount;
+                    wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
                     reversedBalanceAfter = wallet.CurrentBalance;
                     wallet.UpdatedAt = DateTime.UtcNow;
                 }
@@ -389,7 +389,7 @@ public class TransactionController : ControllerBase
                 {
                     reversedBalanceBefore = wallet.CurrentBalance;
                     // Reverse: if it was credit, deduct; if it was debit, add back
-                    wallet.CurrentBalance += transaction.IsCredit ? -transaction.Amount : transaction.Amount;
+                    wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
                     reversedBalanceAfter = wallet.CurrentBalance;
                     wallet.UpdatedAt = DateTime.UtcNow;
                 }
@@ -408,7 +408,7 @@ public class TransactionController : ControllerBase
                 UserWalletId = transaction.UserWalletId,
                 UserId = transaction.UserId,
                 TransactionType = transaction.TransactionType,
-                IsCredit = !transaction.IsCredit, // Opposite of original
+                AmountType = transaction.AmountType == "credit" ? "debit" : "credit", // Opposite of original
                 Amount = transaction.Amount,
                 Status = "completed",
                 BalanceBefore = reversedBalanceBefore,
@@ -431,7 +431,7 @@ public class TransactionController : ControllerBase
                 UserWalletId = transaction.UserWalletId,
                 UserId = transaction.UserId,
                 TransactionType = transaction.TransactionType,
-                IsCredit = !transaction.IsCredit,
+                AmountType = reversalTransaction.AmountType,
                 Amount = transaction.Amount,
                 BalanceBefore = reversedBalanceBefore,
                 BalanceAfter = reversedBalanceAfter,
@@ -505,8 +505,8 @@ public class TransactionController : ControllerBase
             }
 
             var totalTransactions = await query.CountAsync();
-            var totalCredit = await query.Where(t => t.IsCredit).SumAsync(t => t.Amount);
-            var totalDebit = await query.Where(t => !t.IsCredit).SumAsync(t => t.Amount);
+            var totalCredit = await query.Where(t => t.AmountType == "credit").SumAsync(t => t.Amount);
+            var totalDebit = await query.Where(t => !t.AmountType == "credit").SumAsync(t => t.Amount);
 
             var byType = await query
                 .GroupBy(t => t.TransactionType)

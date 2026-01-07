@@ -27,30 +27,32 @@ public static class TransactionType
         Commission
     };
 
-    public static bool IsCredit(string transactionType)
+    public static string GetAmountType(string transactionType)
     {
         return transactionType switch
         {
-            TopUp => true,
-            Refund => true,
-            Reward => true,
-            Adjustment => true, // Can be either, but default to credit
-            _ => false
+            TopUp => "credit",
+            Refund => "credit",
+            Reward => "credit",
+            Adjustment => "credit", // Can be either, but default to credit
+            Withdrawal => "debit",
+            Transfer => "debit",
+            Purchase => "debit",
+            Payment => "debit",
+            Fee => "debit",
+            Commission => "debit",
+            _ => "credit"
         };
     }
 
-    public static bool IsDebit(string transactionType)
+    public static bool IsCredit(string amountType)
     {
-        return transactionType switch
-        {
-            Withdrawal => true,
-            Transfer => true,
-            Purchase => true,
-            Payment => true,
-            Fee => true,
-            Commission => true,
-            _ => false
-        };
+        return amountType == "credit";
+    }
+
+    public static bool IsDebit(string amountType)
+    {
+        return amountType == "debit";
     }
 
     public static string GetDisplayName(string transactionType)

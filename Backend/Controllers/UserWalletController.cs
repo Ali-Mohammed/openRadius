@@ -349,7 +349,7 @@ public class UserWalletController : ControllerBase
                 UserWalletId = userWallet.Id,
                 UserId = userWallet.UserId,
                 TransactionType = Backend.Models.TransactionType.Adjustment,
-                IsCredit = request.Amount > 0,
+                AmountType = request.Amount > 0 ? "credit" : "debit",
                 Amount = Math.Abs(request.Amount),
                 BalanceBefore = balanceBefore,
                 BalanceAfter = newBalance,

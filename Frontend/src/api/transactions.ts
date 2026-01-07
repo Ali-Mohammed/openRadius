@@ -11,7 +11,7 @@ export interface Transaction {
   userEmail?: string
   userName?: string
   transactionType: TransactionType
-  isCredit: boolean
+  amountType: 'credit' | 'debit'
   amount: number
   status: 'completed' | 'pending' | 'cancelled' | 'reversed'
   balanceBefore: number

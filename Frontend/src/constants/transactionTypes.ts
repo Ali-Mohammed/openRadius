@@ -20,52 +20,52 @@ export const TRANSACTION_TYPE_INFO: Record<TransactionType, {
 }> = {
   [TRANSACTION_TYPES.TOP_UP]: {
     label: 'Top Up',
-    isCredit: true,
+    amountType: 'credit',
     color: 'text-green-600',
   },
   [TRANSACTION_TYPES.WITHDRAWAL]: {
     label: 'Withdrawal',
-    isCredit: false,
+    amountType: 'debit',
     color: 'text-red-600',
   },
   [TRANSACTION_TYPES.TRANSFER]: {
     label: 'Transfer',
-    isCredit: false,
+    amountType: 'debit',
     color: 'text-blue-600',
   },
   [TRANSACTION_TYPES.ADJUSTMENT]: {
     label: 'Adjustment',
-    isCredit: true,
+    amountType: 'credit',
     color: 'text-yellow-600',
   },
   [TRANSACTION_TYPES.PURCHASE]: {
     label: 'Purchase',
-    isCredit: false,
+    amountType: 'debit',
     color: 'text-orange-600',
   },
   [TRANSACTION_TYPES.REFUND]: {
     label: 'Refund',
-    isCredit: true,
+    amountType: 'credit',
     color: 'text-purple-600',
   },
   [TRANSACTION_TYPES.PAYMENT]: {
     label: 'Payment',
-    isCredit: false,
+    amountType: 'debit',
     color: 'text-pink-600',
   },
   [TRANSACTION_TYPES.REWARD]: {
     label: 'Reward',
-    isCredit: true,
+    amountType: 'credit',
     color: 'text-emerald-600',
   },
   [TRANSACTION_TYPES.FEE]: {
     label: 'Fee',
-    isCredit: false,
+    amountType: 'debit',
     color: 'text-amber-600',
   },
   [TRANSACTION_TYPES.COMMISSION]: {
     label: 'Commission',
-    isCredit: false,
+    amountType: 'debit',
     color: 'text-cyan-600',
   },
 }

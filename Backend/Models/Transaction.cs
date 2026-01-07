@@ -6,7 +6,7 @@ public class Transaction
     
     // Transaction basic info
     public string TransactionType { get; set; } = null!; // Using TransactionType constants
-    public bool IsCredit { get; set; }
+    public string AmountType { get; set; } = "credit"; // "credit" or "debit"
     public decimal Amount { get; set; }
     public string Status { get; set; } = "completed"; // completed, pending, cancelled, reversed
     
