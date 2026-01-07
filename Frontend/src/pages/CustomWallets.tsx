@@ -232,6 +232,46 @@ export default function CustomWallets() {
     return statusInfo?.color || '#6b7280'
   }
 
+  const handleDragStart = (wallet: CustomWallet) => {
+    setDraggedItem(wallet)
+  }
+
+  const handleDragOver = (e: React.DragEvent, wallet: CustomWallet) => {
+    e.preventDefault()
+    setDragOverItem(wallet)
+  }
+
+  const handleDragEnd = () => {
+    if (!draggedItem || !dragOverItem || draggedItem.id === dragOverItem.id) {
+      setDraggedItem(null)
+      setDragOverItem(null)
+      return
+    }
+
+    const reorderedWallets = [...wallets]
+    const draggedIndex = reorderedWallets.findIndex((w) => w.id === draggedItem.id)
+    const targetIndex = reorderedWallets.findIndex((w) => w.id === dragOverItem.id)
+
+    // Remove dragged item and insert at target position
+    const [removed] = reorderedWallets.splice(draggedIndex, 1)
+    reorderedWallets.splice(targetIndex, 0, removed)
+
+    // Update sort orders
+    const sortOrders = reorderedWallets.map((wallet, index) => ({
+      id: wallet.id!,
+      sortOrder: index,
+    }))
+
+    reorderMutation.mutate(sortOrders)
+
+    setDraggedItem(null)
+    setDragOverItem(null)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverItem(null)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -338,8 +378,20 @@ export default function CustomWallets() {
             ) : (
               wallets.map((wallet) => {
                 const typeInfo = getTypeInfo(wallet.type)
+                const isDragging = draggedItem?.id === wallet.id
+                const isDragOver = dragOverItem?.id === wallet.id
                 return (
-                  <TableRow key={wallet.id}>
+                  <TableRow
+                    key={wallet.id}
+                    draggable
+                    onDragStart={() => handleDragStart(wallet)}
+                    onDragOver={(e) => handleDragOver(e, wallet)}
+                    onDragEnd={handleDragEnd}
+                    onDragLeave={handleDragLeave}
+                    className={`cursor-move transition-opacity ${
+                      isDragging ? 'opacity-50' : ''
+                    } ${isDragOver ? 'border-t-2 border-blue-500' : ''}`}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div
