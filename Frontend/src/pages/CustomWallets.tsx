@@ -457,7 +457,27 @@ export default function CustomWallets() {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     required
+                    className={
+                      formData.name &&
+                      wallets.some(
+                        (w) =>
+                          w.name.toLowerCase() === formData.name.toLowerCase() &&
+                          w.id !== editingWallet?.id
+                      )
+                        ? 'border-red-500'
+                        : ''
+                    }
                   />
+                  {formData.name &&
+                    wallets.some(
+                      (w) =>
+                        w.name.toLowerCase() === formData.name.toLowerCase() &&
+                        w.id !== editingWallet?.id
+                    ) && (
+                      <p className="text-sm text-red-500">
+                        A wallet with this name already exists
+                      </p>
+                    )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Type *</Label>
