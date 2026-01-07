@@ -48,10 +48,12 @@ import {
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import userWalletApi, { UserWallet } from '@/api/userWallets'
-import customWalletApi from '@/api/customWallets'
+import { Combobox } from '@/components/ui/combobox'
+import userWalletApi, { type UserWallet } from '@/api/userWallets'
+import { customWalletApi } from '@/api/customWallets'
+import { userManagementApi } from '@/api/userManagementApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
-import workspaceApi from '@/api/workspace'
+import { workspaceApi } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
 
 // Import all icons for dynamic rendering
@@ -154,18 +156,22 @@ export default function UserWallets() {
     queryFn: () => customWalletApi.getAll({ pageSize: 100 }),
   })
 
-  // Fetch users for the dropdown - you'll need to create a users API
-  // For now, we'll use a placeholder
+  // Fetch users for the dropdown
   const { data: usersData } = useQuery({
-    queryKey: ['users', userSearch],
-    queryFn: async () => {
-      // TODO: Replace with actual users API call
-      // const response = await usersApi.getAll({ search: userSearch })
-      // return response.data
-      return []
-    },
+    queryKey: ['users', 'all'],
+    queryFn: () => userManagementApi.getAll(),
     enabled: isDialogOpen,
   })
+
+  const users = usersData || []
+  const filteredUsers = userSearch
+    ? users.filter(
+        (user) =>
+          user.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+          user.firstName?.toLowerCase().includes(userSearch.toLowerCase()) ||
+          user.lastName?.toLowerCase().includes(userSearch.toLowerCase())
+      )
+    : users
 
   const wallets = walletsData?.data || []
   const totalCount = walletsData?.totalCount || 0
@@ -550,19 +556,14 @@ export default function UserWallets() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="userId">User *</Label>
-                  <Input
-                    id="userId"
-                    type="number"
-                    placeholder="Enter User ID"
-                    value={formData.userId || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, userId: parseInt(e.target.value) || 0 })
+                  <UserCombobox
+                    users={users}
+                    value={formData.userId?.toString() || ''}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, userId: parseInt(value) })
                     }
-                    required
+                    placeholder="Select a user"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    TODO: Replace with user search dropdown
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="customWalletId">Wallet Type *</Label>
@@ -586,24 +587,6 @@ export default function UserWallets() {
                 </div>
               </>
             )}
-
-            <div className="space-y-2">
-              <Label htmlFor="currentBalance">
-                Current Balance ({currencySymbol})
-              </Label>
-              <Input
-                id="currentBalance"
-                type="number"
-                step="0.01"
-                value={formData.currentBalance}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    currentBalance: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

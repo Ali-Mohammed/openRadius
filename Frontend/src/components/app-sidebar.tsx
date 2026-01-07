@@ -105,9 +105,14 @@ const getNavData = (workspaceId: number) => ({
           icon: Gift,
         },
         {
-          titleKey: "navigation.wallets",
+          titleKey: "navigation.customWallets",
           url: "/billing/wallets",
           icon: Wallet,
+        },
+        {
+          titleKey: "navigation.userWallets",
+          url: "/billing/user-wallets",
+          icon: Users,
         },
         {
           titleKey: "navigation.walletsHistory",
