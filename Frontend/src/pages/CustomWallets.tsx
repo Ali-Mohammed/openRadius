@@ -14,6 +14,8 @@ import {
   Coins,
   Banknote,
   PiggyBank,
+  Check,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -36,6 +38,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -117,6 +120,7 @@ export default function CustomWallets() {
     status: 'active',
     color: '#ef4444',
     icon: 'Wallet',
+    allowNegativeBalance: false,
   })
 
   // Queries
@@ -410,19 +414,20 @@ export default function CustomWallets() {
               <TableHead>Max Fill Limit</TableHead>
               <TableHead>Daily Limit</TableHead>
               <TableHead>Current Balance</TableHead>
+              <TableHead>Allow Overdraft</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : wallets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   No custom wallets found
                 </TableCell>
               </TableRow>
@@ -493,6 +498,13 @@ export default function CustomWallets() {
                     <TableCell>{currencySymbol}{wallet.dailySpendingLimit.toFixed(2)}</TableCell>
                     <TableCell className="font-medium">
                       {currencySymbol}{wallet.currentBalance?.toFixed(2) || '0.00'}
+                    </TableCell>
+                    <TableCell>
+                      {wallet.allowNegativeBalance ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-600" />
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -665,6 +677,19 @@ export default function CustomWallets() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="allowNegativeBalance"
+                  checked={formData.allowNegativeBalance}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, allowNegativeBalance: checked as boolean })
+                  }
+                />
+                <Label htmlFor="allowNegativeBalance" className="font-normal cursor-pointer">
+                  Allow negative balance (overdraft)
+                </Label>
               </div>
 
               <div className="grid grid-cols-3 gap-4">

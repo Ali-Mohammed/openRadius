@@ -11,6 +11,7 @@ export interface CustomWallet {
   color?: string
   icon?: string
   currentBalance?: number
+  allowNegativeBalance?: boolean
   sortOrder?: number
   createdAt?: string
   updatedAt?: string

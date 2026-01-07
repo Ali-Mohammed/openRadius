@@ -70,6 +70,7 @@ public class CustomWalletController : ControllerBase
                     w.Color,
                     w.Icon,
                     w.CurrentBalance,
+                    w.AllowNegativeBalance,
                     w.SortOrder,
                     w.CreatedAt,
                     w.UpdatedAt
@@ -185,6 +186,7 @@ public class CustomWalletController : ControllerBase
             existingWallet.Status = wallet.Status;
             existingWallet.Color = wallet.Color;
             existingWallet.Icon = wallet.Icon;
+            existingWallet.AllowNegativeBalance = wallet.AllowNegativeBalance;
             existingWallet.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

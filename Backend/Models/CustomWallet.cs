@@ -38,6 +38,8 @@ public class CustomWallet
     [Column(TypeName = "decimal(18,2)")]
     public decimal CurrentBalance { get; set; } = 0;
 
+    public bool AllowNegativeBalance { get; set; } = false;
+
     public int SortOrder { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
