@@ -105,10 +105,13 @@ export default function Transactions() {
   const [endDate, setEndDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(20)
+  const [includeDeleted, setIncludeDeleted] = useState(false)
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [deletingTransaction, setDeletingTransaction] = useState<any>(null)
+  const [restoringTransaction, setRestoringTransaction] = useState<any>(null)
   const [deleteReason, setDeleteReason] = useState('')
 
   const [formData, setFormData] = useState<CreateTransactionRequest>({
@@ -144,6 +147,7 @@ export default function Transactions() {
       endDate,
       currentPage,
       pageSize,
+      includeDeleted,
     ],
     queryFn: () =>
       transactionApi.getAll({
@@ -154,6 +158,7 @@ export default function Transactions() {
         endDate: endDate || undefined,
         page: currentPage,
         pageSize,
+        includeDeleted,
       }),
   })
 
@@ -225,6 +230,26 @@ export default function Transactions() {
     },
   })
 
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => transactionApi.restore(id),
+    onSuccess: () => {
+      toast.success('Transaction restored successfully')
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      queryClient.invalidateQueries({ queryKey: ['userWallets'] })
+      queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
+      setIsRestoreDialogOpen(false)
+      setRestoringTransaction(null)
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        'Failed to restore transaction'
+      toast.error(errorMessage)
+    },
+  })
+
   const resetForm = () => {
     setFormData({
       walletType: 'custom',
@@ -261,6 +286,11 @@ export default function Transactions() {
       return
     }
     deleteMutation.mutate({ id: deletingTransaction.id, reason: deleteReason })
+  }
+
+  const handleRestore = () => {
+    if (!restoringTransaction?.id) return
+    restoreMutation.mutate(restoringTransaction.id)
   }
 
   const formatDate = (dateString: string) => {
