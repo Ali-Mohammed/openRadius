@@ -53,7 +53,6 @@ import { Combobox } from '@/components/ui/combobox'
 import { ColorPicker } from '@/components/ColorPicker'
 import { IconPicker } from '@/components/IconPicker'
 import userWalletApi, { type UserWallet } from '@/api/userWallets'
-import { customWalletApi } from '@/api/customWallets'
 import { userManagementApi } from '@/api/userManagementApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { workspaceApi } from '@/lib/api'
@@ -217,7 +216,6 @@ export default function UserWallets() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterUserId, setFilterUserId] = useState<number | undefined>()
-  const [filterWalletType, setFilterWalletType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
@@ -258,7 +256,6 @@ export default function UserWallets() {
       'userWallets',
       searchTerm,
       filterUserId,
-      filterWalletType,
       filterStatus,
       currentPage,
       pageSize,
@@ -267,16 +264,10 @@ export default function UserWallets() {
       userWalletApi.getAll({
         search: searchTerm || undefined,
         userId: filterUserId,
-        customWalletId: filterWalletType ? parseInt(filterWalletType) : undefined,
         status: filterStatus || undefined,
         page: currentPage,
         pageSize,
       }),
-  })
-
-  const { data: customWallets } = useQuery({
-    queryKey: ['customWallets', 'all'],
-    queryFn: () => customWalletApi.getAll({ pageSize: 100 }),
   })
 
   // Fetch users for the dropdown
