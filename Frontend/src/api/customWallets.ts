@@ -53,37 +53,37 @@ export const customWalletApi = {
     if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString())
 
     const response = await apiClient.get<CustomWalletResponse>(
-      `/custom-wallets?${queryParams.toString()}`
+      `/api/custom-wallets?${queryParams.toString()}`
     )
     return response.data
   },
 
   getById: async (id: number): Promise<CustomWallet> => {
-    const response = await apiClient.get<CustomWallet>(`/custom-wallets/${id}`)
+    const response = await apiClient.get<CustomWallet>(`/api/custom-wallets/${id}`)
     return response.data
   },
 
   create: async (wallet: CustomWallet): Promise<CustomWallet> => {
-    const response = await apiClient.post<CustomWallet>('/custom-wallets', wallet)
+    const response = await apiClient.post<CustomWallet>('/api/custom-wallets', wallet)
     return response.data
   },
 
   update: async (id: number, wallet: CustomWallet): Promise<CustomWallet> => {
-    const response = await apiClient.put<CustomWallet>(`/custom-wallets/${id}`, wallet)
+    const response = await apiClient.put<CustomWallet>(`/api/custom-wallets/${id}`, wallet)
     return response.data
   },
 
   delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/custom-wallets/${id}`)
+    await apiClient.delete(`/api/custom-wallets/${id}`)
   },
 
   getTypes: async (): Promise<CustomWalletType[]> => {
-    const response = await apiClient.get<CustomWalletType[]>('/custom-wallets/types')
+    const response = await apiClient.get<CustomWalletType[]>('/api/custom-wallets/types')
     return response.data
   },
 
   getStatuses: async (): Promise<CustomWalletStatus[]> => {
-    const response = await apiClient.get<CustomWalletStatus[]>('/custom-wallets/statuses')
+    const response = await apiClient.get<CustomWalletStatus[]>('/api/custom-wallets/statuses')
     return response.data
   },
 }

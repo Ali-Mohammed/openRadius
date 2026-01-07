@@ -118,6 +118,15 @@ public class CustomWalletController : ControllerBase
     {
         try
         {
+            // Check for duplicate name
+            var nameExists = await _context.CustomWallets
+                .AnyAsync(w => w.Name.ToLower() == wallet.Name.ToLower());
+            
+            if (nameExists)
+            {
+                return BadRequest(new { error = "A custom wallet with this name already exists" });
+            }
+
             wallet.CreatedAt = DateTime.UtcNow;
             wallet.CurrentBalance = 0;
 
@@ -151,6 +160,15 @@ public class CustomWalletController : ControllerBase
             if (existingWallet == null)
             {
                 return NotFound(new { error = "Custom wallet not found" });
+            }
+
+            // Check for duplicate name (excluding current wallet)
+            var nameExists = await _context.CustomWallets
+                .AnyAsync(w => w.Id != id && w.Name.ToLower() == wallet.Name.ToLower());
+            
+            if (nameExists)
+            {
+                return BadRequest(new { error = "A custom wallet with this name already exists" });
             }
 
             existingWallet.Name = wallet.Name;

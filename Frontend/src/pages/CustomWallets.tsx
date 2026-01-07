@@ -119,7 +119,8 @@ export default function CustomWallets() {
     },
     onError: (error) => {
       console.error('Error creating custom wallet:', error)
-      toast.error('Failed to create custom wallet')
+      const errorMessage = (error as any)?.response?.data?.error || 'Failed to create custom wallet'
+      toast.error(errorMessage)
     },
   })
 
@@ -133,7 +134,8 @@ export default function CustomWallets() {
     },
     onError: (error) => {
       console.error('Error updating custom wallet:', error)
-      toast.error('Failed to update custom wallet')
+      const errorMessage = (error as any)?.response?.data?.error || 'Failed to update custom wallet'
+      toast.error(errorMessage)
     },
   })
 
@@ -229,32 +231,54 @@ export default function CustomWallets() {
             className="pl-9"
           />
         </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
-            {types.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
-            {statuses.map((status) => (
-              <SelectItem key={status.value} value={status.value}>
-                {status.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2 items-center">
+          <Select value={filterType || undefined} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              {types.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {filterType && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilterType('')}
+              className="h-8"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-2 items-center">
+          <Select value={filterStatus || undefined} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              {statuses.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {filterStatus && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilterStatus('')}
+              className="h-8"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
