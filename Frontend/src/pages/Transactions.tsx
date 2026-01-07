@@ -885,6 +885,33 @@ export default function Transactions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-blue-600" />
+              Restore Transaction
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore the transaction and adjust the wallet balance accordingly.
+              The reversal transaction will be deleted. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestore}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={restoreMutation.isPending}
+            >
+              {restoreMutation.isPending ? 'Restoring...' : 'Restore Transaction'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
