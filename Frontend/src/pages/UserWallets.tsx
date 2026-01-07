@@ -471,7 +471,6 @@ export default function UserWallets() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Wallet</TableHead>
-              <TableHead>Type</TableHead>
               <TableHead>Current Balance</TableHead>
               <TableHead>Max Fill</TableHead>
               <TableHead>Daily Limit</TableHead>
@@ -483,13 +482,13 @@ export default function UserWallets() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : wallets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   No user wallets found
                 </TableCell>
               </TableRow>
@@ -510,18 +509,15 @@ export default function UserWallets() {
                       <div className="flex items-center gap-2">
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: wallet.customWalletColor + '20' }}
+                          style={{ backgroundColor: (wallet.customWalletColor || '#6366f1') + '20' }}
                         >
                           <IconComponent
                             className="h-4 w-4"
-                            style={{ color: wallet.customWalletColor }}
+                            style={{ color: wallet.customWalletColor || '#6366f1' }}
                           />
                         </div>
-                        <span className="font-medium">{wallet.customWalletName}</span>
+                        <span className="font-medium">Wallet</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="capitalize">{wallet.customWalletType}</span>
                     </TableCell>
                     <TableCell className="font-medium">
                       {currencySymbol}
