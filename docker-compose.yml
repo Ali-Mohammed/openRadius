@@ -119,6 +119,7 @@ services:
 
   connect_cloud:
     image: debezium/connect:3.0.0.Final
+    platform: linux/amd64
     container_name: connect_cloud
     user: "0"
     depends_on:
