@@ -91,32 +91,32 @@ const getNavData = (workspaceId: number) => ({
       items: [
         {
           titleKey: "navigation.billingProfiles",
-          url: `/workspace/${workspaceId}/billing/profiles`,
+          url: "/billing/profiles",
           icon: FileText,
         },
         {
           titleKey: "navigation.addons",
-          url: `/workspace/${workspaceId}/billing/addons`,
+          url: "/billing/addons",
           icon: Package,
         },
         {
           titleKey: "navigation.cashbacks",
-          url: `/workspace/${workspaceId}/billing/cashbacks`,
+          url: "/billing/cashbacks",
           icon: Gift,
         },
         {
           titleKey: "navigation.wallets",
-          url: `/workspace/${workspaceId}/billing/wallets`,
+          url: "/billing/wallets",
           icon: Wallet,
         },
         {
           titleKey: "navigation.walletsHistory",
-          url: `/workspace/${workspaceId}/billing/wallets-history`,
+          url: "/billing/wallets-history",
           icon: History,
         },
         {
           titleKey: "navigation.balances",
-          url: `/workspace/${workspaceId}/billing/balances`,
+          url: "/billing/balances",
           icon: Coins,
         },
       ],
