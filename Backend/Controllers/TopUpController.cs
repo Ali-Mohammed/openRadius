@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using static Backend.Models.TransactionType;
 
 namespace Backend.Controllers;
 
@@ -66,7 +67,8 @@ public class TopUpController : ControllerBase
             {
                 WalletType = "custom",
                 CustomWalletId = wallet.Id,
-                TransactionType = "topup",
+                TransactionType = TopUp,
+                IsCredit = true,
                 Amount = request.Amount,
                 BalanceBefore = balanceBefore,
                 BalanceAfter = wallet.CurrentBalance,
@@ -129,7 +131,8 @@ public class TopUpController : ControllerBase
                 WalletType = "user",
                 UserWalletId = wallet.Id,
                 UserId = wallet.UserId,
-                TransactionType = "topup",
+                TransactionType = TopUp,
+                IsCredit = true,
                 Amount = request.Amount,
                 BalanceBefore = balanceBefore,
                 BalanceAfter = wallet.CurrentBalance,

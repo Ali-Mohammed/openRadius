@@ -329,10 +329,11 @@ public class UserWalletController : ControllerBase
                 return NotFound(new { error = "User wallet not found" });
             }
 
+            var balanceBefore = userWallet.CurrentBalance;
             var newBalance = userWallet.CurrentBalance + request.Amount;
 
             // Check if negative balance is allowed
-            var allowNegative = userWallet.AllowNegativeBalance ?? userWallet.CustomWallet.AllowNegativeBalance;
+            var allowNegative = userWallet.AllowNegativeBalance ?? userWallet.CustomWallet?.AllowNegativeBalance ?? false;
             if (!allowNegative && newBalance < 0)
             {
                 return BadRequest(new { error = "Negative balance not allowed for this wallet" });
@@ -340,16 +341,33 @@ public class UserWalletController : ControllerBase
 
             userWallet.CurrentBalance = newBalance;
             userWallet.UpdatedAt = DateTime.UtcNow;
-            userWallet.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
+            // Create history record
+            var history = new WalletHistory
+            {
+                WalletType = "user",
+                UserWalletId = userWallet.Id,
+                UserId = userWallet.UserId,
+                TransactionType = Backend.Models.TransactionType.Adjustment,
+                IsCredit = request.Amount > 0,
+                Amount = Math.Abs(request.Amount),
+                BalanceBefore = balanceBefore,
+                BalanceAfter = newBalance,
+                Reason = request.Reason,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+            };
+
+            _context.WalletHistories.Add(history);
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 id = userWallet.Id,
-                previousBalance = userWallet.CurrentBalance - request.Amount,
+                previousBalance = balanceBefore,
                 newBalance = userWallet.CurrentBalance,
-                adjustment = request.Amount
+                adjustment = request.Amount,
+                historyId = history.Id
             });
         }
         catch (Exception ex)

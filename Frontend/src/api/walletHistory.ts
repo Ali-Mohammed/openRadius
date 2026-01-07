@@ -1,4 +1,5 @@
 import apiClient from '../lib/api'
+import { TransactionType } from '../constants/transactionTypes'
 
 export interface WalletHistory {
   id: number
@@ -9,7 +10,8 @@ export interface WalletHistory {
   userId?: number
   userEmail?: string
   userName?: string
-  transactionType: 'topup' | 'withdrawal' | 'adjustment' | 'purchase' | 'refund'
+  transactionType: TransactionType
+  isCredit: boolean
   amount: number
   balanceBefore: number
   balanceAfter: number

@@ -12,7 +12,12 @@ import {
   ArrowDownCircle,
   RefreshCw,
   ShoppingCart,
+  CreditCard,
+  Gift,
+  Zap,
+  Percent,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -44,14 +49,20 @@ import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { workspaceApi } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
+import { TRANSACTION_TYPES, TRANSACTION_TYPE_INFO, type TransactionType } from '@/constants/transactionTypes'
 
-const transactionTypes = [
-  { value: 'topup', label: 'Top Up', icon: ArrowUpCircle, color: 'text-green-600' },
-  { value: 'withdrawal', label: 'Withdrawal', icon: ArrowDownCircle, color: 'text-red-600' },
-  { value: 'adjustment', label: 'Adjustment', icon: RefreshCw, color: 'text-blue-600' },
-  { value: 'purchase', label: 'Purchase', icon: ShoppingCart, color: 'text-orange-600' },
-  { value: 'refund', label: 'Refund', icon: TrendingUp, color: 'text-purple-600' },
-]
+const transactionTypeIcons: Record<TransactionType, any> = {
+  [TRANSACTION_TYPES.TOP_UP]: ArrowUpCircle,
+  [TRANSACTION_TYPES.WITHDRAWAL]: ArrowDownCircle,
+  [TRANSACTION_TYPES.TRANSFER]: RefreshCw,
+  [TRANSACTION_TYPES.ADJUSTMENT]: RefreshCw,
+  [TRANSACTION_TYPES.PURCHASE]: ShoppingCart,
+  [TRANSACTION_TYPES.REFUND]: TrendingUp,
+  [TRANSACTION_TYPES.PAYMENT]: CreditCard,
+  [TRANSACTION_TYPES.REWARD]: Gift,
+  [TRANSACTION_TYPES.FEE]: Zap,
+  [TRANSACTION_TYPES.COMMISSION]: Percent,
+}
 
 export default function WalletHistory() {
   const { currentWorkspaceId } = useWorkspace()
@@ -116,10 +127,6 @@ export default function WalletHistory() {
   const totalCount = historyData?.totalCount || 0
   const totalPages = historyData?.totalPages || 1
 
-  const getTransactionTypeInfo = (type: string) => {
-    return transactionTypes.find((t) => t.value === type) || transactionTypes[0]
-  }
-
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'MMM dd, yyyy HH:mm')
@@ -172,11 +179,11 @@ export default function WalletHistory() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.byType.find((t) => t.transactionType === 'topup')?.count || 0}
+                {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground">
                 {currencySymbol}
-                {(stats.byType.find((t) => t.transactionType === 'topup')?.totalAmount || 0).toFixed(2)}
+                {(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0).toFixed(2)}
               </p>
             </CardContent>
           </Card>
@@ -215,9 +222,9 @@ export default function WalletHistory() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Transactions</SelectItem>
-                  {transactionTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                  {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
+                    <SelectItem key={value} value={value}>
+                      {info.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -300,18 +307,25 @@ export default function WalletHistory() {
                   </TableRow>
                 ) : (
                   history.map((item) => {
-                    const typeInfo = getTransactionTypeInfo(item.transactionType)
-                    const IconComponent = typeInfo.icon
+                    const typeInfo = TRANSACTION_TYPE_INFO[item.transactionType as TransactionType]
+                    const IconComponent = transactionTypeIcons[item.transactionType as TransactionType] || ArrowUpCircle
                     return (
                       <TableRow key={item.id}>
                         <TableCell>
                           <div className="text-sm">{formatDate(item.createdAt)}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="gap-1">
-                            <IconComponent className={`h-3 w-3 ${typeInfo.color}`} />
-                            {typeInfo.label}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className="gap-1 w-fit">
+                              <IconComponent className={`h-3 w-3 ${typeInfo?.color}`} />
+                              {typeInfo?.label || item.transactionType}
+                            </Badge>
+                            <span className={`text-xs ${
+                              item.isCredit ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {item.isCredit ? 'Credit' : 'Debit'}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div>
@@ -338,8 +352,8 @@ export default function WalletHistory() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={typeInfo.color + ' font-medium'}>
-                            {item.transactionType === 'withdrawal' ? '-' : '+'}
+                          <span className={`${typeInfo?.color} font-medium`}>
+                            {item.isCredit ? '+' : '-'}
                             {currencySymbol}
                             {item.amount.toFixed(2)}
                           </span>

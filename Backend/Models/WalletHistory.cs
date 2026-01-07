@@ -12,7 +12,8 @@ public class WalletHistory
     public int? UserWalletId { get; set; }
     
     // Transaction details
-    public string TransactionType { get; set; } = null!; // topup, withdrawal, adjustment, purchase, refund
+    public string TransactionType { get; set; } = null!; // topup, withdrawal, transfer, adjustment, purchase, refund, payment, reward, fee, commission
+    public bool IsCredit { get; set; } // true for credit (incoming), false for debit (outgoing)
     public decimal Amount { get; set; }
     public decimal BalanceBefore { get; set; }
     public decimal BalanceAfter { get; set; }

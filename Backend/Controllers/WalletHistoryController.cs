@@ -109,6 +109,7 @@ public class WalletHistoryController : ControllerBase
                     UserEmail = user?.Email,
                     UserName = user != null ? $"{user.FirstName} {user.LastName}" : null,
                     h.TransactionType,
+                    h.IsCredit,
                     h.Amount,
                     h.BalanceBefore,
                     h.BalanceAfter,
