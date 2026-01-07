@@ -53,12 +53,15 @@ public class TransactionController : ControllerBase
         [FromQuery] string? status = null,
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
+        [FromQuery] bool includeDeleted = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
         try
         {
-            var query = _context.Transactions.Where(t => !t.IsDeleted);
+            var query = includeDeleted 
+                ? _context.Transactions.AsQueryable()
+                : _context.Transactions.Where(t => !t.IsDeleted);
 
             if (!string.IsNullOrEmpty(walletType))
             {
@@ -472,6 +475,108 @@ public class TransactionController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting transaction");
             return StatusCode(500, new { error = "An error occurred while deleting the transaction" });
+        }
+    }
+
+    // POST: api/transactions/{id}/restore
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreTransaction(int id)
+    {
+        try
+        {
+            var transaction = await _context.Transactions
+                .FirstOrDefaultAsync(t => t.Id == id && t.IsDeleted);
+
+            if (transaction == null)
+            {
+                return NotFound(new { error = "Deleted transaction not found" });
+            }
+
+            // Find the reversal transaction
+            var reversalTransaction = await _context.Transactions
+                .FirstOrDefaultAsync(t => t.RelatedTransactionId == id && !t.IsDeleted);
+
+            if (reversalTransaction == null)
+            {
+                return BadRequest(new { error = "Reversal transaction not found" });
+            }
+
+            // Restore the balance
+            decimal restoredBalanceBefore = 0;
+            decimal restoredBalanceAfter = 0;
+
+            if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+            {
+                var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
+                if (wallet != null && !wallet.IsDeleted)
+                {
+                    restoredBalanceBefore = wallet.CurrentBalance;
+                    // Restore: reapply the original transaction
+                    wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                    restoredBalanceAfter = wallet.CurrentBalance;
+                    wallet.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+            else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+            {
+                var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
+                if (wallet != null && !wallet.IsDeleted)
+                {
+                    restoredBalanceBefore = wallet.CurrentBalance;
+                    // Restore: reapply the original transaction
+                    wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                    restoredBalanceAfter = wallet.CurrentBalance;
+                    wallet.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            // Restore original transaction
+            transaction.IsDeleted = false;
+            transaction.DeletedAt = null;
+            transaction.DeletedBy = null;
+            transaction.Status = "completed";
+            transaction.UpdatedAt = DateTime.UtcNow;
+            transaction.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+            // Delete the reversal transaction
+            reversalTransaction.IsDeleted = true;
+            reversalTransaction.DeletedAt = DateTime.UtcNow;
+            reversalTransaction.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+            // Create history record for restoration
+            var restorationHistory = new WalletHistory
+            {
+                WalletType = transaction.WalletType,
+                CustomWalletId = transaction.CustomWalletId,
+                UserWalletId = transaction.UserWalletId,
+                UserId = transaction.UserId,
+                TransactionType = transaction.TransactionType,
+                AmountType = transaction.AmountType,
+                Amount = transaction.Amount,
+                BalanceBefore = restoredBalanceBefore,
+                BalanceAfter = restoredBalanceAfter,
+                Description = $"Restoration of transaction #{transaction.Id}",
+                Reason = "Transaction restored",
+                Reference = transaction.Reference,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+            };
+
+            _context.WalletHistories.Add(restorationHistory);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Transaction restored successfully",
+                transactionId = transaction.Id,
+                balanceAfter = restoredBalanceAfter
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring transaction");
+            return StatusCode(500, new { error = "An error occurred while restoring the transaction" });
         }
     }
 
