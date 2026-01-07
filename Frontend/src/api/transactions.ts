@@ -109,6 +109,10 @@ const transactionApi = {
     })
   },
 
+  restore: async (id: number): Promise<void> => {
+    await apiClient.post(`/api/transactions/${id}/restore`)
+  },
+
   getStats: async (filters?: Omit<TransactionFilters, 'page' | 'pageSize'>): Promise<TransactionStats> => {
     const params = new URLSearchParams()
     if (filters?.walletType) params.append('walletType', filters.walletType)
