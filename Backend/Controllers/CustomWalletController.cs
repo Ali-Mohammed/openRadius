@@ -54,7 +54,8 @@ public class CustomWalletController : ControllerBase
             var totalCount = await query.CountAsync();
             
             var wallets = await query
-                .OrderByDescending(w => w.CreatedAt)
+                .OrderBy(w => w.SortOrder)
+                .ThenByDescending(w => w.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(w => new
@@ -69,6 +70,7 @@ public class CustomWalletController : ControllerBase
                     w.Color,
                     w.Icon,
                     w.CurrentBalance,
+                    w.SortOrder,
                     w.CreatedAt,
                     w.UpdatedAt
                 })
@@ -126,6 +128,10 @@ public class CustomWalletController : ControllerBase
             {
                 return BadRequest(new { error = "A custom wallet with this name already exists" });
             }
+
+            // Set sort order to be last
+            var maxSortOrder = await _context.CustomWallets.MaxAsync(w => (int?)w.SortOrder) ?? -1;
+            wallet.SortOrder = maxSortOrder + 1;
 
             wallet.CreatedAt = DateTime.UtcNow;
             wallet.CurrentBalance = 0;
