@@ -47,7 +47,7 @@ services:
       KC_METRICS_ENABLED: true
       KC_HEALTH_ENABLED: true
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
       # Email Configuration for password reset (choose one option):
       # 
       # Option 1: SendGrid (Recommended - Free tier: 100 emails/day)

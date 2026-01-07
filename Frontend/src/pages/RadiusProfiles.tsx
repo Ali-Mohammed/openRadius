@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -130,6 +131,7 @@ export default function RadiusProfiles() {
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const { i18n } = useTranslation()
 
   // Initialize state from URL params
   const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'))
@@ -208,7 +210,7 @@ export default function RadiusProfiles() {
   const getCurrencySymbol = (currency?: string) => {
     switch (currency) {
       case 'IQD':
-        return 'د.ع'
+        return i18n.language === 'ar' ? 'د.ع ' : 'IQD '
       case 'USD':
       default:
         return '$'
@@ -702,7 +704,7 @@ export default function RadiusProfiles() {
                         </TableCell>}
                         {columnVisibility.download && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.downrate)}</TableCell>}
                         {columnVisibility.upload && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.uprate)}</TableCell>}
-                        {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol}{(profile.price || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>}
+                        {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol}{(profile.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</TableCell>}
                         {columnVisibility.pool && <TableCell className="h-12 px-4 w-[140px]">{profile.pool || '-'}</TableCell>}
                         {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.usersCount || 0}</TableCell>}
                         <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
