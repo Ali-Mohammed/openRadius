@@ -55,6 +55,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { customWalletApi, type CustomWallet } from '@/api/customWallets'
+import { workspaceApi } from '@/lib/api'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { useTranslation } from 'react-i18next'
 
 // Icon mapping
 const iconMap: Record<string, typeof Wallet> = {
@@ -91,6 +94,8 @@ const colorOptions = [
 
 export default function CustomWallets() {
   const queryClient = useQueryClient()
+  const { currentWorkspaceId } = useWorkspace()
+  const { i18n } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('')
@@ -115,6 +120,12 @@ export default function CustomWallets() {
   })
 
   // Queries
+  const { data: workspace } = useQuery({
+    queryKey: ['workspace', currentWorkspaceId],
+    queryFn: () => workspaceApi.getById(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
+  })
+
   const { data: walletsData, isLoading } = useQuery({
     queryKey: ['customWallets', searchTerm, filterType, filterStatus, currentPage, pageSize],
     queryFn: () =>
@@ -136,6 +147,19 @@ export default function CustomWallets() {
     queryKey: ['customWalletStatuses'],
     queryFn: () => customWalletApi.getStatuses(),
   })
+
+  // Helper function to get currency symbol
+  const getCurrencySymbol = (currency?: string) => {
+    switch (currency) {
+      case 'IQD':
+        return i18n.language === 'ar' ? 'د.ع ' : 'IQD '
+      case 'USD':
+      default:
+        return '$'
+    }
+  }
+
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   // Mutations
   const createMutation = useMutation({
@@ -465,10 +489,10 @@ export default function CustomWallets() {
                         {wallet.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>${wallet.maxFillLimit.toFixed(2)}</TableCell>
-                    <TableCell>${wallet.dailySpendingLimit.toFixed(2)}</TableCell>
+                    <TableCell>{currencySymbol}{wallet.maxFillLimit.toFixed(2)}</TableCell>
+                    <TableCell>{currencySymbol}{wallet.dailySpendingLimit.toFixed(2)}</TableCell>
                     <TableCell className="font-medium">
-                      ${wallet.currentBalance?.toFixed(2) || '0.00'}
+                      {currencySymbol}{wallet.currentBalance?.toFixed(2) || '0.00'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -610,7 +634,7 @@ export default function CustomWallets() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maxFillLimit">Max Fill Limit *</Label>
+                  <Label htmlFor="maxFillLimit">Max Fill Limit ({workspace?.currency || 'USD'}) *</Label>
                   <Input
                     id="maxFillLimit"
                     type="number"
@@ -626,7 +650,7 @@ export default function CustomWallets() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dailySpendingLimit">Daily Spending Limit *</Label>
+                  <Label htmlFor="dailySpendingLimit">Daily Spending Limit ({workspace?.currency || 'USD'}) *</Label>
                   <Input
                     id="dailySpendingLimit"
                     type="number"
