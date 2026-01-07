@@ -50,6 +50,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Combobox } from '@/components/ui/combobox'
+import { ColorPicker } from '@/components/ColorPicker'
+import { IconPicker } from '@/components/IconPicker'
 import userWalletApi, { type UserWallet } from '@/api/userWallets'
 import { customWalletApi } from '@/api/customWallets'
 import { userManagementApi } from '@/api/userManagementApi'
@@ -654,7 +656,7 @@ export default function UserWallets() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingWallet ? 'Edit User Wallet' : 'Assign Wallet to User'}
@@ -754,6 +756,23 @@ export default function UserWallets() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <ColorPicker
+                value={formData.customWalletColor}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, customWalletColor: value })
+                }
+                label="Wallet Color"
+              />
+              <IconPicker
+                value={formData.customWalletIcon}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, customWalletIcon: value })
+                }
+                label="Wallet Icon"
+              />
             </div>
 
             <div className="flex items-center space-x-2 pt-2">

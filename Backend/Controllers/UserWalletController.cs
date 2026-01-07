@@ -6,6 +6,26 @@ using Backend.Models;
 
 namespace Backend.Controllers;
 
+public class CreateUserWalletRequest
+{
+    public int UserId { get; set; }
+    public int CustomWalletId { get; set; }
+    public decimal CurrentBalance { get; set; } = 0;
+    public decimal? MaxFillLimit { get; set; }
+    public decimal? DailySpendingLimit { get; set; }
+    public string Status { get; set; } = "active";
+    public bool? AllowNegativeBalance { get; set; }
+}
+
+public class UpdateUserWalletRequest
+{
+    public decimal CurrentBalance { get; set; }
+    public decimal? MaxFillLimit { get; set; }
+    public decimal? DailySpendingLimit { get; set; }
+    public string Status { get; set; } = "active";
+    public bool? AllowNegativeBalance { get; set; }
+}
+
 [ApiController]
 [Route("api/user-wallets")]
 [Authorize]
@@ -170,19 +190,19 @@ public class UserWalletController : ControllerBase
 
     // POST: api/user-wallets
     [HttpPost]
-    public async Task<ActionResult<object>> CreateUserWallet([FromBody] UserWallet userWallet)
+    public async Task<ActionResult<object>> CreateUserWallet([FromBody] CreateUserWalletRequest request)
     {
         try
         {
             // Verify user exists in master DB
-            var userExists = await _masterContext.Users.AnyAsync(u => u.Id == userWallet.UserId);
+            var userExists = await _masterContext.Users.AnyAsync(u => u.Id == request.UserId);
             if (!userExists)
             {
                 return BadRequest(new { error = "User not found" });
             }
 
             // Verify custom wallet exists
-            var customWallet = await _context.CustomWallets.FindAsync(userWallet.CustomWalletId);
+            var customWallet = await _context.CustomWallets.FindAsync(request.CustomWalletId);
             if (customWallet == null)
             {
                 return BadRequest(new { error = "Custom wallet not found" });
@@ -191,23 +211,26 @@ public class UserWalletController : ControllerBase
             // Check if user already has this wallet type
             var existingWallet = await _context.UserWallets
                 .FirstOrDefaultAsync(uw => 
-                    uw.UserId == userWallet.UserId && 
-                    uw.CustomWalletId == userWallet.CustomWalletId);
+                    uw.UserId == request.UserId && 
+                    uw.CustomWalletId == request.CustomWalletId);
 
             if (existingWallet != null)
             {
                 return BadRequest(new { error = "User already has a wallet of this type" });
             }
 
-            // Set defaults from custom wallet if not provided
-            userWallet.MaxFillLimit ??= customWallet.MaxFillLimit;
-            userWallet.DailySpendingLimit ??= customWallet.DailySpendingLimit;
-            userWallet.AllowNegativeBalance ??= customWallet.AllowNegativeBalance;
-
-            // Set audit fields
-            var currentUserEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-            userWallet.CreatedBy = currentUserEmail;
-            userWallet.CreatedAt = DateTime.UtcNow;
+            var userWallet = new UserWallet
+            {
+                UserId = request.UserId,
+                CustomWalletId = request.CustomWalletId,
+                CurrentBalance = request.CurrentBalance,
+                MaxFillLimit = request.MaxFillLimit ?? customWallet.MaxFillLimit,
+                DailySpendingLimit = request.DailySpendingLimit ?? customWallet.DailySpendingLimit,
+                Status = request.Status,
+                AllowNegativeBalance = request.AllowNegativeBalance ?? customWallet.AllowNegativeBalance,
+                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                CreatedAt = DateTime.UtcNow
+            };
 
             _context.UserWallets.Add(userWallet);
             await _context.SaveChangesAsync();
