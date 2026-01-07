@@ -112,10 +112,10 @@ public class UserWalletController : ControllerBase
                     UserEmail = user?.Email,
                     UserName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User",
                     uw.CustomWalletId,
-                    CustomWalletName = uw.CustomWallet.Name,
-                    CustomWalletType = uw.CustomWallet.Type,
-                    CustomWalletColor = uw.CustomWallet.Color,
-                    CustomWalletIcon = uw.CustomWallet.Icon,
+                    CustomWalletName = uw.CustomWallet?.Name,
+                    CustomWalletType = uw.CustomWallet?.Type,
+                    CustomWalletColor = uw.CustomWalletColor ?? uw.CustomWallet?.Color,
+                    CustomWalletIcon = uw.CustomWalletIcon ?? uw.CustomWallet?.Icon,
                     uw.CurrentBalance,
                     uw.MaxFillLimit,
                     uw.DailySpendingLimit,
@@ -169,10 +169,10 @@ public class UserWalletController : ControllerBase
                 UserEmail = user?.Email,
                 UserName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User",
                 userWallet.CustomWalletId,
-                CustomWalletName = userWallet.CustomWallet.Name,
-                CustomWalletType = userWallet.CustomWallet.Type,
-                CustomWalletColor = userWallet.CustomWallet.Color,
-                CustomWalletIcon = userWallet.CustomWallet.Icon,
+                CustomWalletName = userWallet.CustomWallet?.Name,
+                CustomWalletType = userWallet.CustomWallet?.Type,
+                CustomWalletColor = userWallet.CustomWalletColor ?? userWallet.CustomWallet?.Color,
+                CustomWalletIcon = userWallet.CustomWalletIcon ?? userWallet.CustomWallet?.Icon,
                 userWallet.CurrentBalance,
                 userWallet.MaxFillLimit,
                 userWallet.DailySpendingLimit,
@@ -202,33 +202,26 @@ public class UserWalletController : ControllerBase
                 return BadRequest(new { error = "User not found" });
             }
 
-            // Verify custom wallet exists
-            var customWallet = await _context.CustomWallets.FindAsync(request.CustomWalletId);
-            if (customWallet == null)
-            {
-                return BadRequest(new { error = "Custom wallet not found" });
-            }
-
-            // Check if user already has this wallet type
+            // Check if user already has a wallet
             var existingWallet = await _context.UserWallets
-                .FirstOrDefaultAsync(uw => 
-                    uw.UserId == request.UserId && 
-                    uw.CustomWalletId == request.CustomWalletId);
+                .FirstOrDefaultAsync(uw => uw.UserId == request.UserId && !uw.IsDeleted);
 
             if (existingWallet != null)
             {
-                return BadRequest(new { error = "User already has a wallet of this type" });
+                return BadRequest(new { error = "User already has a wallet" });
             }
 
             var userWallet = new UserWallet
             {
                 UserId = request.UserId,
-                CustomWalletId = request.CustomWalletId,
+                CustomWalletId = null,
                 CurrentBalance = request.CurrentBalance,
-                MaxFillLimit = request.MaxFillLimit ?? customWallet.MaxFillLimit,
-                DailySpendingLimit = request.DailySpendingLimit ?? customWallet.DailySpendingLimit,
+                MaxFillLimit = request.MaxFillLimit,
+                DailySpendingLimit = request.DailySpendingLimit,
                 Status = request.Status,
-                AllowNegativeBalance = request.AllowNegativeBalance ?? customWallet.AllowNegativeBalance,
+                CustomWalletColor = request.CustomWalletColor,
+                CustomWalletIcon = request.CustomWalletIcon,
+                AllowNegativeBalance = request.AllowNegativeBalance,
                 CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
                 CreatedAt = DateTime.UtcNow
             };
@@ -244,7 +237,8 @@ public class UserWalletController : ControllerBase
                     userWallet.Id,
                     userWallet.UserId,
                     userWallet.CustomWalletId,
-                    CustomWalletName = customWallet.Name,
+                    userWallet.CustomWalletColor,
+                    userWallet.CustomWalletIcon,
                     userWallet.CurrentBalance,
                     userWallet.MaxFillLimit,
                     userWallet.DailySpendingLimit,

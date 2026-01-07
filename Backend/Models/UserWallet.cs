@@ -19,6 +19,10 @@ public class UserWallet
     // Allow negative balance for this specific user wallet
     public bool? AllowNegativeBalance { get; set; }
     
+    // User-specific color and icon (can override custom wallet defaults)
+    public string? CustomWalletColor { get; set; }
+    public string? CustomWalletIcon { get; set; }
+    
     // Audit fields
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
