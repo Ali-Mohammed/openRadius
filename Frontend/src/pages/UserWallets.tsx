@@ -685,35 +685,6 @@ export default function UserWallets() {
                     placeholder="Select a user"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customWalletId">Custom Wallet Template *</Label>
-                  <Select
-                    value={formData.customWalletId?.toString() || ''}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, customWalletId: parseInt(value) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a wallet template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customWallets?.data.map((wallet) => (
-                        <SelectItem key={wallet.id} value={wallet.id!.toString()}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded"
-                              style={{ backgroundColor: wallet.color }}
-                            />
-                            {wallet.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Choose which wallet template to assign to this user
-                  </p>
-                </div>
               </>
             )}
 
