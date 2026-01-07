@@ -35,6 +35,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<DebeziumSettings> DebeziumSettings { get; set; }
     public DbSet<DebeziumConnector> DebeziumConnectors { get; set; }
     public DbSet<CustomWallet> CustomWallets { get; set; }
+    public DbSet<UserWallet> UserWallets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +94,28 @@ public class ApplicationDbContext : DbContext
             
             // Add query filter to exclude soft-deleted custom wallets by default
             entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        modelBuilder.Entity<UserWallet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CustomWalletId);
+            entity.HasIndex(e => e.Status);
+            
+            // Composite index for user + custom wallet (prevents duplicate wallet types per user)
+            entity.HasIndex(e => new { e.UserId, e.CustomWalletId })
+                  .IsUnique()
+                  .HasFilter("\"IsDeleted\" = false");
+            
+            // Add query filter to exclude soft-deleted user wallets by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
+            
+            // Configure relationships
+            entity.HasOne(e => e.CustomWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

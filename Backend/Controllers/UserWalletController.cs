@@ -1,0 +1,354 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Backend.Data;
+using Backend.Models;
+
+namespace Backend.Controllers;
+
+[ApiController]
+[Route("api/user-wallets")]
+[Authorize]
+public class UserWalletController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
+    private readonly ILogger<UserWalletController> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public UserWalletController(
+        ApplicationDbContext context,
+        MasterDbContext masterContext,
+        ILogger<UserWalletController> logger,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _context = context;
+        _masterContext = masterContext;
+        _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    // GET: api/user-wallets
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<object>>> GetUserWallets(
+        [FromQuery] int? userId = null,
+        [FromQuery] int? customWalletId = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var query = _context.UserWallets
+                .Include(uw => uw.CustomWallet)
+                .AsQueryable();
+
+            // Apply filters
+            if (userId.HasValue)
+            {
+                query = query.Where(uw => uw.UserId == userId.Value);
+            }
+
+            if (customWalletId.HasValue)
+            {
+                query = query.Where(uw => uw.CustomWalletId == customWalletId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(uw => uw.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(uw => 
+                    uw.CustomWallet.Name.Contains(search));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            // Get user IDs to fetch user details from master DB
+            var userWallets = await query
+                .OrderByDescending(uw => uw.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userIds = userWallets.Select(uw => uw.UserId).Distinct().ToList();
+            var users = await _masterContext.Users
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
+                .ToListAsync();
+
+            var result = userWallets.Select(uw =>
+            {
+                var user = users.FirstOrDefault(u => u.Id == uw.UserId);
+                return new
+                {
+                    uw.Id,
+                    uw.UserId,
+                    UserEmail = user?.Email,
+                    UserName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User",
+                    uw.CustomWalletId,
+                    CustomWalletName = uw.CustomWallet.Name,
+                    CustomWalletType = uw.CustomWallet.Type,
+                    CustomWalletColor = uw.CustomWallet.Color,
+                    CustomWalletIcon = uw.CustomWallet.Icon,
+                    uw.CurrentBalance,
+                    uw.MaxFillLimit,
+                    uw.DailySpendingLimit,
+                    uw.Status,
+                    uw.AllowNegativeBalance,
+                    uw.CreatedAt,
+                    uw.UpdatedAt
+                };
+            }).ToList();
+
+            return Ok(new
+            {
+                data = result,
+                totalCount,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user wallets");
+            return StatusCode(500, new { error = "An error occurred while retrieving user wallets" });
+        }
+    }
+
+    // GET: api/user-wallets/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<object>> GetUserWallet(int id)
+    {
+        try
+        {
+            var userWallet = await _context.UserWallets
+                .Include(uw => uw.CustomWallet)
+                .FirstOrDefaultAsync(uw => uw.Id == id);
+
+            if (userWallet == null)
+            {
+                return NotFound(new { error = "User wallet not found" });
+            }
+
+            var user = await _masterContext.Users
+                .Where(u => u.Id == userWallet.UserId)
+                .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
+                .FirstOrDefaultAsync();
+
+            return Ok(new
+            {
+                userWallet.Id,
+                userWallet.UserId,
+                UserEmail = user?.Email,
+                UserName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User",
+                userWallet.CustomWalletId,
+                CustomWalletName = userWallet.CustomWallet.Name,
+                CustomWalletType = userWallet.CustomWallet.Type,
+                CustomWalletColor = userWallet.CustomWallet.Color,
+                CustomWalletIcon = userWallet.CustomWallet.Icon,
+                userWallet.CurrentBalance,
+                userWallet.MaxFillLimit,
+                userWallet.DailySpendingLimit,
+                userWallet.Status,
+                userWallet.AllowNegativeBalance,
+                userWallet.CreatedAt,
+                userWallet.UpdatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user wallet");
+            return StatusCode(500, new { error = "An error occurred while retrieving the user wallet" });
+        }
+    }
+
+    // POST: api/user-wallets
+    [HttpPost]
+    public async Task<ActionResult<object>> CreateUserWallet([FromBody] UserWallet userWallet)
+    {
+        try
+        {
+            // Verify user exists in master DB
+            var userExists = await _masterContext.Users.AnyAsync(u => u.Id == userWallet.UserId);
+            if (!userExists)
+            {
+                return BadRequest(new { error = "User not found" });
+            }
+
+            // Verify custom wallet exists
+            var customWallet = await _context.CustomWallets.FindAsync(userWallet.CustomWalletId);
+            if (customWallet == null)
+            {
+                return BadRequest(new { error = "Custom wallet not found" });
+            }
+
+            // Check if user already has this wallet type
+            var existingWallet = await _context.UserWallets
+                .FirstOrDefaultAsync(uw => 
+                    uw.UserId == userWallet.UserId && 
+                    uw.CustomWalletId == userWallet.CustomWalletId);
+
+            if (existingWallet != null)
+            {
+                return BadRequest(new { error = "User already has a wallet of this type" });
+            }
+
+            // Set defaults from custom wallet if not provided
+            userWallet.MaxFillLimit ??= customWallet.MaxFillLimit;
+            userWallet.DailySpendingLimit ??= customWallet.DailySpendingLimit;
+            userWallet.AllowNegativeBalance ??= customWallet.AllowNegativeBalance;
+
+            // Set audit fields
+            var currentUserEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            userWallet.CreatedBy = currentUserEmail;
+            userWallet.CreatedAt = DateTime.UtcNow;
+
+            _context.UserWallets.Add(userWallet);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetUserWallet),
+                new { id = userWallet.Id },
+                new
+                {
+                    userWallet.Id,
+                    userWallet.UserId,
+                    userWallet.CustomWalletId,
+                    CustomWalletName = customWallet.Name,
+                    userWallet.CurrentBalance,
+                    userWallet.MaxFillLimit,
+                    userWallet.DailySpendingLimit,
+                    userWallet.Status,
+                    userWallet.AllowNegativeBalance,
+                    userWallet.CreatedAt
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user wallet");
+            return StatusCode(500, new { error = "An error occurred while creating the user wallet" });
+        }
+    }
+
+    // PUT: api/user-wallets/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUserWallet(int id, [FromBody] UserWallet userWallet)
+    {
+        if (id != userWallet.Id)
+        {
+            return BadRequest(new { error = "ID mismatch" });
+        }
+
+        try
+        {
+            var existingWallet = await _context.UserWallets.FindAsync(id);
+            if (existingWallet == null)
+            {
+                return NotFound(new { error = "User wallet not found" });
+            }
+
+            // Update fields
+            existingWallet.CurrentBalance = userWallet.CurrentBalance;
+            existingWallet.MaxFillLimit = userWallet.MaxFillLimit;
+            existingWallet.DailySpendingLimit = userWallet.DailySpendingLimit;
+            existingWallet.Status = userWallet.Status;
+            existingWallet.AllowNegativeBalance = userWallet.AllowNegativeBalance;
+            existingWallet.UpdatedAt = DateTime.UtcNow;
+            existingWallet.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user wallet");
+            return StatusCode(500, new { error = "An error occurred while updating the user wallet" });
+        }
+    }
+
+    // DELETE: api/user-wallets/{id}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUserWallet(int id)
+    {
+        try
+        {
+            var userWallet = await _context.UserWallets.FindAsync(id);
+            if (userWallet == null)
+            {
+                return NotFound(new { error = "User wallet not found" });
+            }
+
+            // Soft delete
+            userWallet.IsDeleted = true;
+            userWallet.DeletedAt = DateTime.UtcNow;
+            userWallet.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user wallet");
+            return StatusCode(500, new { error = "An error occurred while deleting the user wallet" });
+        }
+    }
+
+    // POST: api/user-wallets/{id}/adjust-balance
+    [HttpPost("{id}/adjust-balance")]
+    public async Task<IActionResult> AdjustBalance(int id, [FromBody] BalanceAdjustmentRequest request)
+    {
+        try
+        {
+            var userWallet = await _context.UserWallets
+                .Include(uw => uw.CustomWallet)
+                .FirstOrDefaultAsync(uw => uw.Id == id);
+
+            if (userWallet == null)
+            {
+                return NotFound(new { error = "User wallet not found" });
+            }
+
+            var newBalance = userWallet.CurrentBalance + request.Amount;
+
+            // Check if negative balance is allowed
+            var allowNegative = userWallet.AllowNegativeBalance ?? userWallet.CustomWallet.AllowNegativeBalance;
+            if (!allowNegative && newBalance < 0)
+            {
+                return BadRequest(new { error = "Negative balance not allowed for this wallet" });
+            }
+
+            userWallet.CurrentBalance = newBalance;
+            userWallet.UpdatedAt = DateTime.UtcNow;
+            userWallet.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = userWallet.Id,
+                previousBalance = userWallet.CurrentBalance - request.Amount,
+                newBalance = userWallet.CurrentBalance,
+                adjustment = request.Amount
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adjusting wallet balance");
+            return StatusCode(500, new { error = "An error occurred while adjusting the balance" });
+        }
+    }
+}
+
+public class BalanceAdjustmentRequest
+{
+    public decimal Amount { get; set; }
+    public string? Reason { get; set; }
+}

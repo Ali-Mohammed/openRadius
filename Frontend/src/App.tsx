@@ -29,6 +29,7 @@ import Connectors from './pages/Connectors'
 import DebeziumSettings from './pages/DebeziumSettings'
 import CdcMonitor from './pages/CdcMonitor'
 import CustomWallets from './pages/CustomWallets'
+import UserWallets from './pages/UserWallets'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -76,6 +77,7 @@ function App() {
                           <Route path="/connectors/settings" element={<DebeziumSettings />} />
                           <Route path="/cdc-monitor" element={<CdcMonitor />} />
                           <Route path="/billing/wallets" element={<CustomWallets />} />
+                          <Route path="/billing/user-wallets" element={<UserWallets />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>
