@@ -261,13 +261,8 @@ public class UserWalletController : ControllerBase
 
     // PUT: api/user-wallets/{id}
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateUserWallet(int id, [FromBody] UserWallet userWallet)
+    public async Task<IActionResult> UpdateUserWallet(int id, [FromBody] UpdateUserWalletRequest request)
     {
-        if (id != userWallet.Id)
-        {
-            return BadRequest(new { error = "ID mismatch" });
-        }
-
         try
         {
             var existingWallet = await _context.UserWallets.FindAsync(id);
@@ -277,11 +272,11 @@ public class UserWalletController : ControllerBase
             }
 
             // Update fields
-            existingWallet.CurrentBalance = userWallet.CurrentBalance;
-            existingWallet.MaxFillLimit = userWallet.MaxFillLimit;
-            existingWallet.DailySpendingLimit = userWallet.DailySpendingLimit;
-            existingWallet.Status = userWallet.Status;
-            existingWallet.AllowNegativeBalance = userWallet.AllowNegativeBalance;
+            existingWallet.CurrentBalance = request.CurrentBalance;
+            existingWallet.MaxFillLimit = request.MaxFillLimit;
+            existingWallet.DailySpendingLimit = request.DailySpendingLimit;
+            existingWallet.Status = request.Status;
+            existingWallet.AllowNegativeBalance = request.AllowNegativeBalance;
             existingWallet.UpdatedAt = DateTime.UtcNow;
             existingWallet.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 

@@ -711,12 +711,13 @@ export default function UserWallets() {
                   id="maxFillLimit"
                   type="number"
                   step="0.01"
+                  min="0"
                   placeholder="Leave empty for default"
-                  value={formData.maxFillLimit || ''}
+                  value={formData.maxFillLimit ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      maxFillLimit: e.target.value ? parseFloat(e.target.value) : null,
+                      maxFillLimit: e.target.value !== '' ? parseFloat(e.target.value) : null,
                     })
                   }
                 />
@@ -727,12 +728,13 @@ export default function UserWallets() {
                   id="dailySpendingLimit"
                   type="number"
                   step="0.01"
+                  min="0"
                   placeholder="Leave empty for default"
-                  value={formData.dailySpendingLimit || ''}
+                  value={formData.dailySpendingLimit ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      dailySpendingLimit: e.target.value ? parseFloat(e.target.value) : null,
+                      dailySpendingLimit: e.target.value !== '' ? parseFloat(e.target.value) : null,
                     })
                   }
                 />
