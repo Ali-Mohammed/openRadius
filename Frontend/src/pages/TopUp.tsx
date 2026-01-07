@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DollarSign, TrendingUp, ArrowUpCircle } from 'lucide-react'
+import { DollarSign, TrendingUp, ArrowUpCircle, Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import topUpApi, { type TopUpRequest } from '@/api/topUp'
@@ -26,6 +39,7 @@ import userWalletApi from '@/api/userWallets'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { workspaceApi } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 
 export default function TopUp() {
   const queryClient = useQueryClient()
@@ -33,6 +47,7 @@ export default function TopUp() {
   const { i18n } = useTranslation()
 
   const [walletType, setWalletType] = useState<'custom' | 'user'>('custom')
+  const [userSearchOpen, setUserSearchOpen] = useState(false)
   const [formData, setFormData] = useState<TopUpRequest>({
     walletType: 'custom',
     amount: 0,
@@ -203,24 +218,55 @@ export default function TopUp() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="userWallet">User Wallet *</Label>
-                  <Select
-                    value={formData.userWalletId?.toString() || ''}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, userWalletId: parseInt(value) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a wallet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userWallets?.data.map((wallet) => (
-                        <SelectItem key={wallet.id} value={wallet.id!.toString()}>
-                          {wallet.userName} - {currencySymbol}
-                          {wallet.currentBalance.toFixed(2)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                  <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={userSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {formData.userWalletId
+                          ? userWallets?.data.find((w) => w.id === formData.userWalletId)?.userName
+                          : "Select user wallet..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search users..." />
+                        <CommandList>
+                          <CommandEmpty>No user found.</CommandEmpty>
+                          <CommandGroup>
+                            {userWallets?.data.map((wallet) => (
+                              <CommandItem
+                                key={wallet.id}
+                                value={`${wallet.userName} ${wallet.userEmail}`}
+                                onSelect={() => {
+                                  setFormData({ ...formData, userWalletId: wallet.id })
+                                  setUserSearchOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.userWalletId === wallet.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{wallet.userName}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {wallet.userEmail} • {currencySymbol}
+                                    {wallet.currentBalance.toFixed(2)}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </PopoverctContent>
                   </Select>
                 </div>
               )}

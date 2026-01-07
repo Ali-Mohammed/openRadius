@@ -216,12 +216,12 @@ export default function WalletHistory() {
 
             <div className="space-y-2">
               <Label>Transaction Type</Label>
-              <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
+              <Select value={filterTransactionType || "all"} onValueChange={(val) => setFilterTransactionType(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Transactions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Transactions</SelectItem>
+                  <SelectItem value="all">All Transactions</SelectItem>
                   {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
                     <SelectItem key={value} value={value}>
                       {info.label}

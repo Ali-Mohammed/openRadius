@@ -348,12 +348,12 @@ export default function Transactions() {
           <div className="grid gap-4 md:grid-cols-5">
             <div className="space-y-2">
               <Label>Wallet Type</Label>
-              <Select value={filterWalletType} onValueChange={setFilterWalletType}>
+              <Select value={filterWalletType || "all"} onValueChange={(val) => setFilterWalletType(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="custom">Custom Wallet</SelectItem>
                   <SelectItem value="user">User Wallet</SelectItem>
                 </SelectContent>
@@ -362,12 +362,12 @@ export default function Transactions() {
 
             <div className="space-y-2">
               <Label>Transaction Type</Label>
-              <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
+              <Select value={filterTransactionType || "all"} onValueChange={(val) => setFilterTransactionType(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Transactions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Transactions</SelectItem>
+                  <SelectItem value="all">All Transactions</SelectItem>
                   {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
                     <SelectItem key={value} value={value}>
                       {info.label}
@@ -379,12 +379,12 @@ export default function Transactions() {
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <Select value={filterStatus || "all"} onValueChange={(val) => setFilterStatus(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="reversed">Reversed</SelectItem>
