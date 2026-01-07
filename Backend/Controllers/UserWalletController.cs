@@ -9,11 +9,12 @@ namespace Backend.Controllers;
 public class CreateUserWalletRequest
 {
     public int UserId { get; set; }
-    public int CustomWalletId { get; set; }
     public decimal CurrentBalance { get; set; } = 0;
     public decimal? MaxFillLimit { get; set; }
     public decimal? DailySpendingLimit { get; set; }
     public string Status { get; set; } = "active";
+    public string? CustomWalletColor { get; set; }
+    public string? CustomWalletIcon { get; set; }
     public bool? AllowNegativeBalance { get; set; }
 }
 

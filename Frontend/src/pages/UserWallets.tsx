@@ -232,7 +232,6 @@ export default function UserWallets() {
 
   const [formData, setFormData] = useState<Partial<UserWallet>>({
     userId: 0,
-    customWalletId: 0,
     currentBalance: 0,
     status: 'active',
   })

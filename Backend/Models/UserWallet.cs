@@ -4,7 +4,7 @@ public class UserWallet
 {
     public int Id { get; set; }
     public int UserId { get; set; }
-    public int CustomWalletId { get; set; }
+    public int? CustomWalletId { get; set; }
     
     // Current balance for this user's wallet
     public decimal CurrentBalance { get; set; } = 0;
@@ -33,5 +33,5 @@ public class UserWallet
     // Navigation properties
     // Note: User is not included as navigation to avoid cross-context issues
     // User data is fetched from MasterDbContext separately
-    public CustomWallet CustomWallet { get; set; } = null!;
+    public CustomWallet? CustomWallet { get; set; }
 }
