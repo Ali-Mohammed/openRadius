@@ -801,7 +801,7 @@ export default function RadiusUsers() {
               {t('radiusUsers.noUsersFound')}
             </div>
           ) : (
-            <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
+            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 340px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
