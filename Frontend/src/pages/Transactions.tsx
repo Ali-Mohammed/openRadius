@@ -68,8 +68,6 @@ import { Textarea } from '@/components/ui/textarea'
 import transactionApi, { type CreateTransactionRequest } from '@/api/transactions'
 import { customWalletApi } from '@/api/customWallets'
 import userWalletApi from '@/api/userWallets'
-import { useWorkspace } from '@/contexts/WorkspaceContext'
-import { workspaceApi } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { TRANSACTION_TYPES, TRANSACTION_TYPE_INFO, type TransactionType } from '@/constants/transactionTypes'
@@ -96,7 +94,6 @@ const statusColors = {
 
 export default function Transactions() {
   const queryClient = useQueryClient()
-  const { currentWorkspaceId } = useWorkspace()
   const { i18n } = useTranslation()
 
   const [filterWalletType, setFilterWalletType] = useState('')
@@ -129,14 +126,7 @@ export default function Transactions() {
     return '$'
   }
 
-  // Queries
-  const { data: workspace } = useQuery({
-    queryKey: ['workspace', currentWorkspaceId],
-    queryFn: () => workspaceApi.getById(currentWorkspaceId!),
-    enabled: !!currentWorkspaceId,
-  })
-
-  const currencySymbol = getCurrencySymbol(workspace?.settings?.currency)
+  const currencySymbol = getCurrencySymbol()
 
   const { data: transactionsData, isLoading } = useQuery({
     queryKey: [
@@ -733,7 +723,7 @@ export default function Transactions() {
                     {customWallets?.data.map((wallet) => (
                       <SelectItem key={wallet.id} value={wallet.id!.toString()}>
                         {wallet.name} - {currencySymbol}
-                        {wallet.currentBalance.toFixed(2)}
+                        {wallet.currentBalance?.toFixed(2) || '0.00'}
                       </SelectItem>
                     ))}
                   </SelectContent>
