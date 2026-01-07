@@ -36,6 +36,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<DebeziumConnector> DebeziumConnectors { get; set; }
     public DbSet<CustomWallet> CustomWallets { get; set; }
     public DbSet<UserWallet> UserWallets { get; set; }
+    public DbSet<WalletHistory> WalletHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -115,6 +116,28 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.CustomWallet)
                   .WithMany()
                   .HasForeignKey(e => e.CustomWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<WalletHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.WalletType);
+            entity.HasIndex(e => e.CustomWalletId);
+            entity.HasIndex(e => e.UserWalletId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.TransactionType);
+            entity.HasIndex(e => e.CreatedAt);
+            
+            // Configure relationships
+            entity.HasOne(e => e.CustomWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.UserWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserWalletId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
     }
