@@ -357,7 +357,6 @@ export default function UserWallets() {
   const resetForm = () => {
     setFormData({
       userId: 0,
-      customWalletId: 0,
       currentBalance: 0,
       status: 'active',
     })
@@ -369,11 +368,12 @@ export default function UserWallets() {
       setEditingWallet(wallet)
       setFormData({
         userId: wallet.userId,
-        customWalletId: wallet.customWalletId,
         currentBalance: wallet.currentBalance,
         maxFillLimit: wallet.maxFillLimit,
         dailySpendingLimit: wallet.dailySpendingLimit,
         status: wallet.status,
+        customWalletColor: wallet.customWalletColor,
+        customWalletIcon: wallet.customWalletIcon,
         allowNegativeBalance: wallet.allowNegativeBalance,
       })
     } else {
@@ -437,30 +437,6 @@ export default function UserWallets() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
           />
-        </div>
-        <div className="w-[200px] flex gap-2">
-          <Select value={filterWalletType} onValueChange={setFilterWalletType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Wallet Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {customWallets?.data.map((wallet) => (
-                <SelectItem key={wallet.id} value={wallet.id!.toString()}>
-                  {wallet.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {filterWalletType && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setFilterWalletType('')}
-              className="h-10 w-10"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
         </div>
         <div className="w-[200px] flex gap-2">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
