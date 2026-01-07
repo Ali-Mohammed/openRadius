@@ -14,7 +14,7 @@ import {
   Coins,
   Banknote,
   PiggyBank,
-  LucideIcon
+  type LucideIcon
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -673,7 +673,17 @@ export default function CustomWallets() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {formData.color && (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded"
+                              style={{ backgroundColor: formData.color }}
+                            />
+                            {colorOptions.find(c => c.value === formData.color)?.label || formData.color}
+                          </div>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {colorOptions.map((color) => (
