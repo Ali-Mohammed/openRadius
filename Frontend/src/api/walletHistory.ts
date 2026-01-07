@@ -1,5 +1,5 @@
-import apiClient from '../lib/api'
-import { TransactionType } from '../constants/transactionTypes'
+import { apiClient } from '../lib/api'
+import type { TransactionType } from '../constants/transactionTypes'
 
 export interface WalletHistory {
   id: number
@@ -11,7 +11,7 @@ export interface WalletHistory {
   userEmail?: string
   userName?: string
   transactionType: TransactionType
-  isCredit: boolean
+  amountType: 'credit' | 'debit'
   amount: number
   balanceBefore: number
   balanceAfter: number

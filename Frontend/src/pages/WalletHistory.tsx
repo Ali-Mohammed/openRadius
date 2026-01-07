@@ -321,9 +321,9 @@ export default function WalletHistory() {
                               {typeInfo?.label || item.transactionType}
                             </Badge>
                             <span className={`text-xs ${
-                              item.isCredit ? 'text-green-600' : 'text-red-600'
+                              item.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              {item.isCredit ? 'Credit' : 'Debit'}
+                              {item.amountType === 'credit' ? 'Credit' : 'Debit'}
                             </span>
                           </div>
                         </TableCell>
@@ -353,7 +353,7 @@ export default function WalletHistory() {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className={`${typeInfo?.color} font-medium`}>
-                            {item.isCredit ? '+' : '-'}
+                            {item.amountType === 'credit' ? '+' : '-'}
                             {currencySymbol}
                             {item.amount.toFixed(2)}
                           </span>

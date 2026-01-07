@@ -506,7 +506,7 @@ public class TransactionController : ControllerBase
 
             var totalTransactions = await query.CountAsync();
             var totalCredit = await query.Where(t => t.AmountType == "credit").SumAsync(t => t.Amount);
-            var totalDebit = await query.Where(t => !t.AmountType == "credit").SumAsync(t => t.Amount);
+            var totalDebit = await query.Where(t => t.AmountType == "debit").SumAsync(t => t.Amount);
 
             var byType = await query
                 .GroupBy(t => t.TransactionType)

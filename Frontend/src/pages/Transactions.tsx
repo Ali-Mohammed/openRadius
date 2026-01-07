@@ -484,9 +484,9 @@ export default function Transactions() {
                               {typeInfo?.label || transaction.transactionType}
                             </Badge>
                             <span className={`text-xs ${
-                              transaction.isCredit ? 'text-green-600' : 'text-red-600'
+                              transaction.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              {transaction.isCredit ? 'Credit' : 'Debit'}
+                              {transaction.amountType === 'credit' ? 'Credit' : 'Debit'}
                             </span>
                           </div>
                         </TableCell>
@@ -516,7 +516,7 @@ export default function Transactions() {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className={`${typeInfo?.color} font-medium`}>
-                            {transaction.isCredit ? '+' : '-'}
+                            {transaction.amountType === 'credit' ? '+' : '-'}
                             {currencySymbol}
                             {transaction.amount.toFixed(2)}
                           </span>
