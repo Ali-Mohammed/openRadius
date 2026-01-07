@@ -62,6 +62,25 @@ public class TopUpController : ControllerBase
             wallet.CurrentBalance += request.Amount;
             wallet.UpdatedAt = DateTime.UtcNow;
 
+            // Create transaction record
+            var transaction = new Transaction
+            {
+                WalletType = "custom",
+                CustomWalletId = wallet.Id,
+                TransactionType = TopUp,
+                AmountType = "credit",
+                Amount = request.Amount,
+                Status = "completed",
+                BalanceBefore = balanceBefore,
+                BalanceAfter = wallet.CurrentBalance,
+                Description = $"Top-up for {wallet.Name}",
+                Reason = request.Reason,
+                Reference = request.Reference,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Transactions.Add(transaction);
+
             // Create history record
             var history = new WalletHistory
             {
@@ -89,6 +108,7 @@ public class TopUpController : ControllerBase
                 balanceBefore,
                 balanceAfter = wallet.CurrentBalance,
                 amount = request.Amount,
+                transactionId = transaction.Id,
                 historyId = history.Id
             });
         }
@@ -125,6 +145,26 @@ public class TopUpController : ControllerBase
             wallet.CurrentBalance += request.Amount;
             wallet.UpdatedAt = DateTime.UtcNow;
 
+            // Create transaction record
+            var transaction = new Transaction
+            {
+                WalletType = "user",
+                UserWalletId = wallet.Id,
+                UserId = wallet.UserId,
+                TransactionType = TopUp,
+                AmountType = "credit",
+                Amount = request.Amount,
+                Status = "completed",
+                BalanceBefore = balanceBefore,
+                BalanceAfter = wallet.CurrentBalance,
+                Description = $"Top-up for user wallet",
+                Reason = request.Reason,
+                Reference = request.Reference,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Transactions.Add(transaction);
+
             // Create history record
             var history = new WalletHistory
             {
@@ -153,6 +193,7 @@ public class TopUpController : ControllerBase
                 balanceBefore,
                 balanceAfter = wallet.CurrentBalance,
                 amount = request.Amount,
+                transactionId = transaction.Id,
                 historyId = history.Id
             });
         }
