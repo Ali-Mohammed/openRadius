@@ -232,13 +232,15 @@ static string GetTenantConnectionString(string baseConnectionString, int Workspa
 }
 
 // Configure the HTTP request pipeline.
+
+// CORS must be before authentication/authorization
+app.UseCors("AllowFrontend");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseCors("AllowFrontend");
 
 // Authentication must run first to populate claims
 app.UseAuthentication();
