@@ -235,8 +235,6 @@ export default function UserWallets() {
     status: 'active',
   })
 
-  const [userSearch, setUserSearch] = useState('')
-
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
     if (currency === 'IQD') {
@@ -288,14 +286,6 @@ export default function UserWallets() {
   })
 
   const users = usersData || []
-  const filteredUsers = userSearch
-    ? users.filter(
-        (user) =>
-          user.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
-          user.firstName?.toLowerCase().includes(userSearch.toLowerCase()) ||
-          user.lastName?.toLowerCase().includes(userSearch.toLowerCase())
-      )
-    : users
 
   const wallets = walletsData?.data || []
   const totalCount = walletsData?.totalCount || 0
