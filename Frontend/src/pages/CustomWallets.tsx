@@ -14,7 +14,6 @@ import {
   Coins,
   Banknote,
   PiggyBank,
-  type LucideIcon
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -58,7 +57,7 @@ import {
 import { customWalletApi, type CustomWallet } from '@/api/customWallets'
 
 // Icon mapping
-const iconMap: Record<string, LucideIcon> = {
+const iconMap: Record<string, typeof Wallet> = {
   Wallet,
   CreditCard,
   DollarSign,
