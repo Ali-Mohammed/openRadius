@@ -70,7 +70,9 @@ const userWalletApi = {
   },
 
   async create(wallet: Partial<UserWallet>): Promise<UserWallet> {
+    console.log('Creating user wallet with data:', wallet)
     const response = await apiClient.post<UserWallet>('/api/user-wallets', wallet)
+    console.log('Create response:', response.data)
     return response.data
   },
 

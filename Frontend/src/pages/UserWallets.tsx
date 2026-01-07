@@ -303,6 +303,8 @@ export default function UserWallets() {
       resetForm()
     },
     onError: (error: any) => {
+      console.error('Create wallet error:', error)
+      console.error('Error response:', error?.response?.data)
       const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
@@ -392,6 +394,8 @@ export default function UserWallets() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    console.log('Submitting form data:', formData)
 
     if (editingWallet) {
       updateMutation.mutate({ id: editingWallet.id!, wallet: formData })
