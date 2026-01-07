@@ -1,6 +1,21 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Wallet, Edit, Trash2, GripVertical } from 'lucide-react'
+import { 
+  Plus, 
+  Search, 
+  Wallet, 
+  Edit, 
+  Trash2, 
+  GripVertical,
+  CreditCard,
+  DollarSign,
+  TrendingUp,
+  Gift,
+  Coins,
+  Banknote,
+  PiggyBank,
+  LucideIcon
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,15 +57,27 @@ import {
 } from '@/components/ui/alert-dialog'
 import { customWalletApi, type CustomWallet } from '@/api/customWallets'
 
+// Icon mapping
+const iconMap: Record<string, LucideIcon> = {
+  Wallet,
+  CreditCard,
+  DollarSign,
+  TrendingUp,
+  Gift,
+  Coins,
+  Banknote,
+  PiggyBank,
+}
+
 const iconOptions = [
-  { value: 'Wallet', label: 'Wallet' },
-  { value: 'CreditCard', label: 'Credit Card' },
-  { value: 'DollarSign', label: 'Dollar Sign' },
-  { value: 'TrendingUp', label: 'Trending Up' },
-  { value: 'Gift', label: 'Gift' },
-  { value: 'Coins', label: 'Coins' },
-  { value: 'Banknote', label: 'Banknote' },
-  { value: 'PiggyBank', label: 'Piggy Bank' },
+  { value: 'Wallet', label: 'Wallet', icon: Wallet },
+  { value: 'CreditCard', label: 'Credit Card', icon: CreditCard },
+  { value: 'DollarSign', label: 'Dollar Sign', icon: DollarSign },
+  { value: 'TrendingUp', label: 'Trending Up', icon: TrendingUp },
+  { value: 'Gift', label: 'Gift', icon: Gift },
+  { value: 'Coins', label: 'Coins', icon: Coins },
+  { value: 'Banknote', label: 'Banknote', icon: Banknote },
+  { value: 'PiggyBank', label: 'Piggy Bank', icon: PiggyBank },
 ]
 
 const colorOptions = [
@@ -380,6 +407,7 @@ export default function CustomWallets() {
                 const typeInfo = getTypeInfo(wallet.type)
                 const isDragging = draggedItem?.id === wallet.id
                 const isDragOver = dragOverItem?.id === wallet.id
+                const IconComponent = wallet.icon ? iconMap[wallet.icon] || Wallet : Wallet
                 return (
                   <TableRow
                     key={wallet.id}
@@ -399,7 +427,7 @@ export default function CustomWallets() {
                           className="w-8 h-8 rounded-full flex items-center justify-center"
                           style={{ backgroundColor: wallet.color + '20' }}
                         >
-                          <Wallet
+                          <IconComponent
                             className="h-4 w-4"
                             style={{ color: wallet.color }}
                           />
