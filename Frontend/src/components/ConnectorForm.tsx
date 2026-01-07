@@ -171,7 +171,26 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     try {
       // Auto-generate slot name if empty
       if (!updatedFormData.slotName) {
-        updatedFormData.slotName = `${updatedFormData.name.replace(/-/g, '_')}_slot`;
+        // Generate slot name: only lowercase, digits, underscores, max 63 chars
+        updatedFormData.slotName = updatedFormData.name
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, '_')
+          .substring(0, 50) + '_slot';
+      } else {
+        // Validate slot name
+        const slotName = updatedFormData.slotName.toLowerCase();
+        if (slotName.length > 63) {
+          toast.error('Slot name must be 63 characters or less');
+          setLoading(false);
+          return;
+        }
+        if (!/^[a-z0-9_]+$/.test(slotName)) {
+          toast.error('Slot name must contain only lowercase letters, digits, and underscores');
+          setLoading(false);
+          return;
+        }
+        // Normalize the slot name
+        updatedFormData.slotName = slotName;
       }
 
       const url = connector?.id
@@ -536,7 +555,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                           <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="max-w-xs">A unique name for the PostgreSQL replication slot. PostgreSQL keeps track of changes using this slot. Auto-generated if left empty.</p>
+                          <p className="max-w-xs">A unique name for the PostgreSQL replication slot. Must contain only lowercase letters, digits, and underscores (max 63 chars). Auto-generated if left empty.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -544,11 +563,16 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                   <Input
                     id="slotName"
                     value={formData.slotName}
-                    onChange={(e) => handleChange('slotName', e.target.value)}
+                    onChange={(e) => {
+                      // Auto-convert to lowercase and replace invalid chars
+                      const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+                      handleChange('slotName', value);
+                    }}
                     placeholder="Auto-generated if empty"
+                    maxLength={63}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Leave empty to auto-generate based on connector name
+                    Only lowercase letters, digits, and underscores (max 63 chars)
                   </p>
                 </div>
 

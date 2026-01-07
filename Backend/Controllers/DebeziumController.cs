@@ -311,6 +311,33 @@ public class DebeziumController : ControllerBase
     {
         try
         {
+            // Validate and normalize slot name
+            if (string.IsNullOrWhiteSpace(connector.SlotName))
+            {
+                // Auto-generate slot name: only lowercase, digits, underscores, max 63 chars
+                connector.SlotName = connector.Name
+                    .ToLower()
+                    .Replace("-", "_")
+                    .Replace(" ", "_")
+                    .Substring(0, Math.Min(50, connector.Name.Length)) + "_slot";
+                connector.SlotName = System.Text.RegularExpressions.Regex.Replace(connector.SlotName, "[^a-z0-9_]", "_");
+            }
+            else
+            {
+                // Normalize to lowercase and validate
+                connector.SlotName = connector.SlotName.ToLower();
+                
+                if (connector.SlotName.Length > 63)
+                {
+                    return BadRequest(new { error = "Slot name must be 63 characters or less" });
+                }
+                
+                if (!System.Text.RegularExpressions.Regex.IsMatch(connector.SlotName, "^[a-z0-9_]+$"))
+                {
+                    return BadRequest(new { error = "Slot name must contain only lowercase letters, digits, and underscores" });
+                }
+            }
+
             var debeziumUrl = await GetDebeziumUrl();
             var client = _httpClientFactory.CreateClient();
 
@@ -393,6 +420,33 @@ public class DebeziumController : ControllerBase
 
         try
         {
+            // Validate and normalize slot name
+            if (string.IsNullOrWhiteSpace(connector.SlotName))
+            {
+                // Auto-generate slot name: only lowercase, digits, underscores, max 63 chars
+                connector.SlotName = connector.Name
+                    .ToLower()
+                    .Replace("-", "_")
+                    .Replace(" ", "_")
+                    .Substring(0, Math.Min(50, connector.Name.Length)) + "_slot";
+                connector.SlotName = System.Text.RegularExpressions.Regex.Replace(connector.SlotName, "[^a-z0-9_]", "_");
+            }
+            else
+            {
+                // Normalize to lowercase and validate
+                connector.SlotName = connector.SlotName.ToLower();
+                
+                if (connector.SlotName.Length > 63)
+                {
+                    return BadRequest(new { error = "Slot name must be 63 characters or less" });
+                }
+                
+                if (!System.Text.RegularExpressions.Regex.IsMatch(connector.SlotName, "^[a-z0-9_]+$"))
+                {
+                    return BadRequest(new { error = "Slot name must contain only lowercase letters, digits, and underscores" });
+                }
+            }
+
             var debeziumUrl = await GetDebeziumUrl();
             var client = _httpClientFactory.CreateClient();
 
