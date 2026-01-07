@@ -74,6 +74,8 @@ export default function CustomWallets() {
   const [deletingWallet, setDeletingWallet] = useState<CustomWallet | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
+  const [draggedItem, setDraggedItem] = useState<CustomWallet | null>(null)
+  const [dragOverItem, setDragOverItem] = useState<CustomWallet | null>(null)
 
   const [formData, setFormData] = useState<CustomWallet>({
     name: '',
