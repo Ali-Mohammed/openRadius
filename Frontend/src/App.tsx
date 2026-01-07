@@ -32,6 +32,7 @@ import CustomWallets from './pages/CustomWallets'
 import UserWallets from './pages/UserWallets'
 import TopUp from './pages/TopUp'
 import WalletHistory from './pages/WalletHistory'
+import Transactions from './pages/Transactions'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -82,6 +83,7 @@ function App() {
                           <Route path="/billing/user-wallets" element={<UserWallets />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
+                          <Route path="/billing/transactions" element={<Transactions />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>

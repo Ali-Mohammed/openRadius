@@ -1,5 +1,5 @@
-import apiClient from '../lib/api'
-import { TransactionType } from '../constants/transactionTypes'
+import { apiClient } from '../lib/api'
+import type { TransactionType } from '../constants/transactionTypes'
 
 export interface Transaction {
   id: number
