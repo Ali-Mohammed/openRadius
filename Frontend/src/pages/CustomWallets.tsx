@@ -189,7 +189,8 @@ export default function CustomWallets() {
     },
     onError: (error) => {
       console.error('Error reordering wallets:', error)
-      toast.error('Failed to update wallet order')
+      const errorMessage = (error as any)?.response?.data?.error || (error as any)?.response?.data?.message || 'Failed to update wallet order'
+      toast.error(errorMessage)
     },
   })
 

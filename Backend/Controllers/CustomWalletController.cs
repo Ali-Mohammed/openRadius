@@ -273,12 +273,24 @@ public class CustomWalletController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Reorder request received with {Count} items", sortOrders?.Count ?? 0);
+            
+            if (sortOrders == null || sortOrders.Count == 0)
+            {
+                return BadRequest(new { error = "No sort orders provided" });
+            }
+
             foreach (var item in sortOrders)
             {
                 var wallet = await _context.CustomWallets.FindAsync(item.Id);
                 if (wallet != null)
                 {
                     wallet.SortOrder = item.SortOrder;
+                    _logger.LogDebug("Updated wallet {Id} sort order to {SortOrder}", item.Id, item.SortOrder);
+                }
+                else
+                {
+                    _logger.LogWarning("Wallet {Id} not found during reorder", item.Id);
                 }
             }
 

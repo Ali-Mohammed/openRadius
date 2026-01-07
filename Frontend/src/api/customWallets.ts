@@ -89,6 +89,7 @@ export const customWalletApi = {
   },
 
   reorder: async (sortOrders: { id: number; sortOrder: number }[]): Promise<void> => {
+    console.log('Sending reorder request:', sortOrders)
     await apiClient.post('/api/custom-wallets/reorder', sortOrders)
   },
 }
