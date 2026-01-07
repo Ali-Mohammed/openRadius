@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Wallet, Edit, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -39,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { customWalletApi, CustomWallet, CustomWalletType, CustomWalletStatus } from '@/api/customWallets'
+import { customWalletApi, type CustomWallet } from '@/api/customWallets'
 
 const iconOptions = [
   { value: 'Wallet', label: 'Wallet' },
@@ -63,10 +64,7 @@ const colorOptions = [
 ]
 
 export default function CustomWallets() {
-  const [wallets, setWallets] = useState<CustomWallet[]>([])
-  const [types, setTypes] = useState<CustomWalletType[]>([])
-  const [statuses, setStatuses] = useState<CustomWalletStatus[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('')
@@ -74,7 +72,6 @@ export default function CustomWallets() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingWallet, setEditingWallet] = useState<CustomWallet | null>(null)
   const [deletingWallet, setDeletingWallet] = useState<CustomWallet | null>(null)
-  const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
 
@@ -89,49 +86,74 @@ export default function CustomWallets() {
     icon: 'Wallet',
   })
 
-  useEffect(() => {
-    fetchWallets()
-    fetchTypes()
-    fetchStatuses()
-  }, [searchTerm, filterType, filterStatus, currentPage])
-
-  const fetchWallets = async () => {
-    try {
-      setLoading(true)
-      const response = await customWalletApi.getAll({
+  // Queries
+  const { data: walletsData, isLoading } = useQuery({
+    queryKey: ['customWallets', searchTerm, filterType, filterStatus, currentPage, pageSize],
+    queryFn: () =>
+      customWalletApi.getAll({
         search: searchTerm || undefined,
         type: filterType || undefined,
         status: filterStatus || undefined,
         page: currentPage,
         pageSize,
-      })
-      setWallets(response.data)
-      setTotalCount(response.totalCount)
-    } catch (error) {
-      console.error('Error fetching custom wallets:', error)
-      toast.error('Failed to fetch custom wallets')
-    } finally {
-      setLoading(false)
-    }
-  }
+      }),
+  })
 
-  const fetchTypes = async () => {
-    try {
-      const data = await customWalletApi.getTypes()
-      setTypes(data)
-    } catch (error) {
-      console.error('Error fetching wallet types:', error)
-    }
-  }
+  const { data: types = [] } = useQuery({
+    queryKey: ['customWalletTypes'],
+    queryFn: () => customWalletApi.getTypes(),
+  })
 
-  const fetchStatuses = async () => {
-    try {
-      const data = await customWalletApi.getStatuses()
-      setStatuses(data)
-    } catch (error) {
-      console.error('Error fetching wallet statuses:', error)
-    }
-  }
+  const { data: statuses = [] } = useQuery({
+    queryKey: ['customWalletStatuses'],
+    queryFn: () => customWalletApi.getStatuses(),
+  })
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: customWalletApi.create,
+    onSuccess: () => {
+      toast.success('Custom wallet created successfully')
+      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      handleCloseDialog()
+    },
+    onError: (error) => {
+      console.error('Error creating custom wallet:', error)
+      toast.error('Failed to create custom wallet')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, wallet }: { id: number; wallet: CustomWallet }) =>
+      customWalletApi.update(id, wallet),
+    onSuccess: () => {
+      toast.success('Custom wallet updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      handleCloseDialog()
+    },
+    onError: (error) => {
+      console.error('Error updating custom wallet:', error)
+      toast.error('Failed to update custom wallet')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: customWalletApi.delete,
+    onSuccess: () => {
+      toast.success('Custom wallet deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      setIsDeleteDialogOpen(false)
+      setDeletingWallet(null)
+    },
+    onError: (error) => {
+      console.error('Error deleting custom wallet:', error)
+      toast.error('Failed to delete custom wallet')
+    },
+  })
+
+  const wallets = walletsData?.data || []
+  const totalCount = walletsData?.totalCount || 0
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   const handleOpenDialog = (wallet?: CustomWallet) => {
     if (wallet) {
@@ -160,34 +182,16 @@ export default function CustomWallets() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    try {
-      if (editingWallet) {
-        await customWalletApi.update(editingWallet.id!, formData)
-        toast.success('Custom wallet updated successfully')
-      } else {
-        await customWalletApi.create(formData)
-        toast.success('Custom wallet created successfully')
-      }
-      handleCloseDialog()
-      fetchWallets()
-    } catch (error) {
-      console.error('Error saving custom wallet:', error)
-      toast.error('Failed to save custom wallet')
+    if (editingWallet) {
+      updateMutation.mutate({ id: editingWallet.id!, wallet: formData })
+    } else {
+      createMutation.mutate(formData)
     }
   }
 
   const handleDelete = async () => {
     if (!deletingWallet?.id) return
-    try {
-      await customWalletApi.delete(deletingWallet.id)
-      toast.success('Custom wallet deleted successfully')
-      setIsDeleteDialogOpen(false)
-      setDeletingWallet(null)
-      fetchWallets()
-    } catch (error) {
-      console.error('Error deleting custom wallet:', error)
-      toast.error('Failed to delete custom wallet')
-    }
+    deleteMutation.mutate(deletingWallet.id)
   }
 
   const getTypeInfo = (type: string) => {
@@ -198,8 +202,6 @@ export default function CustomWallets() {
     const statusInfo = statuses.find((s) => s.value === status)
     return statusInfo?.color || '#6b7280'
   }
-
-  const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
     <div className="space-y-6">
@@ -270,7 +272,7 @@ export default function CustomWallets() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8">
                   Loading...
