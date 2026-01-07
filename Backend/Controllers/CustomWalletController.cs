@@ -267,8 +267,41 @@ public class CustomWalletController : ControllerBase
         return Ok(statuses);
     }
 
+    // POST: api/custom-wallets/reorder
+    [HttpPost("reorder")]
+    public async Task<IActionResult> ReorderCustomWallets([FromBody] List<WalletSortOrder> sortOrders)
+    {
+        try
+        {
+            foreach (var item in sortOrders)
+            {
+                var wallet = await _context.CustomWallets.FindAsync(item.Id);
+                if (wallet != null)
+                {
+                    wallet.SortOrder = item.SortOrder;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Updated sort order for {Count} wallets", sortOrders.Count);
+
+            return Ok(new { message = "Sort order updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating wallet sort order");
+            return StatusCode(500, new { error = "Failed to update sort order", message = ex.Message });
+        }
+    }
+
     private async Task<bool> CustomWalletExists(int id)
     {
         return await _context.CustomWallets.AnyAsync(e => e.Id == id);
     }
+}
+
+public class WalletSortOrder
+{
+    public int Id { get; set; }
+    public int SortOrder { get; set; }
 }
