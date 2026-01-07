@@ -37,6 +37,7 @@
     "userGroups": "المجموعات",
     "connectors": "الموصلات",
     "connectorList": "موصلات CDC",
+    "cdcMonitor": "مراقبة الأحداث",
     "connectorSettings": "الإعدادات"
   },
   "dashboard": {

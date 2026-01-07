@@ -112,6 +112,9 @@ builder.Services.AddHttpClient();
 // Add SAS Sync Service
 builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 
+// Add Kafka Consumer Service for CDC monitoring
+builder.Services.AddHostedService<KafkaConsumerService>();
+
 // Configure CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
     ?? new[] { "http://localhost:5173", "http://localhost:5174" };
@@ -247,6 +250,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
+app.MapHub<CdcHub>("/hubs/cdc");
 
 app.Run();
 

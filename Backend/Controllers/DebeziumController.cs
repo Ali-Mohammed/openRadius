@@ -411,6 +411,84 @@ public class DebeziumController : ControllerBase
         }
     }
 
+    // Sync connectors from Debezium to database
+    [HttpPost("connectors/sync")]
+    public async Task<ActionResult> SyncConnectors()
+    {
+        try
+        {
+            var debeziumUrl = await GetDebeziumUrl();
+            var client = _httpClientFactory.CreateClient();
+
+            // Get all connectors from Debezium
+            var response = await client.GetAsync($"{debeziumUrl}/connectors?expand=info");
+            if (!response.IsSuccessStatusCode)
+            {
+                return StatusCode((int)response.StatusCode, new { error = "Failed to fetch connectors from Debezium" });
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var debeziumConnectors = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content);
+
+            int synced = 0;
+            int skipped = 0;
+
+            foreach (var kvp in debeziumConnectors ?? new Dictionary<string, JsonElement>())
+            {
+                var connectorName = kvp.Key;
+                var connectorInfo = kvp.Value;
+
+                // Check if connector already exists in database
+                var existingConnector = await _context.DebeziumConnectors
+                    .FirstOrDefaultAsync(c => c.Name == connectorName);
+
+                if (existingConnector != null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                // Extract config from Debezium response
+                var config = connectorInfo.GetProperty("info").GetProperty("config");
+
+                var newConnector = new DebeziumConnector
+                {
+                    Name = connectorName,
+                    ConnectorClass = config.GetProperty("connector.class").GetString() ?? "",
+                    DatabaseHostname = config.GetProperty("database.hostname").GetString() ?? "",
+                    DatabasePort = int.TryParse(config.GetProperty("database.port").GetString(), out var port) ? port : 5432,
+                    DatabaseUser = config.GetProperty("database.user").GetString() ?? "",
+                    DatabasePassword = config.GetProperty("database.password").GetString() ?? "",
+                    DatabaseName = config.GetProperty("database.dbname").GetString() ?? "",
+                    DatabaseServerName = config.GetProperty("database.server.name").GetString() ?? "",
+                    PluginName = config.GetProperty("plugin.name").GetString() ?? "pgoutput",
+                    SlotName = config.GetProperty("slot.name").GetString() ?? "",
+                    PublicationAutocreateMode = config.TryGetProperty("publication.autocreate.mode", out var pubMode) ? pubMode.GetString() ?? "filtered" : "filtered",
+                    TableIncludeList = config.TryGetProperty("table.include.list", out var tables) ? tables.GetString() ?? "" : "",
+                    SnapshotMode = config.TryGetProperty("snapshot.mode", out var snapshot) ? snapshot.GetString() ?? "initial" : "initial",
+                    CreatedAt = DateTime.UtcNow,
+                    Status = "RUNNING"
+                };
+
+                _context.DebeziumConnectors.Add(newConnector);
+                synced++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { 
+                message = $"Synced {synced} connector(s), skipped {skipped} existing",
+                synced,
+                skipped
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing connectors");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     // Update connector
     [HttpPut("connectors/{name}")]
     public async Task<IActionResult> UpdateConnector(string name, DebeziumConnector connector)
@@ -475,7 +553,7 @@ public class DebeziumController : ControllerBase
                 { "snapshot.mode", connector.SnapshotMode }
             };
 
-            // Add any additional config
+            // Add any additional config from JSON
             if (!string.IsNullOrEmpty(connector.AdditionalConfig))
             {
                 var additionalConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(connector.AdditionalConfig);
@@ -488,10 +566,16 @@ public class DebeziumController : ControllerBase
                 }
             }
 
-            var jsonContent = JsonSerializer.Serialize(config);
+            var payload = new
+            {
+                name = connector.Name,
+                config
+            };
+
+            var jsonContent = JsonSerializer.Serialize(payload);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"{debeziumUrl}/connectors/{name}/config", httpContent);
+            var response = await client.PostAsync($"{debeziumUrl}/connectors", httpContent);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -499,32 +583,17 @@ public class DebeziumController : ControllerBase
                 return StatusCode((int)response.StatusCode, new { error = errorContent });
             }
 
-            // Update in database
-            var dbConnector = await _context.DebeziumConnectors.FirstOrDefaultAsync(c => c.Name == name);
-            if (dbConnector != null)
-            {
-                dbConnector.ConnectorClass = connector.ConnectorClass;
-                dbConnector.DatabaseHostname = connector.DatabaseHostname;
-                dbConnector.DatabasePort = connector.DatabasePort;
-                dbConnector.DatabaseUser = connector.DatabaseUser;
-                dbConnector.DatabasePassword = connector.DatabasePassword;
-                dbConnector.DatabaseName = connector.DatabaseName;
-                dbConnector.DatabaseServerName = connector.DatabaseServerName;
-                dbConnector.PluginName = connector.PluginName;
-                dbConnector.SlotName = connector.SlotName;
-                dbConnector.PublicationAutocreateMode = connector.PublicationAutocreateMode;
-                dbConnector.TableIncludeList = connector.TableIncludeList;
-                dbConnector.SnapshotMode = connector.SnapshotMode;
-                dbConnector.AdditionalConfig = connector.AdditionalConfig;
-                dbConnector.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-            }
+            // Save to database
+            connector.CreatedAt = DateTime.UtcNow;
+            connector.Status = "RUNNING";
+            _context.DebeziumConnectors.Add(connector);
+            await _context.SaveChangesAsync();
 
-            return NoContent();
+            return CreatedAtAction(nameof(GetConnector), new { name = connector.Name }, connector);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating connector {Name}", name);
+            _logger.LogError(ex, "Error creating connector");
             return StatusCode(500, new { error = ex.Message });
         }
     }

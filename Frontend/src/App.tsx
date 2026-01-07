@@ -27,6 +27,7 @@ import PermissionsPage from './pages/PermissionsPage'
 import GroupsPage from './pages/GroupsPage'
 import Connectors from './pages/Connectors'
 import DebeziumSettings from './pages/DebeziumSettings'
+import CdcMonitor from './pages/CdcMonitor'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -72,6 +73,7 @@ function App() {
                           <Route path="/groups" element={<GroupsPage />} />
                           <Route path="/connectors" element={<Connectors />} />
                           <Route path="/connectors/settings" element={<DebeziumSettings />} />
+                          <Route path="/cdc-monitor" element={<CdcMonitor />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>

@@ -39,6 +39,7 @@
     "userGroups": "Groups",
     "connectors": "Connectors",
     "connectorList": "CDC Connectors",
+    "cdcMonitor": "Event Monitor",
     "connectorSettings": "Settings"
   },
   "dashboard": {

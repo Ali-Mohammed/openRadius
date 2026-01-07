@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield, CheckCircle2, XCircle, RefreshCw, Info, BookOpen, ChevronDown, AlertCircle, AlertTriangle } from 'lucide-react';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -24,6 +25,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
 import { toast } from 'sonner';
 
 interface Connector {
@@ -56,6 +67,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'failed'>('unknown');
   const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [showGuide, setShowGuide] = useState(!connector);
   const [formData, setFormData] = useState<Connector>({
     name: '',
     connectorClass: 'io.debezium.connector.postgresql.PostgresConnector',
@@ -63,8 +75,8 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     databasePort: 5432,
     databaseUser: 'admin',
     databasePassword: 'admin123',
-    databaseName: 'openradius',
-    databaseServerName: 'openradius',
+    databaseName: 'openradius_workspace_1', // Default to workspace database
+    databaseServerName: 'workspace_1',
     pluginName: 'pgoutput',
     slotName: '',
     publicationAutocreateMode: 'filtered',
@@ -228,15 +240,139 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
             <Button variant="ghost" size="sm" onClick={onClose}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
+            <div className="flex-1">
               <CardTitle>{connector?.id ? 'Edit' : 'Create'} Connector</CardTitle>
               <CardDescription>
                 Configure Debezium CDC connector for PostgreSQL database synchronization
               </CardDescription>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowGuide(!showGuide)}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              {showGuide ? 'Hide' : 'Show'} Guide
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Workspace Database Info */}
+          <Alert className="mb-4 bg-purple-50 border-purple-200">
+            <Database className="h-4 w-4 text-purple-600" />
+            <AlertTitle className="text-purple-900 font-semibold">Current Workspace Database</AlertTitle>
+            <AlertDescription className="text-purple-800 text-sm mt-2">
+              <p>You are configuring a connector for: <code className="bg-purple-100 px-1 rounded font-mono font-semibold">openradius_workspace_1</code></p>
+              <p className="mt-1 text-xs">
+                ✓ Connector configuration is stored per workspace<br />
+                ✓ Default database name pre-filled with current workspace<br />
+                ✓ Each workspace has isolated connector settings
+              </p>
+            </AlertDescription>
+          </Alert>
+          
+          {showGuide && (
+            <Alert className="mb-6">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Quick Setup Guide - Understanding Data Flow</AlertTitle>
+              <AlertDescription className="mt-3 space-y-3 text-sm">
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <AlertTitle className="text-orange-900 font-semibold mb-2">⚠️ Important: Data Flow Direction</AlertTitle>
+                  <AlertDescription className="text-orange-800 space-y-2">
+                    <p><strong>This is a SOURCE connector</strong> - it READS from the database you configure below and PUBLISHES changes to Kafka/Redpanda.</p>
+                    <div className="bg-orange-100 p-2 rounded mt-2 font-mono text-xs">
+                      Database (below) → Debezium → Kafka → [Sink Connector] → Target System
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <p><strong>To sync FROM OpenRadius TO another database:</strong></p>
+                      <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li>Configure this connector to read FROM OpenRadius (use openradius-postgres, openradius_workspace_1)</li>
+                        <li>Set up a SINK connector on your target system to write the Kafka data</li>
+                      </ul>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <p><strong>To sync FROM external database TO OpenRadius:</strong></p>
+                      <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li>Configure this connector to read FROM your external database (use external hostname/IP)</li>
+                        <li>Process the Kafka stream in OpenRadius to import the data</li>
+                      </ul>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+                
+                <div>
+                  <strong className="font-semibold">Step 1: Name your connector</strong>
+                  <p className="text-muted-foreground mt-1">Choose a unique name like "workspace-1-source" or "external-db-source". Use lowercase with hyphens.</p>
+                </div>
+                <div>
+                  <strong className="font-semibold">Step 2: Configure SOURCE database connection</strong>
+                  <p className="text-muted-foreground mt-1">
+                    <strong className="text-blue-600">Configure the database you want to READ FROM:</strong><br/>
+                    • For OpenRadius internal sync: <code className="bg-muted px-1 rounded">openradius-postgres</code>, port <code className="bg-muted px-1 rounded">5432</code>, DB <code className="bg-muted px-1 rounded">openradius_workspace_1</code><br/>
+                    • For external database: Use the external hostname/IP and credentials
+                  </p>
+                </div>
+                <div>
+                  <strong className="font-semibold">Step 3: Select tables to track</strong>
+                  <p className="text-muted-foreground mt-1">
+                    After successful connection, choose which tables you want to track changes from. 
+                    For full sync, select all tables. For specific entities, choose only what you need (e.g., radius_users, radius_profiles).
+                  </p>
+                </div>
+                <div>
+                  <strong className="font-semibold">Step 4: Configure CDC settings</strong>
+                  <p className="text-muted-foreground mt-1">
+                    <strong>Plugin:</strong> Use <code className="bg-muted px-1 rounded">pgoutput</code> (built-in, recommended).<br />
+                    <strong className="text-red-600">⚠️ Replication Slot:</strong> Leave empty for auto-generation or use a UNIQUE name per connector. Each connector MUST have a different slot name to avoid conflicts.<br />
+                    <strong>Snapshot Mode:</strong> Use <code className="bg-muted px-1 rounded">initial</code> for first-time sync with existing data, or <code className="bg-muted px-1 rounded">never</code> to only track future changes.<br />
+                    <strong>Publication Mode:</strong> Use <code className="bg-muted px-1 rounded">filtered</code> to track only selected tables.
+                  </p>
+                </div>
+                <div>
+                  <strong className="font-semibold">Step 5: Add Transforms (Optional)</strong>
+                  <p className="text-muted-foreground mt-1">
+                    Add transforms to modify data as it flows. Common use: Add a static <code className="bg-muted px-1 rounded">local_id</code> field to identify the data source when syncing from multiple databases.
+                  </p>
+                </div>
+                <div className="pt-2 border-t">
+                  <strong className="font-semibold text-blue-600">📋 Example Configurations:</strong>
+                  
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="font-semibold text-sm mb-1">Scenario A: Export FROM OpenRadius TO external system</p>
+                      <div className="bg-muted p-3 rounded text-xs font-mono space-y-1">
+                        <div><strong>Name:</strong> workspace-1-to-external</div>
+                        <div><strong>Hostname:</strong> openradius-postgres (read FROM OpenRadius)</div>
+                        <div><strong>Database:</strong> openradius_workspace_1 (source)</div>
+                        <div><strong>User:</strong> admin</div>
+                        <div><strong>Server Name:</strong> workspace_1</div>
+                        <div><strong>Tables:</strong> public.RadiusUsers, public.RadiusProfiles</div>
+                        <div><strong>Snapshot:</strong> initial (export existing data)</div>
+                        <div className="pt-1 text-gray-600">→ Data flows: OpenRadius → Kafka → [Need Sink Connector] → Target DB</div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="font-semibold text-sm mb-1">Scenario B: Import FROM external database</p>
+                      <div className="bg-muted p-3 rounded text-xs font-mono space-y-1">
+                        <div><strong>Name:</strong> local1-logs-source</div>
+                        <div><strong>Hostname:</strong> postgres_local1 (read FROM external DB)</div>
+                        <div><strong>Database:</strong> local1_db (external source)</div>
+                        <div><strong>User:</strong> postgres</div>
+                        <div><strong>Server Name:</strong> local1</div>
+                        <div><strong>Tables:</strong> public.logs</div>
+                        <div><strong>Snapshot:</strong> initial</div>
+                        <div><strong>Transforms:</strong> addLocalId (adds source identifier)</div>
+                        <div className="pt-1 text-gray-600">→ Data flows: External DB → Kafka → Process in OpenRadius</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Configuration */}
             <div className="space-y-4">
@@ -321,7 +457,18 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
 
             {/* Database Connection */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Database Connection</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Source Database Connection</h3>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                  Reading FROM this database →
+                </Badge>
+              </div>
+              <Alert className="bg-blue-50 border-blue-200">
+                <Database className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800 text-sm">
+                  <strong>Configure the database you want to capture changes FROM.</strong> This connector will monitor this database and stream changes to Kafka/Redpanda.
+                </AlertDescription>
+              </Alert>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -342,11 +489,11 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     id="databaseHostname"
                     value={formData.databaseHostname}
                     onChange={(e) => handleChange('databaseHostname', e.target.value)}
-                    placeholder="localhost or openradius-postgres"
+                    placeholder="e.g., postgres_local1, openradius-postgres, or 192.168.1.100"
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Use Docker service name for containerized databases
+                    <strong>SOURCE database</strong> hostname - where data will be read FROM
                   </p>
                 </div>
 
@@ -424,9 +571,12 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     id="databaseName"
                     value={formData.databaseName}
                     onChange={(e) => handleChange('databaseName', e.target.value)}
-                    placeholder="e.g., openradius"
+                    placeholder="e.g., local1_db, openradius_workspace_1"
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    <strong>SOURCE database</strong> name to read changes from
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -560,6 +710,12 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </Tooltip>
                     </TooltipProvider>
                   </div>
+                  <Alert className="bg-red-50 border-red-300 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-red-800 text-xs">
+                      <strong>CRITICAL:</strong> Each connector MUST have a UNIQUE slot name. Reusing a slot name will cause "slot already exists" errors and connector failure.
+                    </AlertDescription>
+                  </Alert>
                   <Input
                     id="slotName"
                     value={formData.slotName}
@@ -568,10 +724,11 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
                       handleChange('slotName', value);
                     }}
-                    placeholder="Auto-generated if empty"
+                    placeholder="Auto-generated if empty (Recommended)"
                     maxLength={63}
                   />
                   <p className="text-xs text-muted-foreground">
+                    <strong>Naming convention:</strong> connector_name_slot or table_name_slot<br />
                     Only lowercase letters, digits, and underscores (max 63 chars)
                   </p>
                 </div>
@@ -772,23 +929,278 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
               </div>
             </div>
 
-            {/* Advanced Configuration */}
+            {/* Transforms Configuration */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Advanced Configuration (Optional)</h3>
-              
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Transforms (Optional)</h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-md">
+                      <p>Transforms modify data as it flows through the connector. Common uses: adding fields, filtering, routing, format conversion.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Common Transform Examples</AlertTitle>
+                <AlertDescription className="mt-2">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="link" className="p-0 h-auto font-normal text-sm">
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        Click to see transform examples
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3 space-y-3 text-xs">
+                      <div className="bg-muted p-3 rounded">
+                        <strong className="block mb-2 text-foreground">1. Add Static Field (e.g., local_id or source identifier):</strong>
+                        <pre className="bg-background p-2 rounded overflow-x-auto">
+{`{
+  "transforms": "addLocalId",
+  "transforms.addLocalId.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+  "transforms.addLocalId.static.field": "local_id",
+  "transforms.addLocalId.static.value": "local1"
+}`}
+                        </pre>
+                      </div>
+
+                      <div className="bg-muted p-3 rounded">
+                        <strong className="block mb-2 text-foreground">2. Route to Different Topics by Table:</strong>
+                        <pre className="bg-background p-2 rounded overflow-x-auto">
+{`{
+  "transforms": "route",
+  "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+  "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",
+  "transforms.route.replacement": "$3"
+}`}
+                        </pre>
+                      </div>
+
+                      <div className="bg-muted p-3 rounded">
+                        <strong className="block mb-2 text-foreground">3. Multiple Transforms (Add field + Timestamp):</strong>
+                        <pre className="bg-background p-2 rounded overflow-x-auto">
+{`{
+  "transforms": "addSource,addTimestamp",
+  "transforms.addSource.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+  "transforms.addSource.static.field": "source_db",
+  "transforms.addSource.static.value": "workspace_1",
+  "transforms.addTimestamp.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+  "transforms.addTimestamp.timestamp.field": "sync_timestamp"
+}`}
+                        </pre>
+                      </div>
+
+                      <div className="bg-muted p-3 rounded">
+                        <strong className="block mb-2 text-foreground">4. Filter Records by Condition:</strong>
+                        <pre className="bg-background p-2 rounded overflow-x-auto">
+{`{
+  "transforms": "filter",
+  "transforms.filter.type": "io.debezium.transforms.Filter",
+  "transforms.filter.language": "jsr223.groovy",
+  "transforms.filter.condition": "value.op == 'c' || value.op == 'u'"
+}`}
+                        </pre>
+                      </div>
+
+                      <div className="bg-muted p-3 rounded">
+                        <strong className="block mb-2 text-foreground">5. Unwrap Debezium Envelope (Flatten structure):</strong>
+                        <pre className="bg-background p-2 rounded overflow-x-auto">
+{`{
+  "transforms": "unwrap",
+  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+  "transforms.unwrap.drop.tombstones": "false",
+  "transforms.unwrap.delete.handling.mode": "rewrite"
+}`}
+                        </pre>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </AlertDescription>
+              </Alert>
+
               <div className="space-y-2">
-                <Label htmlFor="additionalConfig">Additional Config (JSON)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="additionalConfig">Transforms & Additional Config (JSON)</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p>Add transforms and other advanced configuration in JSON format. Copy one of the examples above and customize it for your needs.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <textarea
                   id="additionalConfig"
-                  className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full min-h-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
                   value={formData.additionalConfig || ''}
                   onChange={(e) => handleChange('additionalConfig', e.target.value)}
-                  placeholder='{"transforms": "...", "predicates": "..."}'
+                  placeholder={`Example - Add static field for multi-source tracking:
+{
+  "transforms": "addLocalId",
+  "transforms.addLocalId.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+  "transforms.addLocalId.static.field": "local_id",
+  "transforms.addLocalId.static.value": "local1"
+}`}
                 />
-                <p className="text-xs text-gray-500">
-                  Additional connector configuration in JSON format
+                <p className="text-xs text-muted-foreground">
+                  Paste JSON configuration for transforms, predicates, and other advanced settings
                 </p>
               </div>
+            </div>
+
+            {/* Full Configuration Preview */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Configuration Preview</h3>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                  SOURCE Connector Config
+                </Badge>
+              </div>
+              <Alert className="bg-blue-50 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800 text-xs">
+                  This shows the configuration for the SOURCE connector that will READ data from the database you configured above. 
+                  This is NOT the target/destination database - to write data to a target, you'll need a separate SINK connector.
+                </AlertDescription>
+              </Alert>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" type="button" className="w-full">
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    View Full Source Connector Configuration JSON
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  <div className="bg-muted p-4 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-muted-foreground">Source Database: {formData.databaseHostname}/{formData.databaseName}</span>
+                      <span className="text-xs text-muted-foreground">→ Kafka/Redpanda</span>
+                    </div>
+                    <pre className="text-xs overflow-x-auto">
+{(() => {
+  let additionalConfig = {};
+  try {
+    additionalConfig = formData.additionalConfig ? JSON.parse(formData.additionalConfig) : {};
+  } catch (e) {
+    additionalConfig = { _parseError: 'Invalid JSON in additional config' };
+  }
+  
+  return JSON.stringify({
+    name: formData.name || 'connector-name',
+    config: {
+      'connector.class': formData.connectorClass,
+      'database.hostname': formData.databaseHostname,
+      'database.port': formData.databasePort.toString(),
+      'database.user': formData.databaseUser,
+      'database.password': '***',
+      'database.dbname': formData.databaseName,
+      'database.server.name': formData.databaseServerName,
+      'plugin.name': formData.pluginName,
+      'slot.name': formData.slotName || `${formData.name}_slot`,
+      'publication.autocreate.mode': formData.publicationAutocreateMode,
+      'table.include.list': selectedTables.join(',') || formData.tableIncludeList,
+      'snapshot.mode': formData.snapshotMode,
+      ...additionalConfig
+    }
+  }, null, 2);
+})()}
+                    </pre>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+
+            {/* Sink Connector Guide */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Target (Sink) Connector Setup</h3>
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                  Writing TO target database ←
+                </Badge>
+              </div>
+              <Alert className="bg-green-50 border-green-200">
+                <Database className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-900 font-semibold mb-2">Complete the Data Flow</AlertTitle>
+                <AlertDescription className="text-green-800 text-sm space-y-2">
+                  <p>After creating this SOURCE connector, you need a SINK connector on the target system to write the Kafka data to a database.</p>
+                  <div className="bg-green-100 p-2 rounded font-mono text-xs mt-2">
+                    {formData.databaseHostname}/{formData.databaseName} → Kafka → SINK Connector → Target DB
+                  </div>
+                </AlertDescription>
+              </Alert>
+              
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" type="button" className="w-full">
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    View Example JDBC Sink Connector Configuration
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  <div className="space-y-3">
+                    <Alert className="bg-yellow-50 border-yellow-200">
+                      <Info className="h-4 w-4 text-yellow-600" />
+                      <AlertDescription className="text-yellow-800 text-xs">
+                        <strong>Note:</strong> This sink connector must be created on your target system (not in OpenRadius). 
+                        It connects to Kafka and writes data to your target database.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="bg-muted p-4 rounded-lg">
+                      <p className="text-xs font-semibold mb-2 text-muted-foreground">JDBC Sink Connector Example (to be created on target system):</p>
+                      <pre className="text-xs overflow-x-auto">
+{JSON.stringify({
+  name: `${formData.name}-sink`,
+  config: {
+    'connector.class': 'io.confluent.connect.jdbc.JdbcSinkConnector',
+    'connection.url': 'jdbc:postgresql://target-host:5432/target_database',
+    'connection.user': 'target_user',
+    'connection.password': 'target_password',
+    'topics': selectedTables.map(table => `${formData.databaseServerName}.${table}`).join(',') || `${formData.databaseServerName}.public.table_name`,
+    'auto.create': 'true',
+    'auto.evolve': 'true',
+    'insert.mode': 'upsert',
+    'pk.mode': 'record_key',
+    'table.name.format': '${topic}',
+    'transforms': 'unwrap',
+    'transforms.unwrap.type': 'io.debezium.transforms.ExtractNewRecordState',
+    'transforms.unwrap.drop.tombstones': 'false'
+  }
+}, null, 2)}
+                      </pre>
+                    </div>
+                    
+                    <div className="bg-blue-50 p-3 rounded text-xs space-y-2">
+                      <p className="font-semibold text-blue-900">Key Configuration Points:</p>
+                      <ul className="list-disc list-inside space-y-1 text-blue-800 ml-2">
+                        <li><strong>connection.url:</strong> JDBC URL to your TARGET database (where you want to write data)</li>
+                        <li><strong>topics:</strong> Kafka topics created by this source connector ({selectedTables.length > 0 ? selectedTables.map(t => `${formData.databaseServerName}.${t}`).join(', ') : `${formData.databaseServerName}.public.*`})</li>
+                        <li><strong>auto.create:</strong> Automatically creates tables in target database</li>
+                        <li><strong>transforms.unwrap:</strong> Extracts actual data from Debezium envelope</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-purple-50 p-3 rounded text-xs space-y-2">
+                      <p className="font-semibold text-purple-900">Alternative: Custom Application</p>
+                      <p className="text-purple-800">Instead of a JDBC Sink Connector, you can build a custom application that:</p>
+                      <ul className="list-disc list-inside space-y-1 text-purple-800 ml-2">
+                        <li>Consumes from Kafka topics: <code className="bg-purple-100 px-1 rounded">{formData.databaseServerName}.public.*</code></li>
+                        <li>Processes/transforms the data as needed</li>
+                        <li>Writes to your target database or API</li>
+                        <li>Useful when you need custom business logic during sync</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
             {/* Actions */}
