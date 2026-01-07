@@ -448,7 +448,7 @@ export default function Transactions() {
           </div>
 
           {(filterWalletType || filterTransactionType || filterStatus || startDate || endDate) && (
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -464,6 +464,19 @@ export default function Transactions() {
               </Button>
             </div>
           )}
+
+          <div className="mt-4 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="includeDeleted"
+              checked={includeDeleted}
+              onChange={(e) => setIncludeDeleted(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor="includeDeleted" className="cursor-pointer">
+              Show deleted transactions
+            </Label>
+          </div>
         </CardContent>
       </Card>
 
