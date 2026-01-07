@@ -85,7 +85,8 @@ const transactionApi = {
     if (filters?.status) params.append('status', filters.status)
     if (filters?.startDate) params.append('startDate', filters.startDate)
     if (filters?.endDate) params.append('endDate', filters.endDate)
-    if (filters?.includeDeleted !== undefined) params.append('includeDeleted', filters.includeDeleted.toString())
+    // Always send includeDeleted parameter explicitly
+    params.append('includeDeleted', (filters?.includeDeleted ?? false).toString())
     if (filters?.page) params.append('page', filters.page.toString())
     if (filters?.pageSize) params.append('pageSize', filters.pageSize.toString())
 
