@@ -24,6 +24,7 @@ import {
   Headphones, Speaker, Monitor, Smartphone, Tablet, Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
 } from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
+import { workspaceApi } from '@/lib/api'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
@@ -195,6 +196,26 @@ export default function RadiusProfiles() {
     const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
     return iconData?.icon || Package
   }
+
+  // Fetch workspace currency
+  const { data: workspace } = useQuery({
+    queryKey: ['workspace', workspaceId],
+    queryFn: () => workspaceApi.getById(workspaceId),
+    enabled: workspaceId > 0,
+  })
+
+  // Helper function to get currency symbol
+  const getCurrencySymbol = (currency?: string) => {
+    switch (currency) {
+      case 'IQD':
+        return 'د.ع'
+      case 'USD':
+      default:
+        return '$'
+    }
+  }
+
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, isFetching, error: profilesError } = useQuery({
@@ -681,7 +702,7 @@ export default function RadiusProfiles() {
                         </TableCell>}
                         {columnVisibility.download && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.downrate)}</TableCell>}
                         {columnVisibility.upload && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.uprate)}</TableCell>}
-                        {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${profile.price?.toFixed(2) || '0.00'}</TableCell>}
+                        {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol}{(profile.price || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>}
                         {columnVisibility.pool && <TableCell className="h-12 px-4 w-[140px]">{profile.pool || '-'}</TableCell>}
                         {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.usersCount || 0}</TableCell>}
                         <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
@@ -815,15 +836,20 @@ export default function RadiusProfiles() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Price</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={profileFormData.price}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, price: e.target.value })}
-                    placeholder="0.00"
-                  />
+                  <Label htmlFor="price">Price ({workspace?.currency || 'USD'})</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">{currencySymbol}</span>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={profileFormData.price}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, price: e.target.value })}
+                      placeholder="0.00"
+                      className={workspace?.currency === 'IQD' ? 'pl-10' : 'pl-7'}
+                    />
+                  </div>
                 </div>
               </div>
 
