@@ -155,6 +155,18 @@ export default function CustomWallets() {
     },
   })
 
+  const reorderMutation = useMutation({
+    mutationFn: customWalletApi.reorder,
+    onSuccess: () => {
+      toast.success('Wallet order updated')
+      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+    },
+    onError: (error) => {
+      console.error('Error reordering wallets:', error)
+      toast.error('Failed to update wallet order')
+    },
+  })
+
   const wallets = walletsData?.data || []
   const totalCount = walletsData?.totalCount || 0
   const totalPages = Math.ceil(totalCount / pageSize)
