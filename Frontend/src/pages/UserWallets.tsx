@@ -49,7 +49,6 @@ import {
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Combobox } from '@/components/ui/combobox'
 import { ColorPicker } from '@/components/ColorPicker'
 import { IconPicker } from '@/components/IconPicker'
 import userWalletApi, { type UserWallet } from '@/api/userWallets'
@@ -249,7 +248,7 @@ export default function UserWallets() {
     enabled: !!currentWorkspaceId,
   })
 
-  const currencySymbol = getCurrencySymbol(workspace?.currency)
+  const currencySymbol = getCurrencySymbol(workspace?.settings?.currency)
 
   const { data: walletsData, isLoading } = useQuery({
     queryKey: [
