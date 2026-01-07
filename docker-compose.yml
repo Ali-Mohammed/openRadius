@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18.1
     container_name: openradius-postgres
     environment:
       POSTGRES_DB: openradius
@@ -19,7 +19,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - openradius-network
