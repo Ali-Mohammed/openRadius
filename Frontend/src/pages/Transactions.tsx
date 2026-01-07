@@ -522,10 +522,17 @@ export default function Transactions() {
                   transactions.map((transaction) => {
                     const typeInfo = TRANSACTION_TYPE_INFO[transaction.transactionType as TransactionType]
                     const IconComponent = transactionTypeIcons[transaction.transactionType as TransactionType] || ArrowUpCircle
+                    const isDeleted = transaction.isDeleted
                     return (
-                      <TableRow key={transaction.id}>
+                      <TableRow key={transaction.id} className={isDeleted ? 'opacity-60 bg-gray-50' : ''}>
                         <TableCell>
                           <div className="text-sm">{formatDate(transaction.createdAt)}</div>
+                          {isDeleted && (
+                            <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                              <Trash2 className="h-3 w-3" />
+                              Deleted
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
@@ -580,12 +587,31 @@ export default function Transactions() {
                           {transaction.balanceAfter.toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={statusColors[transaction.status]}>
-                            {transaction.status}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className={statusColors[transaction.status]}>
+                              {transaction.status}
+                            </Badge>
+                            {isDeleted && transaction.deletedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(transaction.deletedAt)}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          {transaction.status === 'completed' && (
+                          {isDeleted ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setRestoringTransaction(transaction)
+                                setIsRestoreDialogOpen(true)
+                              }}
+                              title="Restore transaction"
+                            >
+                              <RotateCcw className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          ) : transaction.status === 'completed' ? (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -596,7 +622,7 @@ export default function Transactions() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          )}
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     )
