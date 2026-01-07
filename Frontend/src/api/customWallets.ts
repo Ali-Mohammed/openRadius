@@ -11,6 +11,7 @@ export interface CustomWallet {
   color?: string
   icon?: string
   currentBalance?: number
+  sortOrder?: number
   createdAt?: string
   updatedAt?: string
 }
@@ -85,5 +86,9 @@ export const customWalletApi = {
   getStatuses: async (): Promise<CustomWalletStatus[]> => {
     const response = await apiClient.get<CustomWalletStatus[]>('/api/custom-wallets/statuses')
     return response.data
+  },
+
+  reorder: async (sortOrders: { id: number; sortOrder: number }[]): Promise<void> => {
+    await apiClient.post('/api/custom-wallets/reorder', sortOrders)
   },
 }
