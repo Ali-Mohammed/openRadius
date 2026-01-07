@@ -184,6 +184,19 @@ export default function CustomWallets() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check for duplicate name (case-insensitive)
+    const duplicateName = wallets.find(
+      (w) =>
+        w.name.toLowerCase() === formData.name.toLowerCase() &&
+        w.id !== editingWallet?.id
+    )
+    
+    if (duplicateName) {
+      toast.error('A custom wallet with this name already exists')
+      return
+    }
+    
     if (editingWallet) {
       updateMutation.mutate({ id: editingWallet.id!, wallet: formData })
     } else {
