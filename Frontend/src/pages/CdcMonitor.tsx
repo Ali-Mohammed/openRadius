@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Activity, Pause, Play, Trash2, RefreshCw, Database, AlertCircle, Info, Clock, User, Edit3, X } from 'lucide-react';
 import { appConfig } from '@/config/app.config';
 import * as signalR from '@microsoft/signalr';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -46,38 +47,43 @@ interface CdcEvent {
   };
 }
 
+// Fetch topics function
+const fetchTopics = async (): Promise<string[]> => {
+  const response = await fetch(`${appConfig.api.baseUrl}/api/cdc/topics`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch topics');
+  }
+  const data = await response.json();
+  
+  // Handle both {topics: []} and direct array responses
+  return Array.isArray(data) ? data : (Array.isArray(data.topics) ? data.topics : []);
+};
+
 export default function CdcMonitor() {
   const [events, setEvents] = useState<CdcEvent[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
-  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [maxEvents, setMaxEvents] = useState(100);
   const scrollRef = useRef<HTMLDivElement>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
-  // Fetch available topics from backend
-  const fetchTopics = async () => {
-    try {
-      const response = await fetch(`${appConfig.api.baseUrl}/api/cdc/topics`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch topics');
-      }
-      const data = await response.json();
-      
-      // Handle both {topics: []} and direct array responses
-      const topicsArray = Array.isArray(data) ? data : (Array.isArray(data.topics) ? data.topics : []);
-      setAvailableTopics(topicsArray);
-      
-      if (topicsArray.length === 0) {
-        toast.info('No topics available. Create Debezium connectors to start monitoring.');
-      }
-    } catch (error) {
-      console.error('Error fetching topics:', error);
+  // Use React Query to fetch topics
+  const { data: availableTopics = [], isLoading: isLoadingTopics, error: topicsError } = useQuery({
+    queryKey: ['cdc-topics'],
+    queryFn: fetchTopics,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 3,
+  });
+
+  // Show toast when topics are loaded or if there's an error
+  useEffect(() => {
+    if (topicsError) {
       toast.error('Backend not responding. Please start the backend server.');
-      setAvailableTopics([]);
+    } else if (!isLoadingTopics && availableTopics.length === 0) {
+      toast.info('No topics available. Create Debezium connectors to start monitoring.');
     }
-  };
+  }, [availableTopics, isLoadingTopics, topicsError]);
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -133,22 +139,6 @@ export default function CdcMonitor() {
       }
     };
   }, [maxEvents]);
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadTopics = async () => {
-      if (isMounted) {
-        await fetchTopics();
-      }
-    };
-    
-    loadTopics();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Start monitoring a topic
   const startMonitoring = async () => {
