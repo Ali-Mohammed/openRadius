@@ -109,6 +109,7 @@ export default function Transactions() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deletingTransaction, setDeletingTransaction] = useState<any>(null)
+  const [deleteReason, setDeleteReason] = useState('')
 
   const [formData, setFormData] = useState<CreateTransactionRequest>({
     walletType: 'custom',
@@ -204,7 +205,7 @@ export default function Transactions() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: transactionApi.delete,
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) => transactionApi.delete(id, reason),
     onSuccess: () => {
       toast.success('Transaction reversed successfully')
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -213,6 +214,7 @@ export default function Transactions() {
       queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
       setIsDeleteDialogOpen(false)
       setDeletingTransaction(null)
+      setDeleteReason('')
     },
     onError: (error: any) => {
       const errorMessage =
@@ -254,7 +256,11 @@ export default function Transactions() {
 
   const handleDelete = () => {
     if (!deletingTransaction?.id) return
-    deleteMutation.mutate(deletingTransaction.id)
+    if (!deleteReason.trim()) {
+      toast.error('Please provide a reason for deletion')
+      return
+    }
+    deleteMutation.mutate({ id: deletingTransaction.id, reason: deleteReason })
   }
 
   const formatDate = (dateString: string) => {
@@ -785,13 +791,26 @@ export default function Transactions() {
               be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          <div className="space-y-2 py-4">
+            <Label htmlFor="deleteReason">Reason for deletion *</Label>
+            <Textarea
+              id="deleteReason"
+              placeholder="Please provide a reason for deleting this transaction..."
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteReason('')}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
+              disabled={!deleteReason.trim() || deleteMutation.isPending}
             >
-              Reverse Transaction
+              {deleteMutation.isPending ? 'Reversing...' : 'Reverse Transaction'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

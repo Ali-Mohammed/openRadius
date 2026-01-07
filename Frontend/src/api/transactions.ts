@@ -98,8 +98,10 @@ const transactionApi = {
     return response.data
   },
 
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/transactions/${id}`)
+  delete: async (id: number, reason?: string): Promise<void> => {
+    await apiClient.delete(`/api/transactions/${id}`, {
+      data: { reason }
+    })
   },
 
   getStats: async (filters?: Omit<TransactionFilters, 'page' | 'pageSize'>): Promise<TransactionStats> => {

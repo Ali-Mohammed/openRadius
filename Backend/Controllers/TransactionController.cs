@@ -347,9 +347,14 @@ public class TransactionController : ControllerBase
         }
     }
 
+    public class DeleteTransactionRequest
+    {
+        public string? Reason { get; set; }
+    }
+
     // DELETE: api/transactions/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTransaction(int id)
+    public async Task<IActionResult> DeleteTransaction(int id, [FromBody] DeleteTransactionRequest? request)
     {
         try
         {
@@ -365,6 +370,8 @@ public class TransactionController : ControllerBase
             {
                 return BadRequest(new { error = "Transaction already reversed" });
             }
+
+            var deleteReason = request?.Reason ?? "Transaction deleted";
 
             // Reverse the balance
             decimal reversedBalanceBefore = 0;
@@ -414,7 +421,7 @@ public class TransactionController : ControllerBase
                 BalanceBefore = reversedBalanceBefore,
                 BalanceAfter = reversedBalanceAfter,
                 Description = $"Reversal of transaction #{transaction.Id}",
-                Reason = "Transaction deleted/reversed",
+                Reason = deleteReason,
                 Reference = transaction.Reference,
                 RelatedTransactionId = transaction.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -436,7 +443,7 @@ public class TransactionController : ControllerBase
                 BalanceBefore = reversedBalanceBefore,
                 BalanceAfter = reversedBalanceAfter,
                 Description = $"Reversal of transaction #{transaction.Id}",
-                Reason = "Transaction deleted/reversed",
+                Reason = deleteReason,
                 Reference = transaction.Reference,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
@@ -456,7 +463,9 @@ public class TransactionController : ControllerBase
                 message = "Transaction reversed successfully",
                 originalTransactionId = transaction.Id,
                 reversalTransactionId = reversalTransaction.Id,
-                balanceAfter = reversedBalanceAfter
+                reversalHistoryId = reversalHistory.Id,
+                balanceAfter = reversedBalanceAfter,
+                reason = deleteReason
             });
         }
         catch (Exception ex)
