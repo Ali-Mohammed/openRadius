@@ -30,7 +30,7 @@ services:
       retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4
+    image: quay.io/keycloak/keycloak:26.5
     container_name: openradius-keycloak
     environment:
       KC_DB: postgres
@@ -81,7 +81,7 @@ services:
       start_period: 60s
 
   redpanda:
-    image: redpandadata/redpanda:v24.2.3
+    image: redpandadata/redpanda:v25.3.4
     container_name: redpanda
     command:
       - redpanda
@@ -101,7 +101,7 @@ services:
       - openradius-network
 
   redpanda-console:
-    image: redpandadata/console:v2.7.2
+    image: redpandadata/console:v3.4.0
     container_name: redpanda-console
     depends_on:
       - redpanda
@@ -118,8 +118,9 @@ services:
       - openradius-network
 
   connect_cloud:
-    image: debezium/connect:2.6
+    image: debezium/connect:3.0.0.Final
     container_name: connect_cloud
+    user: "0"
     depends_on:
       - postgres
       - redpanda
