@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<SyncProgress> SyncProgresses { get; set; }
     public DbSet<DebeziumSettings> DebeziumSettings { get; set; }
     public DbSet<DebeziumConnector> DebeziumConnectors { get; set; }
+    public DbSet<CustomWallet> CustomWallets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +82,17 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Name);
+        });
+
+        modelBuilder.Entity<CustomWallet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.Status);
+            
+            // Add query filter to exclude soft-deleted custom wallets by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
     }
 }
