@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CustomWallet> CustomWallets { get; set; }
     public DbSet<UserWallet> UserWallets { get; set; }
     public DbSet<WalletHistory> WalletHistories { get; set; }
+    public DbSet<Transaction> Transactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -138,6 +139,38 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.UserWallet)
                   .WithMany()
                   .HasForeignKey(e => e.UserWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.WalletType);
+            entity.HasIndex(e => e.CustomWalletId);
+            entity.HasIndex(e => e.UserWalletId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.TransactionType);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.RelatedTransactionId);
+            
+            // Add query filter to exclude soft-deleted transactions by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
+            
+            // Configure relationships
+            entity.HasOne(e => e.CustomWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.UserWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.RelatedTransaction)
+                  .WithMany()
+                  .HasForeignKey(e => e.RelatedTransactionId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
     }
