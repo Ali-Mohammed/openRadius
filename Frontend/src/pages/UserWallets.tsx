@@ -685,26 +685,6 @@ export default function UserWallets() {
                     placeholder="Select a user"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customWalletId">Wallet Type *</Label>
-                  <Select
-                    value={formData.customWalletId?.toString() || ''}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, customWalletId: parseInt(value) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select wallet type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customWallets?.data.map((wallet) => (
-                        <SelectItem key={wallet.id} value={wallet.id!.toString()}>
-                          {wallet.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </>
             )}
 
