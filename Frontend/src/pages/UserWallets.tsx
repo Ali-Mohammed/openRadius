@@ -221,11 +221,8 @@ export default function UserWallets() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isAdjustBalanceDialogOpen, setIsAdjustBalanceDialogOpen] = useState(false)
   const [editingWallet, setEditingWallet] = useState<UserWallet | null>(null)
   const [deletingWallet, setDeletingWallet] = useState<UserWallet | null>(null)
-  const [adjustingWallet, setAdjustingWallet] = useState<UserWallet | null>(null)
-  const [balanceAdjustment, setBalanceAdjustment] = useState({ amount: 0, reason: '' })
 
   const [formData, setFormData] = useState<Partial<UserWallet>>({
     userId: 0,
@@ -342,25 +339,6 @@ export default function UserWallets() {
     },
   })
 
-  const adjustBalanceMutation = useMutation({
-    mutationFn: ({ id, adjustment }: { id: number; adjustment: { amount: number; reason?: string } }) =>
-      userWalletApi.adjustBalance(id, adjustment),
-    onSuccess: (data) => {
-      toast.success(`Balance adjusted: ${currencySymbol} ${formatCurrency(data.adjustment)}`)
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] })
-      setIsAdjustBalanceDialogOpen(false)
-      setAdjustingWallet(null)
-      setBalanceAdjustment({ amount: 0, reason: '' })
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error?.response?.data?.error ||
-        error?.response?.data?.message ||
-        'Failed to adjust balance'
-      toast.error(errorMessage)
-    },
-  })
-
   const resetForm = () => {
     setFormData({
       userId: 0,
@@ -406,13 +384,7 @@ export default function UserWallets() {
     deleteMutation.mutate(deletingWallet.id)
   }
 
-  const handleAdjustBalance = () => {
-    if (!adjustingWallet?.id) return
-    adjustBalanceMutation.mutate({
-      id: adjustingWallet.id,
-      adjustment: balanceAdjustment,
-    })
-  }
+
 
   const getStatusColor = (status: string) => {
     return statuses.find((s) => s.value === status)?.color || '#6b7280'
@@ -560,17 +532,6 @@ export default function UserWallets() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setAdjustingWallet(wallet)
-                            setIsAdjustBalanceDialogOpen(true)
-                          }}
-                          title="Adjust Balance"
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -758,78 +719,7 @@ export default function UserWallets() {
         </DialogContent>
       </Dialog>
 
-      {/* Adjust Balance Dialog */}
-      <Dialog open={isAdjustBalanceDialogOpen} onOpenChange={setIsAdjustBalanceDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Adjust Wallet Balance</DialogTitle>
-            <DialogDescription>
-              Current balance: {currencySymbol} {formatCurrency(adjustingWallet?.currentBalance || 0)}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">
-                Amount ({currencySymbol}) - Use negative to deduct
-              </Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={balanceAdjustment.amount}
-                onChange={(e) =>
-                  setBalanceAdjustment({
-                    ...balanceAdjustment,
-                    amount: parseFloat(e.target.value) || 0,
-                  })
-                }
-                placeholder="e.g., 100 or -50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reason">Reason (optional)</Label>
-              <Input
-                id="reason"
-                value={balanceAdjustment.reason}
-                onChange={(e) =>
-                  setBalanceAdjustment({ ...balanceAdjustment, reason: e.target.value })
-                }
-                placeholder="e.g., Monthly top-up"
-              />
-            </div>
-            {balanceAdjustment.amount !== 0 && (
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm">
-                  New balance will be:{' '}
-                  <span className="font-bold">
-                    {currencySymbol}
-                    {((adjustingWallet?.currentBalance || 0) + balanceAdjustment.amount).toFixed(
-                      2
-                    )}
-                  </span>
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsAdjustBalanceDialogOpen(false)
-                setBalanceAdjustment({ amount: 0, reason: '' })
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAdjustBalance} disabled={balanceAdjustment.amount === 0}>
-              Adjust Balance
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

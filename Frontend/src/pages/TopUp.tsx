@@ -41,6 +41,7 @@ import userWalletApi from '@/api/userWallets'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { workspaceApi } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
+import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/lib/utils'
 
 type WizardStep = 1 | 2 | 3 | 4
@@ -48,6 +49,7 @@ type WizardStep = 1 | 2 | 3 | 4
 export default function TopUp() {
   const queryClient = useQueryClient()
   const { currentWorkspaceId } = useWorkspace()
+  const { layout } = useTheme()
   const { i18n } = useTranslation()
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
@@ -211,62 +213,71 @@ export default function TopUp() {
       </div>
 
       {/* Step Indicator */}
-      <div className="flex items-center justify-center gap-2">
-        {[1, 2, 3, 4].map((step) => (
-          <div key={step} className="flex items-center">
-            <div className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-colors",
-              currentStep === step
-                ? "border-primary bg-primary text-primary-foreground"
-                : currentStep > step
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-muted-foreground/30 bg-background text-muted-foreground"
-            )}>
-              {currentStep > step ? <Check className="h-5 w-5" /> : step}
-            </div>
-            {step < 4 && (
-              <div className={cn(
-                "h-0.5 w-16 mx-2 transition-colors",
-                currentStep > step ? "bg-primary" : "bg-muted-foreground/30"
-              )} />
-            )}
+      <div className={cn(
+        layout === 'boxed' ? 'max-w-2xl mx-auto' : 'max-w-4xl mx-auto'
+      )}>
+        <div className="relative">
+          {/* Progress Line Container */}
+          <div className="absolute top-5 left-0 right-0 flex items-center">
+            <div className="w-[12.5%]" /> {/* Space for half of first circle */}
+            <div className="flex-1 h-0.5 bg-muted-foreground/20" />
+            <div className="w-[12.5%]" /> {/* Space for half of last circle */}
           </div>
-        ))}
-      </div>
+          
+          {/* Active Progress Line */}
+          <div className="absolute top-5 left-0 right-0 flex items-center">
+            <div className="w-[12.5%]" /> {/* Space for half of first circle */}
+            <div 
+              className="h-0.5 bg-primary transition-all duration-500 ease-in-out"
+              style={{ 
+                width: currentStep === 1 ? '0%' : 
+                       currentStep === 2 ? '33.33%' : 
+                       currentStep === 3 ? '66.66%' : 
+                       '100%' 
+              }}
+            />
+          </div>
 
-      {/* Step Labels */}
-      <div className="flex items-center justify-center gap-2">
-        <div className="flex-1 text-center max-w-[140px]">
-          <p className={cn(
-            "text-sm font-medium",
-            currentStep === 1 ? "text-primary" : "text-muted-foreground"
-          )}>Fill Information</p>
-        </div>
-        <div className="w-16" />
-        <div className="flex-1 text-center max-w-[140px]">
-          <p className={cn(
-            "text-sm font-medium",
-            currentStep === 2 ? "text-primary" : "text-muted-foreground"
-          )}>Review Details</p>
-        </div>
-        <div className="w-16" />
-        <div className="flex-1 text-center max-w-[140px]">
-          <p className={cn(
-            "text-sm font-medium",
-            currentStep === 3 ? "text-primary" : "text-muted-foreground"
-          )}>Confirm</p>
-        </div>
-        <div className="w-16" />
-        <div className="flex-1 text-center max-w-[140px]">
-          <p className={cn(
-            "text-sm font-medium",
-            currentStep === 4 ? "text-primary" : "text-muted-foreground"
-          )}>Result</p>
+          {/* Steps Container */}
+          <div className="relative flex justify-between items-start">
+            {[
+              { step: 1, label: 'Fill Information' },
+              { step: 2, label: 'Review Details' },
+              { step: 3, label: 'Confirm' },
+              { step: 4, label: 'Result' }
+            ].map(({ step, label }) => (
+              <div key={step} className="flex flex-col items-center" style={{ width: '25%' }}>
+                {/* Circle */}
+                <div
+                  className={cn(
+                    "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all duration-300",
+                    currentStep === step
+                      ? "border-primary bg-primary text-primary-foreground shadow-lg scale-110"
+                      : currentStep > step
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/30 bg-background text-muted-foreground"
+                  )}
+                >
+                  {currentStep > step ? <Check className="h-5 w-5" /> : step}
+                </div>
+                
+                {/* Label */}
+                <p className={cn(
+                  "mt-3 text-sm font-medium text-center px-2 transition-colors duration-300",
+                  currentStep === step ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Step Content */}
-      <Card className="max-w-3xl mx-auto">
+      <Card className={cn(
+        layout === 'boxed' ? 'max-w-3xl mx-auto' : 'w-full'
+      )}>
         <CardHeader>
           <CardTitle>
             {currentStep === 1 && "Step 1: Fill Information"}
