@@ -38,6 +38,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserWallet> UserWallets { get; set; }
     public DbSet<WalletHistory> WalletHistories { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<TransactionComment> TransactionComments { get; set; }
+    public DbSet<TransactionHistory> TransactionHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -172,6 +174,31 @@ public class ApplicationDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.RelatedTransactionId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TransactionComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TransactionId);
+            entity.HasIndex(e => e.CreatedAt);
+            
+            entity.HasOne(e => e.Transaction)
+                  .WithMany()
+                  .HasForeignKey(e => e.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TransactionHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TransactionId);
+            entity.HasIndex(e => e.Action);
+            entity.HasIndex(e => e.PerformedAt);
+            
+            entity.HasOne(e => e.Transaction)
+                  .WithMany()
+                  .HasForeignKey(e => e.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

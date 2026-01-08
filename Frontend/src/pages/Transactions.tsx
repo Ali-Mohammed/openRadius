@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Receipt,
@@ -22,6 +22,8 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Columns3,
   MessageSquare,
   History,
@@ -742,30 +744,59 @@ export default function Transactions() {
                           </TableCell>
                         )}
                         <TableCell className="sticky right-0 bg-background h-12 px-4 text-right">
-                          {isDeleted ? (
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Comments Button */}
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => {
-                                setRestoringTransaction(transaction)
-                                setIsRestoreDialogOpen(true)
+                                // TODO: Open comments dialog
+                                alert(`Comments for transaction ${transaction.id}`)
                               }}
-                              title="Restore transaction"
+                              title="View/Add Comments"
                             >
-                              <RotateCcw className="h-4 w-4 text-blue-600" />
+                              <MessageSquare className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                             </Button>
-                          ) : transaction.status === 'completed' ? (
+
+                            {/* History Button */}
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => {
-                                setDeletingTransaction(transaction)
-                                setIsDeleteDialogOpen(true)
+                                // TODO: Open history dialog
+                                alert(`History for transaction ${transaction.id}`)
                               }}
+                              title="View History"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <History className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                             </Button>
-                          ) : null}
+
+                            {/* Restore/Delete Button */}
+                            {isDeleted ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setRestoringTransaction(transaction)
+                                  setIsRestoreDialogOpen(true)
+                                }}
+                                title="Restore transaction"
+                              >
+                                <RotateCcw className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            ) : transaction.status === 'completed' ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setDeletingTransaction(transaction)
+                                  setIsDeleteDialogOpen(true)
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -775,28 +806,69 @@ export default function Transactions() {
             </Table>
           </div>
 
-          {/* Pagination */}
+          {/* Pagination - RadiusUsers style */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
               <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {formatNumber(totalCount)} transactions
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {/* First Page */}
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                {/* Previous Page */}
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="h-8 w-8"
                 >
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
+
+                {/* Page Numbers */}
+                {getPaginationPages(currentPage, totalPages).map((page, idx) => (
+                  <Button
+                    key={idx}
+                    variant={page === currentPage ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                    disabled={typeof page !== 'number'}
+                    className="h-8 w-8"
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+                {/* Next Page */}
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="h-8 w-8"
                 >
-                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {/* Last Page */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8"
+                >
+                  <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

@@ -340,6 +340,26 @@ public class TransactionController : ControllerBase
             _context.WalletHistories.Add(history);
             await _context.SaveChangesAsync();
 
+            // Create transaction history entry
+            var transactionHistory = new TransactionHistory
+            {
+                TransactionId = transaction.Id,
+                Action = "Created",
+                Changes = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    transactionType = request.TransactionType,
+                    amount = request.Amount,
+                    walletType = request.WalletType,
+                    status = "completed",
+                    balanceBefore,
+                    balanceAfter
+                }),
+                PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                PerformedAt = DateTime.UtcNow
+            };
+            _context.TransactionHistories.Add(transactionHistory);
+            await _context.SaveChangesAsync();
+
             return CreatedAtAction(
                 nameof(GetTransaction),
                 new { id = transaction.Id },
@@ -476,6 +496,23 @@ public class TransactionController : ControllerBase
 
             await _context.SaveChangesAsync();
 
+            // Create transaction history entry for deletion
+            var deletionHistory = new TransactionHistory
+            {
+                TransactionId = transaction.Id,
+                Action = "Deleted",
+                Changes = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    reason = deleteReason,
+                    reversalTransactionId = reversalTransaction.Id,
+                    balanceAfterReversal = reversedBalanceAfter
+                }),
+                PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                PerformedAt = DateTime.UtcNow
+            };
+            _context.TransactionHistories.Add(deletionHistory);
+            await _context.SaveChangesAsync();
+
             return Ok(new
             {
                 message = "Transaction reversed successfully",
@@ -581,6 +618,23 @@ public class TransactionController : ControllerBase
 
             await _context.SaveChangesAsync();
 
+            // Create transaction history entry for restoration
+            var transactionHistory = new TransactionHistory
+            {
+                TransactionId = transaction.Id,
+                Action = "Restored",
+                Changes = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    balanceBefore = restoredBalanceBefore,
+                    balanceAfter = restoredBalanceAfter,
+                    reversalTransactionId = reversalTransaction.Id
+                }),
+                PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                PerformedAt = DateTime.UtcNow
+            };
+            _context.TransactionHistories.Add(transactionHistory);
+            await _context.SaveChangesAsync();
+
             return Ok(new
             {
                 message = "Transaction restored successfully",
@@ -662,4 +716,132 @@ public class TransactionController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while retrieving stats" });
         }
     }
+
+    // GET: api/transactions/{id}/comments
+    [HttpGet("{id}/comments")]
+    public async Task<ActionResult<object>> GetComments(int id)
+    {
+        try
+        {
+            var transaction = await _context.Transactions
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (transaction == null)
+            {
+                return NotFound(new { error = "Transaction not found" });
+            }
+
+            var comments = await _context.TransactionComments
+                .Where(c => c.TransactionId == id)
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Comment,
+                    c.CreatedBy,
+                    c.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new { data = comments, totalCount = comments.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error retrieving comments for transaction {id}");
+            return StatusCode(500, new { error = "An error occurred while retrieving comments" });
+        }
+    }
+
+    // POST: api/transactions/{id}/comments
+    [HttpPost("{id}/comments")]
+    public async Task<ActionResult<object>> AddComment(int id, [FromBody] AddCommentRequest request)
+    {
+        try
+        {
+            var transaction = await _context.Transactions
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (transaction == null)
+            {
+                return NotFound(new { error = "Transaction not found" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Comment))
+            {
+                return BadRequest(new { error = "Comment is required" });
+            }
+
+            var userEmail = _httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value 
+                            ?? _httpContextAccessor.HttpContext?.User?.FindFirst("preferred_username")?.Value 
+                            ?? "Unknown";
+
+            var comment = new TransactionComment
+            {
+                TransactionId = id,
+                Comment = request.Comment,
+                CreatedBy = userEmail,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.TransactionComments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = comment.Id,
+                comment = comment.Comment,
+                createdBy = comment.CreatedBy,
+                createdAt = comment.CreatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error adding comment to transaction {id}");
+            return StatusCode(500, new { error = "An error occurred while adding comment" });
+        }
+    }
+
+    // GET: api/transactions/{id}/history
+    [HttpGet("{id}/history")]
+    public async Task<ActionResult<object>> GetHistory(int id)
+    {
+        try
+        {
+            var transaction = await _context.Transactions
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (transaction == null)
+            {
+                return NotFound(new { error = "Transaction not found" });
+            }
+
+            var history = await _context.TransactionHistories
+                .Where(h => h.TransactionId == id)
+                .OrderByDescending(h => h.PerformedAt)
+                .Select(h => new
+                {
+                    h.Id,
+                    h.Action,
+                    h.Changes,
+                    h.PerformedBy,
+                    h.PerformedAt
+                })
+                .ToListAsync();
+
+            return Ok(new { data = history, totalCount = history.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error retrieving history for transaction {id}");
+            return StatusCode(500, new { error = "An error occurred while retrieving history" });
+        }
+    }
+}
+
+public class AddCommentRequest
+{
+    public string Comment { get; set; } = null!;
 }
