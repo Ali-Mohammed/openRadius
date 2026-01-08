@@ -766,64 +766,86 @@ export default function BillingProfiles() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Addons</CardTitle>
-                    <CardDescription>Add optional addons with pricing</CardDescription>
+                    <CardDescription>Select addons and set custom pricing</CardDescription>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addAddon}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Addon
-                  </Button>
+                  <Popover open={addonPopoverOpen} onOpenChange={setAddonPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" disabled={isLoadingAddons}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Addon
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search addons..." />
+                        <CommandEmpty>No addon found.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
+                          {addonsData?.data?.map((addon: Addon) => (
+                            <CommandItem
+                              key={addon.id}
+                              value={addon.name}
+                              onSelect={() => {
+                                if (!selectedAddons.find(a => a.addonId === addon.id)) {
+                                  setSelectedAddons(prev => [...prev, { addonId: addon.id!, price: addon.price }]);
+                                }
+                                setAddonPopoverOpen(false);
+                              }}
+                            >
+                              {addon.name} - ${addon.price}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {addons.map((addon, index) => (
-                  <Card key={index}>
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-4 gap-3 items-end">
-                        <div className="space-y-2">
-                          <Label>Title</Label>
-                          <Input
-                            value={addon.title}
-                            onChange={(e) => updateAddon(index, 'title', e.target.value)}
-                            placeholder="Addon title"
-                          />
-                        </div>
-                        <div className="space-y-2 col-span-2">
-                          <Label>Description</Label>
-                          <Input
-                            value={addon.description}
-                            onChange={(e) => updateAddon(index, 'description', e.target.value)}
-                            placeholder="Addon description"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Price</Label>
-                          <div className="flex gap-2">
+                {selectedAddons.map((selectedAddon, index) => {
+                  const addon = addonsData?.data?.find((a: Addon) => a.id === selectedAddon.addonId);
+                  return addon ? (
+                    <Card key={selectedAddon.addonId}>
+                      <CardContent className="pt-4">
+                        <div className="grid grid-cols-3 gap-3 items-end">
+                          <div className="space-y-2">
+                            <Label>Addon</Label>
+                            <Input value={addon.name} disabled />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Custom Price</Label>
                             <Input
                               type="number"
                               min="0"
                               step="0.01"
-                              value={addon.price}
-                              onChange={(e) =>
-                                updateAddon(index, 'price', parseFloat(e.target.value) || 0)
-                              }
+                              value={selectedAddon.price}
+                              onChange={(e) => {
+                                const newPrice = parseFloat(e.target.value) || 0;
+                                setSelectedAddons(prev =>
+                                  prev.map((a, i) => i === index ? { ...a, price: newPrice } : a)
+                                );
+                              }}
+                              placeholder={`Default: $${addon.price}`}
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeAddon(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedAddons(prev => prev.filter((_, i) => i !== index))}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                {addons.length === 0 && (
+                        {addon.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{addon.description}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ) : null;
+                })}
+                {selectedAddons.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No addons added yet. Click "Add Addon" to add an optional addon.
+                    No addons added yet. Click "Add Addon" to select from available addons.
                   </p>
                 )}
               </CardContent>
