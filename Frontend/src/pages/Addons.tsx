@@ -12,30 +12,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Package, Gift, Star, Zap, Crown, Trophy, Heart, Sparkles, type LucideIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, type LucideIcon } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { addonApi, type Addon } from '@/api/addons'
 import { customWalletApi } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
-// Icon picker component
-const AVAILABLE_ICONS: { value: string; label: string; icon: LucideIcon }[] = [
-  { value: 'Package', label: 'Package', icon: Package },
-  { value: 'Gift', label: 'Gift', icon: Gift },
-  { value: 'Star', label: 'Star', icon: Star },
-  { value: 'Zap', label: 'Zap', icon: Zap },
-  { value: 'Crown', label: 'Crown', icon: Crown },
-  { value: 'Trophy', label: 'Trophy', icon: Trophy },
-  { value: 'Heart', label: 'Heart', icon: Heart },
-  { value: 'Sparkles', label: 'Sparkles', icon: Sparkles },
-]
-
-// Helper to get icon component
-const getIconComponent = (iconName?: string): LucideIcon => {
-  const iconObj = AVAILABLE_ICONS.find(i => i.value === iconName)
-  return iconObj?.icon || Package
-}
+// Addon-specific icons (subset of available icons)
+const ADDON_ICONS = AVAILABLE_ICONS.filter(icon => 
+  ['Package', 'Gift', 'Star', 'Zap', 'Crown', 'Trophy', 'Heart', 'Sparkles'].includes(icon.name)
+)
 
 const AVAILABLE_COLORS = [
   { value: 'blue', label: 'Blue', hex: '#3b82f6' },
@@ -534,13 +522,13 @@ export default function Addons() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {AVAILABLE_ICONS.map((iconOption) => {
+                    {ADDON_ICONS.map((iconOption) => {
                       const IconComp = iconOption.icon
                       return (
-                        <SelectItem key={iconOption.value} value={iconOption.value}>
+                        <SelectItem key={iconOption.name} value={iconOption.name}>
                           <div className="flex items-center gap-2">
                             <IconComp className="h-4 w-4" />
-                            {iconOption.label}
+                            {iconOption.name}
                           </div>
                         </SelectItem>
                       )
