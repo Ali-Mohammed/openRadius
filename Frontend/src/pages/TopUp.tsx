@@ -489,7 +489,7 @@ export default function TopUp() {
                     <div className="flex justify-between py-3 border-b">
                       <span className="text-muted-foreground">Current Balance</span>
                       <span className="font-medium">
-                        {currencySymbol}{formatCurrency(selectedCustomWallet.currentBalance)}
+                        {currencySymbol} {formatCurrency(selectedCustomWallet.currentBalance)}
                       </span>
                     </div>
                   </>
@@ -507,7 +507,7 @@ export default function TopUp() {
                     <div className="flex justify-between py-3 border-b">
                       <span className="text-muted-foreground">Current Balance</span>
                       <span className="font-medium">
-                        {currencySymbol}{formatCurrency(selectedUserWallet.currentBalance)}
+                        {currencySymbol} {formatCurrency(selectedUserWallet.currentBalance)}
                       </span>
                     </div>
                   </>
@@ -582,7 +582,7 @@ export default function TopUp() {
                   <div className="flex justify-between text-sm">
                     <span>Current Balance:</span>
                     <span className="font-medium">
-                      {currencySymbol}{formatCurrency(selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0)}
+                      {currencySymbol} {formatCurrency(selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-green-600">
