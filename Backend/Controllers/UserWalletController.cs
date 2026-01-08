@@ -84,7 +84,7 @@ public class UserWalletController : ControllerBase
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(uw => 
-                    uw.CustomWallet.Name.Contains(search));
+                    uw.CustomWallet != null && uw.CustomWallet.Name.Contains(search));
             }
 
             var totalCount = await query.CountAsync();
