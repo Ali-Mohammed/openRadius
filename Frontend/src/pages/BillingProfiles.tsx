@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -80,6 +80,7 @@ const colorOptions = [
 
 export default function BillingProfiles() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const workspaceId = parseInt(id || '0');
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -374,7 +375,7 @@ export default function BillingProfiles() {
             Configure billing profiles with radius profiles, billing groups, wallets, and addons
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
+        <Button onClick={() => navigate(`/workspace/${id}/billing/profiles/new`)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Profile
         </Button>
@@ -443,7 +444,7 @@ export default function BillingProfiles() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleOpenDialog(profile)}
+                              onClick={() => navigate(`/workspace/${id}/billing/profiles/edit?profileId=${profile.id}`)}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
