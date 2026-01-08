@@ -117,6 +117,18 @@ public class RadiusProfileController : ControllerBase
                                  !u.IsDeleted && 
                                  u.ProfileId == p.Id);
 
+            // Get custom wallets for this profile
+            var profileWallets = await _context.RadiusProfileWallets
+                .Include(pw => pw.CustomWallet)
+                .Where(pw => pw.RadiusProfileId == p.Id && pw.WorkspaceId == WorkspaceId)
+                .Select(pw => new ProfileWalletConfig
+                {
+                    CustomWalletId = pw.CustomWalletId,
+                    Amount = pw.Amount,
+                    WalletName = pw.CustomWallet.Name
+                })
+                .ToListAsync();
+
             profiles.Add(new RadiusProfileResponse
             {
                 Id = p.Id,
@@ -140,7 +152,8 @@ public class RadiusProfileController : ControllerBase
                 Icon = p.Icon,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
-                LastSyncedAt = p.LastSyncedAt
+                LastSyncedAt = p.LastSyncedAt,
+                CustomWallets = profileWallets
             });
         }
 
