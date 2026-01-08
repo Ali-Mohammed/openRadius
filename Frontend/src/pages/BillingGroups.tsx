@@ -15,6 +15,13 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -36,6 +43,7 @@ import {
   PopoverTrigger,
 } from '../components/ui/popover';
 import { Badge } from '../components/ui/badge';
+import { Label } from '../components/ui/label';
 import { Package, Gift, Star, Zap, Crown, Trophy, Heart, Sparkles } from 'lucide-react';
 
 const iconOptions = [
@@ -73,11 +81,12 @@ export default function BillingGroups() {
   const [userSearch, setUserSearch] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [isUserPopoverOpen, setIsUserPopoverOpen] = useState(false);
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false);
   
   const [formData, setFormData] = useState<CreateBillingGroupRequest>({
     name: '',
     description: '',
-    icon: 'UsersIcon',
+    icon: 'Package',
     color: '#3b82f6',
     isActive: true,
     userIds: [],
@@ -146,7 +155,7 @@ export default function BillingGroups() {
       setFormData({
         name: '',
         description: '',
-        icon: 'UsersIcon',
+        icon: 'Package',
         color: '#3b82f6',
         isActive: true,
         userIds: [],
@@ -344,47 +353,90 @@ export default function BillingGroups() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Icon</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {iconOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, icon: option.value })
-                        }
-                        className={`flex h-10 items-center justify-center rounded-md border-2 transition-colors ${
-                          formData.icon === option.value
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <option.Icon className="h-5 w-5" />
-                      </button>
-                    ))}
+                <div className="space-y-2">
+                  <Label htmlFor="icon">Icon</Label>
+                  <div className="relative">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start" 
+                      type="button"
+                      onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+                    >
+                      {(() => {
+                        const IconComponent = getIconComponent(formData.icon)
+                        return <IconComponent className="w-4 h-4 mr-2" />
+                      })()}
+                      {formData.icon || 'Package'}
+                    </Button>
+                    {iconPopoverOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border rounded-md shadow-lg z-50">
+                        <div className="grid grid-cols-4 gap-1 p-2 max-h-[200px] overflow-y-auto">
+                          {iconOptions.map((iconData) => {
+                            const IconComponent = iconData.Icon
+                            const isSelected = formData.icon === iconData.value
+                            return (
+                              <button
+                                key={iconData.value}
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setFormData({ ...formData, icon: iconData.value })
+                                  setIconPopoverOpen(false)
+                                }}
+                                className={`p-2 rounded flex items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
+                                style={{
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s'
+                                }}
+                                title={iconData.label}
+                              >
+                                <IconComponent className="w-4 h-4" />
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Color</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {colorOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, color: option.value })
-                        }
-                        className={`flex h-10 items-center justify-center rounded-md border-2 transition-colors ${
-                          formData.color === option.value
-                            ? 'border-primary'
-                            : 'border-border'
-                        }`}
-                        style={{ backgroundColor: option.value }}
-                      />
-                    ))}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="color">Color</Label>
+                  <Select
+                    value={formData.color}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, color: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: formData.color }}
+                        />
+                        <span>
+                          {colorOptions.find(c => c.value === formData.color)?.label || 'Select Color'}
+                        </span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorOptions.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: color.value }}
+                            />
+                            {color.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
