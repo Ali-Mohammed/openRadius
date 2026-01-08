@@ -144,7 +144,7 @@ export default function BillingGroups() {
       setFormData({
         name: group.name,
         description: group.description || '',
-        icon: group.icon || 'UsersIcon',
+        icon: group.icon || 'Package',
         color: group.color || '#3b82f6',
         isActive: group.isActive,
         userIds: group.users?.map(u => u.id) || [],
@@ -169,10 +169,25 @@ export default function BillingGroups() {
     setIsDialogOpen(false);
     setEditingGroup(null);
     setUserSearch('');
+    setSelectedUserIds([]);
+    setFormData({
+      name: '',
+      description: '',
+      icon: 'Package',
+      color: '#3b82f6',
+      isActive: true,
+      userIds: [],
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (selectedUserIds.length === 0) {
+      toast.error('Please select at least one user');
+      return;
+    }
+    
     const data = { ...formData, userIds: selectedUserIds };
     
     if (editingGroup) {
