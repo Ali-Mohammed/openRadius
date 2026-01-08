@@ -739,6 +739,8 @@ public class TransactionController : ControllerBase
                 {
                     c.Id,
                     c.Comment,
+                    c.Tags,
+                    c.Attachments,
                     c.CreatedBy,
                     c.CreatedAt
                 })
@@ -781,6 +783,8 @@ public class TransactionController : ControllerBase
             {
                 TransactionId = id,
                 Comment = request.Comment,
+                Tags = request.Tags != null && request.Tags.Any() ? System.Text.Json.JsonSerializer.Serialize(request.Tags) : null,
+                Attachments = request.Attachments != null && request.Attachments.Any() ? System.Text.Json.JsonSerializer.Serialize(request.Attachments) : null,
                 CreatedBy = userEmail,
                 CreatedAt = DateTime.UtcNow
             };
@@ -792,6 +796,8 @@ public class TransactionController : ControllerBase
             {
                 id = comment.Id,
                 comment = comment.Comment,
+                tags = comment.Tags,
+                attachments = comment.Attachments,
                 createdBy = comment.CreatedBy,
                 createdAt = comment.CreatedAt
             });
@@ -844,4 +850,6 @@ public class TransactionController : ControllerBase
 public class AddCommentRequest
 {
     public string Comment { get; set; } = null!;
+    public List<string>? Tags { get; set; }
+    public List<string>? Attachments { get; set; }
 }

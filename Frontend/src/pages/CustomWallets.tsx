@@ -163,6 +163,14 @@ export default function CustomWallets() {
     }
   }
 
+  // Helper to format currency amounts
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   // Mutations
@@ -494,10 +502,10 @@ export default function CustomWallets() {
                         {wallet.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{currencySymbol}{wallet.maxFillLimit.toFixed(2)}</TableCell>
-                    <TableCell>{currencySymbol}{wallet.dailySpendingLimit.toFixed(2)}</TableCell>
+                    <TableCell>{currencySymbol} {formatCurrency(wallet.maxFillLimit)}</TableCell>
+                    <TableCell>{currencySymbol} {formatCurrency(wallet.dailySpendingLimit)}</TableCell>
                     <TableCell className="font-medium">
-                      {currencySymbol}{wallet.currentBalance?.toFixed(2) || '0.00'}
+                      {currencySymbol} {formatCurrency(wallet.currentBalance || 0)}
                     </TableCell>
                     <TableCell>
                       {wallet.allowNegativeBalance ? (

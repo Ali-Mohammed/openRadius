@@ -82,6 +82,8 @@ import userWalletApi from '@/api/userWallets'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { TRANSACTION_TYPES, TRANSACTION_TYPE_INFO, type TransactionType } from '@/constants/transactionTypes'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { TransactionCommentsDialog } from '@/components/TransactionCommentsDialog'
 
 const transactionTypeIcons: Record<TransactionType, any> = {
   [TRANSACTION_TYPES.TOP_UP]: ArrowUpCircle,
@@ -106,6 +108,7 @@ const statusColors = {
 export default function Transactions() {
   const queryClient = useQueryClient()
   const { i18n } = useTranslation()
+  const { currentWorkspaceId } = useWorkspace()
 
   const [filterWalletType, setFilterWalletType] = useState('')
   const [filterTransactionType, setFilterTransactionType] = useState('')
@@ -132,6 +135,8 @@ export default function Transactions() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
+  const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false)
+  const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null)
   const [deletingTransaction, setDeletingTransaction] = useState<any>(null)
   const [restoringTransaction, setRestoringTransaction] = useState<any>(null)
   const [deleteReason, setDeleteReason] = useState('')
@@ -768,8 +773,8 @@ export default function Transactions() {
                               variant="ghost"
                               size="icon"
                               onClick={() => {
-                                // TODO: Open comments dialog
-                                alert(`Comments for transaction ${transaction.id}`)
+                                setSelectedTransactionId(transaction.id!)
+                                setIsCommentsDialogOpen(true)
                               }}
                               title="View/Add Comments"
                             >
@@ -1145,6 +1150,15 @@ export default function Transactions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Transaction Comments Dialog */}
+      {selectedTransactionId && (
+        <TransactionCommentsDialog
+          open={isCommentsDialogOpen}
+          onOpenChange={setIsCommentsDialogOpen}
+          transactionId={selectedTransactionId}
+        />
+      )}
     </div>
   )
 }
