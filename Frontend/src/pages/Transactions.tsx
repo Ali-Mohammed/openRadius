@@ -788,8 +788,8 @@ export default function Transactions() {
                               variant="ghost"
                               size="icon"
                               onClick={() => {
-                                // TODO: Open history dialog
-                                alert(`History for transaction ${transaction.id}`)
+                                setSelectedTransactionId(transaction.id)
+                                setIsHistoryDialogOpen(true)
                               }}
                               title="View History"
                             >
@@ -1158,6 +1158,15 @@ export default function Transactions() {
         <TransactionCommentsDialog
           open={isCommentsDialogOpen}
           onOpenChange={setIsCommentsDialogOpen}
+          transactionId={selectedTransactionId}
+        />
+      )}
+
+      {/* Transaction History Dialog */}
+      {selectedTransactionId && (
+        <TransactionHistoryDialog
+          open={isHistoryDialogOpen}
+          onOpenChange={setIsHistoryDialogOpen}
           transactionId={selectedTransactionId}
         />
       )}
