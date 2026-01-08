@@ -327,8 +327,7 @@ export default function TopUp() {
                               className="w-3 h-3 rounded"
                               style={{ backgroundColor: wallet.color }}
                             />
-                            {wallet.name} - {currencySymbol}
-                            {formatCurrency(wallet.currentBalance)}
+                            {wallet.name} - {currencySymbol} {formatCurrency(wallet.currentBalance)}
                           </div>
                         </SelectItem>
                       ))}
@@ -376,8 +375,7 @@ export default function TopUp() {
                                 <div className="flex flex-col">
                                   <span className="font-medium">{wallet.userName}</span>
                                   <span className="text-xs text-muted-foreground">
-                                    {wallet.userEmail} • {currencySymbol}
-                                    {formatCurrency(wallet.currentBalance)}
+                                    {wallet.userEmail} • {currencySymbol} {formatCurrency(wallet.currentBalance)}
                                   </span>
                                 </div>
                               </CommandItem>
