@@ -12,12 +12,7 @@ export interface BillingGroup {
   updatedAt?: string;
   updatedBy?: string;
   userCount?: number;
-  users?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  }[];
+  userIds?: number[];
 }
 
 export interface CreateBillingGroupRequest {

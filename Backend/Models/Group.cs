@@ -31,7 +31,7 @@ public class BillingGroupUser
     public int UserId { get; set; }
     
     public virtual BillingGroup Group { get; set; } = null!;
-    public virtual User User { get; set; } = null!;
+    // Note: User is in master DB, not workspace DB, so no navigation property here
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? CreatedBy { get; set; }

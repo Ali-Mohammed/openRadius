@@ -42,7 +42,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
-    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -221,16 +220,15 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<BillingGroupUser>(entity =>
         {
             entity.HasKey(gu => new { gu.GroupId, gu.UserId });
+            entity.HasIndex(gu => gu.UserId);
 
             entity.HasOne(gu => gu.Group)
                   .WithMany(g => g.GroupUsers)
                   .HasForeignKey(gu => gu.GroupId)
                   .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(gu => gu.User)
-                  .WithMany()
-                  .HasForeignKey(gu => gu.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
+            
+            // Note: UserId references Users table in master DB, not workspace DB
+            // So we don't create a foreign key constraint here
         });
     }
 }

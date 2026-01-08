@@ -36,7 +36,6 @@ public class BillingGroupController : ControllerBase
         {
             var query = _context.BillingGroups
                 .Include(g => g.GroupUsers)
-                    .ThenInclude(gu => gu.User)
                 .AsQueryable();
 
             if (!includeDeleted)
@@ -75,13 +74,7 @@ public class BillingGroupController : ControllerBase
                     g.CreatedAt,
                     g.UpdatedAt,
                     UserCount = g.GroupUsers.Count,
-                    Users = g.GroupUsers.Select(gu => new
-                    {
-                        gu.UserId,
-                        gu.User.Email,
-                        gu.User.FirstName,
-                        gu.User.LastName
-                    }).ToList()
+                    UserIds = g.GroupUsers.Select(gu => gu.UserId).ToList()
                 })
                 .ToListAsync();
 
@@ -109,7 +102,6 @@ public class BillingGroupController : ControllerBase
         {
             var group = await _context.BillingGroups
                 .Include(g => g.GroupUsers)
-                    .ThenInclude(gu => gu.User)
                 .Where(g => g.Id == id)
                 .Select(g => new
                 {
@@ -122,13 +114,7 @@ public class BillingGroupController : ControllerBase
                     g.IsDeleted,
                     g.CreatedAt,
                     g.UpdatedAt,
-                    Users = g.GroupUsers.Select(gu => new
-                    {
-                        gu.UserId,
-                        gu.User.Email,
-                        gu.User.FirstName,
-                        gu.User.LastName
-                    }).ToList()
+                    UserIds = g.GroupUsers.Select(gu => gu.UserId).ToList()
                 })
                 .FirstOrDefaultAsync();
 
@@ -153,22 +139,6 @@ public class BillingGroupController : ControllerBase
         try
         {
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
-            // Validate that all user IDs exist in the workspace database
-            if (request.UserIds != null && request.UserIds.Any())
-            {
-                var existingUserIds = await _context.Users
-                    .Where(u => request.UserIds.Contains(u.Id))
-                    .Select(u => u.Id)
-                    .ToListAsync();
-
-                var invalidUserIds = request.UserIds.Except(existingUserIds).ToList();
-                if (invalidUserIds.Any())
-                {
-                    _logger.LogWarning("Invalid user IDs provided: {InvalidIds}", string.Join(", ", invalidUserIds));
-                    return BadRequest(new { error = $"The following user IDs do not exist in this workspace: {string.Join(", ", invalidUserIds)}" });
-                }
-            }
 
             var group = new BillingGroup
             {
@@ -224,22 +194,6 @@ public class BillingGroupController : ControllerBase
             if (existingGroup == null)
             {
                 return NotFound(new { error = "Group not found" });
-            }
-
-            // Validate that all user IDs exist in the workspace database
-            if (request.UserIds != null && request.UserIds.Any())
-            {
-                var existingUserIds = await _context.Users
-                    .Where(u => request.UserIds.Contains(u.Id))
-                    .Select(u => u.Id)
-                    .ToListAsync();
-
-                var invalidUserIds = request.UserIds.Except(existingUserIds).ToList();
-                if (invalidUserIds.Any())
-                {
-                    _logger.LogWarning("Invalid user IDs provided for update: {InvalidIds}", string.Join(", ", invalidUserIds));
-                    return BadRequest(new { error = $"The following user IDs do not exist in this workspace: {string.Join(", ", invalidUserIds)}" });
-                }
             }
 
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
