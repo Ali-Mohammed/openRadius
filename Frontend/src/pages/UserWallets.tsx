@@ -241,6 +241,14 @@ export default function UserWallets() {
     return '$'
   }
 
+  // Helper to format currency amounts
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
   // Queries
   const { data: workspace } = useQuery({
     queryKey: ['workspace', currentWorkspaceId],
@@ -338,7 +346,7 @@ export default function UserWallets() {
     mutationFn: ({ id, adjustment }: { id: number; adjustment: { amount: number; reason?: string } }) =>
       userWalletApi.adjustBalance(id, adjustment),
     onSuccess: (data) => {
-      toast.success(`Balance adjusted: ${currencySymbol}${data.adjustment.toFixed(2)}`)
+      toast.success(`Balance adjusted: ${currencySymbol} ${formatCurrency(data.adjustment)}`)
       queryClient.invalidateQueries({ queryKey: ['userWallets'] })
       setIsAdjustBalanceDialogOpen(false)
       setAdjustingWallet(null)
@@ -519,17 +527,16 @@ export default function UserWallets() {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {currencySymbol}
-                      {wallet.currentBalance.toFixed(2)}
+                      {currencySymbol} {formatCurrency(wallet.currentBalance)}
                     </TableCell>
                     <TableCell>
                       {wallet.maxFillLimit !== null && wallet.maxFillLimit !== undefined
-                        ? `${currencySymbol}${wallet.maxFillLimit.toFixed(2)}`
+                        ? `${currencySymbol} ${formatCurrency(wallet.maxFillLimit)}`
                         : '-'}
                     </TableCell>
                     <TableCell>
                       {wallet.dailySpendingLimit !== null && wallet.dailySpendingLimit !== undefined
-                        ? `${currencySymbol}${wallet.dailySpendingLimit.toFixed(2)}`
+                        ? `${currencySymbol} ${formatCurrency(wallet.dailySpendingLimit)}`
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -757,8 +764,7 @@ export default function UserWallets() {
           <DialogHeader>
             <DialogTitle>Adjust Wallet Balance</DialogTitle>
             <DialogDescription>
-              Current balance: {currencySymbol}
-              {adjustingWallet?.currentBalance.toFixed(2)}
+              Current balance: {currencySymbol} {formatCurrency(adjustingWallet?.currentBalance || 0)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -830,8 +836,7 @@ export default function UserWallets() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This will delete the wallet for user "{deletingWallet?.userName}". The current
-              balance ({currencySymbol}
-              {deletingWallet?.currentBalance.toFixed(2)}) will be lost. This action cannot
+              balance ({currencySymbol} {formatCurrency(deletingWallet?.currentBalance || 0)}) will be lost. This action cannot
               be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

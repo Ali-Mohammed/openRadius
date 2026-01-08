@@ -23,6 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { workspaceApi } from '@/api/workspaceApi'
+import { useWorkspace } from '@/context/WorkspaceContext'
 
 // Hardcoded workspaceId for now - will be dynamic based on routing later
 const WORKSPACE_ID = 1
@@ -32,6 +34,7 @@ export default function RadiusUsers() {
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const { currentWorkspaceId } = useWorkspace()
 
   // Initialize state from URL params
   const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'))
@@ -106,7 +109,34 @@ export default function RadiusUsers() {
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
 
+  // Helper to get currency symbol
+  const getCurrencySymbol = (currency?: string) => {
+    switch (currency) {
+      case 'IQD':
+        return i18n.language === 'ar' ? 'د.ع' : 'IQD'
+      case 'USD':
+      default:
+        return '$'
+    }
+  }
+
+  // Helper to format currency amounts
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
   // Queries
+  const { data: workspace } = useQuery({
+    queryKey: ['workspace', currentWorkspaceId],
+    queryFn: () => workspaceApi.getById(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
+  })
+
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
+
   const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash 
@@ -876,8 +906,8 @@ export default function RadiusUsers() {
                               {user.enabled ? t('radiusUsers.enabled') : t('radiusUsers.disabled')}
                             </Badge>
                           </TableCell>}
-                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${user.balance?.toFixed(2) || '0.00'}</TableCell>}
-                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">${user.loanBalance?.toFixed(2) || '0.00'}</TableCell>}
+                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol} {formatCurrency(user.balance || 0)}</TableCell>}
+                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol} {formatCurrency(user.loanBalance || 0)}</TableCell>}
                           {columnVisibility.expiration && <TableCell className="h-12 px-4 w-[120px]">{formatDate(user.expiration)}</TableCell>}
                           {columnVisibility.lastOnline && <TableCell className="h-12 px-4 w-[120px]">{formatDate(user.lastOnline)}</TableCell>}
                           {columnVisibility.onlineStatus && <TableCell className="h-12 px-4 w-[100px]">

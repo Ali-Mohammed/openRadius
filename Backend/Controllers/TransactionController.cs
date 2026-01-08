@@ -790,6 +790,23 @@ public class TransactionController : ControllerBase
             };
 
             _context.TransactionComments.Add(comment);
+
+            // Create history entry for comment
+            var commentHistory = new TransactionHistory
+            {
+                TransactionId = id,
+                Action = "Comment Added",
+                Changes = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    comment = request.Comment,
+                    tags = request.Tags,
+                    hasAttachments = request.Attachments?.Any() ?? false
+                }),
+                PerformedBy = userEmail,
+                PerformedAt = DateTime.UtcNow
+            };
+            _context.TransactionHistories.Add(commentHistory);
+
             await _context.SaveChangesAsync();
 
             return Ok(new
