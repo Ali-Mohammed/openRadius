@@ -12,6 +12,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface Settings {
   id?: number;
@@ -22,6 +24,7 @@ interface Settings {
 }
 
 export default function DebeziumSettings() {
+  const { layout } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -118,7 +121,7 @@ export default function DebeziumSettings() {
 
   return (
     <div className="p-6">
-      <Card className="max-w-2xl">
+      <Card className={cn(layout === 'boxed' ? 'max-w-2xl mx-auto' : 'max-w-4xl mx-auto')}>
         <CardHeader>
           <CardTitle>Debezium Settings</CardTitle>
           <CardDescription>

@@ -719,7 +719,7 @@ export default function UserWallets() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
