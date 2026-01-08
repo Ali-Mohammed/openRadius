@@ -306,6 +306,47 @@ export default function RolesPage() {
               />
             </div>
 
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
+              {permissionsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading permissions...</p>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
+                    <div key={category} className="space-y-2">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        {category}
+                      </p>
+                      <div className="ml-6 space-y-2">
+                        {categoryPermissions.map(permission => (
+                          <div key={permission.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`perm-${permission.id}`}
+                              checked={selectedPermissions.includes(permission.id)}
+                              onCheckedChange={() => handlePermissionToggle(permission.id)}
+                            />
+                            <label
+                              htmlFor={`perm-${permission.id}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {permission.name}
+                              {permission.description && (
+                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {permissions.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No permissions available. Create permissions first.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Icon and Color Picker */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -362,47 +403,6 @@ export default function RolesPage() {
               </Select>
               </div>
             </div>
-
-            <div className="border-t pt-4">
-              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
-              {permissionsLoading ? (
-                <p className="text-sm text-muted-foreground">Loading permissions...</p>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                    <div key={category} className="space-y-2">
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        {category}
-                      </p>
-                      <div className="ml-6 space-y-2">
-                        {categoryPermissions.map(permission => (
-                          <div key={permission.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`perm-${permission.id}`}
-                              checked={selectedPermissions.includes(permission.id)}
-                              onCheckedChange={() => handlePermissionToggle(permission.id)}
-                            />
-                            <label
-                              htmlFor={`perm-${permission.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
-                              {permission.name}
-                              {permission.description && (
-                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
-                              )}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  {permissions.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No permissions available. Create permissions first.</p>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
@@ -433,6 +433,44 @@ export default function RolesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
+              {permissionsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading permissions...</p>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
+                    <div key={category} className="space-y-2">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        {category}
+                      </p>
+                      <div className="ml-6 space-y-2">
+                        {categoryPermissions.map(permission => (
+                          <div key={permission.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-perm-${permission.id}`}
+                              checked={selectedPermissions.includes(permission.id)}
+                              onCheckedChange={() => handlePermissionToggle(permission.id)}
+                            />
+                            <label
+                              htmlFor={`edit-perm-${permission.id}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {permission.name}
+                              {permission.description && (
+                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Icon and Color Picker */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -485,44 +523,6 @@ export default function RolesPage() {
                 </SelectContent>
               </Select>
               </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
-              {permissionsLoading ? (
-                <p className="text-sm text-muted-foreground">Loading permissions...</p>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                    <div key={category} className="space-y-2">
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        {category}
-                      </p>
-                      <div className="ml-6 space-y-2">
-                        {categoryPermissions.map(permission => (
-                          <div key={permission.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`edit-perm-${permission.id}`}
-                              checked={selectedPermissions.includes(permission.id)}
-                              onCheckedChange={() => handlePermissionToggle(permission.id)}
-                            />
-                            <label
-                              htmlFor={`edit-perm-${permission.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
-                              {permission.name}
-                              {permission.description && (
-                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
-                              )}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
           <DialogFooter>
