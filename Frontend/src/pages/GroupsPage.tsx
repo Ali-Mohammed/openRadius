@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from "sonner"
 import { Plus, Trash2, Pencil, Users } from "lucide-react"
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
@@ -300,51 +301,50 @@ export default function GroupsPage() {
 
               <div className="grid gap-2">
                 <Label>Icon</Label>
-                <div className="relative">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
-                  >
-                    {(() => {
-                      const IconComponent = getIconComponent(groupForm.icon)
-                      return (
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="rounded-lg p-1.5 flex items-center justify-center"
-                            style={{ backgroundColor: `${groupForm.color}15`, color: groupForm.color }}
-                          >
-                            <IconComponent className="h-4 w-4" />
+                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start"
+                    >
+                      {(() => {
+                        const IconComponent = getIconComponent(groupForm.icon)
+                        return (
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="rounded-lg p-1.5 flex items-center justify-center"
+                              style={{ backgroundColor: `${groupForm.color}15`, color: groupForm.color }}
+                            >
+                              <IconComponent className="h-4 w-4" />
+                            </div>
+                            <span className="truncate">{groupForm.icon}</span>
                           </div>
-                          <span className="truncate">{groupForm.icon}</span>
-                        </div>
-                      )
-                    })()}
-                  </Button>
-                  {iconPopoverOpen && (
-                    <div className="absolute z-50 mt-1 w-[320px] rounded-md border bg-popover p-4 text-popover-foreground shadow-md right-0">
-                      <div className="grid grid-cols-6 gap-2 max-h-[240px] overflow-y-auto">
-                        {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
-                          <Button
-                            key={name}
-                            type="button"
-                            variant={groupForm.icon === name ? "default" : "outline"}
-                            size="sm"
-                            className="h-10 w-10 p-0"
-                            onClick={() => {
-                              setGroupForm({ ...groupForm, icon: name })
-                              setIconPopoverOpen(false)
-                            }}
-                            title={name}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </Button>
-                        ))}
-                      </div>
+                        )
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5} style={{ zIndex: 9999 }}>
+                    <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
+                      {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => {
+                            setGroupForm({ ...groupForm, icon: name })
+                            setIconPopoverOpen(false)
+                          }}
+                          className={`flex h-10 w-10 items-center justify-center rounded-md border hover:bg-accent hover:text-accent-foreground ${
+                            groupForm.icon === name ? 'bg-accent' : ''
+                          }`}
+                          title={name}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
