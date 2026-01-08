@@ -23,8 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { workspaceApi } from '@/api/workspaceApi'
-import { useWorkspace } from '@/context/WorkspaceContext'
+import { workspaceApi } from '@/lib/api'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 // Hardcoded workspaceId for now - will be dynamic based on routing later
 const WORKSPACE_ID = 1

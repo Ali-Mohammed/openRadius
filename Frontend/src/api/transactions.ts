@@ -76,6 +76,8 @@ export interface TransactionStats {
 export interface TransactionComment {
   id: number
   comment: string
+  tags?: string
+  attachments?: string
   createdBy: string
   createdAt: string
 }
@@ -96,12 +98,6 @@ export interface TransactionHistoryItem {
 export interface HistoryResponse {
   data: TransactionHistoryItem[]
   totalCount: number
-}
-export interface TransactionComment {
-  id: number
-  comment: string
-  createdBy: string
-  createdAt: string
 }
 
 export interface TransactionHistory {
@@ -180,8 +176,17 @@ const transactionApi = {
     return response.data
   },
 
-  addComment: async (transactionId: number, comment: string): Promise<TransactionComment> => {
-    const response = await apiClient.post(`/api/transactions/${transactionId}/comments`, { comment })
+  addComment: async (
+    transactionId: number, 
+    comment: string, 
+    tags?: string[], 
+    attachments?: string[]
+  ): Promise<TransactionComment> => {
+    const response = await apiClient.post(`/api/transactions/${transactionId}/comments`, { 
+      comment,
+      tags,
+      attachments
+    })
     return response.data
   },
 
