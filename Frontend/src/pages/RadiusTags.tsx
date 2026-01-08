@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Plus, Trash2, Edit } from 'lucide-react'
+import { Plus, Trash2, Edit, Tag as TagIcon } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
