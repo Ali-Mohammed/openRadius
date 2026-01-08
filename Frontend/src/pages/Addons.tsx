@@ -42,6 +42,7 @@ export default function Addons() {
   const [addonToDelete, setAddonToDelete] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [addonToRestore, setAddonToRestore] = useState<number | null>(null)
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -505,24 +506,51 @@ export default function Addons() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="icon">Icon</Label>
-                <Select value={formData.icon} onValueChange={(value) => setFormData({ ...formData, icon: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ADDON_ICONS.map((iconOption) => {
-                      const IconComp = iconOption.icon
-                      return (
-                        <SelectItem key={iconOption.name} value={iconOption.name}>
-                          <div className="flex items-center gap-2">
-                            <IconComp className="h-4 w-4" />
-                            {iconOption.name}
-                          </div>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    type="button"
+                    onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+                  >
+                    {React.createElement(getIconComponent(formData.icon), { className: "w-4 h-4 mr-2" })}
+                    {formData.icon || 'Package'}
+                  </Button>
+                  {iconPopoverOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-800 border rounded-md shadow-lg z-50">
+                      <div className="grid grid-cols-4 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                        {ADDON_ICONS.map((iconData) => {
+                          const IconComponent = iconData.icon
+                          const isSelected = formData.icon === iconData.name
+                          return (
+                            <button
+                              key={iconData.name}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setFormData({ ...formData, icon: iconData.name })
+                                setIconPopoverOpen(false)
+                              }}
+                              className={`p-2 rounded flex items-center justify-center ${
+                                isSelected
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                              style={{
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title={iconData.name}
+                            >
+                              <IconComponent className="w-4 h-4" />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
