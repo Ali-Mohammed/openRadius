@@ -7,7 +7,7 @@ export interface Addon {
   icon?: string
   color?: string
   price: number
-  customWalletId: number
+  customWalletId?: number
   customWalletName?: string
   isDeleted?: boolean
   createdAt?: string

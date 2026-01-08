@@ -128,11 +128,14 @@ public class AddonController : ControllerBase
         {
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
-            // Validate custom wallet exists
-            var wallet = await _context.CustomWallets.FindAsync(addon.CustomWalletId);
-            if (wallet == null)
+            // Validate custom wallet exists if provided
+            if (addon.CustomWalletId.HasValue)
             {
-                return BadRequest(new { error = "Custom wallet not found" });
+                var wallet = await _context.CustomWallets.FindAsync(addon.CustomWalletId.Value);
+                if (wallet == null)
+                {
+                    return BadRequest(new { error = "Custom wallet not found" });
+                }
             }
 
             addon.CreatedAt = DateTime.UtcNow;
@@ -168,11 +171,14 @@ public class AddonController : ControllerBase
                 return NotFound(new { error = "Addon not found" });
             }
 
-            // Validate custom wallet exists
-            var wallet = await _context.CustomWallets.FindAsync(addon.CustomWalletId);
-            if (wallet == null)
+            // Validate custom wallet exists if provided
+            if (addon.CustomWalletId.HasValue)
             {
-                return BadRequest(new { error = "Custom wallet not found" });
+                var wallet = await _context.CustomWallets.FindAsync(addon.CustomWalletId.Value);
+                if (wallet == null)
+                {
+                    return BadRequest(new { error = "Custom wallet not found" });
+                }
             }
 
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";

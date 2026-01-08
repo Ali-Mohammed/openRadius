@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Package, Gift, Star, Zap, Crown, Trophy, Heart, Sparkles, type LucideIcon } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { addonApi, type Addon } from '@/api/addons'
 import { customWalletApi } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
@@ -72,6 +73,7 @@ export default function Addons() {
     color: 'blue',
     price: '',
     customWalletId: '',
+    linkToWallet: false,
   })
 
   // Helper to get currency symbol
@@ -184,7 +186,8 @@ export default function Addons() {
         icon: addon.icon || 'Package',
         color: addon.color || 'blue',
         price: addon.price.toString(),
-        customWalletId: addon.customWalletId.toString(),
+        customWalletId: addon.customWalletId?.toString() || '',
+        linkToWallet: !!addon.customWalletId,
       })
     } else {
       setEditingAddon(null)
@@ -201,6 +204,7 @@ export default function Addons() {
       color: 'blue',
       price: '',
       customWalletId: '',
+      linkToWallet: false,
     })
     setEditingAddon(null)
   }
@@ -208,8 +212,13 @@ export default function Addons() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.price || !formData.customWalletId) {
+    if (!formData.name || !formData.price) {
       toast.error('Please fill in all required fields')
+      return
+    }
+
+    if (formData.linkToWallet && !formData.customWalletId) {
+      toast.error('Please select a wallet or uncheck the link option')
       return
     }
 
@@ -219,7 +228,9 @@ export default function Addons() {
       icon: formData.icon,
       color: formData.color,
       price: parseFloat(formData.price),
-      customWalletId: parseInt(formData.customWalletId),
+      customWalletId: formData.linkToWallet && formData.customWalletId 
+        ? parseInt(formData.customWalletId) 
+        : undefined,
     }
 
     if (editingAddon) {
@@ -558,20 +569,47 @@ export default function Addons() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="customWallet">Custom Wallet *</Label>
-              <Select value={formData.customWalletId} onValueChange={(value) => setFormData({ ...formData, customWalletId: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a wallet" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((wallet) => (
-                    <SelectItem key={wallet.id} value={wallet.id!.toString()}>
-                      {wallet.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="linkToWallet"
+                  checked={formData.linkToWallet}
+                  onCheckedChange={(checked) => {
+                    setFormData({ 
+                      ...formData, 
+                      linkToWallet: checked as boolean,
+                      customWalletId: checked ? formData.customWalletId : ''
+                    })
+                  }}
+                />
+                <Label
+                  htmlFor="linkToWallet"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Link to Custom Wallet (Optional)
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Enable this to track addon revenue in a specific wallet
+              </p>
+
+              {formData.linkToWallet && (
+                <div className="space-y-2">
+                  <Label htmlFor="customWallet">Custom Wallet *</Label>
+                  <Select value={formData.customWalletId} onValueChange={(value) => setFormData({ ...formData, customWalletId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a wallet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wallets.map((wallet) => (
+                        <SelectItem key={wallet.id} value={wallet.id!.toString()}>
+                          {wallet.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
