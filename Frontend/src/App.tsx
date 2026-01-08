@@ -88,7 +88,7 @@ function App() {
                           <Route path="/billing/balances" element={<Balances />} />
                           <Route path="/billing/addons" element={<Addons />} />
                           <Route path="/billing/groups" element={<BillingGroups />} />
-                          <Route path="/billing/profiles" element={<BillingProfiles />} />
+                          <Route path="/workspace/:id/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
                           <Route path="/billing/transactions" element={<Transactions />} />
