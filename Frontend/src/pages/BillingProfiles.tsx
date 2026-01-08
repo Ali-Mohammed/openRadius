@@ -544,35 +544,67 @@ export default function BillingProfiles() {
             {/* Radius Profile & Billing Group */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="radiusProfile">Radius Profile *</Label>
-                <Select
-                  value={formData.radiusProfileId?.toString() || ''}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, radiusProfileId: parseInt(value) })
-                  }
-                  disabled={isLoadingRadiusProfiles}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={isLoadingRadiusProfiles ? "Loading..." : "Select radius profile"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingRadiusProfiles ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        Loading radius profiles...
-                      </div>
-                    ) : !radiusProfilesData?.data || radiusProfilesData.data.length === 0 ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        No radius profiles available
-                      </div>
-                    ) : (
-                      radiusProfilesData.data.map((profile: any) => (
-                        <SelectItem key={profile.id} value={profile.id.toString()}>
+                <Label htmlFor="radiusProfile">Radius Profiles *</Label>
+                <Popover open={radiusProfilePopoverOpen} onOpenChange={setRadiusProfilePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={radiusProfilePopoverOpen}
+                      className="w-full justify-between"
+                      disabled={isLoadingRadiusProfiles}
+                    >
+                      {selectedRadiusProfiles.length > 0
+                        ? `${selectedRadiusProfiles.length} profile(s) selected`
+                        : "Select radius profiles..."}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search radius profiles..." />
+                      <CommandEmpty>No radius profile found.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-auto">
+                        {radiusProfilesData?.data?.map((profile: any) => (
+                          <CommandItem
+                            key={profile.id}
+                            value={profile.name}
+                            onSelect={() => {
+                              setSelectedRadiusProfiles(prev =>
+                                prev.includes(profile.id)
+                                  ? prev.filter(id => id !== profile.id)
+                                  : [...prev, profile.id]
+                              );
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedRadiusProfiles.includes(profile.id) ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {profile.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedRadiusProfiles.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedRadiusProfiles.map(profileId => {
+                      const profile = radiusProfilesData?.data?.find((p: any) => p.id === profileId);
+                      return profile ? (
+                        <Badge key={profileId} variant="secondary">
                           {profile.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                          <X
+                            className="ml-1 h-3 w-3 cursor-pointer"
+                            onClick={() => setSelectedRadiusProfiles(prev => prev.filter(id => id !== profileId))}
+                          />
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="billingGroup">Billing Group *</Label>
