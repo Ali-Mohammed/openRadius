@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Users as UsersIcon, Search, ArchiveRestore } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ArchiveRestore, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getGroups,
@@ -56,34 +56,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
-import { Package, Gift, Star, Zap, Crown, Trophy, Heart, Sparkles } from 'lucide-react';
-
-const iconOptions = [
-  { value: 'Package', label: 'Package', Icon: Package },
-  { value: 'Gift', label: 'Gift', Icon: Gift },
-  { value: 'Star', label: 'Star', Icon: Star },
-  { value: 'Zap', label: 'Zap', Icon: Zap },
-  { value: 'Crown', label: 'Crown', Icon: Crown },
-  { value: 'Trophy', label: 'Trophy', Icon: Trophy },
-  { value: 'Heart', label: 'Heart', Icon: Heart },
-  { value: 'Sparkles', label: 'Sparkles', Icon: Sparkles },
-];
-
-const colorOptions = [
-  { value: '#3b82f6', label: 'Blue' },
-  { value: '#8b5cf6', label: 'Purple' },
-  { value: '#ec4899', label: 'Pink' },
-  { value: '#f59e0b', label: 'Amber' },
-  { value: '#10b981', label: 'Green' },
-  { value: '#ef4444', label: 'Red' },
-  { value: '#6366f1', label: 'Indigo' },
-  { value: '#06b6d4', label: 'Cyan' },
-];
-
-const getIconComponent = (iconName?: string) => {
-  const icon = iconOptions.find((i) => i.value === iconName);
-  return icon ? icon.Icon : UsersIcon;
-};
+import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../utils/iconColorHelper';
 
 export default function BillingGroups() {
   const queryClient = useQueryClient();
@@ -514,38 +487,35 @@ export default function BillingGroups() {
                       type="button"
                       onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
                     >
-                      {(() => {
-                        const IconComponent = getIconComponent(formData.icon)
-                        return <IconComponent className="w-4 h-4 mr-2" />
-                      })()}
+                      {React.createElement(getIconComponent(formData.icon), { className: "w-4 h-4 mr-2" })}
                       {formData.icon || 'Package'}
                     </Button>
                     {iconPopoverOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-white border rounded-md shadow-lg z-50">
-                        <div className="grid grid-cols-4 gap-1 p-2 max-h-[200px] overflow-y-auto">
-                          {iconOptions.map((iconData) => {
-                            const IconComponent = iconData.Icon
-                            const isSelected = formData.icon === iconData.value
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-800 border rounded-md shadow-lg z-50">
+                        <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                          {AVAILABLE_ICONS.map((iconData) => {
+                            const IconComponent = iconData.icon
+                            const isSelected = formData.icon === iconData.name
                             return (
                               <button
-                                key={iconData.value}
+                                key={iconData.name}
                                 type="button"
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  setFormData({ ...formData, icon: iconData.value })
+                                  setFormData({ ...formData, icon: iconData.name })
                                   setIconPopoverOpen(false)
                                 }}
                                 className={`p-2 rounded flex items-center justify-center ${
                                   isSelected
                                     ? 'bg-blue-500 text-white' 
-                                    : 'bg-gray-100 hover:bg-gray-200'
+                                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}
                                 style={{
                                   cursor: 'pointer',
                                   transition: 'all 0.2s'
                                 }}
-                                title={iconData.label}
+                                title={iconData.name}
                               >
                                 <IconComponent className="w-4 h-4" />
                               </button>
@@ -571,12 +541,12 @@ export default function BillingGroups() {
                           style={{ backgroundColor: formData.color }}
                         />
                         <span>
-                          {colorOptions.find(c => c.value === formData.color)?.label || 'Select Color'}
+                          {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Select Color'}
                         </span>
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      {colorOptions.map((color) => (
+                      {PREDEFINED_COLORS.map((color) => (
                         <SelectItem key={color.value} value={color.value}>
                           <div className="flex items-center gap-2">
                             <div
@@ -617,7 +587,7 @@ export default function BillingGroups() {
                       variant="outline"
                       className="justify-start"
                     >
-                      <UsersIcon className="mr-2 h-4 w-4" />
+                      <Users className="mr-2 h-4 w-4" />
                       {selectedUserIds.length === 0
                         ? 'Select users'
                         : `${selectedUserIds.length} user${selectedUserIds.length > 1 ? 's' : ''} selected`}

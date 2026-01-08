@@ -20,11 +20,6 @@ import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '@/utils/iconColorHelper'
 
-// Addon-specific icons (subset of available icons)
-const ADDON_ICONS = AVAILABLE_ICONS.filter(icon => 
-  ['Package', 'Gift', 'Star', 'Zap', 'Crown', 'Trophy', 'Heart', 'Sparkles'].includes(icon.name)
-)
-
 export default function Addons() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
@@ -518,8 +513,8 @@ export default function Addons() {
                   </Button>
                   {iconPopoverOpen && (
                     <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-800 border rounded-md shadow-lg z-50">
-                      <div className="grid grid-cols-4 gap-1 p-2 max-h-[300px] overflow-y-auto">
-                        {ADDON_ICONS.map((iconData) => {
+                      <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                        {AVAILABLE_ICONS.map((iconData) => {
                           const IconComponent = iconData.icon
                           const isSelected = formData.icon === iconData.name
                           return (
