@@ -167,8 +167,7 @@ export default function WalletHistory() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {currencySymbol}
-                {stats.totalAmount.toFixed(2)}
+                {currencySymbol} {stats.totalAmount.toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -182,8 +181,7 @@ export default function WalletHistory() {
                 {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                {currencySymbol}
-                {(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0).toFixed(2)}
+                {currencySymbol} {(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0).toFixed(2)}
               </p>
             </CardContent>
           </Card>
@@ -354,17 +352,14 @@ export default function WalletHistory() {
                         <TableCell className="text-right">
                           <span className={`${typeInfo?.color} font-medium`}>
                             {item.amountType === 'credit' ? '+' : '-'}
-                            {currencySymbol}
-                            {item.amount.toFixed(2)}
+                            {currencySymbol} {item.amount.toFixed(2)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                          {currencySymbol}
-                          {item.balanceBefore.toFixed(2)}
+                          {currencySymbol} {item.balanceBefore.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {currencySymbol}
-                          {item.balanceAfter.toFixed(2)}
+                          {currencySymbol} {item.balanceAfter.toFixed(2)}
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs">

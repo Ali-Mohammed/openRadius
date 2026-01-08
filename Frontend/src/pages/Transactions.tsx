@@ -718,21 +718,18 @@ export default function Transactions() {
                           <TableCell className="h-12 px-4 text-right">
                             <span className={`${typeInfo?.color} font-medium`}>
                               {transaction.amountType === 'credit' ? '+' : '-'}
-                              {currencySymbol}
-                              {transaction.amount.toFixed(2)}
+                              {currencySymbol} {transaction.amount.toFixed(2)}
                             </span>
                           </TableCell>
                         )}
                         {columnVisibility.before && (
                           <TableCell className="h-12 px-4 text-right text-muted-foreground">
-                            {currencySymbol}
-                            {transaction.balanceBefore.toFixed(2)}
+                            {currencySymbol} {transaction.balanceBefore.toFixed(2)}
                           </TableCell>
                         )}
                         {columnVisibility.after && (
                           <TableCell className="h-12 px-4 text-right font-medium">
-                            {currencySymbol}
-                            {transaction.balanceAfter.toFixed(2)}
+                            {currencySymbol} {transaction.balanceAfter.toFixed(2)}
                           </TableCell>
                         )}
                         {columnVisibility.status && (

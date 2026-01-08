@@ -516,7 +516,7 @@ export default function TopUp() {
                 <div className="flex justify-between py-3 border-b">
                   <span className="text-muted-foreground">Top-Up Amount</span>
                   <span className="font-medium text-green-600">
-                    +{currencySymbol}{formatCurrency(formData.amount)}
+                    +{currencySymbol} {formatCurrency(formData.amount)}
                   </span>
                 </div>
 
@@ -537,8 +537,7 @@ export default function TopUp() {
                 <div className="flex justify-between py-3 bg-muted/50 rounded-lg px-4">
                   <span className="font-semibold">New Balance (After Top-Up)</span>
                   <span className="font-bold text-lg text-primary">
-                    {currencySymbol}
-                    {formatCurrency((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount)}
+                    {currencySymbol} {formatCurrency((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount)}
                   </span>
                 </div>
               </div>
@@ -564,7 +563,7 @@ export default function TopUp() {
                   ⚠️ Please confirm the transaction details before proceeding
                 </p>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                  This action will add {currencySymbol}{formatCurrency(formData.amount)} to the selected wallet
+                  This action will add {currencySymbol} {formatCurrency(formData.amount)} to the selected wallet
                 </p>
               </div>
 
@@ -572,7 +571,7 @@ export default function TopUp() {
                 <div className="text-center py-6">
                   <div className="text-5xl mb-4">💰</div>
                   <div className="text-2xl font-bold mb-2">
-                    {currencySymbol}{formatCurrency(formData.amount)}
+                    {currencySymbol} {formatCurrency(formData.amount)}
                   </div>
                   <div className="text-muted-foreground">
                     will be added to {walletType === 'custom' ? selectedCustomWallet?.name : selectedUserWallet?.userName}
@@ -588,13 +587,13 @@ export default function TopUp() {
                   </div>
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Top-Up Amount:</span>
-                    <span className="font-medium">+{currencySymbol}{formatCurrency(formData.amount)}</span>
+                    <span className="font-medium">+{currencySymbol} {formatCurrency(formData.amount)}</span>
                   </div>
                   <div className="h-px bg-border my-2" />
                   <div className="flex justify-between font-bold">
                     <span>New Balance:</span>
                     <span className="text-primary">
-                      {currencySymbol}{formatCurrency((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount)}
+                      {currencySymbol} {formatCurrency((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount)}
                     </span>
                   </div>
                 </div>
@@ -659,20 +658,20 @@ export default function TopUp() {
                   <div className="flex justify-between text-sm">
                     <span>Amount Added:</span>
                     <span className="font-medium text-green-600">
-                      +{currencySymbol}{formatCurrency(topUpResult.data.amount)}
+                      +{currencySymbol} {formatCurrency(topUpResult.data.amount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Previous Balance:</span>
                     <span className="font-medium">
-                      {currencySymbol}{formatCurrency(topUpResult.data.balanceBefore)}
+                      {currencySymbol} {formatCurrency(topUpResult.data.balanceBefore)}
                     </span>
                   </div>
                   <div className="h-px bg-border my-2" />
                   <div className="flex justify-between font-bold">
                     <span>New Balance:</span>
                     <span className="text-primary">
-                      {currencySymbol}{formatCurrency(topUpResult.data.balanceAfter)}
+                      {currencySymbol} {formatCurrency(topUpResult.data.balanceAfter)}
                     </span>
                   </div>
                 </div>
