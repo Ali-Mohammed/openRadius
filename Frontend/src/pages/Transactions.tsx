@@ -84,6 +84,7 @@ import { format } from 'date-fns'
 import { TRANSACTION_TYPES, TRANSACTION_TYPE_INFO, type TransactionType } from '@/constants/transactionTypes'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { TransactionCommentsDialog } from '@/components/TransactionCommentsDialog'
+import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog'
 
 const transactionTypeIcons: Record<TransactionType, any> = {
   [TRANSACTION_TYPES.TOP_UP]: ArrowUpCircle,
@@ -136,6 +137,7 @@ export default function Transactions() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false)
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false)
   const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null)
   const [deletingTransaction, setDeletingTransaction] = useState<any>(null)
   const [restoringTransaction, setRestoringTransaction] = useState<any>(null)
