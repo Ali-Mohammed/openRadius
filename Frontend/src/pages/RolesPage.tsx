@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from 'sonner'
-import { Plus, Trash2, Pencil, RotateCcw } from 'lucide-react'
+import { Plus, Trash2, Pencil, RotateCcw, Users } from 'lucide-react'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
 export default function RolesPage() {
