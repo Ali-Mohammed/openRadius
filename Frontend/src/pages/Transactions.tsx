@@ -23,6 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns3,
+  MessageSquare,
+  History,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -196,6 +198,51 @@ export default function Transactions() {
   const totalCount = transactionsData?.totalCount || 0
   const totalPages = transactionsData?.totalPages || 1
 
+  // Generate pagination page numbers (same as RadiusUsers)
+  const getPaginationPages = useCallback((current: number, total: number) => {
+    const pages: (number | string)[] = []
+    const maxVisible = 7 // Total number of page buttons to show
+    
+    if (total <= maxVisible) {
+      // Show all pages if total is small
+      for (let i = 1; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Always show first page
+      pages.push(1)
+      
+      if (current > 3) {
+        pages.push('...')
+      }
+      
+      // Show pages around current
+      const start = Math.max(2, current - 1)
+      const end = Math.min(total - 1, current + 1)
+      
+      for (let i = start; i <= end; i++) {
+        if (!pages.includes(i)) {
+          pages.push(i)
+        }
+      }
+      
+      if (current < total - 2) {
+        pages.push('...')
+      }
+      
+      // Always show last page
+      if (!pages.includes(total)) {
+        pages.push(total)
+      }
+    }
+    
+    return pages
+  }, [])
+
+  const formatNumber = (num: number) => {
+    return num.toLocaleString()
+  }
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: transactionApi.create,
@@ -332,7 +379,7 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search and Controls */}
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -427,11 +474,21 @@ export default function Transactions() {
                   <SelectItem value="200">200</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant={showFilters ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+              </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-5">
+        {showFilters && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-5">
             <div className="space-y-2">
               <Label>Wallet Type</Label>
               <Select value={filterWalletType || "all"} onValueChange={(val) => setFilterWalletType(val === "all" ? "" : val)}>
@@ -497,24 +554,25 @@ export default function Transactions() {
             </div>
           </div>
 
-          {(filterWalletType || filterTransactionType || filterStatus || startDate || endDate) && (
-            <div className="mt-4 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFilterWalletType('')
-                  setFilterTransactionType('')
-                  setFilterStatus('')
-                  setStartDate('')
-                  setEndDate('')
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          )}
-        </CardContent>
+            {(filterWalletType || filterTransactionType || filterStatus || startDate || endDate) && (
+              <div className="mt-4 flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilterWalletType('')
+                    setFilterTransactionType('')
+                    setFilterStatus('')
+                    setStartDate('')
+                    setEndDate('')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       {/* Transactions Table */}
@@ -526,29 +584,6 @@ export default function Transactions() {
               <CardDescription>
                 Showing {transactions.length} of {totalCount} transactions
               </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setCurrentPage(1)
-                }}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </CardHeader>
