@@ -36,18 +36,6 @@ export interface UserWalletFilters {
   pageSize?: number
 }
 
-export interface BalanceAdjustment {
-  amount: number
-  reason?: string
-}
-
-export interface BalanceAdjustmentResponse {
-  id: number
-  previousBalance: number
-  newBalance: number
-  adjustment: number
-}
-
 const userWalletApi = {
   async getAll(filters?: UserWalletFilters): Promise<UserWalletListResponse> {
     const params = new URLSearchParams()
@@ -82,14 +70,6 @@ const userWalletApi = {
 
   async delete(id: number): Promise<void> {
     await apiClient.delete(`/api/user-wallets/${id}`)
-  },
-
-  async adjustBalance(id: number, adjustment: BalanceAdjustment): Promise<BalanceAdjustmentResponse> {
-    const response = await apiClient.post<BalanceAdjustmentResponse>(
-      `/api/user-wallets/${id}/adjust-balance`,
-      adjustment
-    )
-    return response.data
   },
 }
 
