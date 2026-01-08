@@ -55,6 +55,7 @@ export default function TopUp() {
   const [userSearchOpen, setUserSearchOpen] = useState(false)
   const [confirmChecked, setConfirmChecked] = useState(false)
   const [topUpResult, setTopUpResult] = useState<{ success: boolean; message: string; data?: any } | null>(null)
+  const [amountInput, setAmountInput] = useState('')
   const [formData, setFormData] = useState<TopUpRequest>({
     walletType: 'custom',
     amount: 0,
@@ -394,11 +395,36 @@ export default function TopUp() {
                 <Input
                   id="amount"
                   type="text"
-                  value={formData.amount ? formatCurrency(formData.amount) : ''}
+                  value={amountInput}
                   onChange={(e) => {
-                    const rawValue = e.target.value.replace(/,/g, '')
-                    const numValue = parseFloat(rawValue) || 0
+                    const value = e.target.value
+                    // Remove all non-digit and non-decimal characters
+                    const cleaned = value.replace(/[^0-9.]/g, '')
+                    // Prevent multiple decimal points
+                    const parts = cleaned.split('.')
+                    const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned
+                    
+                    setAmountInput(formatted)
+                    const numValue = parseFloat(formatted) || 0
                     setFormData({ ...formData, amount: numValue })
+                  }}
+                  onBlur={() => {
+                    // Format with commas on blur if there's a value
+                    if (amountInput && !isNaN(parseFloat(amountInput))) {
+                      const num = parseFloat(amountInput)
+                      const formatted = new Intl.NumberFormat('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                      }).format(num)
+                      setAmountInput(formatted)
+                    }
+                  }}
+                  onFocus={() => {
+                    // Remove commas on focus for easier editing
+                    if (amountInput) {
+                      const cleaned = amountInput.replace(/,/g, '')
+                      setAmountInput(cleaned)
+                    }
                   }}
                   placeholder="0.00"
                   required
