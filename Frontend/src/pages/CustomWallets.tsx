@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Plus, 
@@ -7,15 +7,9 @@ import {
   Edit, 
   Trash2, 
   GripVertical,
-  CreditCard,
-  DollarSign,
-  TrendingUp,
-  Gift,
-  Coins,
-  Banknote,
-  PiggyBank,
   Check,
   X,
+  ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -57,43 +51,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { customWalletApi, type CustomWallet } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { useTranslation } from 'react-i18next'
-
-// Icon mapping
-const iconMap: Record<string, typeof Wallet> = {
-  Wallet,
-  CreditCard,
-  DollarSign,
-  TrendingUp,
-  Gift,
-  Coins,
-  Banknote,
-  PiggyBank,
-}
-
-const iconOptions = [
-  { value: 'Wallet', label: 'Wallet', icon: Wallet },
-  { value: 'CreditCard', label: 'Credit Card', icon: CreditCard },
-  { value: 'DollarSign', label: 'Dollar Sign', icon: DollarSign },
-  { value: 'TrendingUp', label: 'Trending Up', icon: TrendingUp },
-  { value: 'Gift', label: 'Gift', icon: Gift },
-  { value: 'Coins', label: 'Coins', icon: Coins },
-  { value: 'Banknote', label: 'Banknote', icon: Banknote },
-  { value: 'PiggyBank', label: 'Piggy Bank', icon: PiggyBank },
-]
-
-const colorOptions = [
-  { value: '#ef4444', label: 'Red' },
-  { value: '#f59e0b', label: 'Orange' },
-  { value: '#10b981', label: 'Green' },
-  { value: '#3b82f6', label: 'Blue' },
-  { value: '#8b5cf6', label: 'Purple' },
-  { value: '#ec4899', label: 'Pink' },
-  { value: '#6b7280', label: 'Gray' },
-]
+import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent, getColorLabel } from '@/utils/iconColorHelper'
 
 export default function CustomWallets() {
   const queryClient = useQueryClient()
@@ -444,7 +411,7 @@ export default function CustomWallets() {
                 const typeInfo = getTypeInfo(wallet.type)
                 const isDragging = draggedItem?.id === wallet.id
                 const isDragOver = dragOverItem?.id === wallet.id
-                const IconComponent = wallet.icon ? iconMap[wallet.icon] || Wallet : Wallet
+                const IconComponent = getIconComponent(wallet.icon, Wallet)
                 return (
                   <TableRow
                     key={wallet.id}
@@ -737,13 +704,13 @@ export default function CustomWallets() {
                               className="w-4 h-4 rounded"
                               style={{ backgroundColor: formData.color }}
                             />
-                            {colorOptions.find(c => c.value === formData.color)?.label || formData.color}
+                            {getColorLabel(formData.color)}
                           </div>
                         )}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {colorOptions.map((color) => (
+                      {PREDEFINED_COLORS.map((color) => (
                         <SelectItem key={color.value} value={color.value}>
                           <div className="flex items-center gap-2">
                             <div
@@ -759,39 +726,46 @@ export default function CustomWallets() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="icon">Icon</Label>
-                  <Select
-                    value={formData.icon}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, icon: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue>
-                        {formData.icon && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {formData.icon ? (
                           <div className="flex items-center gap-2">
-                            {(() => {
-                              const SelectedIcon = iconMap[formData.icon] || Wallet
-                              return <SelectedIcon className="h-4 w-4" />
-                            })()}
-                            {iconOptions.find(i => i.value === formData.icon)?.label || formData.icon}
+                            {React.createElement(getIconComponent(formData.icon), {
+                              className: 'h-4 w-4',
+                            })}
+                            <span>{formData.icon}</span>
                           </div>
+                        ) : (
+                          'Select icon'
                         )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {iconOptions.map((iconOption) => {
-                        const IconComp = iconOption.icon
-                        return (
-                          <SelectItem key={iconOption.value} value={iconOption.value}>
-                            <div className="flex items-center gap-2">
-                              <IconComp className="h-4 w-4" />
-                              {iconOption.label}
-                            </div>
-                          </SelectItem>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                        {AVAILABLE_ICONS.map((iconOption) => (
+                          <Button
+                            key={iconOption.name}
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 w-full justify-center"
+                            onClick={() => {
+                              setFormData({ ...formData, icon: iconOption.name })
+                            }}
+                          >
+                            {React.createElement(iconOption.icon, {
+                              className: 'h-4 w-4',
+                            })}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
