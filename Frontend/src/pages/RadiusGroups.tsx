@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown
+  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Archive
 } from 'lucide-react'
 import { radiusGroupApi, type RadiusGroup } from '@/api/radiusGroupApi'
 import { formatApiError } from '@/utils/errorHandler'
