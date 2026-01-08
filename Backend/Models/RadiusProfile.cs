@@ -151,6 +151,14 @@ public class RadiusProfileResponse
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime LastSyncedAt { get; set; }
+    public List<ProfileWalletConfig> CustomWallets { get; set; } = new();
+}
+
+public class ProfileWalletConfig
+{
+    public int CustomWalletId { get; set; }
+    public decimal Amount { get; set; }
+    public string? WalletName { get; set; }
 }
 
 public class SyncProfileResponse
@@ -185,6 +193,7 @@ public class CreateProfileRequest
     public int? SiteId { get; set; }
     public string Color { get; set; } = "#3b82f6";
     public string Icon { get; set; } = "Package";
+    public List<ProfileWalletConfig>? CustomWallets { get; set; }
 }
 
 public class UpdateProfileRequest
@@ -204,6 +213,7 @@ public class UpdateProfileRequest
     public int? SiteId { get; set; }
     public string Color { get; set; } = "#3b82f6";
     public string Icon { get; set; } = "Package";
+    public List<ProfileWalletConfig>? CustomWallets { get; set; }
 }
 
 

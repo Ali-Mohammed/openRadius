@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<RadiusUser> RadiusUsers { get; set; }
     public DbSet<RadiusProfile> RadiusProfiles { get; set; }
+    public DbSet<RadiusProfileWallet> RadiusProfileWallets { get; set; }
     public DbSet<RadiusGroup> RadiusGroups { get; set; }
     public DbSet<RadiusTag> RadiusTags { get; set; }
     public DbSet<RadiusUserTag> RadiusUserTags { get; set; }
@@ -285,6 +286,23 @@ public class ApplicationDbContext : DbContext
                   .WithMany(p => p.ProfileAddons)
                   .HasForeignKey(e => e.BillingProfileId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RadiusProfileWallet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.RadiusProfileId);
+            entity.HasIndex(e => e.CustomWalletId);
+            
+            entity.HasOne(e => e.RadiusProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.RadiusProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.CustomWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

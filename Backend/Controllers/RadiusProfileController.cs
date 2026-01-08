@@ -175,6 +175,18 @@ public class RadiusProfileController : ControllerBase
                              !u.IsDeleted && 
                              u.ProfileId == profile.Id);
 
+        // Get custom wallets linked to this profile
+        var profileWallets = await _context.RadiusProfileWallets
+            .Include(pw => pw.CustomWallet)
+            .Where(pw => pw.RadiusProfileId == profile.Id && pw.WorkspaceId == WorkspaceId)
+            .Select(pw => new ProfileWalletConfig
+            {
+                CustomWalletId = pw.CustomWalletId,
+                Amount = pw.Amount,
+                WalletName = pw.CustomWallet.Name
+            })
+            .ToListAsync();
+
         var response = new RadiusProfileResponse
         {
             Id = profile.Id,
@@ -198,7 +210,8 @@ public class RadiusProfileController : ControllerBase
             Icon = profile.Icon,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt,
-            LastSyncedAt = profile.LastSyncedAt
+            LastSyncedAt = profile.LastSyncedAt,
+            CustomWallets = profileWallets
         };
 
         return Ok(response);
@@ -242,7 +255,33 @@ public class RadiusProfileController : ControllerBase
         _context.RadiusProfiles.Add(profile);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created radius profile {Name} for instant {WorkspaceId}", profile.Name, WorkspaceId);
+        // Add custom wallet links if provided
+        if (request.CustomWallets != null && request.CustomWallets.Any())
+        {
+            foreach (var wallet in request.CustomWallets)
+            {
+                var profileWallet = new RadiusProfileWallet
+                {
+                    WorkspaceId = WorkspaceId,
+                    RadiusProfileId = profile.Id,
+                    CustomWalletId = wallet.CustomWalletId,
+                    Amount = wallet.Amount,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.RadiusProfileWallets.Add(profileWallet);
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        _logger.LogInformation("Created radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
+
+        // Get wallet names for response
+        var profileWallets = request.CustomWallets?.Select(w => new ProfileWalletConfig
+        {
+            CustomWalletId = w.CustomWalletId,
+            Amount = w.Amount,
+            WalletName = _context.CustomWallets.FirstOrDefault(cw => cw.Id == w.CustomWalletId)?.Name
+        }).ToList() ?? new List<ProfileWalletConfig>();
 
         var response = new RadiusProfileResponse
         {
@@ -267,7 +306,8 @@ public class RadiusProfileController : ControllerBase
             Icon = profile.Icon,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt,
-            LastSyncedAt = profile.LastSyncedAt
+            LastSyncedAt = profile.LastSyncedAt,
+            CustomWallets = profileWallets
         };
 
         return CreatedAtAction(nameof(GetProfile), new { WorkspaceId, id = profile.Id }, response);
@@ -301,9 +341,33 @@ public class RadiusProfileController : ControllerBase
         profile.Icon = request.Icon;
         profile.UpdatedAt = DateTime.UtcNow;
 
+        // Update custom wallet links
+        if (request.CustomWallets != null)
+        {
+            // Remove existing wallet links
+            var existingWallets = await _context.RadiusProfileWallets
+                .Where(pw => pw.RadiusProfileId == id && pw.WorkspaceId == WorkspaceId)
+                .ToListAsync();
+            _context.RadiusProfileWallets.RemoveRange(existingWallets);
+
+            // Add new wallet links
+            foreach (var wallet in request.CustomWallets)
+            {
+                var profileWallet = new RadiusProfileWallet
+                {
+                    WorkspaceId = WorkspaceId,
+                    RadiusProfileId = profile.Id,
+                    CustomWalletId = wallet.CustomWalletId,
+                    Amount = wallet.Amount,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.RadiusProfileWallets.Add(profileWallet);
+            }
+        }
+
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Updated radius profile {Name} for instant {WorkspaceId}", profile.Name, WorkspaceId);
+        _logger.LogInformation("Updated radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
 
         return NoContent();
     }

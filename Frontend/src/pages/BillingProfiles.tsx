@@ -823,7 +823,7 @@ export default function BillingProfiles() {
                 {wallets.map((wallet, index) => (
                   <Card key={index}>
                     <CardContent className="pt-4">
-                      <div className="grid grid-cols-[180px_2fr_150px_140px_auto] gap-3 items-end">
+                      <div className="grid grid-cols-[180px_2fr_150px_140px_auto] gap-3">
                         <div className="space-y-2">
                           <Label>Type</Label>
                           <Select
@@ -935,14 +935,17 @@ export default function BillingProfiles() {
                             className="h-10"
                           />
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeWallet(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="space-y-2 self-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeWallet(index)}
+                            className="h-10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
