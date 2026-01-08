@@ -16,113 +16,12 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
-  Star, Heart, Zap, Trophy, Crown, Shield, Users, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
-  CheckCircle, XCircle, AlertCircle, Info, Settings, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
-  ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Lock, Key, Eye, Bell, MessageCircle, 
-  Send, Bookmark, FileText, Folder, Download, Upload, Share, Link, Layers, Grid, List, Filter, MoreHorizontal, 
-  Circle, Square, Triangle, Diamond, Hexagon, Octagon, Sparkles, Coffee, Music, Camera, Image, Video, Mic, 
-  Headphones, Speaker, Monitor, Smartphone, Tablet, Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
+  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { radiusGroupApi, type RadiusGroup } from '@/api/radiusGroupApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-
-const PREDEFINED_COLORS = [
-  { value: '#3b82f6', label: 'Blue' },
-  { value: '#10b981', label: 'Green' },
-  { value: '#f59e0b', label: 'Orange' },
-  { value: '#ef4444', label: 'Red' },
-  { value: '#8b5cf6', label: 'Purple' },
-  { value: '#ec4899', label: 'Pink' },
-  { value: '#6366f1', label: 'Indigo' },
-  { value: '#14b8a6', label: 'Teal' },
-]
-
-const AVAILABLE_ICONS = [
-  { name: 'Users', icon: Users },
-  { name: 'Star', icon: Star },
-  { name: 'Heart', icon: Heart },
-  { name: 'Zap', icon: Zap },
-  { name: 'Trophy', icon: Trophy },
-  { name: 'Crown', icon: Crown },
-  { name: 'Shield', icon: Shield },
-  { name: 'User', icon: User },
-  { name: 'Building', icon: Building },
-  { name: 'Briefcase', icon: Briefcase },
-  { name: 'Rocket', icon: Rocket },
-  { name: 'Target', icon: Target },
-  { name: 'Award', icon: Award },
-  { name: 'Medal', icon: Medal },
-  { name: 'Flag', icon: Flag },
-  { name: 'CheckCircle', icon: CheckCircle },
-  { name: 'XCircle', icon: XCircle },
-  { name: 'AlertCircle', icon: AlertCircle },
-  { name: 'Info', icon: Info },
-  { name: 'Settings', icon: Settings },
-  { name: 'Home', icon: Home },
-  { name: 'Mail', icon: Mail },
-  { name: 'Phone', icon: Phone },
-  { name: 'Calendar', icon: Calendar },
-  { name: 'Clock', icon: Clock },
-  { name: 'DollarSign', icon: DollarSign },
-  { name: 'CreditCard', icon: CreditCard },
-  { name: 'ShoppingCart', icon: ShoppingCart },
-  { name: 'Package', icon: Package },
-  { name: 'Truck', icon: Truck },
-  { name: 'MapPin', icon: MapPin },
-  { name: 'Globe', icon: Globe },
-  { name: 'Wifi', icon: Wifi },
-  { name: 'Database', icon: Database },
-  { name: 'Server', icon: Server },
-  { name: 'Cloud', icon: Cloud },
-  { name: 'Lock', icon: Lock },
-  { name: 'Key', icon: Key },
-  { name: 'Eye', icon: Eye },
-  { name: 'Bell', icon: Bell },
-  { name: 'MessageCircle', icon: MessageCircle },
-  { name: 'Send', icon: Send },
-  { name: 'Bookmark', icon: Bookmark },
-  { name: 'Archive', icon: Archive },
-  { name: 'FileText', icon: FileText },
-  { name: 'Folder', icon: Folder },
-  { name: 'Download', icon: Download },
-  { name: 'Upload', icon: Upload },
-  { name: 'Share', icon: Share },
-  { name: 'Link', icon: Link },
-  { name: 'Layers', icon: Layers },
-  { name: 'Grid', icon: Grid },
-  { name: 'List', icon: List },
-  { name: 'Filter', icon: Filter },
-  { name: 'Search', icon: Search },
-  { name: 'MoreHorizontal', icon: MoreHorizontal },
-  { name: 'Circle', icon: Circle },
-  { name: 'Square', icon: Square },
-  { name: 'Triangle', icon: Triangle },
-  { name: 'Diamond', icon: Diamond },
-  { name: 'Hexagon', icon: Hexagon },
-  { name: 'Octagon', icon: Octagon },
-  { name: 'Sparkles', icon: Sparkles },
-  { name: 'Coffee', icon: Coffee },
-  { name: 'Music', icon: Music },
-  { name: 'Camera', icon: Camera },
-  { name: 'Image', icon: Image },
-  { name: 'Video', icon: Video },
-  { name: 'Mic', icon: Mic },
-  { name: 'Headphones', icon: Headphones },
-  { name: 'Speaker', icon: Speaker },
-  { name: 'Monitor', icon: Monitor },
-  { name: 'Smartphone', icon: Smartphone },
-  { name: 'Tablet', icon: Tablet },
-  { name: 'Watch', icon: Watch },
-  { name: 'Printer', icon: Printer },
-  { name: 'Cpu', icon: Cpu },
-  { name: 'HardDrive', icon: HardDrive },
-  { name: 'Battery', icon: Battery },
-  { name: 'Bluetooth', icon: Bluetooth },
-  { name: 'Radio', icon: Radio },
-  { name: 'Rss', icon: Rss },
-]
+import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
 export default function RadiusGroups() {
   const { t } = useTranslation()
@@ -183,11 +82,6 @@ export default function RadiusGroups() {
   })
 
   // Helper function to get icon component
-  const getIconComponent = (iconName?: string) => {
-    if (!iconName) return Users
-    const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
-    return iconData?.icon || Users
-  }
 
   // Group queries
   const { data: groupsData, isLoading: isLoadingGroups, isFetching, error: groupsError } = useQuery({
@@ -462,7 +356,7 @@ export default function RadiusGroups() {
                 className="max-w-sm"
               />
               <Button onClick={handleSearch} variant="outline" size="icon">
-                <Search className="h-4 w-4" />
+                <SearchIcon className="h-4 w-4" />
               </Button>
               <Button 
                 onClick={handleRefresh} 
