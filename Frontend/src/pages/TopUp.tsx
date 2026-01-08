@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DollarSign, TrendingUp, ArrowUpCircle, Check, ChevronsUpDown } from 'lucide-react'
+import { DollarSign, TrendingUp, ArrowUpCircle, Check, ChevronsUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/command'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import topUpApi, { type TopUpRequest } from '@/api/topUp'
 import { customWalletApi } from '@/api/customWallets'
 import userWalletApi from '@/api/userWallets'
@@ -41,13 +42,17 @@ import { workspaceApi } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
+type WizardStep = 1 | 2 | 3 | 4
+
 export default function TopUp() {
   const queryClient = useQueryClient()
   const { currentWorkspaceId } = useWorkspace()
   const { i18n } = useTranslation()
 
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [walletType, setWalletType] = useState<'custom' | 'user'>('custom')
   const [userSearchOpen, setUserSearchOpen] = useState(false)
+  const [topUpResult, setTopUpResult] = useState<{ success: boolean; message: string; data?: any } | null>(null)
   const [formData, setFormData] = useState<TopUpRequest>({
     walletType: 'custom',
     amount: 0,
@@ -92,27 +97,68 @@ export default function TopUp() {
       }
     },
     onSuccess: (data) => {
-      toast.success(
-        `Successfully added ${currencySymbol}${data.amount.toFixed(2)}. New balance: ${currencySymbol}${data.balanceAfter.toFixed(2)}`
-      )
+      setTopUpResult({
+        success: true,
+        message: `Successfully added ${currencySymbol}${data.amount.toFixed(2)}. New balance: ${currencySymbol}${data.balanceAfter.toFixed(2)}`,
+        data
+      })
+      setCurrentStep(4)
       queryClient.invalidateQueries({ queryKey: ['customWallets'] })
       queryClient.invalidateQueries({ queryKey: ['userWallets'] })
       queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
-      
-      // Reset form
-      setFormData({
-        walletType,
-        amount: 0,
-      })
     },
     onError: (error: any) => {
       const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         'Failed to process top-up'
-      toast.error(errorMessage)
+      setTopUpResult({
+        success: false,
+        message: errorMessage
+      })
+      setCurrentStep(4)
     },
   })
+
+  const handleNext = () => {
+    if (currentStep === 1) {
+      // Validate step 1
+      if (!formData.amount || formData.amount <= 0) {
+        toast.error('Please enter a valid amount')
+        return
+      }
+      if (walletType === 'custom' && !formData.customWalletId) {
+        toast.error('Please select a custom wallet')
+        return
+      }
+      if (walletType === 'user' && !formData.userWalletId) {
+        toast.error('Please select a user wallet')
+        return
+      }
+      setCurrentStep(2)
+    } else if (currentStep === 2) {
+      setCurrentStep(3)
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep > 1 && currentStep < 4) {
+      setCurrentStep((prev) => (prev - 1) as WizardStep)
+    }
+  }
+
+  const handleConfirm = () => {
+    topUpMutation.mutate(formData)
+  }
+
+  const handleStartNew = () => {
+    setCurrentStep(1)
+    setTopUpResult(null)
+    setFormData({
+      walletType,
+      amount: 0,
+    })
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -146,26 +192,87 @@ export default function TopUp() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Wallet Top-Up</h1>
+        <h1 className="text-3xl font-bold">Wallet Top-Up</h1>
         <p className="text-muted-foreground">
           Add balance to custom wallets or user wallets
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Top-Up Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowUpCircle className="h-5 w-5" />
-              Add Balance
-            </CardTitle>
-            <CardDescription>
-              Select a wallet and enter the amount to top up
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Step Indicator */}
+      <div className="flex items-center justify-center gap-2">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center">
+            <div className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-colors",
+              currentStep === step
+                ? "border-primary bg-primary text-primary-foreground"
+                : currentStep > step
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-muted-foreground/30 bg-background text-muted-foreground"
+            )}>
+              {currentStep > step ? <Check className="h-5 w-5" /> : step}
+            </div>
+            {step < 4 && (
+              <div className={cn(
+                "h-0.5 w-16 mx-2 transition-colors",
+                currentStep > step ? "bg-primary" : "bg-muted-foreground/30"
+              )} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Step Labels */}
+      <div className="flex items-center justify-center gap-2">
+        <div className="flex-1 text-center max-w-[140px]">
+          <p className={cn(
+            "text-sm font-medium",
+            currentStep === 1 ? "text-primary" : "text-muted-foreground"
+          )}>Fill Information</p>
+        </div>
+        <div className="w-16" />
+        <div className="flex-1 text-center max-w-[140px]">
+          <p className={cn(
+            "text-sm font-medium",
+            currentStep === 2 ? "text-primary" : "text-muted-foreground"
+          )}>Review Details</p>
+        </div>
+        <div className="w-16" />
+        <div className="flex-1 text-center max-w-[140px]">
+          <p className={cn(
+            "text-sm font-medium",
+            currentStep === 3 ? "text-primary" : "text-muted-foreground"
+          )}>Confirm</p>
+        </div>
+        <div className="w-16" />
+        <div className="flex-1 text-center max-w-[140px]">
+          <p className={cn(
+            "text-sm font-medium",
+            currentStep === 4 ? "text-primary" : "text-muted-foreground"
+          )}>Result</p>
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader>
+          <CardTitle>
+            {currentStep === 1 && "Step 1: Fill Information"}
+            {currentStep === 2 && "Step 2: Review Details"}
+            {currentStep === 3 && "Step 3: Confirm Transaction"}
+            {currentStep === 4 && "Result"}
+          </CardTitle>
+          <CardDescription>
+            {currentStep === 1 && "Select wallet and enter top-up amount"}
+            {currentStep === 2 && "Review your top-up details before confirming"}
+            {currentStep === 3 && "Confirm to process the top-up transaction"}
+            {currentStep === 4 && "Transaction result"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Step 1: Fill Information */}
+          {currentStep === 1 && (
+            <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="walletType">Wallet Type *</Label>
                 <Select
@@ -174,7 +281,7 @@ export default function TopUp() {
                     setWalletType(value)
                     setFormData({
                       walletType: value,
-                      amount: 0,
+                      amount: formData.amount,
                     })
                   }}
                 >
@@ -218,6 +325,7 @@ export default function TopUp() {
                 </div>
               ) : (
                 <div className="space-y-2">
+                  <Label>User Wallet *</Label>
                   <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -311,109 +419,224 @@ export default function TopUp() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={topUpMutation.isPending}
-              >
-                {topUpMutation.isPending ? (
-                  'Processing...'
-                ) : (
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="submit">
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 2: Review Details */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex justify-between py-3 border-b">
+                  <span className="text-muted-foreground">Wallet Type</span>
+                  <span className="font-medium capitalize">{walletType} Wallet</span>
+                </div>
+                
+                {selectedCustomWallet && (
                   <>
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Add {currencySymbol}
-                    {formData.amount > 0 ? formData.amount.toFixed(2) : '0.00'}
+                    <div className="flex justify-between py-3 border-b">
+                      <span className="text-muted-foreground">Wallet Name</span>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: selectedCustomWallet.color }}
+                        />
+                        <span className="font-medium">{selectedCustomWallet.name}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between py-3 border-b">
+                      <span className="text-muted-foreground">Current Balance</span>
+                      <span className="font-medium">
+                        {currencySymbol}{selectedCustomWallet.currentBalance.toFixed(2)}
+                      </span>
+                    </div>
                   </>
                 )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
 
-        {/* Current Balance Display */}
-        {(selectedCustomWallet || selectedUserWallet) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Current Balance
-              </CardTitle>
-              <CardDescription>
-                Balance information for selected wallet
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {selectedCustomWallet && (
-                <>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Wallet Name</div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded"
-                        style={{ backgroundColor: selectedCustomWallet.color }}
-                      />
-                      <div className="font-medium">{selectedCustomWallet.name}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Type</div>
-                    <div className="capitalize">{selectedCustomWallet.type}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Current Balance</div>
-                    <div className="text-2xl font-bold">
-                      {currencySymbol}
-                      {selectedCustomWallet.currentBalance.toFixed(2)}
-                    </div>
-                  </div>
-                  {formData.amount > 0 && (
-                    <div className="pt-4 border-t">
-                      <div className="text-sm text-muted-foreground mb-1">
-                        New Balance (after top-up)
-                      </div>
-                      <div className="text-2xl font-bold text-green-600">
-                        {currencySymbol}
-                        {(selectedCustomWallet.currentBalance + formData.amount).toFixed(2)}
+                {selectedUserWallet && (
+                  <>
+                    <div className="flex justify-between py-3 border-b">
+                      <span className="text-muted-foreground">User</span>
+                      <div className="text-right">
+                        <div className="font-medium">{selectedUserWallet.userName}</div>
+                        <div className="text-sm text-muted-foreground">{selectedUserWallet.userEmail}</div>
                       </div>
                     </div>
+                    <div className="flex justify-between py-3 border-b">
+                      <span className="text-muted-foreground">Current Balance</span>
+                      <span className="font-medium">
+                        {currencySymbol}{selectedUserWallet.currentBalance.toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex justify-between py-3 border-b">
+                  <span className="text-muted-foreground">Top-Up Amount</span>
+                  <span className="font-medium text-green-600">
+                    +{currencySymbol}{formData.amount.toFixed(2)}
+                  </span>
+                </div>
+
+                {formData.reference && (
+                  <div className="flex justify-between py-3 border-b">
+                    <span className="text-muted-foreground">Reference</span>
+                    <span className="font-medium">{formData.reference}</span>
+                  </div>
+                )}
+
+                {formData.reason && (
+                  <div className="flex justify-between py-3 border-b">
+                    <span className="text-muted-foreground">Reason</span>
+                    <span className="font-medium text-right max-w-xs">{formData.reason}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between py-3 bg-muted/50 rounded-lg px-4">
+                  <span className="font-semibold">New Balance (After Top-Up)</span>
+                  <span className="font-bold text-lg text-primary">
+                    {currencySymbol}
+                    {((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button type="button" onClick={handleNext}>
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Confirm */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  ⚠️ Please confirm the transaction details before proceeding
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  This action will add {currencySymbol}{formData.amount.toFixed(2)} to the selected wallet
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="text-center py-6">
+                  <div className="text-5xl mb-4">💰</div>
+                  <div className="text-2xl font-bold mb-2">
+                    {currencySymbol}{formData.amount.toFixed(2)}
+                  </div>
+                  <div className="text-muted-foreground">
+                    will be added to {walletType === 'custom' ? selectedCustomWallet?.name : selectedUserWallet?.userName}
+                  </div>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Current Balance:</span>
+                    <span className="font-medium">
+                      {currencySymbol}{(selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Top-Up Amount:</span>
+                    <span className="font-medium">+{currencySymbol}{formData.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="h-px bg-border my-2" />
+                  <div className="flex justify-between font-bold">
+                    <span>New Balance:</span>
+                    <span className="text-primary">
+                      {currencySymbol}{((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={handleBack} disabled={topUpMutation.isPending}>
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button type="button" onClick={handleConfirm} disabled={topUpMutation.isPending}>
+                  {topUpMutation.isPending ? 'Processing...' : (
+                    <>
+                      Confirm & Process
+                      <CheckCircle2 className="ml-2 h-4 w-4" />
+                    </>
                   )}
-                </>
-              )}
-              {selectedUserWallet && (
-                <>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">User</div>
-                    <div>
-                      <div className="font-medium">{selectedUserWallet.userName}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {selectedUserWallet.userEmail}
-                      </div>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Result */}
+          {currentStep === 4 && topUpResult && (
+            <div className="space-y-6">
+              <div className="text-center py-8">
+                {topUpResult.success ? (
+                  <>
+                    <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
                     </div>
+                    <h3 className="text-2xl font-bold mb-2">Top-Up Successful!</h3>
+                    <p className="text-muted-foreground">{topUpResult.message}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
+                      <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">Top-Up Failed</h3>
+                    <p className="text-muted-foreground">{topUpResult.message}</p>
+                  </>
+                )}
+              </div>
+
+              {topUpResult.success && topUpResult.data && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Amount Added:</span>
+                    <span className="font-medium text-green-600">
+                      +{currencySymbol}{topUpResult.data.amount.toFixed(2)}
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Current Balance</div>
-                    <div className="text-2xl font-bold">
-                      {currencySymbol}
-                      {selectedUserWallet.currentBalance.toFixed(2)}
-                    </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Previous Balance:</span>
+                    <span className="font-medium">
+                      {currencySymbol}{topUpResult.data.balanceBefore.toFixed(2)}
+                    </span>
                   </div>
-                  {formData.amount > 0 && (
-                    <div className="pt-4 border-t">
-                      <div className="text-sm text-muted-foreground mb-1">
-                        New Balance (after top-up)
-                      </div>
-                      <div className="text-2xl font-bold text-green-600">
-                        {currencySymbol}
-                        {(selectedUserWallet.currentBalance + formData.amount).toFixed(2)}
-                      </div>
-                    </div>
-                  )}
-                </>
+                  <div className="h-px bg-border my-2" />
+                  <div className="flex justify-between font-bold">
+                    <span>New Balance:</span>
+                    <span className="text-primary">
+                      {currencySymbol}{topUpResult.data.balanceAfter.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+
+              <div className="flex justify-center gap-2 pt-4">
+                <Button type="button" onClick={handleStartNew}>
+                  <ArrowUpCircle className="mr-2 h-4 w-4" />
+                  New Top-Up
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
