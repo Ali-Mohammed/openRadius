@@ -16,20 +16,22 @@ export default function GeneralSettings() {
   const queryClient = useQueryClient()
   const [currency, setCurrency] = useState('USD')
 
-  const { isLoading } = useQuery({
+  const { data: settingsData, isLoading } = useQuery({
     queryKey: ['general-settings', currentWorkspaceId],
     queryFn: () => settingsApi.getGeneralSettings(currentWorkspaceId!),
-    enabled: currentWorkspaceId !== null, // Only fetch when workspace ID is available
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent duplicate requests
-    onSuccess: (data) => {
-      setCurrency(data.currency)
-    },
+    enabled: currentWorkspaceId !== null,
   })
+
+  // Update local state when data changes
+  if (settingsData && currency !== settingsData.currency) {
+    setCurrency(settingsData.currency)
+  }
 
   const updateMutation = useMutation({
     mutationFn: (currency: string) => settingsApi.updateGeneralSettings(currentWorkspaceId!, { currency }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['general-settings', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', currentWorkspaceId] })
       toast.success('Settings saved successfully')
     },
     onError: (error: any) => {

@@ -84,7 +84,7 @@ export default function TopUp() {
     enabled: !!currentWorkspaceId,
   })
 
-  const currencySymbol = getCurrencySymbol(workspace?.settings?.currency)
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: customWallets } = useQuery({
     queryKey: ['customWallets', 'all'],

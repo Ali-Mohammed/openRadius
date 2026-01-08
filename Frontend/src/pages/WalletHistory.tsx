@@ -90,7 +90,7 @@ export default function WalletHistory() {
     enabled: !!currentWorkspaceId,
   })
 
-  const currencySymbol = getCurrencySymbol(workspace?.settings?.currency)
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: historyData, isLoading } = useQuery({
     queryKey: [

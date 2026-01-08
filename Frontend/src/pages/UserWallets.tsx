@@ -248,7 +248,7 @@ export default function UserWallets() {
     enabled: !!currentWorkspaceId,
   })
 
-  const currencySymbol = getCurrencySymbol(workspace?.settings?.currency)
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: walletsData, isLoading } = useQuery({
     queryKey: [

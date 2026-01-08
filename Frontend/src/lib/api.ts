@@ -59,6 +59,7 @@ export interface Workspace {
   status: 'active' | 'inactive'
   color: string
   icon: string
+  currency: string
   createdAt: string
   updatedAt: string
   createdBy: string
