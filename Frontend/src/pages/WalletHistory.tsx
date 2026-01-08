@@ -83,6 +83,14 @@ export default function WalletHistory() {
     return '$'
   }
 
+  // Helper to format currency amounts
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
   // Queries
   const { data: workspace } = useQuery({
     queryKey: ['workspace', currentWorkspaceId],
@@ -167,7 +175,7 @@ export default function WalletHistory() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {currencySymbol} {stats.totalAmount.toFixed(2)}
+                {currencySymbol} {formatCurrency(stats.totalAmount)}
               </div>
             </CardContent>
           </Card>
@@ -181,7 +189,7 @@ export default function WalletHistory() {
                 {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                {currencySymbol} {(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0).toFixed(2)}
+                {currencySymbol} {formatCurrency(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0)}
               </p>
             </CardContent>
           </Card>
@@ -352,14 +360,14 @@ export default function WalletHistory() {
                         <TableCell className="text-right">
                           <span className={`${typeInfo?.color} font-medium`}>
                             {item.amountType === 'credit' ? '+' : '-'}
-                            {currencySymbol} {item.amount.toFixed(2)}
+                            {currencySymbol} {formatCurrency(item.amount)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                          {currencySymbol} {item.balanceBefore.toFixed(2)}
+                          {currencySymbol} {formatCurrency(item.balanceBefore)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {currencySymbol} {item.balanceAfter.toFixed(2)}
+                          {currencySymbol} {formatCurrency(item.balanceAfter)}
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs">
