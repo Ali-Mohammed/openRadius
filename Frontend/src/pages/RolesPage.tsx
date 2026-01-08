@@ -310,7 +310,7 @@ export default function RolesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
+                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start gap-2">
                       {(() => {
@@ -320,7 +320,7 @@ export default function RolesPage() {
                       <span>{selectedIcon}</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
+                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5} style={{ zIndex: 9999 }}>
                     <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
                       {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
                         <button
@@ -437,7 +437,7 @@ export default function RolesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <Popover>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start gap-2">
                       {(() => {
@@ -447,7 +447,7 @@ export default function RolesPage() {
                       <span>{selectedIcon}</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
+                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5} style={{ zIndex: 9999 }}>
                     <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
                       {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
                         <button
