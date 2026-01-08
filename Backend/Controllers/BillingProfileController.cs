@@ -74,6 +74,7 @@ public class BillingProfileController : ControllerBase
                     p.Id,
                     p.Name,
                     p.Description,
+                    p.Price,
                     p.RadiusProfileId,
                     p.BillingGroupId,
                     p.IsDeleted,
@@ -84,10 +85,10 @@ public class BillingProfileController : ControllerBase
                     {
                         w.Id,
                         w.WalletType,
+                        w.UserWalletId,
                         w.CustomWalletId,
-                        w.Percentage,
-                        w.Icon,
-                        w.Color,
+                        Price = w.Percentage,
+                        w.Direction,
                         w.DisplayOrder
                     }).ToList(),
                     Addons = p.ProfileAddons.Select(a => new
@@ -132,6 +133,7 @@ public class BillingProfileController : ControllerBase
                     p.Id,
                     p.Name,
                     p.Description,
+                    p.Price,
                     p.RadiusProfileId,
                     p.BillingGroupId,
                     p.IsDeleted,
@@ -142,10 +144,10 @@ public class BillingProfileController : ControllerBase
                     {
                         w.Id,
                         w.WalletType,
+                        w.UserWalletId,
                         w.CustomWalletId,
-                        w.Percentage,
-                        w.Icon,
-                        w.Color,
+                        Price = w.Percentage,
+                        w.Direction,
                         w.DisplayOrder
                     }).ToList(),
                     Addons = p.ProfileAddons.Select(a => new
@@ -195,20 +197,13 @@ public class BillingProfileController : ControllerBase
                 return BadRequest(new { error = "Invalid radius profile" });
             }
 
-            // Validate BillingGroup exists
-            var billingGroup = await _context.BillingGroups.FindAsync(request.BillingGroupId);
-            if (billingGroup == null)
+            // Validate BillingGroup exists (skip if billingGroupId is 0 for "All Groups")
+            if (request.BillingGroupId != 0)
             {
-                return BadRequest(new { error = "Invalid billing group" });
-            }
-
-            // Validate wallet percentages sum to 100
-            if (request.Wallets != null && request.Wallets.Any())
-            {
-                var totalPercentage = request.Wallets.Sum(w => w.Percentage);
-                if (totalPercentage != 100)
+                var billingGroup = await _context.BillingGroups.FindAsync(request.BillingGroupId);
+                if (billingGroup == null)
                 {
-                    return BadRequest(new { error = $"Wallet percentages must sum to 100% (currently {totalPercentage}%)" });
+                    return BadRequest(new { error = "Invalid billing group" });
                 }
             }
 
@@ -218,6 +213,7 @@ public class BillingProfileController : ControllerBase
             {
                 Name = request.Name,
                 Description = request.Description,
+                Price = request.Price,
                 RadiusProfileId = request.RadiusProfileId,
                 BillingGroupId = request.BillingGroupId,
                 CreatedAt = DateTime.UtcNow,
@@ -235,10 +231,10 @@ public class BillingProfileController : ControllerBase
                 {
                     BillingProfileId = profile.Id,
                     WalletType = w.WalletType,
+                    UserWalletId = w.UserWalletId,
                     CustomWalletId = w.CustomWalletId,
-                    Percentage = w.Percentage,
-                    Icon = w.Icon,
-                    Color = w.Color,
+                    Percentage = w.Price,
+                    Direction = w.Direction,
                     DisplayOrder = index
                 }).ToList();
 
@@ -298,20 +294,11 @@ public class BillingProfileController : ControllerBase
                 return BadRequest(new { error = "A billing profile with this name already exists" });
             }
 
-            // Validate wallet percentages sum to 100
-            if (request.Wallets != null && request.Wallets.Any())
-            {
-                var totalPercentage = request.Wallets.Sum(w => w.Percentage);
-                if (totalPercentage != 100)
-                {
-                    return BadRequest(new { error = $"Wallet percentages must sum to 100% (currently {totalPercentage}%)" });
-                }
-            }
-
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
             existingProfile.Name = request.Name;
             existingProfile.Description = request.Description;
+            existingProfile.Price = request.Price;
             existingProfile.RadiusProfileId = request.RadiusProfileId;
             existingProfile.BillingGroupId = request.BillingGroupId;
             existingProfile.UpdatedAt = DateTime.UtcNow;
@@ -326,10 +313,10 @@ public class BillingProfileController : ControllerBase
                 {
                     BillingProfileId = existingProfile.Id,
                     WalletType = w.WalletType,
+                    UserWalletId = w.UserWalletId,
                     CustomWalletId = w.CustomWalletId,
-                    Percentage = w.Percentage,
-                    Icon = w.Icon,
-                    Color = w.Color,
+                    Percentage = w.Price,
+                    Direction = w.Direction,
                     DisplayOrder = index
                 }).ToList();
 
@@ -430,6 +417,7 @@ public class CreateBillingProfileRequest
 {
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
+    public decimal? Price { get; set; }
     public int RadiusProfileId { get; set; }
     public int BillingGroupId { get; set; }
     public List<WalletConfigRequest>? Wallets { get; set; }
@@ -440,6 +428,7 @@ public class UpdateBillingProfileRequest
 {
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
+    public decimal? Price { get; set; }
     public int RadiusProfileId { get; set; }
     public int BillingGroupId { get; set; }
     public List<WalletConfigRequest>? Wallets { get; set; }
@@ -449,10 +438,10 @@ public class UpdateBillingProfileRequest
 public class WalletConfigRequest
 {
     public string WalletType { get; set; } = null!;
+    public int? UserWalletId { get; set; }
     public int? CustomWalletId { get; set; }
-    public decimal Percentage { get; set; }
-    public string? Icon { get; set; }
-    public string? Color { get; set; }
+    public decimal Price { get; set; }
+    public string? Direction { get; set; }
 }
 
 public class AddonConfigRequest

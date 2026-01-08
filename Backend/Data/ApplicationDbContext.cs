@@ -264,6 +264,16 @@ public class ApplicationDbContext : DbContext
                   .WithMany(p => p.ProfileWallets)
                   .HasForeignKey(e => e.BillingProfileId)
                   .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.UserWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.HasOne(e => e.CustomWallet)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomWalletId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<BillingProfileAddon>(entity =>

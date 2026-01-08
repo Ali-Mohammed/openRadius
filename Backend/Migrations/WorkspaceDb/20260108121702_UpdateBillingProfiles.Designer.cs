@@ -3,6 +3,7 @@ using System;
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.WorkspaceDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260108121702_UpdateBillingProfiles")]
+    partial class UpdateBillingProfiles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -256,9 +259,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<int?>("CustomWalletId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Direction")
-                        .HasColumnType("text");
-
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
@@ -268,9 +268,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<decimal>("Percentage")
                         .HasColumnType("numeric");
 
-                    b.Property<int?>("UserWalletId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("WalletType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -278,10 +275,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.HasKey("Id");
 
                     b.HasIndex("BillingProfileId");
-
-                    b.HasIndex("CustomWalletId");
-
-                    b.HasIndex("UserWalletId");
 
                     b.ToTable("BillingProfileWallets");
                 });
@@ -1604,21 +1597,7 @@ namespace Backend.Migrations.WorkspaceDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
-                        .WithMany()
-                        .HasForeignKey("CustomWalletId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Backend.Models.UserWallet", "UserWallet")
-                        .WithMany()
-                        .HasForeignKey("UserWalletId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("BillingProfile");
-
-                    b.Navigation("CustomWallet");
-
-                    b.Navigation("UserWallet");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>

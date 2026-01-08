@@ -17,6 +17,8 @@ import {
 import { radiusProfileApi } from '../api/radiusProfileApi';
 import { getGroups } from '../api/groups';
 import { addonApi, type Addon } from '../api/addons';
+import { customWalletApi } from '../api/customWallets';
+import userWalletApi from '../api/userWallets';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -89,16 +91,20 @@ export default function BillingProfiles() {
   const [formData, setFormData] = useState<CreateBillingProfileRequest>({
     name: '',
     description: '',
+    price: 0,
     radiusProfileId: 0,
     billingGroupId: 0,
     wallets: [],
     addons: [],
   });
 
-  const [selectedRadiusProfiles, setSelectedRadiusProfiles] = useState<number[]>([]);
-  const [selectedAddons, setSelectedAddons] = useState<{addonId: number, price: number}[]>([]);
+  const [selectedRadiusProfiles, setSelectedRadiusProfiles] = useState<{profileId: number, number: number}[]>([]);
+  const [selectedBillingGroups, setSelectedBillingGroups] = useState<number[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<{addonId: number, price: number, number: number}[]>([]);
   const [radiusProfilePopoverOpen, setRadiusProfilePopoverOpen] = useState(false);
+  const [billingGroupPopoverOpen, setBillingGroupPopoverOpen] = useState(false);
   const [addonPopoverOpen, setAddonPopoverOpen] = useState(false);
+  const [selectAllGroups, setSelectAllGroups] = useState(false);
 
   const [wallets, setWallets] = useState<BillingProfileWallet[]>([]);
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
@@ -143,6 +149,17 @@ export default function BillingProfiles() {
     queryKey: ['addons'],
     queryFn: () => addonApi.getAll({ includeDeleted: false }),
   });
+
+  const { data: userWalletsData, isLoading: isLoadingUserWallets } = useQuery({
+    queryKey: ['user-wallets'],
+    queryFn: () => userWalletApi.getAll({ status: 'active' }),
+  });
+
+  const { data: customWalletsData, isLoading: isLoadingCustomWallets } = useQuery({
+    queryKey: ['custom-wallets'],
+    queryFn: () => customWalletApi.getAll({ status: 'active', pageSize: 1000 }),
+  });
+
 
   // Mutations
   const createMutation = useMutation({
@@ -202,25 +219,35 @@ export default function BillingProfiles() {
       setFormData({
         name: profile.name,
         description: profile.description || '',
+        price: profile.price || 0,
         radiusProfileId: profile.radiusProfileId,
         billingGroupId: profile.billingGroupId,
         wallets: profile.wallets || [],
         addons: profile.addons || [],
       });
       setWallets(profile.wallets || []);
-      setAddons(profile.addons || []);
+      setSelectedRadiusProfiles([{profileId: profile.radiusProfileId, number: 1}]);
+      setSelectedBillingGroups([profile.billingGroupId]);
+      setSelectAllGroups(false);
+      setSelectedAddons(
+        profile.addons?.map(a => ({ addonId: a.id!, price: a.price, number: 1 })) || []
+      );
     } else {
       setEditingProfile(null);
       setFormData({
         name: '',
         description: '',
+        price: 0,
         radiusProfileId: 0,
         billingGroupId: 0,
         wallets: [],
         addons: [],
       });
       setWallets([]);
-      setAddons([]);
+      setSelectedRadiusProfiles([]);
+      setSelectedBillingGroups([]);
+      setSelectAllGroups(false);
+      setSelectedAddons([]);
     }
     setIsDialogOpen(true);
   };
@@ -231,36 +258,66 @@ export default function BillingProfiles() {
     setFormData({
       name: '',
       description: '',
+      price: 0,
       radiusProfileId: 0,
       billingGroupId: 0,
       wallets: [],
       addons: [],
     });
     setWallets([]);
-    setAddons([]);
+    setSelectedRadiusProfiles([]);
+    setSelectedBillingGroups([]);
+    setSelectAllGroups(false);
+    setSelectedAddons([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
-    if (!formData.radiusProfileId) {
-      toast.error('Please select a radius profile');
+    if (selectedRadiusProfiles.length === 0) {
+      toast.error('Please select at least one radius profile');
       return;
-    }
-    if (!formData.billingGroupId) {
-      toast.error('Please select a billing group');
-      return;
-    }
-    if (wallets.length > 0) {
-      const totalPercentage = wallets.reduce((sum, w) => sum + w.percentage, 0);
-      if (totalPercentage !== 100) {
-        toast.error(`Wallet percentages must sum to 100% (currently ${totalPercentage}%)`);
-        return;
-      }
     }
 
-    const data = { ...formData, wallets, addons };
+    // Validate all radius profiles have a number > 0
+    const invalidProfile = selectedRadiusProfiles.find(rp => !rp.number || rp.number <= 0);
+    if (invalidProfile) {
+      toast.error('All radius profiles must have a number greater than 0');
+      return;
+    }
+    if (!selectAllGroups && selectedBillingGroups.length === 0) {
+      toast.error('Please select at least one billing group or "All Groups"');
+      return;
+    }
+
+    // Validate all addons have a number > 0
+    const invalidAddon = selectedAddons.find(addon => !addon.number || addon.number <= 0);
+    if (invalidAddon) {
+      toast.error('All addons must have a number greater than 0');
+      return;
+    }
+
+    // Convert selectedAddons to BillingProfileAddon format
+    const profileAddons = selectedAddons.map((sa, index) => {
+      const addon = addonsData?.data?.find((a: Addon) => a.id === sa.addonId);
+      return {
+        title: addon?.name || '',
+        description: addon?.description || '',
+        price: sa.price,
+        displayOrder: index,
+      };
+    });
+
+    // For now, use the first selected radius profile and billing group as the main one
+    // TODO: Backend might need to be updated to support multiple
+    const data = { 
+      ...formData, 
+      radiusProfileId: selectedRadiusProfiles[0].profileId,
+      billingGroupId: selectAllGroups ? 0 : selectedBillingGroups[0], // 0 means all groups
+      wallets, 
+      addons: profileAddons 
+    };
 
     if (editingProfile) {
       updateMutation.mutate({ id: editingProfile.id, data });
@@ -288,9 +345,12 @@ export default function BillingProfiles() {
       ...wallets,
       {
         walletType: 'user',
+        userWalletId: undefined,
+        customWalletId: undefined,
         percentage: 0,
-        icon: 'Wallet',
-        color: '#3b82f6',
+        icon: '',
+        color: '',
+        direction: 'in',
       },
     ]);
   };
@@ -304,29 +364,6 @@ export default function BillingProfiles() {
     updated[index] = { ...updated[index], [field]: value };
     setWallets(updated);
   };
-
-  const addAddon = () => {
-    setAddons([
-      ...addons,
-      {
-        title: '',
-        description: '',
-        price: 0,
-      },
-    ]);
-  };
-
-  const removeAddon = (index: number) => {
-    setAddons(addons.filter((_, i) => i !== index));
-  };
-
-  const updateAddon = (index: number, field: keyof BillingProfileAddon, value: any) => {
-    const updated = [...addons];
-    updated[index] = { ...updated[index], [field]: value };
-    setAddons(updated);
-  };
-
-  const totalPercentage = wallets.reduce((sum, w) => sum + w.percentage, 0);
 
   return (
     <div className="p-6">
@@ -521,7 +558,7 @@ export default function BillingProfiles() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -539,105 +576,232 @@ export default function BillingProfiles() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Price</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
-            {/* Radius Profile & Billing Group */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="radiusProfile">Radius Profiles *</Label>
-                <Popover open={radiusProfilePopoverOpen} onOpenChange={setRadiusProfilePopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={radiusProfilePopoverOpen}
-                      className="w-full justify-between"
-                      disabled={isLoadingRadiusProfiles}
-                    >
-                      {selectedRadiusProfiles.length > 0
-                        ? `${selectedRadiusProfiles.length} profile(s) selected`
-                        : "Select radius profiles..."}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search radius profiles..." />
-                      <CommandEmpty>No radius profile found.</CommandEmpty>
-                      <CommandGroup className="max-h-64 overflow-auto">
-                        {radiusProfilesData?.data?.map((profile: any) => (
+            {/* Billing Groups Configuration */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Billing Groups *</CardTitle>
+                    <CardDescription>
+                      Select billing groups or choose "All Groups"
+                    </CardDescription>
+                  </div>
+                  <Popover open={billingGroupPopoverOpen} onOpenChange={setBillingGroupPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" disabled={isLoadingBillingGroups || selectAllGroups}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Group
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search billing groups..." />
+                        <CommandEmpty>No billing group found.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
                           <CommandItem
-                            key={profile.id}
-                            value={profile.name}
+                            value="all-groups"
                             onSelect={() => {
-                              setSelectedRadiusProfiles(prev =>
-                                prev.includes(profile.id)
-                                  ? prev.filter(id => id !== profile.id)
-                                  : [...prev, profile.id]
-                              );
+                              setSelectAllGroups(true);
+                              setSelectedBillingGroups([]);
+                              setBillingGroupPopoverOpen(false);
                             }}
                           >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedRadiusProfiles.includes(profile.id) ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {profile.name}
+                            <strong>All Groups</strong>
                           </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {selectedRadiusProfiles.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedRadiusProfiles.map(profileId => {
-                      const profile = radiusProfilesData?.data?.find((p: any) => p.id === profileId);
-                      return profile ? (
-                        <Badge key={profileId} variant="secondary">
-                          {profile.name}
-                          <X
-                            className="ml-1 h-3 w-3 cursor-pointer"
-                            onClick={() => setSelectedRadiusProfiles(prev => prev.filter(id => id !== profileId))}
-                          />
-                        </Badge>
+                          {billingGroupsData?.data?.map((group: any) => (
+                            <CommandItem
+                              key={group.id}
+                              value={group.name}
+                              onSelect={() => {
+                                if (!selectedBillingGroups.includes(group.id)) {
+                                  setSelectedBillingGroups(prev => [...prev, group.id]);
+                                  setSelectAllGroups(false);
+                                }
+                                setBillingGroupPopoverOpen(false);
+                              }}
+                            >
+                              {group.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {selectAllGroups ? (
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">All Groups</div>
+                          <div className="text-sm text-muted-foreground">
+                            This profile applies to all billing groups
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectAllGroups(false)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {selectedBillingGroups.map((groupId) => {
+                      const group = billingGroupsData?.data?.find((g: any) => g.id === groupId);
+                      return group ? (
+                        <Card key={groupId}>
+                          <CardContent className="pt-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium">{group.name}</div>
+                                {group.description && (
+                                  <div className="text-sm text-muted-foreground">{group.description}</div>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedBillingGroups(prev => prev.filter(id => id !== groupId))}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ) : null;
                     })}
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billingGroup">Billing Group *</Label>
-                <Select
-                  value={formData.billingGroupId?.toString() || ''}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, billingGroupId: parseInt(value) })
-                  }
-                  disabled={isLoadingBillingGroups}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={isLoadingBillingGroups ? "Loading..." : "Select billing group"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingBillingGroups ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        Loading billing groups...
-                      </div>
-                    ) : !billingGroupsData?.data || billingGroupsData.data.length === 0 ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        No billing groups available
-                      </div>
-                    ) : (
-                      billingGroupsData.data.map((group: any) => (
-                        <SelectItem key={group.id} value={group.id.toString()}>
-                          {group.name}
-                        </SelectItem>
-                      ))
+                    {selectedBillingGroups.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No billing groups selected. Click "Add Group" to select a billing group or choose "All Groups".
+                      </p>
                     )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Radius Profiles Configuration */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Radius Profiles *</CardTitle>
+                    <CardDescription>
+                      Select radius profiles to associate with this billing profile
+                    </CardDescription>
+                  </div>
+                  <Popover open={radiusProfilePopoverOpen} onOpenChange={setRadiusProfilePopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" disabled={isLoadingRadiusProfiles}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Profile
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search radius profiles..." />
+                        <CommandEmpty>No radius profile found.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
+                          {radiusProfilesData?.data?.map((profile: any) => (
+                            <CommandItem
+                              key={profile.id}
+                              value={profile.name}
+                              onSelect={() => {
+                                if (!selectedRadiusProfiles.find(rp => rp.profileId === profile.id)) {
+                                  setSelectedRadiusProfiles(prev => [...prev, {profileId: profile.id, number: 1}]);
+                                }
+                                setRadiusProfilePopoverOpen(false);
+                              }}
+                            >
+                              {profile.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {selectedRadiusProfiles.map((rp, index) => {
+                  const profile = radiusProfilesData?.data?.find((p: any) => p.id === rp.profileId);
+                  return profile ? (
+                    <Card key={rp.profileId}>
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="font-medium">{profile.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {profile.downrate && profile.uprate && (
+                                <>Download: {profile.downrate}Mbps / Upload: {profile.uprate}Mbps</>
+                              )}
+                              {profile.price && <> • Price: ${profile.price}</>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex flex-col">
+                              <Label className="text-xs mb-1">Number</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={rp.number}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 1;
+                                  setSelectedRadiusProfiles(prev => 
+                                    prev.map(item => 
+                                      item.profileId === rp.profileId 
+                                        ? {...item, number: value}
+                                        : item
+                                    )
+                                  );
+                                }}
+                                className="w-20"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedRadiusProfiles(prev => prev.filter(item => item.profileId !== rp.profileId))}
+                              className="mt-5"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null;
+                })}
+                {selectedRadiusProfiles.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No radius profiles added yet. Click "Add Profile" to select a radius profile.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Wallets Section */}
             <Card>
@@ -646,18 +810,7 @@ export default function BillingProfiles() {
                   <div>
                     <CardTitle>Wallets Configuration</CardTitle>
                     <CardDescription>
-                      Add wallets with percentage distribution (must sum to 100%)
-                      {wallets.length > 0 && (
-                        <span
-                          className={`ml-2 font-semibold ${
-                            totalPercentage === 100
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                          }`}
-                        >
-                          Total: {totalPercentage}%
-                        </span>
-                      )}
+                      Add wallets with pricing for each wallet type
                     </CardDescription>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addWallet}>
@@ -674,8 +827,17 @@ export default function BillingProfiles() {
                         <div className="space-y-2">
                           <Label>Wallet Type</Label>
                           <Select
-                            value={wallet.walletType}
-                            onValueChange={(value) => updateWallet(index, 'walletType', value)}
+                            value={wallet.walletType || 'user'}
+                            onValueChange={(value) => {
+                              const updated = [...wallets];
+                              updated[index] = { 
+                                ...updated[index], 
+                                walletType: value,
+                                userWalletId: undefined,
+                                customWalletId: undefined
+                              };
+                              setWallets(updated);
+                            }}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -686,59 +848,91 @@ export default function BillingProfiles() {
                             </SelectContent>
                           </Select>
                         </div>
+                        
+                        {/* Wallet Selection - conditionally render based on type */}
                         <div className="space-y-2">
-                          <Label>Percentage</Label>
+                          {wallet.walletType === 'user' ? (
+                            <>
+                              <Label>Select User Wallet</Label>
+                              <Select
+                                key={`user-${index}`}
+                                value={wallet.userWalletId?.toString() || ''}
+                                onValueChange={(value) => updateWallet(index, 'userWalletId', parseInt(value))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select user wallet" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {isLoadingUserWallets ? (
+                                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                  ) : userWalletsData?.data && userWalletsData.data.length > 0 ? (
+                                    userWalletsData.data.map((uw) => (
+                                      <SelectItem key={uw.id} value={uw.id!.toString()}>
+                                        {uw.userName} - {uw.customWalletName}
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="none" disabled>No user wallets available</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </>
+                          ) : (
+                            <>
+                              <Label>Select Custom Wallet</Label>
+                              <Select
+                                key={`custom-${index}`}
+                                value={wallet.customWalletId?.toString() || ''}
+                                onValueChange={(value) => updateWallet(index, 'customWalletId', parseInt(value))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select custom wallet" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {isLoadingCustomWallets ? (
+                                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                  ) : customWalletsData?.data && customWalletsData.data.length > 0 ? (
+                                    customWalletsData.data.map((cw) => (
+                                      <SelectItem key={cw.id} value={cw.id!.toString()}>
+                                        {cw.name} - {cw.type}
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="none" disabled>No custom wallets available</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Money Direction</Label>
+                          <Select
+                            value={wallet.direction || 'in'}
+                            onValueChange={(value) => updateWallet(index, 'direction', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="in">In</SelectItem>
+                              <SelectItem value="out">Out</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Price</Label>
                           <Input
                             type="number"
                             min="0"
-                            max="100"
+                            step="0.01"
                             value={wallet.percentage}
                             onChange={(e) =>
                               updateWallet(index, 'percentage', parseFloat(e.target.value) || 0)
                             }
+                            placeholder="0.00"
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Icon</Label>
-                          <Select
-                            value={wallet.icon}
-                            onValueChange={(value) => updateWallet(index, 'icon', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {walletIconOptions.map((icon) => (
-                                <SelectItem key={icon.value} value={icon.value}>
-                                  {icon.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Color</Label>
-                          <Select
-                            value={wallet.color}
-                            onValueChange={(value) => updateWallet(index, 'color', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {colorOptions.map((color) => (
-                                <SelectItem key={color.value} value={color.value}>
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-4 h-4 rounded-full border"
-                                      style={{ backgroundColor: color.value }}
-                                    />
-                                    {color.label}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                         </div>
                         <Button
                           type="button"
@@ -786,7 +980,7 @@ export default function BillingProfiles() {
                               value={addon.name}
                               onSelect={() => {
                                 if (!selectedAddons.find(a => a.addonId === addon.id)) {
-                                  setSelectedAddons(prev => [...prev, { addonId: addon.id!, price: addon.price }]);
+                                  setSelectedAddons(prev => [...prev, { addonId: addon.id!, price: addon.price, number: 1 }]);
                                 }
                                 setAddonPopoverOpen(false);
                               }}
@@ -806,12 +1000,12 @@ export default function BillingProfiles() {
                   return addon ? (
                     <Card key={selectedAddon.addonId}>
                       <CardContent className="pt-4">
-                        <div className="grid grid-cols-3 gap-3 items-end">
-                          <div className="space-y-2">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 space-y-2">
                             <Label>Addon</Label>
                             <Input value={addon.name} disabled />
                           </div>
-                          <div className="space-y-2">
+                          <div className="flex-1 space-y-2">
                             <Label>Custom Price</Label>
                             <Input
                               type="number"
@@ -827,11 +1021,26 @@ export default function BillingProfiles() {
                               placeholder={`Default: $${addon.price}`}
                             />
                           </div>
+                          <div className="w-24 space-y-2">
+                            <Label>Number</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={selectedAddon.number}
+                              onChange={(e) => {
+                                const newNumber = parseInt(e.target.value) || 1;
+                                setSelectedAddons(prev =>
+                                  prev.map((a, i) => i === index ? { ...a, number: newNumber } : a)
+                                );
+                              }}
+                            />
+                          </div>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedAddons(prev => prev.filter((_, i) => i !== index))}
+                            className="mt-8"
                           >
                             <X className="h-4 w-4" />
                           </Button>

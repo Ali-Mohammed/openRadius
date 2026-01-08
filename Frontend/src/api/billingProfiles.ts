@@ -3,10 +3,12 @@ import { apiClient } from '../lib/api';
 export interface BillingProfileWallet {
   id?: number;
   walletType: string;
+  userWalletId?: number;
   customWalletId?: number;
   percentage: number;
   icon?: string;
   color?: string;
+  direction?: string;
   displayOrder?: number;
 }
 
@@ -22,6 +24,7 @@ export interface BillingProfile {
   id: number;
   name: string;
   description?: string;
+  price?: number;
   radiusProfileId: number;
   billingGroupId: number;
   isDeleted: boolean;
@@ -35,6 +38,7 @@ export interface BillingProfile {
 export interface CreateBillingProfileRequest {
   name: string;
   description?: string;
+  price?: number;
   radiusProfileId: number;
   billingGroupId: number;
   wallets?: BillingProfileWallet[];
@@ -44,6 +48,7 @@ export interface CreateBillingProfileRequest {
 export interface UpdateBillingProfileRequest {
   name: string;
   description?: string;
+  price?: number;
   radiusProfileId: number;
   billingGroupId: number;
   wallets?: BillingProfileWallet[];
