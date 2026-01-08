@@ -117,6 +117,7 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [showTrash, setShowTrash] = useState(false)
+  const [showFilters, setShowFilters] = useState(true)
   const [columnVisibility, setColumnVisibility] = useState({
     date: true,
     type: true,

@@ -73,7 +73,30 @@ export interface TransactionStats {
     count: number
   }[]
 }
+export interface TransactionComment {
+  id: number
+  comment: string
+  createdBy: string
+  createdAt: string
+}
 
+export interface CommentsResponse {
+  data: TransactionComment[]
+  totalCount: number
+}
+
+export interface TransactionHistoryItem {
+  id: number
+  action: string
+  changes?: string
+  performedBy: string
+  performedAt: string
+}
+
+export interface HistoryResponse {
+  data: TransactionHistoryItem[]
+  totalCount: number
+}
 export interface TransactionComment {
   id: number
   comment: string
