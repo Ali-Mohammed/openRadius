@@ -823,9 +823,9 @@ export default function BillingProfiles() {
                 {wallets.map((wallet, index) => (
                   <Card key={index}>
                     <CardContent className="pt-4">
-                      <div className="grid grid-cols-5 gap-3 items-end">
+                      <div className="grid grid-cols-[180px_2fr_150px_140px_auto] gap-3 items-end">
                         <div className="space-y-2">
-                          <Label>Wallet Type</Label>
+                          <Label>Type</Label>
                           <Select
                             value={wallet.walletType || 'user'}
                             onValueChange={(value) => {
@@ -853,7 +853,7 @@ export default function BillingProfiles() {
                         <div className="space-y-2">
                           {wallet.walletType === 'user' ? (
                             <>
-                              <Label>Select User Wallet</Label>
+                              <Label>User Wallet</Label>
                               <Select
                                 key={`user-${index}`}
                                 value={wallet.userWalletId?.toString() || ''}
@@ -879,7 +879,7 @@ export default function BillingProfiles() {
                             </>
                           ) : (
                             <>
-                              <Label>Select Custom Wallet</Label>
+                              <Label>Custom Wallet</Label>
                               <Select
                                 key={`custom-${index}`}
                                 value={wallet.customWalletId?.toString() || ''}
@@ -907,7 +907,7 @@ export default function BillingProfiles() {
                         </div>
                         
                         <div className="space-y-2">
-                          <Label>Money Direction</Label>
+                          <Label>Direction</Label>
                           <Select
                             value={wallet.direction || 'in'}
                             onValueChange={(value) => updateWallet(index, 'direction', value)}
@@ -932,6 +932,7 @@ export default function BillingProfiles() {
                               updateWallet(index, 'percentage', parseFloat(e.target.value) || 0)
                             }
                             placeholder="0.00"
+                            className="h-10"
                           />
                         </div>
                         <Button
