@@ -25,6 +25,7 @@ import {
   Headphones, Speaker, Monitor, Smartphone, Tablet, Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
 } from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
+import { customWalletApi } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -192,6 +193,10 @@ export default function RadiusProfiles() {
     icon: 'Package',
   })
 
+  // Custom wallet configuration state
+  const [enableCustomWallets, setEnableCustomWallets] = useState(false)
+  const [selectedWallets, setSelectedWallets] = useState<Array<{ customWalletId: number; amount: string }>>([])
+
   // Helper function to get icon component
   const getIconComponent = (iconName?: string) => {
     if (!iconName) return Package
@@ -218,6 +223,15 @@ export default function RadiusProfiles() {
   }
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
+
+  // Fetch custom wallets
+  const { data: customWalletsData } = useQuery({
+    queryKey: ['custom-wallets', workspaceId],
+    queryFn: () => customWalletApi.getAll(workspaceId),
+    enabled: workspaceId > 0,
+  })
+
+  const customWallets = useMemo(() => customWalletsData?.data || [], [customWalletsData?.data])
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, isFetching, error: profilesError } = useQuery({
@@ -360,6 +374,17 @@ export default function RadiusProfiles() {
         color: profile.color || '#3b82f6',
         icon: profile.icon || 'Package',
       })
+      // Set custom wallets if editing
+      if (profile.customWallets && profile.customWallets.length > 0) {
+        setEnableCustomWallets(true)
+        setSelectedWallets(profile.customWallets.map(w => ({
+          customWalletId: w.customWalletId,
+          amount: w.amount.toString()
+        })))
+      } else {
+        setEnableCustomWallets(false)
+        setSelectedWallets([])
+      }
     } else {
       setEditingProfile(null)
       setProfileFormData({
@@ -378,6 +403,8 @@ export default function RadiusProfiles() {
         color: '#3b82f6',
         icon: 'Package',
       })
+      setEnableCustomWallets(false)
+      setSelectedWallets([])
     }
     setIsProfileDialogOpen(true)
   }
@@ -408,6 +435,12 @@ export default function RadiusProfiles() {
       limitExpiration: profileFormData.limitExpiration,
       color: profileFormData.color,
       icon: profileFormData.icon,
+      customWallets: enableCustomWallets
+        ? selectedWallets.map(w => ({
+            customWalletId: w.customWalletId,
+            amount: parseFloat(w.amount) || 0
+          }))
+        : []
     }
 
     if (editingProfile && editingProfile.id) {
@@ -989,6 +1022,96 @@ export default function RadiusProfiles() {
                   onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, burstEnabled: checked })}
                 />
                 <Label htmlFor="burstEnabled">Burst Enabled</Label>
+              </div>
+
+              {/* Custom Wallets Configuration */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Switch
+                    id="enableCustomWallets"
+                    checked={enableCustomWallets}
+                    onCheckedChange={(checked) => {
+                      setEnableCustomWallets(checked)
+                      if (!checked) {
+                        setSelectedWallets([])
+                      }
+                    }}
+                  />
+                  <Label htmlFor="enableCustomWallets" className="font-semibold">Link to Custom Wallets</Label>
+                </div>
+
+                {enableCustomWallets && (
+                  <div className="space-y-3 pl-6">
+                    {selectedWallets.map((wallet, index) => (
+                      <div key={index} className="grid grid-cols-[2fr_1fr_auto] gap-2 items-end">
+                        <div className="space-y-2">
+                          <Label>Wallet</Label>
+                          <Select
+                            value={wallet.customWalletId.toString()}
+                            onValueChange={(value) => {
+                              const updated = [...selectedWallets]
+                              updated[index].customWalletId = parseInt(value)
+                              setSelectedWallets(updated)
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select wallet" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customWallets.map((cw) => (
+                                <SelectItem key={cw.id} value={cw.id.toString()}>
+                                  {cw.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Amount</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={wallet.amount}
+                            onChange={(e) => {
+                              const updated = [...selectedWallets]
+                              updated[index].amount = e.target.value
+                              setSelectedWallets(updated)
+                            }}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedWallets(selectedWallets.filter((_, i) => i !== index))
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (customWallets.length > 0) {
+                          setSelectedWallets([...selectedWallets, { customWalletId: customWallets[0].id, amount: '' }])
+                        } else {
+                          toast.error('No custom wallets available')
+                        }
+                      }}
+                      disabled={customWallets.length === 0}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Wallet
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
