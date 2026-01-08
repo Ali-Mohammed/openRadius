@@ -42,6 +42,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
