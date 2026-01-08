@@ -306,61 +306,61 @@ export default function RolesPage() {
               />
             </div>
 
-            {/* Icon Picker */}
-            <div className="grid gap-2">
-              <Label>Icon</Label>
-              <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    {(() => {
-                      const IconComponent = getIconComponent(selectedIcon)
-                      return <IconComponent className="h-4 w-4" style={{ color: selectedColor }} />
-                    })()}
-                    <span>{selectedIcon}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
-                    {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
-                      <button
-                        key={name}
-                        onClick={() => {
-                          setSelectedIcon(name)
-                          setIconPopoverOpen(false)
-                        }}
-                        className={`flex h-10 w-10 items-center justify-center rounded-md border hover:bg-accent hover:text-accent-foreground ${
-                          selectedIcon === name ? 'bg-accent' : ''
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+            {/* Icon and Color Picker */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start gap-2">
+                      {(() => {
+                        const IconComponent = getIconComponent(selectedIcon)
+                        return <IconComponent className="h-4 w-4" style={{ color: selectedColor }} />
+                      })()}
+                      <span>{selectedIcon}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0 z-[100]" align="start">
+                    <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
+                      {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                        <button
+                          key={name}
+                          onClick={() => {
+                            setSelectedIcon(name)
+                            setIconPopoverOpen(false)
+                          }}
+                          className={`flex h-10 w-10 items-center justify-center rounded-md border hover:bg-accent hover:text-accent-foreground ${
+                            selectedIcon === name ? 'bg-accent' : ''
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            {/* Color Picker */}
-            <div className="grid gap-2">
-              <Label>Color</Label>
-              <Select value={selectedColor} onValueChange={setSelectedColor}>
-                <SelectTrigger>
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded" style={{ backgroundColor: selectedColor }} />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_COLORS.map(color => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 rounded" style={{ backgroundColor: color.value }} />
-                        <span>{color.label}</span>
-                      </div>
-                    </SelectItem>
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <Select value={selectedColor} onValueChange={setSelectedColor}>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {PREDEFINED_COLORS.find(c => c.value === selectedColor)?.label || 'Select color'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_COLORS.map(color => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-4 rounded" style={{ backgroundColor: color.value }} />
+                          <span>{color.label}</span>
+                        </div>
+                      </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              </div>
             </div>
 
             <div className="border-t pt-4">
@@ -433,58 +433,58 @@ export default function RolesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            {/* Icon Picker */}
-            <div className="grid gap-2">
-              <Label>Icon</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    {(() => {
-                      const IconComponent = getIconComponent(selectedIcon)
-                      return <IconComponent className="h-4 w-4" style={{ color: selectedColor }} />
-                    })()}
-                    <span>{selectedIcon}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
-                    {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
-                      <button
-                        key={name}
-                        onClick={() => setSelectedIcon(name)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-md border hover:bg-accent hover:text-accent-foreground ${
-                          selectedIcon === name ? 'bg-accent' : ''
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+            {/* Icon and Color Picker */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start gap-2">
+                      {(() => {
+                        const IconComponent = getIconComponent(selectedIcon)
+                        return <IconComponent className="h-4 w-4" style={{ color: selectedColor }} />
+                      })()}
+                      <span>{selectedIcon}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0 z-[100]" align="start">
+                    <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
+                      {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                        <button
+                          key={name}
+                          onClick={() => setSelectedIcon(name)}
+                          className={`flex h-10 w-10 items-center justify-center rounded-md border hover:bg-accent hover:text-accent-foreground ${
+                            selectedIcon === name ? 'bg-accent' : ''
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            {/* Color Picker */}
-            <div className="grid gap-2">
-              <Label>Color</Label>
-              <Select value={selectedColor} onValueChange={setSelectedColor}>
-                <SelectTrigger>
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded" style={{ backgroundColor: selectedColor }} />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_COLORS.map(color => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 rounded" style={{ backgroundColor: color.value }} />
-                        <span>{color.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <Select value={selectedColor} onValueChange={setSelectedColor}>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {PREDEFINED_COLORS.find(c => c.value === selectedColor)?.label || 'Select color'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_COLORS.map(color => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-4 rounded" style={{ backgroundColor: color.value }} />
+                          <span>{color.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+              </div>
             </div>
 
             <div className="border-t pt-4">
