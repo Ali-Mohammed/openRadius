@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from "sonner"
-import { Plus, Trash2, Pencil } from "lucide-react"
+import { Plus, Trash2, Pencil, Users } from "lucide-react"
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
 interface Group {
