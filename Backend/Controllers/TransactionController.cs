@@ -154,6 +154,9 @@ public class TransactionController : ControllerBase
                     t.Reference,
                     t.PaymentMethod,
                     t.RelatedTransactionId,
+                    t.IsDeleted,
+                    t.DeletedAt,
+                    t.DeletedBy,
                     t.CreatedAt,
                     t.CreatedBy
                 };
