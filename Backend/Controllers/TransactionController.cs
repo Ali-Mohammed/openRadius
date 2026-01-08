@@ -59,9 +59,17 @@ public class TransactionController : ControllerBase
     {
         try
         {
+            _logger.LogInformation($"GetTransactions called with includeDeleted={includeDeleted}");
+            
+            // If includeDeleted is true, show ONLY deleted transactions (trash view)
+            // If false, show only active transactions
             var query = includeDeleted 
-                ? _context.Transactions.AsQueryable()
+                ? _context.Transactions.Where(t => t.IsDeleted)
                 : _context.Transactions.Where(t => !t.IsDeleted);
+            
+            var deletedCount = await _context.Transactions.CountAsync(t => t.IsDeleted);
+            var activeCount = await _context.Transactions.CountAsync(t => !t.IsDeleted);
+            _logger.LogInformation($"Database has {deletedCount} deleted and {activeCount} active transactions");
 
             if (!string.IsNullOrEmpty(walletType))
             {

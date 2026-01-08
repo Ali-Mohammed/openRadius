@@ -159,8 +159,9 @@ export default function Transactions() {
       pageSize,
       showTrash,
     ],
-    queryFn: () =>
-      transactionApi.getAll({
+    queryFn: async () => {
+      console.log('🔍 Fetching transactions with showTrash:', showTrash)
+      const result = await transactionApi.getAll({
         walletType: filterWalletType ? (filterWalletType as 'custom' | 'user') : undefined,
         transactionType: filterTransactionType || undefined,
         status: filterStatus || undefined,
@@ -169,17 +170,14 @@ export default function Transactions() {
         page: currentPage,
         pageSize,
         includeDeleted: showTrash,
-      }),
-  })
-
-  const { data: stats } = useQuery({
-    queryKey: ['transactions', 'stats', filterWalletType, startDate, endDate],
-    queryFn: () =>
-      transactionApi.getStats({
-        walletType: filterWalletType ? (filterWalletType as 'custom' | 'user') : undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-      }),
+      })
+      console.log('📊 Received transactions:', result.data.length, 'total:', result.totalCount)
+      console.log('🗑️ Trash mode:', showTrash ? 'DELETED ONLY' : 'ACTIVE ONLY')
+      if (result.data.length > 0) {
+        console.log('📝 First transaction isDeleted:', result.data[0].isDeleted)
+      }
+      return result
+    },
   })
 
   const { data: customWallets } = useQuery({
@@ -326,71 +324,111 @@ export default function Transactions() {
             Manage all wallet transactions with automatic balance tracking
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Transaction
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Credit</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {currencySymbol}
-                {stats.totalCredit.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Debit</CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {currencySymbol}
-                {stats.totalDebit.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Amount</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${stats.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.netAmount >= 0 ? '+' : ''}
-                {currencySymbol}
-                {stats.netAmount.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Transaction
+          </Button>
         </div>
-      )}
+      </div>
 
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search transactions..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(searchInput)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showTrash ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowTrash(!showTrash)}
+                className="gap-2"
+              >
+                <Archive className="h-4 w-4" />
+                {showTrash ? 'Show Active' : 'Show Trash'}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Columns3 className="h-4 w-4" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.date}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, date: checked }))}
+                  >
+                    Date
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.type}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, type: checked }))}
+                  >
+                    Type
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.wallet}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, wallet: checked }))}
+                  >
+                    Wallet
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.user}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, user: checked }))}
+                  >
+                    User
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.amount}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, amount: checked }))}
+                  >
+                    Amount
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.before}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, before: checked }))}
+                  >
+                    Balance Before
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.after}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, after: checked }))}
+                  >
+                    Balance After
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.status}
+                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                  >
+                    Status
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="200">200</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-5">
@@ -476,57 +514,100 @@ export default function Transactions() {
               </Button>
             </div>
           )}
-
-          <div className="mt-4 flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="includeDeleted"
-              checked={includeDeleted}
-              onChange={(e) => setIncludeDeleted(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor="includeDeleted" className="cursor-pointer">
-              Show deleted transactions
-            </Label>
-          </div>
         </CardContent>
       </Card>
 
       {/* Transactions Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Transactions</CardTitle>
-          <CardDescription>
-            Showing {transactions.length} of {totalCount} transactions
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{showTrash ? 'Deleted Transactions' : 'All Transactions'}</CardTitle>
+              <CardDescription>
+                Showing {transactions.length} of {totalCount} transactions
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCurrentPage(1)
+                }}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
+        <CardContent className="p-0">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 500px)' }}>
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-muted z-10">
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Wallet</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Before</TableHead>
-                  <TableHead className="text-right">After</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {columnVisibility.date && <TableHead className="h-12 px-4 w-[180px]">Date</TableHead>}
+                  {columnVisibility.type && <TableHead className="h-12 px-4 w-[160px]">Type</TableHead>}
+                  {columnVisibility.wallet && <TableHead className="h-12 px-4 w-[160px]">Wallet</TableHead>}
+                  {columnVisibility.user && <TableHead className="h-12 px-4 w-[180px]">User</TableHead>}
+                  {columnVisibility.amount && <TableHead className="h-12 px-4 w-[120px] text-right">Amount</TableHead>}
+                  {columnVisibility.before && <TableHead className="h-12 px-4 w-[120px] text-right">Before</TableHead>}
+                  {columnVisibility.after && <TableHead className="h-12 px-4 w-[120px] text-right">After</TableHead>}
+                  {columnVisibility.status && <TableHead className="h-12 px-4 w-[120px]">Status</TableHead>}
+                  <TableHead className="sticky right-0 bg-muted h-12 px-4 w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
-                      Loading...
+                      <div className="flex items-center justify-center gap-2">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Loading...
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : transactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      No transactions found
+                    <TableCell colSpan={9} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-3">
+                        {showTrash ? (
+                          <>
+                            <Archive className="h-12 w-12 text-muted-foreground/50" />
+                            <div>
+                              <p className="text-lg font-medium text-muted-foreground">No deleted transactions</p>
+                              <p className="text-sm text-muted-foreground/70 mt-1">
+                                Deleted transactions will appear here
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Receipt className="h-12 w-12 text-muted-foreground/50" />
+                            <div>
+                              <p className="text-lg font-medium text-muted-foreground">No transactions found</p>
+                              <p className="text-sm text-muted-foreground/70 mt-1">
+                                Create your first transaction to get started
+                              </p>
+                            </div>
+                            <Button onClick={() => setIsDialogOpen(true)} className="mt-2 gap-2">
+                              <Plus className="h-4 w-4" />
+                              Create Transaction
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -536,80 +617,96 @@ export default function Transactions() {
                     const isDeleted = transaction.isDeleted
                     return (
                       <TableRow key={transaction.id} className={isDeleted ? 'opacity-60 bg-gray-50' : ''}>
-                        <TableCell>
-                          <div className="text-sm">{formatDate(transaction.createdAt)}</div>
-                          {isDeleted && (
-                            <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                              <Trash2 className="h-3 w-3" />
-                              Deleted
+                        {columnVisibility.date && (
+                          <TableCell className="h-12 px-4">
+                            <div className="text-sm">{formatDate(transaction.createdAt)}</div>
+                            {isDeleted && (
+                              <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                                <Trash2 className="h-3 w-3" />
+                                Deleted
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
+                        {columnVisibility.type && (
+                          <TableCell className="h-12 px-4">
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="outline" className="gap-1 w-fit">
+                                <IconComponent className={`h-3 w-3 ${typeInfo?.color}`} />
+                                {typeInfo?.label || transaction.transactionType}
+                              </Badge>
+                              <span className={`text-xs ${
+                                transaction.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {transaction.amountType === 'credit' ? 'Credit' : 'Debit'}
+                              </span>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge variant="outline" className="gap-1 w-fit">
-                              <IconComponent className={`h-3 w-3 ${typeInfo?.color}`} />
-                              {typeInfo?.label || transaction.transactionType}
-                            </Badge>
-                            <span className={`text-xs ${
-                              transaction.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {transaction.amountType === 'credit' ? 'Credit' : 'Debit'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {transaction.walletType === 'custom'
-                                ? transaction.customWalletName
-                                : 'User Wallet'}
-                            </div>
-                            <div className="text-xs text-muted-foreground capitalize">
-                              {transaction.walletType}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {transaction.userName ? (
+                          </TableCell>
+                        )}
+                        {columnVisibility.wallet && (
+                          <TableCell className="h-12 px-4">
                             <div>
-                              <div className="text-sm">{transaction.userName}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {transaction.userEmail}
+                              <div className="font-medium">
+                                {transaction.walletType === 'custom'
+                                  ? transaction.customWalletName
+                                  : 'User Wallet'}
+                              </div>
+                              <div className="text-xs text-muted-foreground capitalize">
+                                {transaction.walletType}
                               </div>
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={`${typeInfo?.color} font-medium`}>
-                            {transaction.amountType === 'credit' ? '+' : '-'}
-                            {currencySymbol}
-                            {transaction.amount.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {currencySymbol}
-                          {transaction.balanceBefore.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {currencySymbol}
-                          {transaction.balanceAfter.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge variant="outline" className={statusColors[transaction.status]}>
-                              {transaction.status}
-                            </Badge>
-                            {isDeleted && transaction.deletedAt && (
-                              <span className="text-xs text-muted-foreground">
-                                {formatDate(transaction.deletedAt)}
-                              </span>
+                          </TableCell>
+                        )}
+                        {columnVisibility.user && (
+                          <TableCell className="h-12 px-4">
+                            {transaction.userName ? (
+                              <div>
+                                <div className="text-sm">{transaction.userName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {transaction.userEmail}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
+                          </TableCell>
+                        )}
+                        {columnVisibility.amount && (
+                          <TableCell className="h-12 px-4 text-right">
+                            <span className={`${typeInfo?.color} font-medium`}>
+                              {transaction.amountType === 'credit' ? '+' : '-'}
+                              {currencySymbol}
+                              {transaction.amount.toFixed(2)}
+                            </span>
+                          </TableCell>
+                        )}
+                        {columnVisibility.before && (
+                          <TableCell className="h-12 px-4 text-right text-muted-foreground">
+                            {currencySymbol}
+                            {transaction.balanceBefore.toFixed(2)}
+                          </TableCell>
+                        )}
+                        {columnVisibility.after && (
+                          <TableCell className="h-12 px-4 text-right font-medium">
+                            {currencySymbol}
+                            {transaction.balanceAfter.toFixed(2)}
+                          </TableCell>
+                        )}
+                        {columnVisibility.status && (
+                          <TableCell className="h-12 px-4">
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="outline" className={statusColors[transaction.status]}>
+                                {transaction.status}
+                              </Badge>
+                              {isDeleted && transaction.deletedAt && (
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDate(transaction.deletedAt)}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
+                        <TableCell className="sticky right-0 bg-background h-12 px-4 text-right">
                           {isDeleted ? (
                             <Button
                               variant="ghost"
