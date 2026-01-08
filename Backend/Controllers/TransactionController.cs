@@ -63,11 +63,12 @@ public class TransactionController : ControllerBase
             
             // If includeDeleted is true, show ONLY deleted transactions (trash view)
             // If false, show only active transactions
+            // IMPORTANT: Use IgnoreQueryFilters() to bypass the global soft-delete filter
             var query = includeDeleted 
-                ? _context.Transactions.Where(t => t.IsDeleted)
+                ? _context.Transactions.IgnoreQueryFilters().Where(t => t.IsDeleted)
                 : _context.Transactions.Where(t => !t.IsDeleted);
             
-            var deletedCount = await _context.Transactions.CountAsync(t => t.IsDeleted);
+            var deletedCount = await _context.Transactions.IgnoreQueryFilters().CountAsync(t => t.IsDeleted);
             var activeCount = await _context.Transactions.CountAsync(t => !t.IsDeleted);
             _logger.LogInformation($"Database has {deletedCount} deleted and {activeCount} active transactions");
 
