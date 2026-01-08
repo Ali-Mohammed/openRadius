@@ -224,7 +224,6 @@ export default function BillingProfileForm() {
 
   return (
     <div className="p-6">
-      <div className={cn(layout === 'boxed' ? 'max-w-5xl mx-auto' : '')}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold">
           {profileId ? 'Edit Billing Profile' : 'Create Billing Profile'}
@@ -762,7 +761,6 @@ export default function BillingProfileForm() {
           </Button>
         </div>
       </form>
-      </div>
     </div>
   );
 }
