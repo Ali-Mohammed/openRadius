@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getProfiles,
@@ -16,6 +16,7 @@ import {
 } from '../api/billingProfiles';
 import { radiusProfileApi } from '../api/radiusProfileApi';
 import { getGroups } from '../api/groups';
+import { addonApi, type Addon } from '../api/addons';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -56,6 +57,9 @@ import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../components/ui/command';
+import { cn } from '../lib/utils';
 
 const walletIconOptions = [
   { value: 'Wallet', label: 'Wallet', Icon: Wallet },
@@ -90,6 +94,11 @@ export default function BillingProfiles() {
     wallets: [],
     addons: [],
   });
+
+  const [selectedRadiusProfiles, setSelectedRadiusProfiles] = useState<number[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<{addonId: number, price: number}[]>([]);
+  const [radiusProfilePopoverOpen, setRadiusProfilePopoverOpen] = useState(false);
+  const [addonPopoverOpen, setAddonPopoverOpen] = useState(false);
 
   const [wallets, setWallets] = useState<BillingProfileWallet[]>([]);
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
@@ -128,6 +137,11 @@ export default function BillingProfiles() {
       console.log('Billing groups result:', result);
       return result;
     },
+  });
+
+  const { data: addonsData, isLoading: isLoadingAddons } = useQuery({
+    queryKey: ['addons'],
+    queryFn: () => addonApi.getAll({ includeDeleted: false }),
   });
 
   // Mutations
