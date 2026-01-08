@@ -105,6 +105,11 @@ const getNavData = (workspaceId: number) => ({
           icon: UsersIcon,
         },
         {
+          titleKey: "navigation.profiles",
+          url: "/billing/profiles",
+          icon: FileText,
+        },
+        {
           titleKey: "navigation.cashbacks",
           url: "/billing/cashbacks",
           icon: Gift,

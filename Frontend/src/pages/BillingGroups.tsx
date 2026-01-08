@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Users as UsersIcon, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users as UsersIcon, Search, ArchiveRestore } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getGroups,
   createGroup,
   updateGroup,
   deleteGroup,
+  restoreGroup,
   type BillingGroup,
   type CreateBillingGroupRequest,
 } from '../api/groups';
@@ -42,6 +43,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '../components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
 import { Package, Gift, Star, Zap, Crown, Trophy, Heart, Sparkles } from 'lucide-react';
@@ -82,6 +94,8 @@ export default function BillingGroups() {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [isUserPopoverOpen, setIsUserPopoverOpen] = useState(false);
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState('active');
   
   const [formData, setFormData] = useState<CreateBillingGroupRequest>({
     name: '',
@@ -92,9 +106,14 @@ export default function BillingGroups() {
     userIds: [],
   });
 
-  const { data: groupsData, isLoading } = useQuery({
-    queryKey: ['billing-groups', search],
-    queryFn: () => getGroups({ search }),
+  const { data: activeGroupsData, isLoading: isLoadingActive } = useQuery({
+    queryKey: ['billing-groups', 'active', search],
+    queryFn: () => getGroups({ search, includeDeleted: false }),
+  });
+
+  const { data: deletedGroupsData, isLoading: isLoadingDeleted } = useQuery({
+    queryKey: ['billing-groups', 'deleted', search],
+    queryFn: () => getGroups({ search, includeDeleted: true }),
   });
 
   const { data: usersData } = useQuery({
@@ -134,9 +153,22 @@ export default function BillingGroups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-groups'] });
       toast.success('Group deleted successfully');
+      setDeleteConfirmId(null);
     },
-    onError: () => {
-      toast.error('Failed to delete group');
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Failed to delete group');
+      setDeleteConfirmId(null);
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing-groups'] });
+      toast.success('Group restored successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Failed to restore group');
     },
   });
 
@@ -149,9 +181,9 @@ export default function BillingGroups() {
         icon: group.icon || 'Package',
         color: group.color || '#3b82f6',
         isActive: group.isActive,
-        userIds: group.users?.map(u => u.id) || [],
+        userIds: group.userIds || [],
       });
-      setSelectedUserIds(group.users?.map(u => u.id) || []);
+      setSelectedUserIds(group.userIds || []);
     } else {
       setEditingGroup(null);
       setFormData({
@@ -200,9 +232,17 @@ export default function BillingGroups() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this group?')) {
-      deleteMutation.mutate(id);
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmId !== null) {
+      deleteMutation.mutate(deleteConfirmId);
     }
+  };
+
+  const handleRestore = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const toggleUserSelection = (userId: number) => {
@@ -249,32 +289,39 @@ export default function BillingGroups() {
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Users</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : groupsData?.items?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No groups found
-                </TableCell>
-              </TableRow>
-            ) : (
-              groupsData?.items?.map((group) => {
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="active">Active Groups</TabsTrigger>
+          <TabsTrigger value="deleted">Deleted Groups</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="space-y-4">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Users</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingActive ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : activeGroupsData?.data?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      No groups found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  activeGroupsData?.data?.filter(g => !g.isDeleted).map((group) => {
                 const IconComponent = getIconComponent(group.icon);
                 return (
                   <TableRow key={group.id}>
@@ -327,6 +374,94 @@ export default function BillingGroups() {
           </TableBody>
         </Table>
       </div>
+    </TabsContent>
+
+    <TabsContent value="deleted" className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Users</TableHead>
+              <TableHead>Deleted At</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoadingDeleted ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : deletedGroupsData?.data?.filter(g => g.isDeleted).length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No deleted groups found
+                </TableCell>
+              </TableRow>
+            ) : (
+              deletedGroupsData?.data?.filter(g => g.isDeleted).map((group) => {
+                const IconComponent = getIconComponent(group.icon);
+                return (
+                  <TableRow key={group.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2 opacity-60">
+                        <div
+                          className="flex h-8 w-8 items-center justify-center rounded-md"
+                          style={{ backgroundColor: group.color }}
+                        >
+                          <IconComponent className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="font-medium">{group.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-md truncate opacity-60">
+                      {group.description || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {group.userCount || 0} users
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="opacity-60">
+                      {group.deletedAt ? new Date(group.deletedAt).toLocaleDateString() : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRestore(group.id)}
+                      >
+                        <ArchiveRestore className="h-4 w-4 mr-2" />
+                        Restore
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </TabsContent>
+  </Tabs>
+
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move the group to trash. You can restore it later from the Deleted Groups tab.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

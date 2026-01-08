@@ -42,6 +42,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
+    public DbSet<BillingProfile> BillingProfiles { get; set; }
+    public DbSet<BillingProfileWallet> BillingProfileWallets { get; set; }
+    public DbSet<BillingProfileAddon> BillingProfileAddons { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -229,6 +232,49 @@ public class ApplicationDbContext : DbContext
             
             // Note: UserId references Users table in master DB, not workspace DB
             // So we don't create a foreign key constraint here
+        });
+
+        modelBuilder.Entity<BillingProfile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.RadiusProfileId);
+            entity.HasIndex(e => e.BillingGroupId);
+            
+            entity.HasOne(e => e.RadiusProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.RadiusProfileId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.HasOne(e => e.BillingGroup)
+                  .WithMany()
+                  .HasForeignKey(e => e.BillingGroupId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            // Add query filter to exclude soft-deleted profiles by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        modelBuilder.Entity<BillingProfileWallet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.BillingProfileId);
+            
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany(p => p.ProfileWallets)
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BillingProfileAddon>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.BillingProfileId);
+            
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany(p => p.ProfileAddons)
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

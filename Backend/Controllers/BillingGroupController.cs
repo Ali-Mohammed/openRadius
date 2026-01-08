@@ -138,6 +138,15 @@ public class BillingGroupController : ControllerBase
     {
         try
         {
+            // Check if group with same name already exists
+            var existingGroup = await _context.BillingGroups
+                .FirstOrDefaultAsync(g => g.Name.ToLower() == request.Name.ToLower() && !g.IsDeleted);
+            
+            if (existingGroup != null)
+            {
+                return BadRequest(new { error = "A group with this name already exists" });
+            }
+
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
             var group = new BillingGroup
@@ -194,6 +203,17 @@ public class BillingGroupController : ControllerBase
             if (existingGroup == null)
             {
                 return NotFound(new { error = "Group not found" });
+            }
+
+            // Check if another group with same name exists
+            var duplicateName = await _context.BillingGroups
+                .FirstOrDefaultAsync(g => g.Name.ToLower() == request.Name.ToLower() 
+                    && g.Id != id 
+                    && !g.IsDeleted);
+            
+            if (duplicateName != null)
+            {
+                return BadRequest(new { error = "A group with this name already exists" });
             }
 
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";

@@ -7,6 +7,9 @@ export interface BillingGroup {
   icon?: string;
   color?: string;
   isActive: boolean;
+  isDeleted: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
   createdAt: string;
   createdBy?: string;
   updatedAt?: string;
@@ -34,10 +37,11 @@ export interface UpdateBillingGroupRequest {
 }
 
 export interface BillingGroupsResponse {
-  items: BillingGroup[];
+  data: BillingGroup[];
   totalCount: number;
   page: number;
   pageSize: number;
+  totalPages: number;
 }
 
 export const getGroups = async (params?: {

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Models;
 
 public class BillingGroup
@@ -21,6 +23,7 @@ public class BillingGroup
     public string? UpdatedBy { get; set; }
     
     // Navigation properties
+    [JsonIgnore]
     public virtual ICollection<BillingGroupUser> GroupUsers { get; set; } = new List<BillingGroupUser>();
 }
 
@@ -30,6 +33,7 @@ public class BillingGroupUser
     public int GroupId { get; set; }
     public int UserId { get; set; }
     
+    [JsonIgnore]
     public virtual BillingGroup Group { get; set; } = null!;
     // Note: User is in master DB, not workspace DB, so no navigation property here
     

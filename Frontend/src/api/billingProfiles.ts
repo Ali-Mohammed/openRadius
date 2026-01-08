@@ -1,0 +1,95 @@
+import { apiClient } from '../lib/api';
+
+export interface BillingProfileWallet {
+  id?: number;
+  walletType: string;
+  customWalletId?: number;
+  percentage: number;
+  icon?: string;
+  color?: string;
+  displayOrder?: number;
+}
+
+export interface BillingProfileAddon {
+  id?: number;
+  title: string;
+  description?: string;
+  price: number;
+  displayOrder?: number;
+}
+
+export interface BillingProfile {
+  id: number;
+  name: string;
+  description?: string;
+  radiusProfileId: number;
+  billingGroupId: number;
+  isDeleted: boolean;
+  deletedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+  wallets: BillingProfileWallet[];
+  addons: BillingProfileAddon[];
+}
+
+export interface CreateBillingProfileRequest {
+  name: string;
+  description?: string;
+  radiusProfileId: number;
+  billingGroupId: number;
+  wallets?: BillingProfileWallet[];
+  addons?: BillingProfileAddon[];
+}
+
+export interface UpdateBillingProfileRequest {
+  name: string;
+  description?: string;
+  radiusProfileId: number;
+  billingGroupId: number;
+  wallets?: BillingProfileWallet[];
+  addons?: BillingProfileAddon[];
+}
+
+export interface BillingProfilesResponse {
+  data: BillingProfile[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const getProfiles = async (params?: {
+  search?: string;
+  radiusProfileId?: number;
+  billingGroupId?: number;
+  page?: number;
+  pageSize?: number;
+  includeDeleted?: boolean;
+}): Promise<BillingProfilesResponse> => {
+  const response = await apiClient.get('/api/billingprofile', { params });
+  return response.data;
+};
+
+export const getProfileById = async (id: number): Promise<BillingProfile> => {
+  const response = await apiClient.get(`/api/billingprofile/${id}`);
+  return response.data;
+};
+
+export const createProfile = async (data: CreateBillingProfileRequest): Promise<BillingProfile> => {
+  const response = await apiClient.post('/api/billingprofile', data);
+  return response.data;
+};
+
+export const updateProfile = async (id: number, data: UpdateBillingProfileRequest): Promise<BillingProfile> => {
+  const response = await apiClient.put(`/api/billingprofile/${id}`, data);
+  return response.data;
+};
+
+export const deleteProfile = async (id: number): Promise<void> => {
+  await apiClient.delete(`/api/billingprofile/${id}`);
+};
+
+export const restoreProfile = async (id: number): Promise<BillingProfile> => {
+  const response = await apiClient.post(`/api/billingprofile/${id}/restore`);
+  return response.data;
+};
