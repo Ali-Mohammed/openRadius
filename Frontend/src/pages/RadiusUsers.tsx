@@ -26,9 +26,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 
-// Hardcoded workspaceId for now - will be dynamic based on routing later
-const WORKSPACE_ID = 1
-
 export default function RadiusUsers() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -145,13 +142,15 @@ export default function RadiusUsers() {
   })
 
   const { data: profilesData } = useQuery({
-    queryKey: ['radius-profiles', WORKSPACE_ID],
-    queryFn: () => radiusProfileApi.getAll(WORKSPACE_ID, 1, 999999),
+    queryKey: ['radius-profiles', currentWorkspaceId],
+    queryFn: () => radiusProfileApi.getAll(currentWorkspaceId!, 1, 999999),
+    enabled: !!currentWorkspaceId,
   })
 
   const { data: tagsData } = useQuery({
-    queryKey: ['radius-tags', WORKSPACE_ID],
-    queryFn: () => radiusTagApi.getAll(WORKSPACE_ID, false),
+    queryKey: ['radius-tags', currentWorkspaceId],
+    queryFn: () => radiusTagApi.getAll(currentWorkspaceId!, false),
+    enabled: !!currentWorkspaceId,
   })
 
   const users = useMemo(() => usersData?.data || [], [usersData?.data])
@@ -169,9 +168,9 @@ export default function RadiusUsers() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: any) => radiusUserApi.create(WORKSPACE_ID, data),
+    mutationFn: (data: any) => radiusUserApi.create(currentWorkspaceId!, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to create user')
@@ -180,9 +179,9 @@ export default function RadiusUsers() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      radiusUserApi.update(WORKSPACE_ID, id, data),
+      radiusUserApi.update(currentWorkspaceId!, id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to update user')
@@ -190,9 +189,9 @@ export default function RadiusUsers() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => radiusUserApi.delete(WORKSPACE_ID, id),
+    mutationFn: (id: number) => radiusUserApi.delete(currentWorkspaceId!, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
       toast.success('User deleted successfully')
     },
     onError: (error: any) => {
@@ -201,9 +200,9 @@ export default function RadiusUsers() {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: (id: number) => radiusUserApi.restore(WORKSPACE_ID, id),
+    mutationFn: (id: number) => radiusUserApi.restore(currentWorkspaceId!, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
       toast.success('User restored successfully')
     },
     onError: (error: any) => {
@@ -213,9 +212,9 @@ export default function RadiusUsers() {
 
   const assignTagsMutation = useMutation({
     mutationFn: ({ userId, tagIds }: { userId: number; tagIds: number[] }) =>
-      radiusUserApi.assignTags(WORKSPACE_ID, userId, tagIds),
+      radiusUserApi.assignTags(currentWorkspaceId!, userId, tagIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to assign tags')
@@ -422,7 +421,7 @@ export default function RadiusUsers() {
     setIsExporting(true)
     try {
       const blob = await radiusUserApi.exportToCsv(
-        WORKSPACE_ID,
+        currentWorkspaceId!,
         searchQuery || undefined,
         sortField || undefined,
         sortDirection
@@ -447,7 +446,7 @@ export default function RadiusUsers() {
     setIsExporting(true)
     try {
       const blob = await radiusUserApi.exportToExcel(
-        WORKSPACE_ID,
+        currentWorkspaceId!,
         searchQuery || undefined,
         sortField || undefined,
         sortDirection
@@ -539,7 +538,7 @@ export default function RadiusUsers() {
                   <Search className="h-4 w-4" />
                 </Button>
                 <Button 
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })} 
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })} 
                   variant="outline" 
                   size="icon"
                   title={t('common.refresh')}

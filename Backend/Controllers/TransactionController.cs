@@ -537,6 +537,7 @@ public class TransactionController : ControllerBase
         try
         {
             var transaction = await _context.Transactions
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(t => t.Id == id && t.IsDeleted);
 
             if (transaction == null)
@@ -546,6 +547,7 @@ public class TransactionController : ControllerBase
 
             // Find the reversal transaction (it will also be marked as deleted)
             var reversalTransaction = await _context.Transactions
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(t => t.RelatedTransactionId == id && t.IsDeleted);
 
             if (reversalTransaction == null)
