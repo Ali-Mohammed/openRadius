@@ -320,7 +320,7 @@ export default function RolesPage() {
                       <span>{selectedIcon}</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 z-[100]" align="start">
+                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
                     <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
                       {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
                         <button
@@ -447,7 +447,7 @@ export default function RolesPage() {
                       <span>{selectedIcon}</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 z-[100]" align="start">
+                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
                     <div className="grid grid-cols-6 gap-2 p-3 max-h-60 overflow-y-auto">
                       {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
                         <button
