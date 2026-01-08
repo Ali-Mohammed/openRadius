@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { 
   Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal
 } from 'lucide-react'
@@ -809,50 +810,54 @@ export default function RadiusProfiles() {
 
                 <div className="grid gap-2">
                   <Label>Icon</Label>
-                  <div className="relative">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
-                    >
-                      {(() => {
-                        const IconComponent = getIconComponent(profileFormData.icon)
-                        return (
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="rounded-lg p-1.5 flex items-center justify-center"
-                              style={{ backgroundColor: `${profileFormData.color}15`, color: profileFormData.color }}
-                            >
-                              <IconComponent className="h-4 w-4" />
+                  <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        {(() => {
+                          const IconComponent = getIconComponent(profileFormData.icon)
+                          return (
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="rounded-lg p-1.5 flex items-center justify-center"
+                                style={{ backgroundColor: `${profileFormData.color}15`, color: profileFormData.color }}
+                              >
+                                <IconComponent className="h-4 w-4" />
+                              </div>
+                              <span>{profileFormData.icon}</span>
                             </div>
-                            <span>{profileFormData.icon}</span>
-                          </div>
-                        )
-                      })()}
-                    </Button>
-                    {iconPopoverOpen && (
-                      <div className="absolute z-50 mt-1 w-[320px] rounded-md border bg-popover p-4 text-popover-foreground shadow-md">
-                        <div className="grid grid-cols-6 gap-2 max-h-[240px] overflow-y-auto">
-                          {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
-                            <Button
-                              key={name}
-                              type="button"
-                              variant={profileFormData.icon === name ? "default" : "outline"}
-                              size="sm"
-                              className="h-10 w-10 p-0"
-                              onClick={() => {
-                                setProfileFormData({ ...profileFormData, icon: name })
-                                setIconPopoverOpen(false)
-                              }}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </Button>
-                          ))}
-                        </div>
+                          )
+                        })()}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      className="w-[320px] p-4" 
+                      align="start"
+                      style={{ zIndex: 9999 }}
+                      sideOffset={5}
+                    >
+                      <div className="grid grid-cols-6 gap-2 max-h-[240px] overflow-y-auto">
+                        {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                          <Button
+                            key={name}
+                            type="button"
+                            variant={profileFormData.icon === name ? "default" : "outline"}
+                            size="sm"
+                            className="h-10 w-10 p-0"
+                            onClick={() => {
+                              setProfileFormData({ ...profileFormData, icon: name })
+                              setIconPopoverOpen(false)
+                            }}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </Button>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
