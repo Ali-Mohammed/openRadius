@@ -472,7 +472,7 @@ export default function BillingGroups() {
               </div>
 
               <div className="grid gap-2">
-                <label className="text-sm font-medium">Users</label>
+                <label className="text-sm font-medium">Users *</label>
                 <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button
