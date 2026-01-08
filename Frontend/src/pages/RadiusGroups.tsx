@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { 
   Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Archive
 } from 'lucide-react'
@@ -699,65 +700,67 @@ export default function RadiusGroups() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="icon" className="text-sm font-medium">Icon</Label>
-                <div className="relative">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start h-10" 
-                    type="button"
-                    onClick={() => {
-                      if (editingGroup) {
-                        setEditIconPopoverOpen(!editIconPopoverOpen)
-                      } else {
-                        setIconPopoverOpen(!iconPopoverOpen)
-                      }
-                    }}
+                <Popover 
+                  open={editingGroup ? editIconPopoverOpen : iconPopoverOpen} 
+                  onOpenChange={editingGroup ? setEditIconPopoverOpen : setIconPopoverOpen}
+                  modal={true}
+                >
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start h-10" 
+                      type="button"
+                    >
+                      {(() => {
+                        const SelectedIcon = getIconComponent(editingGroup ? newGroupIcon : groupFormData.icon)
+                        return <SelectedIcon className="w-4 h-4 mr-2" />
+                      })()}
+                      {editingGroup ? newGroupIcon : groupFormData.icon}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-80 p-0" 
+                    align="start"
+                    style={{ zIndex: 9999 }}
+                    sideOffset={5}
                   >
-                    {(() => {
-                      const SelectedIcon = getIconComponent(editingGroup ? newGroupIcon : groupFormData.icon)
-                      return <SelectedIcon className="w-4 h-4 mr-2" />
-                    })()}
-                    {editingGroup ? newGroupIcon : groupFormData.icon}
-                  </Button>
-                  {(editingGroup ? editIconPopoverOpen : iconPopoverOpen) && (
-                    <div className="absolute top-full left-0 mt-1 w-80 bg-white border rounded-md shadow-lg z-50">
-                      <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
-                        {AVAILABLE_ICONS.map((iconData) => {
-                          const IconComponent = iconData.icon
-                          const isSelected = (editingGroup ? newGroupIcon : groupFormData.icon) === iconData.name
-                          return (
-                            <button
-                              key={iconData.name}
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                if (editingGroup) {
-                                  setNewGroupIcon(iconData.name)
-                                  setEditIconPopoverOpen(false)
-                                } else {
-                                  setGroupFormData({ ...groupFormData, icon: iconData.name })
-                                  setIconPopoverOpen(false)
-                                }
-                              }}
-                              className={`p-2 rounded flex items-center justify-center ${
-                                isSelected
-                                  ? 'bg-blue-500 text-white' 
-                                  : 'bg-gray-100 hover:bg-gray-200'
-                              }`}
-                              style={{
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                              }}
-                              title={iconData.name}
-                            >
-                              <IconComponent className="w-4 h-4" />
-                            </button>
-                          )
-                        })}
-                      </div>
+                    <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                      {AVAILABLE_ICONS.map((iconData) => {
+                        const IconComponent = iconData.icon
+                        const isSelected = (editingGroup ? newGroupIcon : groupFormData.icon) === iconData.name
+                        return (
+                          <button
+                            key={iconData.name}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              if (editingGroup) {
+                                setNewGroupIcon(iconData.name)
+                                setEditIconPopoverOpen(false)
+                              } else {
+                                setGroupFormData({ ...groupFormData, icon: iconData.name })
+                                setIconPopoverOpen(false)
+                              }
+                            }}
+                            className={`p-2 rounded flex items-center justify-center ${
+                              isSelected
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                            style={{
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            title={iconData.name}
+                          >
+                            <IconComponent className="w-4 h-4" />
+                          </button>
+                        )
+                      })}
                     </div>
-                  )}
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <DialogFooter>
