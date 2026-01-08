@@ -27,7 +27,7 @@ import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 export default function RadiusUsers() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -135,10 +135,11 @@ export default function RadiusUsers() {
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: usersData, isLoading, isFetching } = useQuery({
-    queryKey: ['radius-users', WORKSPACE_ID, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-users', currentWorkspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash 
-      ? radiusUserApi.getTrash(WORKSPACE_ID, currentPage, pageSize)
-      : radiusUserApi.getAll(WORKSPACE_ID, currentPage, pageSize, searchQuery, sortField, sortDirection),
+      ? radiusUserApi.getTrash(currentWorkspaceId!, currentPage, pageSize)
+      : radiusUserApi.getAll(currentWorkspaceId!, currentPage, pageSize, searchQuery, sortField, sortDirection),
+    enabled: !!currentWorkspaceId,
   })
 
   const { data: profilesData } = useQuery({

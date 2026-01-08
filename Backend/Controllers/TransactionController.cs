@@ -20,6 +20,17 @@ public class CreateTransactionRequest
     public string? PaymentMethod { get; set; }
 }
 
+public class BulkDeleteRequest
+{
+    public List<int> Ids { get; set; } = new();
+    public string? Reason { get; set; }
+}
+
+public class BulkRestoreRequest
+{
+    public List<int> Ids { get; set; } = new();
+}
+
 [ApiController]
 [Route("api/transactions")]
 [Authorize]
@@ -536,23 +547,34 @@ public class TransactionController : ControllerBase
     {
         try
         {
-            var transaction = await _context.Transactions
+            // First check if transaction exists at all
+            var anyTransaction = await _context.Transactions
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(t => t.Id == id && t.IsDeleted);
+                .FirstOrDefaultAsync(t => t.Id == id);
 
-            if (transaction == null)
+            if (anyTransaction == null)
             {
-                return NotFound(new { error = "Deleted transaction not found" });
+                _logger.LogWarning($"Transaction {id} not found in database");
+                return NotFound(new { error = $"Transaction {id} not found" });
             }
+
+            if (!anyTransaction.IsDeleted)
+            {
+                _logger.LogWarning($"Transaction {id} is not deleted (IsDeleted = false)");
+                return BadRequest(new { error = "Transaction is not deleted and cannot be restored" });
+            }
+
+            var transaction = anyTransaction;
 
             // Find the reversal transaction (it will also be marked as deleted)
             var reversalTransaction = await _context.Transactions
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(t => t.RelatedTransactionId == id && t.IsDeleted);
 
+            // If no reversal transaction found, we can still restore but without removing a reversal
             if (reversalTransaction == null)
             {
-                return BadRequest(new { error = "Reversal transaction not found" });
+                _logger.LogWarning($"No reversal transaction found for transaction {id}. Restoring without reversal removal.");
             }
 
             // Restore the balance
@@ -592,10 +614,13 @@ public class TransactionController : ControllerBase
             transaction.UpdatedAt = DateTime.UtcNow;
             transaction.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
-            // Delete the reversal transaction
-            reversalTransaction.IsDeleted = true;
-            reversalTransaction.DeletedAt = DateTime.UtcNow;
-            reversalTransaction.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            // Delete the reversal transaction if it exists
+            if (reversalTransaction != null)
+            {
+                reversalTransaction.IsDeleted = true;
+                reversalTransaction.DeletedAt = DateTime.UtcNow;
+                reversalTransaction.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            }
 
             // Create history record for restoration
             var restorationHistory = new WalletHistory
@@ -629,7 +654,7 @@ public class TransactionController : ControllerBase
                 {
                     balanceBefore = restoredBalanceBefore,
                     balanceAfter = restoredBalanceAfter,
-                    reversalTransactionId = reversalTransaction.Id
+                    reversalTransactionId = reversalTransaction?.Id
                 }),
                 PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
                 PerformedAt = DateTime.UtcNow
@@ -648,6 +673,264 @@ public class TransactionController : ControllerBase
         {
             _logger.LogError(ex, "Error restoring transaction");
             return StatusCode(500, new { error = "An error occurred while restoring the transaction" });
+        }
+    }
+
+    // POST: api/transactions/bulk-delete
+    [HttpPost("bulk-delete")]
+    public async Task<IActionResult> BulkDeleteTransactions([FromBody] BulkDeleteRequest request)
+    {
+        try
+        {
+            if (request.Ids == null || !request.Ids.Any())
+            {
+                return BadRequest(new { error = "No transaction IDs provided" });
+            }
+
+            var deleteReason = request.Reason ?? "Bulk transaction deletion";
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            var results = new List<object>();
+            var errors = new List<string>();
+
+            foreach (var id in request.Ids)
+            {
+                try
+                {
+                    var transaction = await _context.Transactions
+                        .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+
+                    if (transaction == null)
+                    {
+                        errors.Add($"Transaction {id} not found or already deleted");
+                        continue;
+                    }
+
+                    if (transaction.Status == "reversed")
+                    {
+                        errors.Add($"Transaction {id} already reversed");
+                        continue;
+                    }
+
+                    // Reverse the balance
+                    decimal reversedBalanceBefore = 0;
+                    decimal reversedBalanceAfter = 0;
+
+                    if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+                    {
+                        var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
+                        if (wallet != null && !wallet.IsDeleted)
+                        {
+                            reversedBalanceBefore = wallet.CurrentBalance;
+                            wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
+                            reversedBalanceAfter = wallet.CurrentBalance;
+                            wallet.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+                    else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+                    {
+                        var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
+                        if (wallet != null && !wallet.IsDeleted)
+                        {
+                            reversedBalanceBefore = wallet.CurrentBalance;
+                            wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
+                            reversedBalanceAfter = wallet.CurrentBalance;
+                            wallet.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+
+                    transaction.Status = "reversed";
+                    transaction.UpdatedAt = DateTime.UtcNow;
+                    transaction.UpdatedBy = userEmail;
+
+                    // Create reversal transaction
+                    var reversalTransaction = new Models.Transaction
+                    {
+                        WalletType = transaction.WalletType,
+                        CustomWalletId = transaction.CustomWalletId,
+                        UserWalletId = transaction.UserWalletId,
+                        UserId = transaction.UserId,
+                        TransactionType = transaction.TransactionType,
+                        AmountType = transaction.AmountType == "credit" ? "debit" : "credit",
+                        Amount = transaction.Amount,
+                        Status = "completed",
+                        BalanceBefore = reversedBalanceBefore,
+                        BalanceAfter = reversedBalanceAfter,
+                        Description = $"Reversal of transaction #{transaction.Id}",
+                        Reason = deleteReason,
+                        Reference = transaction.Reference,
+                        RelatedTransactionId = transaction.Id,
+                        IsDeleted = true,
+                        DeletedAt = DateTime.UtcNow,
+                        DeletedBy = userEmail,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userEmail
+                    };
+
+                    _context.Transactions.Add(reversalTransaction);
+
+                    transaction.IsDeleted = true;
+                    transaction.DeletedAt = DateTime.UtcNow;
+                    transaction.DeletedBy = userEmail;
+
+                    var deletionHistory = new TransactionHistory
+                    {
+                        TransactionId = transaction.Id,
+                        Action = "Deleted",
+                        Changes = System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            reason = deleteReason,
+                            reversalTransactionId = reversalTransaction.Id,
+                            balanceAfterReversal = reversedBalanceAfter
+                        }),
+                        PerformedBy = userEmail,
+                        PerformedAt = DateTime.UtcNow
+                    };
+                    _context.TransactionHistories.Add(deletionHistory);
+
+                    results.Add(new { id, success = true });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error deleting transaction {id}");
+                    errors.Add($"Error deleting transaction {id}: {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = $"Processed {results.Count} transactions",
+                results,
+                errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk deleting transactions");
+            return StatusCode(500, new { error = "An error occurred while bulk deleting transactions" });
+        }
+    }
+
+    // POST: api/transactions/bulk-restore
+    [HttpPost("bulk-restore")]
+    public async Task<IActionResult> BulkRestoreTransactions([FromBody] BulkRestoreRequest request)
+    {
+        try
+        {
+            if (request.Ids == null || !request.Ids.Any())
+            {
+                return BadRequest(new { error = "No transaction IDs provided" });
+            }
+
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            var results = new List<object>();
+            var errors = new List<string>();
+
+            foreach (var id in request.Ids)
+            {
+                try
+                {
+                    var anyTransaction = await _context.Transactions
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(t => t.Id == id);
+
+                    if (anyTransaction == null)
+                    {
+                        errors.Add($"Transaction {id} not found");
+                        continue;
+                    }
+
+                    if (!anyTransaction.IsDeleted)
+                    {
+                        errors.Add($"Transaction {id} is not deleted");
+                        continue;
+                    }
+
+                    var transaction = anyTransaction;
+
+                    var reversalTransaction = await _context.Transactions
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(t => t.RelatedTransactionId == id && t.IsDeleted);
+
+                    // Restore the balance
+                    decimal restoredBalanceBefore = 0;
+                    decimal restoredBalanceAfter = 0;
+
+                    if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+                    {
+                        var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
+                        if (wallet != null && !wallet.IsDeleted)
+                        {
+                            restoredBalanceBefore = wallet.CurrentBalance;
+                            wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                            restoredBalanceAfter = wallet.CurrentBalance;
+                            wallet.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+                    else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+                    {
+                        var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
+                        if (wallet != null && !wallet.IsDeleted)
+                        {
+                            restoredBalanceBefore = wallet.CurrentBalance;
+                            wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                            restoredBalanceAfter = wallet.CurrentBalance;
+                            wallet.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+
+                    transaction.IsDeleted = false;
+                    transaction.DeletedAt = null;
+                    transaction.DeletedBy = null;
+                    transaction.Status = "completed";
+                    transaction.UpdatedAt = DateTime.UtcNow;
+                    transaction.UpdatedBy = userEmail;
+
+                    if (reversalTransaction != null)
+                    {
+                        reversalTransaction.IsDeleted = true;
+                        reversalTransaction.DeletedAt = DateTime.UtcNow;
+                        reversalTransaction.DeletedBy = userEmail;
+                    }
+
+                    var transactionHistory = new TransactionHistory
+                    {
+                        TransactionId = transaction.Id,
+                        Action = "Restored",
+                        Changes = System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            balanceBefore = restoredBalanceBefore,
+                            balanceAfter = restoredBalanceAfter,
+                            reversalTransactionId = reversalTransaction?.Id
+                        }),
+                        PerformedBy = userEmail,
+                        PerformedAt = DateTime.UtcNow
+                    };
+                    _context.TransactionHistories.Add(transactionHistory);
+
+                    results.Add(new { id, success = true });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error restoring transaction {id}");
+                    errors.Add($"Error restoring transaction {id}: {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = $"Processed {results.Count} transactions",
+                results,
+                errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk restoring transactions");
+            return StatusCode(500, new { error = "An error occurred while bulk restoring transactions" });
         }
     }
 

@@ -158,6 +158,16 @@ const transactionApi = {
     await apiClient.post(`/api/transactions/${id}/restore`)
   },
 
+  bulkDelete: async (ids: number[], reason?: string): Promise<any> => {
+    const response = await apiClient.post(`/api/transactions/bulk-delete`, { ids, reason })
+    return response.data
+  },
+
+  bulkRestore: async (ids: number[]): Promise<any> => {
+    const response = await apiClient.post(`/api/transactions/bulk-restore`, { ids })
+    return response.data
+  },
+
   getStats: async (filters?: Omit<TransactionFilters, 'page' | 'pageSize'>): Promise<TransactionStats> => {
     const params = new URLSearchParams()
     if (filters?.walletType) params.append('walletType', filters.walletType)

@@ -40,6 +40,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<TransactionComment> TransactionComments { get; set; }
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
+    public DbSet<Addon> Addons { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

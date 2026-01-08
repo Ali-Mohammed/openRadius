@@ -33,6 +33,8 @@ import UserWallets from './pages/UserWallets'
 import TopUp from './pages/TopUp'
 import WalletHistory from './pages/WalletHistory'
 import Transactions from './pages/Transactions'
+import Balances from './pages/Balances'
+import Addons from './pages/Addons'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -81,6 +83,8 @@ function App() {
                           <Route path="/cdc-monitor" element={<CdcMonitor />} />
                           <Route path="/billing/wallets" element={<CustomWallets />} />
                           <Route path="/billing/user-wallets" element={<UserWallets />} />
+                          <Route path="/billing/balances" element={<Balances />} />
+                          <Route path="/billing/addons" element={<Addons />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
                           <Route path="/billing/transactions" element={<Transactions />} />

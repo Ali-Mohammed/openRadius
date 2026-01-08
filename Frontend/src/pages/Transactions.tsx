@@ -31,6 +31,7 @@ import {
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Card,
   CardContent,
@@ -140,6 +141,9 @@ export default function Transactions() {
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false)
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false)
   const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null)
+  const [selectedTransactions, setSelectedTransactions] = useState<number[]>([])
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
+  const [isBulkRestoreDialogOpen, setIsBulkRestoreDialogOpen] = useState(false)
   const [deletingTransaction, setDeletingTransaction] = useState<any>(null)
   const [restoringTransaction, setRestoringTransaction] = useState<any>(null)
   const [deleteReason, setDeleteReason] = useState('')
@@ -333,6 +337,68 @@ export default function Transactions() {
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: ({ ids, reason }: { ids: number[]; reason?: string }) => 
+      transactionApi.bulkDelete(ids, reason),
+    onSuccess: async (data: any) => {
+      const successCount = data.results?.length || 0
+      const errorCount = data.errors?.length || 0
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} transaction(s) reversed successfully`)
+      }
+      if (errorCount > 0) {
+        toast.error(`Failed to reverse ${errorCount} transaction(s)`)
+        console.error('Bulk delete errors:', data.errors)
+      }
+      
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['userWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
+      setIsBulkDeleteDialogOpen(false)
+      setSelectedTransactions([])
+      setDeleteReason('')
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        'Failed to reverse transactions'
+      toast.error(errorMessage)
+    },
+  })
+
+  const bulkRestoreMutation = useMutation({
+    mutationFn: (ids: number[]) => transactionApi.bulkRestore(ids),
+    onSuccess: async (data: any) => {
+      const successCount = data.results?.length || 0
+      const errorCount = data.errors?.length || 0
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} transaction(s) restored successfully`)
+      }
+      if (errorCount > 0) {
+        toast.error(`Failed to restore ${errorCount} transaction(s)`)
+        console.error('Bulk restore errors:', data.errors)
+      }
+      
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['userWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
+      setIsBulkRestoreDialogOpen(false)
+      setSelectedTransactions([])
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        'Failed to restore transactions'
+      toast.error(errorMessage)
+    },
+  })
+
   const resetForm = () => {
     setFormData({
       walletType: 'custom',
@@ -376,6 +442,39 @@ export default function Transactions() {
     restoreMutation.mutate(restoringTransaction.id)
   }
 
+  const handleBulkDelete = () => {
+    if (selectedTransactions.length === 0) return
+    if (!deleteReason.trim()) {
+      toast.error('Please provide a reason for deletion')
+      return
+    }
+    bulkDeleteMutation.mutate({ ids: selectedTransactions, reason: deleteReason })
+  }
+
+  const handleBulkRestore = () => {
+    if (selectedTransactions.length === 0) return
+    bulkRestoreMutation.mutate(selectedTransactions)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTransactions(transactions.map(t => t.id))
+    } else {
+      setSelectedTransactions([])
+    }
+  }
+
+  const handleSelectTransaction = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedTransactions(prev => [...prev, id])
+    } else {
+      setSelectedTransactions(prev => prev.filter(tid => tid !== id))
+    }
+  }
+
+  const isAllSelected = transactions.length > 0 && selectedTransactions.length === transactions.length
+  const isSomeSelected = selectedTransactions.length > 0 && selectedTransactions.length < transactions.length
+
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'MMM dd, yyyy HH:mm')
@@ -401,6 +500,29 @@ export default function Transactions() {
             <Archive className="mr-2 h-4 w-4" />
             {showTrash ? 'Show Active' : 'Show Trash'}
           </Button>
+          
+          {/* Bulk Actions */}
+          {selectedTransactions.length > 0 && (
+            <>
+              <Button
+                onClick={() => setIsBulkDeleteDialogOpen(true)}
+                variant="outline"
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Selected ({selectedTransactions.length})
+              </Button>
+              <Button
+                onClick={() => setIsBulkRestoreDialogOpen(true)}
+                variant="outline"
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restore Selected ({selectedTransactions.length})
+              </Button>
+            </>
+          )}
+
           {!showTrash && (
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -623,6 +745,14 @@ export default function Transactions() {
             <Table>
               <TableHeader className="sticky top-0 bg-muted z-10">
                 <TableRow>
+                  <TableHead className="h-12 px-4 w-[50px]">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                      className={isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                    />
+                  </TableHead>
                   {columnVisibility.date && <TableHead className="h-12 px-4 w-[180px]">Date</TableHead>}
                   {columnVisibility.type && <TableHead className="h-12 px-4 w-[160px]">Type</TableHead>}
                   {columnVisibility.wallet && <TableHead className="h-12 px-4 w-[160px]">Wallet</TableHead>}
@@ -681,8 +811,16 @@ export default function Transactions() {
                     const typeInfo = TRANSACTION_TYPE_INFO[transaction.transactionType as TransactionType]
                     const IconComponent = transactionTypeIcons[transaction.transactionType as TransactionType] || ArrowUpCircle
                     const isDeleted = transaction.isDeleted
+                    const isSelected = selectedTransactions.includes(transaction.id)
                     return (
                       <TableRow key={transaction.id} className={isDeleted ? 'opacity-60 bg-gray-50' : ''}>
+                        <TableCell className="h-12 px-4">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => handleSelectTransaction(transaction.id, checked as boolean)}
+                            aria-label={`Select transaction ${transaction.id}`}
+                          />
+                        </TableCell>
                         {columnVisibility.date && (
                           <TableCell className="h-12 px-4">
                             <div className="text-sm">{formatDate(transaction.createdAt)}</div>
@@ -1171,6 +1309,65 @@ export default function Transactions() {
           transactionId={selectedTransactionId}
         />
       )}
+
+      {/* Bulk Delete Dialog */}
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedTransactions.length} Transactions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reverse the selected transactions and adjust wallet balances accordingly.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="my-4">
+            <Label htmlFor="bulk-delete-reason">Reason for deletion *</Label>
+            <Textarea
+              id="bulk-delete-reason"
+              placeholder="Enter reason for deletion..."
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              className="mt-2"
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteReason('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={bulkDeleteMutation.isPending || !deleteReason.trim()}
+            >
+              {bulkDeleteMutation.isPending ? 'Deleting...' : `Delete ${selectedTransactions.length} Transactions`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Restore Dialog */}
+      <AlertDialog open={isBulkRestoreDialogOpen} onOpenChange={setIsBulkRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore {selectedTransactions.length} Transactions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore the selected transactions and adjust wallet balances accordingly.
+              The reversal transactions will be deleted. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRestore}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={bulkRestoreMutation.isPending}
+            >
+              {bulkRestoreMutation.isPending ? 'Restoring...' : `Restore ${selectedTransactions.length} Transactions`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
