@@ -370,56 +370,60 @@ export default function RadiusTags() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="icon" className="text-sm font-medium">Icon</Label>
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start" 
-                  type="button"
-                  onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+              <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    type="button"
+                  >
+                    {(() => {
+                      const SelectedIcon = getIconComponent(newTagIcon)
+                      return <SelectedIcon className="w-4 h-4 mr-2" />
+                    })()}
+                    {newTagIcon}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-80 p-0" 
+                  align="start"
+                  style={{ zIndex: 9999 }}
+                  sideOffset={5}
                 >
-                  {(() => {
-                    const SelectedIcon = getIconComponent(newTagIcon)
-                    return <SelectedIcon className="w-4 h-4 mr-2" />
-                  })()}
-                  {newTagIcon}
-                </Button>
-                {iconPopoverOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-80 bg-white border rounded-md shadow-lg z-50">
-                    <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
-                      {AVAILABLE_ICONS.map((iconData) => {
-                        const IconComponent = iconData.icon
-                        const isSelected = newTagIcon === iconData.name
-                        return (
-                          <button
-                            key={iconData.name}
-                            type="button"
-                            onClick={(e) => {
-                              console.log('Icon clicked:', iconData.name)
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setNewTagIcon(iconData.name)
-                              setIconPopoverOpen(false)
-                            }}
-                            onMouseEnter={() => console.log('Hovering:', iconData.name)}
-                            className={`p-2 rounded flex items-center justify-center ${
-                              isSelected
-                                ? 'bg-blue-500 text-white' 
-                                : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
-                            style={{
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                            title={iconData.name}
-                          >
-                            <IconComponent className="w-4 h-4" />
-                          </button>
-                        )
-                      })}
-                    </div>
+                  <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                    {AVAILABLE_ICONS.map((iconData) => {
+                      const IconComponent = iconData.icon
+                      const isSelected = newTagIcon === iconData.name
+                      return (
+                        <button
+                          key={iconData.name}
+                          type="button"
+                          onClick={(e) => {
+                            console.log('Icon clicked:', iconData.name)
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setNewTagIcon(iconData.name)
+                            setIconPopoverOpen(false)
+                          }}
+                          onMouseEnter={() => console.log('Hovering:', iconData.name)}
+                          className={`p-2 rounded flex items-center justify-center ${
+                            isSelected
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                          style={{
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          title={iconData.name}
+                        >
+                          <IconComponent className="w-4 h-4" />
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter>
@@ -519,56 +523,60 @@ export default function RadiusTags() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-icon" className="text-sm font-medium">Icon</Label>
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start" 
-                  type="button"
-                  onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+              <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    type="button"
+                  >
+                    {(() => {
+                      const SelectedIcon = getIconComponent(newTagIcon)
+                      return <SelectedIcon className="w-4 h-4 mr-2" />
+                    })()}
+                    {newTagIcon}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-80 p-0" 
+                  align="start"
+                  style={{ zIndex: 9999 }}
+                  sideOffset={5}
                 >
-                  {(() => {
-                    const SelectedIcon = getIconComponent(newTagIcon)
-                    return <SelectedIcon className="w-4 h-4 mr-2" />
-                  })()}
-                  {newTagIcon}
-                </Button>
-                {iconPopoverOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-80 bg-white border rounded-md shadow-lg z-50">
-                    <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
-                      {AVAILABLE_ICONS.map((iconData) => {
-                        const IconComponent = iconData.icon
-                        const isSelected = newTagIcon === iconData.name
-                        return (
-                          <button
-                            key={iconData.name}
-                            type="button"
-                            onClick={(e) => {
-                              console.log('Icon clicked:', iconData.name)
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setNewTagIcon(iconData.name)
-                              setIconPopoverOpen(false)
-                            }}
-                            onMouseEnter={() => console.log('Hovering:', iconData.name)}
-                            className={`p-2 rounded flex items-center justify-center ${
-                              isSelected
-                                ? 'bg-blue-500 text-white' 
-                                : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
-                            style={{
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                            title={iconData.name}
-                          >
-                            <IconComponent className="w-4 h-4" />
-                          </button>
-                        )
-                      })}
-                    </div>
+                  <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                    {AVAILABLE_ICONS.map((iconData) => {
+                      const IconComponent = iconData.icon
+                      const isSelected = newTagIcon === iconData.name
+                      return (
+                        <button
+                          key={iconData.name}
+                          type="button"
+                          onClick={(e) => {
+                            console.log('Icon clicked:', iconData.name)
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setNewTagIcon(iconData.name)
+                            setIconPopoverOpen(false)
+                          }}
+                          onMouseEnter={() => console.log('Hovering:', iconData.name)}
+                          className={`p-2 rounded flex items-center justify-center ${
+                            isSelected
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                          style={{
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          title={iconData.name}
+                        >
+                          <IconComponent className="w-4 h-4" />
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter>
