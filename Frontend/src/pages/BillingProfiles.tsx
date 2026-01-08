@@ -660,7 +660,7 @@ export default function BillingProfiles() {
                           size="sm"
                           onClick={() => setSelectAllGroups(false)}
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -685,7 +685,7 @@ export default function BillingProfiles() {
                                 size="sm"
                                 onClick={() => setSelectedBillingGroups(prev => prev.filter(id => id !== groupId))}
                               >
-                                <X className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </CardContent>
@@ -787,7 +787,7 @@ export default function BillingProfiles() {
                               onClick={() => setSelectedRadiusProfiles(prev => prev.filter(item => item.profileId !== rp.profileId))}
                               className="mt-5"
                             >
-                              <X className="h-4 w-4" />
+                             <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -943,7 +943,7 @@ export default function BillingProfiles() {
                             onClick={() => removeWallet(index)}
                             className="h-10"
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -1046,7 +1046,7 @@ export default function BillingProfiles() {
                             onClick={() => setSelectedAddons(prev => prev.filter((_, i) => i !== index))}
                             className="mt-8"
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                         {addon.description && (
