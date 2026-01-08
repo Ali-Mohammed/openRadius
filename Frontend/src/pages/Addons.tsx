@@ -18,23 +18,12 @@ import { addonApi, type Addon } from '@/api/addons'
 import { customWalletApi } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
-import { AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
+import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '@/utils/iconColorHelper'
 
 // Addon-specific icons (subset of available icons)
 const ADDON_ICONS = AVAILABLE_ICONS.filter(icon => 
   ['Package', 'Gift', 'Star', 'Zap', 'Crown', 'Trophy', 'Heart', 'Sparkles'].includes(icon.name)
 )
-
-const AVAILABLE_COLORS = [
-  { value: 'blue', label: 'Blue', hex: '#3b82f6' },
-  { value: 'green', label: 'Green', hex: '#10b981' },
-  { value: 'purple', label: 'Purple', hex: '#8b5cf6' },
-  { value: 'pink', label: 'Pink', hex: '#ec4899' },
-  { value: 'yellow', label: 'Yellow', hex: '#f59e0b' },
-  { value: 'red', label: 'Red', hex: '#ef4444' },
-  { value: 'indigo', label: 'Indigo', hex: '#6366f1' },
-  { value: 'orange', label: 'Orange', hex: '#f97316' },
-]
 
 export default function Addons() {
   const { t, i18n } = useTranslation()
@@ -58,7 +47,7 @@ export default function Addons() {
     name: '',
     description: '',
     icon: 'Package',
-    color: 'blue',
+    color: '#3b82f6',
     price: '',
     customWalletId: '',
     linkToWallet: false,
@@ -172,7 +161,7 @@ export default function Addons() {
         name: addon.name,
         description: addon.description || '',
         icon: addon.icon || 'Package',
-        color: addon.color || 'blue',
+        color: addon.color || '#3b82f6',
         price: addon.price.toString(),
         customWalletId: addon.customWalletId?.toString() || '',
         linkToWallet: !!addon.customWalletId,
@@ -189,7 +178,7 @@ export default function Addons() {
       name: '',
       description: '',
       icon: 'Package',
-      color: 'blue',
+      color: '#3b82f6',
       price: '',
       customWalletId: '',
       linkToWallet: false,
@@ -345,14 +334,13 @@ export default function Addons() {
                 </TableRow>
               ) : (
                 addons.map((addon) => {
-                  const colorObj = AVAILABLE_COLORS.find(c => c.value === addon.color)
                   const IconComponent = getIconComponent(addon.icon)
                   return (
                     <TableRow key={addon.id}>
                       <TableCell>
                         <div 
                           className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-                          style={{ backgroundColor: colorObj?.hex || '#3b82f6' }}
+                          style={{ backgroundColor: addon.color || '#3b82f6' }}
                         >
                           <IconComponent className="h-5 w-5" />
                         </div>
@@ -544,10 +532,10 @@ export default function Addons() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {AVAILABLE_COLORS.map((color) => (
+                    {PREDEFINED_COLORS.map((color) => (
                       <SelectItem key={color.value} value={color.value}>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: color.hex }} />
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: color.value }} />
                           {color.label}
                         </div>
                       </SelectItem>
