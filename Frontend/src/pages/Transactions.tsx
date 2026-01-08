@@ -150,7 +150,22 @@ export default function Transactions() {
     return '$'
   }
 
-  const currencySymbol = getCurrencySymbol()
+  // Helper to format currency amounts
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
+  // Get workspace for currency settings
+  const { data: workspace } = useQuery({
+    queryKey: ['workspace', currentWorkspaceId],
+    queryFn: () => workspaceApi.getById(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
+  })
+
+  const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: transactionsData, isLoading } = useQuery({
     queryKey: [
@@ -718,18 +733,18 @@ export default function Transactions() {
                           <TableCell className="h-12 px-4 text-right">
                             <span className={`${typeInfo?.color} font-medium`}>
                               {transaction.amountType === 'credit' ? '+' : '-'}
-                              {currencySymbol} {transaction.amount.toFixed(2)}
+                              {currencySymbol} {formatCurrency(transaction.amount)}
                             </span>
                           </TableCell>
                         )}
                         {columnVisibility.before && (
                           <TableCell className="h-12 px-4 text-right text-muted-foreground">
-                            {currencySymbol} {transaction.balanceBefore.toFixed(2)}
+                            {currencySymbol} {formatCurrency(transaction.balanceBefore)}
                           </TableCell>
                         )}
                         {columnVisibility.after && (
                           <TableCell className="h-12 px-4 text-right font-medium">
-                            {currencySymbol} {transaction.balanceAfter.toFixed(2)}
+                            {currencySymbol} {formatCurrency(transaction.balanceAfter)}
                           </TableCell>
                         )}
                         {columnVisibility.status && (
