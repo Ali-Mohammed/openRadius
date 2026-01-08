@@ -154,6 +154,22 @@ public class BillingGroupController : ControllerBase
         {
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
+            // Validate that all user IDs exist in the workspace database
+            if (request.UserIds != null && request.UserIds.Any())
+            {
+                var existingUserIds = await _context.Users
+                    .Where(u => request.UserIds.Contains(u.Id))
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                var invalidUserIds = request.UserIds.Except(existingUserIds).ToList();
+                if (invalidUserIds.Any())
+                {
+                    _logger.LogWarning("Invalid user IDs provided: {InvalidIds}", string.Join(", ", invalidUserIds));
+                    return BadRequest(new { error = $"The following user IDs do not exist in this workspace: {string.Join(", ", invalidUserIds)}" });
+                }
+            }
+
             var group = new BillingGroup
             {
                 Name = request.Name,
@@ -208,6 +224,22 @@ public class BillingGroupController : ControllerBase
             if (existingGroup == null)
             {
                 return NotFound(new { error = "Group not found" });
+            }
+
+            // Validate that all user IDs exist in the workspace database
+            if (request.UserIds != null && request.UserIds.Any())
+            {
+                var existingUserIds = await _context.Users
+                    .Where(u => request.UserIds.Contains(u.Id))
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                var invalidUserIds = request.UserIds.Except(existingUserIds).ToList();
+                if (invalidUserIds.Any())
+                {
+                    _logger.LogWarning("Invalid user IDs provided for update: {InvalidIds}", string.Join(", ", invalidUserIds));
+                    return BadRequest(new { error = $"The following user IDs do not exist in this workspace: {string.Join(", ", invalidUserIds)}" });
+                }
             }
 
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";

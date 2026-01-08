@@ -109,8 +109,9 @@ export default function BillingGroups() {
       toast.success('Group created successfully');
       handleCloseDialog();
     },
-    onError: () => {
-      toast.error('Failed to create group');
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || 'Failed to create group';
+      toast.error(errorMessage);
     },
   });
 
@@ -122,8 +123,9 @@ export default function BillingGroups() {
       toast.success('Group updated successfully');
       handleCloseDialog();
     },
-    onError: () => {
-      toast.error('Failed to update group');
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || 'Failed to update group';
+      toast.error(errorMessage);
     },
   });
 
