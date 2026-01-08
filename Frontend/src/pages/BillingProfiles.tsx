@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,7 +56,6 @@ import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { useWorkspace } from '../contexts/WorkspaceContext';
 
 const walletIconOptions = [
   { value: 'Wallet', label: 'Wallet', Icon: Wallet },
@@ -73,8 +73,9 @@ const colorOptions = [
 ];
 
 export default function BillingProfiles() {
+  const { id } = useParams<{ id: string }>();
+  const workspaceId = parseInt(id || '0');
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<BillingProfile | null>(null);
