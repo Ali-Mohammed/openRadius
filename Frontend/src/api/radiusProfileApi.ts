@@ -24,6 +24,13 @@ export interface RadiusProfile {
   createdAt?: string
   updatedAt?: string
   lastSyncedAt?: string
+  customWallets?: ProfileWalletConfig[]
+}
+
+export interface ProfileWalletConfig {
+  customWalletId: number
+  amount: number
+  walletName?: string
 }
 
 export interface SyncProfileResponse {
