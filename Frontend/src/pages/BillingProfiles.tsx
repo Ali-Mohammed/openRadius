@@ -106,18 +106,18 @@ export default function BillingProfiles() {
   });
 
   const { data: radiusProfilesData, isLoading: isLoadingRadiusProfiles } = useQuery({
-    queryKey: ['radius-profiles', currentWorkspace?.id],
+    queryKey: ['radius-profiles', workspaceId],
     queryFn: async () => {
-      if (!currentWorkspace?.id) {
+      if (!workspaceId || workspaceId === 0) {
         console.log('No workspace ID available');
         return { data: [], pagination: { currentPage: 1, pageSize: 50, totalRecords: 0, totalPages: 0 } };
       }
-      console.log('Fetching radius profiles for workspace:', currentWorkspace.id);
-      const result = await radiusProfileApi.getAll(currentWorkspace.id, 1, 1000);
+      console.log('Fetching radius profiles for workspace:', workspaceId);
+      const result = await radiusProfileApi.getAll(workspaceId, 1, 1000);
       console.log('Radius profiles result:', result);
       return result;
     },
-    enabled: !!currentWorkspace?.id,
+    enabled: workspaceId > 0,
   });
 
   const { data: billingGroupsData, isLoading: isLoadingBillingGroups } = useQuery({
