@@ -41,10 +41,15 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionComment> TransactionComments { get; set; }
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
+    public DbSet<BillingGroup> BillingGroups { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Ignore User navigation properties for auth system (managed in MasterDbContext)
+        modelBuilder.Entity<User>().Ignore(u => u.UserRoles);
+        modelBuilder.Entity<User>().Ignore(u => u.UserGroups);
 
         modelBuilder.Entity<RadiusUser>(entity =>
         {
@@ -199,6 +204,31 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Transaction)
                   .WithMany()
                   .HasForeignKey(e => e.TransactionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BillingGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.IsActive);
+            
+            // Add query filter to exclude soft-deleted groups by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        modelBuilder.Entity<BillingGroupUser>(entity =>
+        {
+            entity.HasKey(gu => new { gu.GroupId, gu.UserId });
+
+            entity.HasOne(gu => gu.Group)
+                  .WithMany(g => g.GroupUsers)
+                  .HasForeignKey(gu => gu.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(gu => gu.User)
+                  .WithMany()
+                  .HasForeignKey(gu => gu.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

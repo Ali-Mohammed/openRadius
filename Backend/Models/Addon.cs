@@ -8,7 +8,7 @@ public class Addon
     public string? Icon { get; set; }
     public string? Color { get; set; }
     public decimal Price { get; set; }
-    public int CustomWalletId { get; set; }
+    public int? CustomWalletId { get; set; }
     public virtual CustomWallet? CustomWallet { get; set; }
     
     // Soft delete

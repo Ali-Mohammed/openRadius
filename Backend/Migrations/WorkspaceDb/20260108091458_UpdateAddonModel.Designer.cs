@@ -3,6 +3,7 @@ using System;
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.WorkspaceDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260108091458_UpdateAddonModel")]
+    partial class UpdateAddonModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,81 +78,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.HasIndex("CustomWalletId");
 
                     b.ToTable("Addons");
-                });
-
-            modelBuilder.Entity("Backend.Models.BillingGroup", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Color")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Icon")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("Name");
-
-                    b.ToTable("BillingGroups");
-                });
-
-            modelBuilder.Entity("Backend.Models.BillingGroupUser", b =>
-                {
-                    b.Property<int>("GroupId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("GroupId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("BillingGroupUser");
                 });
 
             modelBuilder.Entity("Backend.Models.CustomWallet", b =>
@@ -1155,52 +1083,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.ToTable("TransactionHistories");
                 });
 
-            modelBuilder.Entity("Backend.Models.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("CurrentWorkspaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("DefaultWorkspaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("KeycloakUserId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("SupervisorId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CurrentWorkspaceId");
-
-                    b.HasIndex("DefaultWorkspaceId");
-
-                    b.HasIndex("SupervisorId");
-
-                    b.ToTable("User");
-                });
-
             modelBuilder.Entity("Backend.Models.UserWallet", b =>
                 {
                     b.Property<int>("Id")
@@ -1343,75 +1225,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.ToTable("WalletHistories");
                 });
 
-            modelBuilder.Entity("Backend.Models.Workspace", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Comments")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Icon")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Workspace");
-                });
-
             modelBuilder.Entity("Backend.Models.Addon", b =>
                 {
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
@@ -1419,25 +1232,6 @@ namespace Backend.Migrations.WorkspaceDb
                         .HasForeignKey("CustomWalletId");
 
                     b.Navigation("CustomWallet");
-                });
-
-            modelBuilder.Entity("Backend.Models.BillingGroupUser", b =>
-                {
-                    b.HasOne("Backend.Models.BillingGroup", "Group")
-                        .WithMany("GroupUsers")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Backend.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Group");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>
@@ -1515,27 +1309,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Navigation("Transaction");
                 });
 
-            modelBuilder.Entity("Backend.Models.User", b =>
-                {
-                    b.HasOne("Backend.Models.Workspace", "CurrentWorkspace")
-                        .WithMany()
-                        .HasForeignKey("CurrentWorkspaceId");
-
-                    b.HasOne("Backend.Models.Workspace", "DefaultWorkspace")
-                        .WithMany()
-                        .HasForeignKey("DefaultWorkspaceId");
-
-                    b.HasOne("Backend.Models.User", "Supervisor")
-                        .WithMany("Subordinates")
-                        .HasForeignKey("SupervisorId");
-
-                    b.Navigation("CurrentWorkspace");
-
-                    b.Navigation("DefaultWorkspace");
-
-                    b.Navigation("Supervisor");
-                });
-
             modelBuilder.Entity("Backend.Models.UserWallet", b =>
                 {
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
@@ -1563,11 +1336,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Navigation("UserWallet");
                 });
 
-            modelBuilder.Entity("Backend.Models.BillingGroup", b =>
-                {
-                    b.Navigation("GroupUsers");
-                });
-
             modelBuilder.Entity("Backend.Models.RadiusTag", b =>
                 {
                     b.Navigation("RadiusUserTags");
@@ -1576,11 +1344,6 @@ namespace Backend.Migrations.WorkspaceDb
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>
                 {
                     b.Navigation("RadiusUserTags");
-                });
-
-            modelBuilder.Entity("Backend.Models.User", b =>
-                {
-                    b.Navigation("Subordinates");
                 });
 #pragma warning restore 612, 618
         }
