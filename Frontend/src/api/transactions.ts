@@ -74,6 +74,31 @@ export interface TransactionStats {
   }[]
 }
 
+export interface TransactionComment {
+  id: number
+  comment: string
+  createdBy: string
+  createdAt: string
+}
+
+export interface TransactionHistory {
+  id: number
+  action: string
+  changes?: string
+  performedBy: string
+  performedAt: string
+}
+
+export interface CommentsResponse {
+  data: TransactionComment[]
+  totalCount: number
+}
+
+export interface HistoryResponse {
+  data: TransactionHistory[]
+  totalCount: number
+}
+
 const transactionApi = {
   getAll: async (filters?: TransactionFilters): Promise<TransactionResponse> => {
     const params = new URLSearchParams()
@@ -123,6 +148,23 @@ const transactionApi = {
     if (filters?.endDate) params.append('endDate', filters.endDate)
 
     const response = await apiClient.get(`/api/transactions/stats?${params}`)
+    return response.data
+  },
+
+  // Comments
+  getComments: async (transactionId: number): Promise<CommentsResponse> => {
+    const response = await apiClient.get(`/api/transactions/${transactionId}/comments`)
+    return response.data
+  },
+
+  addComment: async (transactionId: number, comment: string): Promise<TransactionComment> => {
+    const response = await apiClient.post(`/api/transactions/${transactionId}/comments`, { comment })
+    return response.data
+  },
+
+  // History
+  getHistory: async (transactionId: number): Promise<HistoryResponse> => {
+    const response = await apiClient.get(`/api/transactions/${transactionId}/history`)
     return response.data
   },
 }
