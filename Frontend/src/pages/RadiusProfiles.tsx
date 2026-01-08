@@ -16,38 +16,14 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
-  Star, Heart, Zap, Trophy, Crown, Shield, Users, User, Building, Briefcase, Rocket, Target, Award, Medal, Flag, 
-  CheckCircle, XCircle, AlertCircle, Info, Settings, Home, Mail, Phone, Calendar, Clock, DollarSign, CreditCard, 
-  ShoppingCart, Package, Truck, MapPin, Globe, Wifi, Database, Server, Cloud, Lock, Key, Eye, Bell, MessageCircle, 
-  Send, Bookmark, FileText, Folder, Download, Upload, Share, Link, Layers, Grid, List, Filter, MoreHorizontal, 
-  Circle, Square, Triangle, Diamond, Hexagon, Octagon, Sparkles, Coffee, Music, Camera, Image, Video, Mic, 
-  Headphones, Speaker, Monitor, Smartphone, Tablet, Watch, Printer, Cpu, HardDrive, Battery, Bluetooth, Radio, Rss
+  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal
 } from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
 import { customWalletApi } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-
-const PREDEFINED_COLORS = [
-  { value: '#3b82f6', label: 'Blue' },
-  { value: '#10b981', label: 'Green' },
-  { value: '#f59e0b', label: 'Orange' },
-  { value: '#ef4444', label: 'Red' },
-  { value: '#8b5cf6', label: 'Purple' },
-  { value: '#ec4899', label: 'Pink' },
-  { value: '#6366f1', label: 'Indigo' },
-  { value: '#14b8a6', label: 'Teal' },
-]
-
-const AVAILABLE_ICONS = [
-  { name: 'Package', icon: Package },
-  { name: 'Star', icon: Star },
-  { name: 'Heart', icon: Heart },
-  { name: 'Zap', icon: Zap },
-  { name: 'Trophy', icon: Trophy },
-  { name: 'Crown', icon: Crown },
+import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
   { name: 'Shield', icon: Shield },
   { name: 'Users', icon: Users },
   { name: 'User', icon: User },
@@ -196,13 +172,6 @@ export default function RadiusProfiles() {
   // Custom wallet configuration state
   const [enableCustomWallets, setEnableCustomWallets] = useState(false)
   const [selectedWallets, setSelectedWallets] = useState<Array<{ customWalletId: number; amount: string }>>([])
-
-  // Helper function to get icon component
-  const getIconComponent = (iconName?: string) => {
-    if (!iconName) return Package
-    const iconData = AVAILABLE_ICONS.find(i => i.name === iconName)
-    return iconData?.icon || Package
-  }
 
   // Fetch workspace currency
   const { data: workspace } = useQuery({
