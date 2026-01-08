@@ -363,129 +363,134 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Receipt className="h-8 w-8" />
-            Transactions
-          </h1>
+          <h1 className="text-3xl font-bold">Transactions</h1>
           <p className="text-muted-foreground">
             Manage all wallet transactions with automatic balance tracking
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Transaction
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowTrash(!showTrash)}
+            variant={showTrash ? 'default' : 'outline'}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
           </Button>
+          {!showTrash && (
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Transaction
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Search and Controls */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search transactions..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(searchInput)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={showTrash ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowTrash(!showTrash)}
-                className="gap-2"
-              >
-                <Archive className="h-4 w-4" />
-                {showTrash ? 'Show Active' : 'Show Trash'}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Columns3 className="h-4 w-4" />
-                    Columns
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.date}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, date: checked }))}
-                  >
-                    Date
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.type}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, type: checked }))}
-                  >
-                    Type
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.wallet}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, wallet: checked }))}
-                  >
-                    Wallet
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.user}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, user: checked }))}
-                  >
-                    User
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.amount}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, amount: checked }))}
-                  >
-                    Amount
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.before}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, before: checked }))}
-                  >
-                    Balance Before
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.after}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, after: checked }))}
-                  >
-                    Balance After
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.status}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
-                  >
-                    Status
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                  <SelectItem value="200">200</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant={showFilters ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                Filters
-              </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  placeholder="Search transactions..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(searchInput)}
+                  className="max-w-sm"
+                />
+                <Button onClick={() => setSearchQuery(searchInput)} variant="outline" size="icon">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button 
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })} 
+                  variant="outline" 
+                  size="icon"
+                  title="Refresh"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" title="Toggle columns">
+                      <Columns3 className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.date}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, date: checked }))}
+                    >
+                      Date
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.type}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, type: checked }))}
+                    >
+                      Type
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.wallet}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, wallet: checked }))}
+                    >
+                      Wallet
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.user}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, user: checked }))}
+                    >
+                      User
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.amount}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, amount: checked }))}
+                    >
+                      Amount
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.before}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, before: checked }))}
+                    >
+                      Balance Before
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.after}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, after: checked }))}
+                    >
+                      Balance After
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.status}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                    >
+                      Status
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
+                  <SelectTrigger className="w-[70px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant={showFilters ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setShowFilters(!showFilters)}
+                  title="Toggle filters"
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
