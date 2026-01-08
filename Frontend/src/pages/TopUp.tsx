@@ -34,6 +34,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import topUpApi, { type TopUpRequest } from '@/api/topUp'
 import { customWalletApi } from '@/api/customWallets'
 import userWalletApi from '@/api/userWallets'
@@ -52,6 +53,7 @@ export default function TopUp() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [walletType, setWalletType] = useState<'custom' | 'user'>('custom')
   const [userSearchOpen, setUserSearchOpen] = useState(false)
+  const [confirmChecked, setConfirmChecked] = useState(false)
   const [topUpResult, setTopUpResult] = useState<{ success: boolean; message: string; data?: any } | null>(null)
   const [formData, setFormData] = useState<TopUpRequest>({
     walletType: 'custom',
@@ -64,6 +66,14 @@ export default function TopUp() {
       return i18n.language === 'ar' ? 'د.ع' : 'IQD'
     }
     return '$'
+  }
+
+  // Helper to format currency amounts
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
   }
 
   // Queries
@@ -154,6 +164,7 @@ export default function TopUp() {
   const handleStartNew = () => {
     setCurrentStep(1)
     setTopUpResult(null)
+    setConfirmChecked(false)
     setFormData({
       walletType,
       amount: 0,
@@ -316,7 +327,7 @@ export default function TopUp() {
                               style={{ backgroundColor: wallet.color }}
                             />
                             {wallet.name} - {currencySymbol}
-                            {wallet.currentBalance.toFixed(2)}
+                            {formatCurrency(wallet.currentBalance)}
                           </div>
                         </SelectItem>
                       ))}
@@ -365,7 +376,7 @@ export default function TopUp() {
                                   <span className="font-medium">{wallet.userName}</span>
                                   <span className="text-xs text-muted-foreground">
                                     {wallet.userEmail} • {currencySymbol}
-                                    {wallet.currentBalance.toFixed(2)}
+                                    {formatCurrency(wallet.currentBalance)}
                                   </span>
                                 </div>
                               </CommandItem>
@@ -382,13 +393,13 @@ export default function TopUp() {
                 <Label htmlFor="amount">Amount ({currencySymbol}) *</Label>
                 <Input
                   id="amount"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={formData.amount || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-                  }
+                  type="text"
+                  value={formData.amount ? formatCurrency(formData.amount) : ''}
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/,/g, '')
+                    const numValue = parseFloat(rawValue) || 0
+                    setFormData({ ...formData, amount: numValue })
+                  }}
                   placeholder="0.00"
                   required
                 />
@@ -452,7 +463,7 @@ export default function TopUp() {
                     <div className="flex justify-between py-3 border-b">
                       <span className="text-muted-foreground">Current Balance</span>
                       <span className="font-medium">
-                        {currencySymbol}{selectedCustomWallet.currentBalance.toFixed(2)}
+                        {currencySymbol}{formatCurrency(selectedCustomWallet.currentBalance)}
                       </span>
                     </div>
                   </>
@@ -470,7 +481,7 @@ export default function TopUp() {
                     <div className="flex justify-between py-3 border-b">
                       <span className="text-muted-foreground">Current Balance</span>
                       <span className="font-medium">
-                        {currencySymbol}{selectedUserWallet.currentBalance.toFixed(2)}
+                        {currencySymbol}{formatCurrency(selectedUserWallet.currentBalance)}
                       </span>
                     </div>
                   </>
@@ -479,7 +490,7 @@ export default function TopUp() {
                 <div className="flex justify-between py-3 border-b">
                   <span className="text-muted-foreground">Top-Up Amount</span>
                   <span className="font-medium text-green-600">
-                    +{currencySymbol}{formData.amount.toFixed(2)}
+                    +{currencySymbol}{formatCurrency(formData.amount)}
                   </span>
                 </div>
 
@@ -501,7 +512,7 @@ export default function TopUp() {
                   <span className="font-semibold">New Balance (After Top-Up)</span>
                   <span className="font-bold text-lg text-primary">
                     {currencySymbol}
-                    {((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount).toFixed(2)}
+                    {formatCurrency((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount)}
                   </span>
                 </div>
               </div>
@@ -527,7 +538,7 @@ export default function TopUp() {
                   ⚠️ Please confirm the transaction details before proceeding
                 </p>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                  This action will add {currencySymbol}{formData.amount.toFixed(2)} to the selected wallet
+                  This action will add {currencySymbol}{formatCurrency(formData.amount)} to the selected wallet
                 </p>
               </div>
 
@@ -535,7 +546,7 @@ export default function TopUp() {
                 <div className="text-center py-6">
                   <div className="text-5xl mb-4">💰</div>
                   <div className="text-2xl font-bold mb-2">
-                    {currencySymbol}{formData.amount.toFixed(2)}
+                    {currencySymbol}{formatCurrency(formData.amount)}
                   </div>
                   <div className="text-muted-foreground">
                     will be added to {walletType === 'custom' ? selectedCustomWallet?.name : selectedUserWallet?.userName}
@@ -546,21 +557,35 @@ export default function TopUp() {
                   <div className="flex justify-between text-sm">
                     <span>Current Balance:</span>
                     <span className="font-medium">
-                      {currencySymbol}{(selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0).toFixed(2)}
+                      {currencySymbol}{formatCurrency(selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Top-Up Amount:</span>
-                    <span className="font-medium">+{currencySymbol}{formData.amount.toFixed(2)}</span>
+                    <span className="font-medium">+{currencySymbol}{formatCurrency(formData.amount)}</span>
                   </div>
                   <div className="h-px bg-border my-2" />
                   <div className="flex justify-between font-bold">
                     <span>New Balance:</span>
                     <span className="text-primary">
-                      {currencySymbol}{((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount).toFixed(2)}
+                      {currencySymbol}{formatCurrency((selectedCustomWallet?.currentBalance || selectedUserWallet?.currentBalance || 0) + formData.amount)}
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2 border rounded-lg p-4 bg-muted/30">
+                <Checkbox
+                  id="confirm"
+                  checked={confirmChecked}
+                  onCheckedChange={(checked) => setConfirmChecked(checked as boolean)}
+                />
+                <label
+                  htmlFor="confirm"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  I confirm that all the information above is correct and I want to proceed with this transaction
+                </label>
               </div>
 
               <div className="flex justify-between gap-2 pt-4">
@@ -568,7 +593,7 @@ export default function TopUp() {
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button type="button" onClick={handleConfirm} disabled={topUpMutation.isPending}>
+                <Button type="button" onClick={handleConfirm} disabled={topUpMutation.isPending || !confirmChecked}>
                   {topUpMutation.isPending ? 'Processing...' : (
                     <>
                       Confirm & Process
@@ -608,20 +633,20 @@ export default function TopUp() {
                   <div className="flex justify-between text-sm">
                     <span>Amount Added:</span>
                     <span className="font-medium text-green-600">
-                      +{currencySymbol}{topUpResult.data.amount.toFixed(2)}
+                      +{currencySymbol}{formatCurrency(topUpResult.data.amount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Previous Balance:</span>
                     <span className="font-medium">
-                      {currencySymbol}{topUpResult.data.balanceBefore.toFixed(2)}
+                      {currencySymbol}{formatCurrency(topUpResult.data.balanceBefore)}
                     </span>
                   </div>
                   <div className="h-px bg-border my-2" />
                   <div className="flex justify-between font-bold">
                     <span>New Balance:</span>
                     <span className="text-primary">
-                      {currencySymbol}{topUpResult.data.balanceAfter.toFixed(2)}
+                      {currencySymbol}{formatCurrency(topUpResult.data.balanceAfter)}
                     </span>
                   </div>
                 </div>
