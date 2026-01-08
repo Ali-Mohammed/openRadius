@@ -18,6 +18,11 @@ import {
   Percent,
   AlertCircle,
   RotateCcw,
+  Search,
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  Columns3,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -65,6 +70,8 @@ import {
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
 import transactionApi, { type CreateTransactionRequest } from '@/api/transactions'
 import { customWalletApi } from '@/api/customWallets'
 import userWalletApi from '@/api/userWallets'
@@ -101,9 +108,21 @@ export default function Transactions() {
   const [filterStatus, setFilterStatus] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(20)
-  const [includeDeleted, setIncludeDeleted] = useState(false)
+  const [pageSize, setPageSize] = useState(50)
+  const [showTrash, setShowTrash] = useState(false)
+  const [columnVisibility, setColumnVisibility] = useState({
+    date: true,
+    type: true,
+    wallet: true,
+    user: true,
+    amount: true,
+    before: true,
+    after: true,
+    status: true,
+  })
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -138,7 +157,7 @@ export default function Transactions() {
       endDate,
       currentPage,
       pageSize,
-      includeDeleted,
+      showTrash,
     ],
     queryFn: () =>
       transactionApi.getAll({
@@ -149,7 +168,7 @@ export default function Transactions() {
         endDate: endDate || undefined,
         page: currentPage,
         pageSize,
-        includeDeleted,
+        includeDeleted: showTrash,
       }),
   })
 
@@ -202,12 +221,13 @@ export default function Transactions() {
 
   const deleteMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => transactionApi.delete(id, reason),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Transaction reversed successfully')
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] })
-      queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
+      // Refetch to immediately update the UI
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['userWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
       setIsDeleteDialogOpen(false)
       setDeletingTransaction(null)
       setDeleteReason('')
@@ -223,12 +243,13 @@ export default function Transactions() {
 
   const restoreMutation = useMutation({
     mutationFn: (id: number) => transactionApi.restore(id),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Transaction restored successfully')
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['customWallets'] })
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] })
-      queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
+      // Refetch to immediately update the UI
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['customWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['userWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['walletHistory'] })
       setIsRestoreDialogOpen(false)
       setRestoringTransaction(null)
     },

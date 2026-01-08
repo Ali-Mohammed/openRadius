@@ -410,7 +410,7 @@ public class TransactionController : ControllerBase
             transaction.UpdatedAt = DateTime.UtcNow;
             transaction.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
-            // Create reversal transaction
+            // Create reversal transaction (also mark as deleted so it doesn't show in main view)
             var reversalTransaction = new Models.Transaction
             {
                 WalletType = transaction.WalletType,
@@ -427,6 +427,9 @@ public class TransactionController : ControllerBase
                 Reason = deleteReason,
                 Reference = transaction.Reference,
                 RelatedTransactionId = transaction.Id,
+                IsDeleted = true, // Mark reversal as deleted too
+                DeletedAt = DateTime.UtcNow,
+                DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
             };
@@ -492,9 +495,9 @@ public class TransactionController : ControllerBase
                 return NotFound(new { error = "Deleted transaction not found" });
             }
 
-            // Find the reversal transaction
+            // Find the reversal transaction (it will also be marked as deleted)
             var reversalTransaction = await _context.Transactions
-                .FirstOrDefaultAsync(t => t.RelatedTransactionId == id && !t.IsDeleted);
+                .FirstOrDefaultAsync(t => t.RelatedTransactionId == id && t.IsDeleted);
 
             if (reversalTransaction == null)
             {
