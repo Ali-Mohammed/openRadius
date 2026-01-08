@@ -24,19 +24,7 @@ import { workspaceApi } from '@/lib/api'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
-  { name: 'Shield', icon: Shield },
-  { name: 'Users', icon: Users },
-  { name: 'User', icon: User },
-  { name: 'Building', icon: Building },
-  { name: 'Briefcase', icon: Briefcase },
-  { name: 'Rocket', icon: Rocket },
-  { name: 'Target', icon: Target },
-  { name: 'Award', icon: Award },
-  { name: 'Medal', icon: Medal },
-  { name: 'Flag', icon: Flag },
-  { name: 'CheckCircle', icon: CheckCircle },
-  { name: 'XCircle', icon: XCircle },
-  { name: 'AlertCircle', icon: AlertCircle },
+
 export default function RadiusProfiles() {
   const { id } = useParams<{ id: string }>()
   const workspaceId = parseInt(id || '0')
