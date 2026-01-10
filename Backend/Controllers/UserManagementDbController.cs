@@ -13,17 +13,20 @@ namespace Backend.Controllers;
 public class UserManagementDbController : ControllerBase
 {
     private readonly MasterDbContext _context;
+    private readonly ApplicationDbContext _appContext;
     private readonly ILogger<UserManagementDbController> _logger;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
 
     public UserManagementDbController(
-        MasterDbContext context, 
+        MasterDbContext context,
+        ApplicationDbContext appContext,
         ILogger<UserManagementDbController> logger,
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory)
     {
         _context = context;
+        _appContext = appContext;
         _logger = logger;
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
@@ -295,6 +298,48 @@ public class UserManagementDbController : ControllerBase
                 .Select(u => new { id = u.Id, firstName = u.FirstName, lastName = u.LastName, email = u.Email })
                 .ToListAsync();
 
+            // Fetch zones from workspace database
+            var keycloakUserIds = users.Where(u => !string.IsNullOrEmpty(u.KeycloakUserId)).Select(u => u.KeycloakUserId!).ToList();
+            var userZonesMap = new Dictionary<string, List<object>>();
+            
+            if (keycloakUserIds.Any())
+            {
+                try
+                {
+                    var userZones = await _appContext.UserZones
+                        .AsNoTracking()
+                        .Where(uz => keycloakUserIds.Contains(uz.UserId))
+                        .Join(_appContext.Zones,
+                            uz => uz.ZoneId,
+                            z => z.Id,
+                            (uz, z) => new
+                            {
+                                UserId = uz.UserId,
+                                Zone = new
+                                {
+                                    id = z.Id,
+                                    name = z.Name,
+                                    color = z.Color
+                                }
+                            })
+                        .ToListAsync();
+
+                    foreach (var uz in userZones)
+                    {
+                        if (!userZonesMap.ContainsKey(uz.UserId))
+                        {
+                            userZonesMap[uz.UserId] = new List<object>();
+                        }
+                        userZonesMap[uz.UserId].Add(uz.Zone);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error fetching zones for users");
+                    // Continue without zones if there's an error
+                }
+            }
+
             // Fetch enabled status from Keycloak for users with KeycloakUserId
             var enabledStatusMap = new Dictionary<string, bool>();
             var usersWithKeycloakId = users.Where(u => !string.IsNullOrEmpty(u.KeycloakUserId)).ToList();
@@ -352,7 +397,10 @@ public class UserManagementDbController : ControllerBase
                     ? supervisors.FirstOrDefault(s => s.id == u.SupervisorId.Value)
                     : null,
                 roles = u.Roles,
-                groups = u.Groups
+                groups = u.Groups,
+                zones = !string.IsNullOrEmpty(u.KeycloakUserId) && userZonesMap.ContainsKey(u.KeycloakUserId)
+                    ? userZonesMap[u.KeycloakUserId]
+                    : new List<object>()
             }).ToList();
 
             _logger.LogInformation($"Returning {userResponses.Count} users with roles and groups");
