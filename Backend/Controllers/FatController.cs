@@ -40,7 +40,7 @@ public class FatController : ControllerBase
                     Capacity = f.Capacity,
                     UsedPorts = f.UsedPorts,
                     Status = f.Status,
-                    Zone = f.Zone,
+                    Address = f.Address,
                     FdtCode = f.Fdt!.Code,
                     OltName = f.Fdt.PonPort!.Olt!.Name,
                     PortCount = f.FatPorts.Count,
