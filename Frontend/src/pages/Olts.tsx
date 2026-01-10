@@ -950,6 +950,14 @@ export default function Olts() {
                                 </Button>
                               ) : (
                                 <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => handleOpenPonPortDialog(olt)}
+                                    title="Manage PON Ports"
+                                  >
+                                    <Antenna className="h-4 w-4" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(olt)}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
