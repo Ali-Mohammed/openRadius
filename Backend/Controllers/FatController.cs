@@ -175,6 +175,13 @@ public class FatController : ControllerBase
     {
         try
         {
+            // Validate FDT exists
+            var fdtExists = await _context.Fdts
+                .AnyAsync(f => f.Id == dto.FdtId && !f.IsDeleted);
+            
+            if (!fdtExists)
+                return BadRequest(new { message = "FDT not found or is deleted" });
+
             var fat = new Fat
             {
                 Code = dto.Code,

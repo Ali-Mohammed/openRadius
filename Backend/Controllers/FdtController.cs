@@ -182,6 +182,13 @@ public class FdtController : ControllerBase
     {
         try
         {
+            // Validate PON port exists
+            var ponPortExists = await _context.PonPorts
+                .AnyAsync(p => p.Id == dto.PonPortId && !p.IsDeleted);
+            
+            if (!ponPortExists)
+                return BadRequest(new { message = "PON port not found or is deleted" });
+
             var fdt = new Fdt
             {
                 Code = dto.Code,
@@ -190,7 +197,7 @@ public class FdtController : ControllerBase
                 Cabinet = dto.Cabinet,
                 Capacity = dto.Capacity,
                 SplitRatio = dto.SplitRatio,
-                InstallationDate = dto.InstallationDate,
+                InstallationDate = dto.InstallationDate?.ToUniversalTime(),
                 Status = dto.Status ?? "active",
                 Address = dto.Address,
                 Zone = dto.Zone,
@@ -214,7 +221,8 @@ public class FdtController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating FDT");
-            return StatusCode(500, new { message = "Failed to create FDT", error = ex.Message });
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, new { message = "Failed to create FDT", error = innerMessage });
         }
     }
 
@@ -227,20 +235,27 @@ public class FdtController : ControllerBase
             if (fdt == null)
                 return NotFound(new { message = "FDT not found" });
 
+            // Validate PON port exists if it's being changed
+            var ponPortExists = await _context.PonPorts
+                .AnyAsync(p => p.Id == dto.PonPortId && !p.IsDeleted);
+            
+            if (!ponPortExists)
+                return BadRequest(new { message = "PON port not found or is deleted" });
+
             fdt.Code = dto.Code;
             fdt.Name = dto.Name;
             fdt.PonPortId = dto.PonPortId;
             fdt.Cabinet = dto.Cabinet;
             fdt.Capacity = dto.Capacity;
             fdt.SplitRatio = dto.SplitRatio;
-            fdt.InstallationDate = dto.InstallationDate;
+            fdt.InstallationDate = dto.InstallationDate?.ToUniversalTime();
             fdt.Status = dto.Status;
             fdt.Address = dto.Address;
             fdt.Zone = dto.Zone;
             fdt.Latitude = dto.Latitude;
             fdt.Longitude = dto.Longitude;
-            fdt.LastInspectionAt = dto.LastInspectionAt;
-            fdt.NextInspectionAt = dto.NextInspectionAt;
+            fdt.LastInspectionAt = dto.LastInspectionAt?.ToUniversalTime();
+            fdt.NextInspectionAt = dto.NextInspectionAt?.ToUniversalTime();
             fdt.Notes = dto.Notes;
             fdt.UpdatedAt = DateTime.UtcNow;
 
