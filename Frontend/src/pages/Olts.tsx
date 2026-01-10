@@ -79,15 +79,22 @@ export default function Olts() {
     vendor: '',
     model: '',
     serialNumber: '',
+    assetTag: '',
+    role: '',
     managementIp: '',
     managementVlan: '',
+    loopbackIp: '',
+    mgmtInterface: '',
     siteName: '',
+    rack: '',
+    rackUnit: '',
     status: 'active',
     environment: 'prod',
-    sshEnabled: false,
+    sshEnabled: true,
     sshPort: '22',
     sshUsername: '',
-    snmpVersion: '',
+    sshPassword: '',
+    snmpVersion: 'v2c',
     snmpPort: '161',
     latitude: '',
     longitude: '',
@@ -166,14 +173,21 @@ export default function Olts() {
         vendor: olt.vendor || '',
         model: olt.model || '',
         serialNumber: olt.serialNumber || '',
+        assetTag: '',
+        role: '',
         managementIp: olt.managementIp || '',
         managementVlan: olt.managementVlan?.toString() || '',
+        loopbackIp: '',
+        mgmtInterface: '',
         siteName: olt.siteName || '',
+        rack: '',
+        rackUnit: '',
         status: olt.status || 'active',
         environment: olt.environment || 'prod',
         sshEnabled: true,
         sshPort: '22',
         sshUsername: '',
+        sshPassword: '',
         snmpVersion: 'v2c',
         snmpPort: '161',
         latitude: '',
@@ -210,27 +224,34 @@ export default function Olts() {
   }
 
   const handleSave = async () => {
-    if (!formData.name) {
-      toast.error('Name is required')
+    if (!formData.name || !formData.vendor || !formData.model || !formData.managementIp) {
+      toast.error('Name, Vendor, Model, and Management IP are required')
       return
     }
 
     const data = {
       name: formData.name,
       hostname: formData.hostname || undefined,
-      vendor: formData.vendor || undefined,
-      model: formData.model || undefined,
+      vendor: formData.vendor,
+      model: formData.model,
       serialNumber: formData.serialNumber || undefined,
-      managementIp: formData.managementIp || undefined,
+      assetTag: formData.assetTag || undefined,
+      role: formData.role || undefined,
+      managementIp: formData.managementIp,
       managementVlan: formData.managementVlan ? parseInt(formData.managementVlan) : undefined,
+      loopbackIp: formData.loopbackIp || undefined,
+      mgmtInterface: formData.mgmtInterface || undefined,
       siteName: formData.siteName || undefined,
+      rack: formData.rack || undefined,
+      rackUnit: formData.rackUnit ? parseInt(formData.rackUnit) : undefined,
       status: formData.status,
       environment: formData.environment,
       sshEnabled: formData.sshEnabled,
-      sshPort: formData.sshPort ? parseInt(formData.sshPort) : undefined,
+      sshPort: parseInt(formData.sshPort) || 22,
       sshUsername: formData.sshUsername || undefined,
+      sshPassword: formData.sshPassword || undefined,
       snmpVersion: formData.snmpVersion || undefined,
-      snmpPort: formData.snmpPort ? parseInt(formData.snmpPort) : undefined,
+      snmpPort: parseInt(formData.snmpPort) || 161,
       latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
     }
@@ -936,7 +957,28 @@ export default function Olts() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="managementIp">Management IP</Label>
+                <Label htmlFor="assetTag">Asset Tag</Label>
+                <Input
+                  id="assetTag"
+                  value={formData.assetTag}
+                  onChange={(e) => setFormData({ ...formData, assetTag: e.target.value })}
+                  placeholder="e.g., ASSET-001"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="role">Role</Label>
+                <Input
+                  id="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  placeholder="e.g., Core, Distribution, Access"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="managementIp">Management IP *</Label>
                 <Input
                   id="managementIp"
                   value={formData.managementIp}
@@ -946,7 +988,7 @@ export default function Olts() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="managementVlan">Management VLAN</Label>
                 <Input
@@ -958,6 +1000,27 @@ export default function Olts() {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="loopbackIp">Loopback IP</Label>
+                <Input
+                  id="loopbackIp"
+                  value={formData.loopbackIp}
+                  onChange={(e) => setFormData({ ...formData, loopbackIp: e.target.value })}
+                  placeholder="e.g., 10.0.0.1"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="mgmtInterface">Mgmt Interface</Label>
+                <Input
+                  id="mgmtInterface"
+                  value={formData.mgmtInterface}
+                  onChange={(e) => setFormData({ ...formData, mgmtInterface: e.target.value })}
+                  placeholder="e.g., eth0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
                 <Label htmlFor="siteName">Site Name</Label>
                 <Input
                   id="siteName"
@@ -966,6 +1029,29 @@ export default function Olts() {
                   placeholder="e.g., Main Office"
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="rack">Rack</Label>
+                <Input
+                  id="rack"
+                  value={formData.rack}
+                  onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
+                  placeholder="e.g., R01"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="rackUnit">Rack Unit (U)</Label>
+                <Input
+                  id="rackUnit"
+                  type="number"
+                  value={formData.rackUnit}
+                  onChange={(e) => setFormData({ ...formData, rackUnit: e.target.value })}
+                  placeholder="e.g., 42"
+                />
+              </div>
+              <div className="grid gap-2" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -998,38 +1084,51 @@ export default function Olts() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="sshEnabled">SSH Enabled</Label>
-                  <Switch
-                    id="sshEnabled"
-                    checked={formData.sshEnabled}
-                    onCheckedChange={(checked) => setFormData({ ...formData, sshEnabled: checked })}
-                  />
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="sshEnabled">SSH Enabled</Label>
+                <Switch
+                  id="sshEnabled"
+                  checked={formData.sshEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, sshEnabled: checked })}
+                />
+              </div>
+              
+              {formData.sshEnabled && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="sshPort">SSH Port</Label>
+                    <Input
+                      id="sshPort"
+                      type="number"
+                      value={formData.sshPort}
+                      onChange={(e) => setFormData({ ...formData, sshPort: e.target.value })}
+                      placeholder="22"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="sshUsername">SSH Username</Label>
+                    <Input
+                      id="sshUsername"
+                      value={formData.sshUsername}
+                      onChange={(e) => setFormData({ ...formData, sshUsername: e.target.value })}
+                      placeholder="admin"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="sshPassword">SSH Password</Label>
+                    <Input
+                      id="sshPassword"
+                      type="password"
+                      value={formData.sshPassword}
+                      onChange={(e) => setFormData({ ...formData, sshPassword: e.target.value })}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="sshPort">SSH Port</Label>
-                <Input
-                  id="sshPort"
-                  type="number"
-                  value={formData.sshPort}
-                  onChange={(e) => setFormData({ ...formData, sshPort: e.target.value })}
-                  placeholder="22"
-                  disabled={!formData.sshEnabled}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="sshUsername">SSH Username</Label>
-                <Input
-                  id="sshUsername"
-                  value={formData.sshUsername}
-                  onChange={(e) => setFormData({ ...formData, sshUsername: e.target.value })}
-                  placeholder="admin"
-                  disabled={!formData.sshEnabled}
-                />
-              </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
