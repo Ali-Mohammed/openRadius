@@ -20,17 +20,17 @@ import { Textarea } from '../components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, RotateCcw, Users, Radio, MapPin, UserPlus } from 'lucide-react'
-import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
 import type { ZoneCreateDto, ZoneUpdateDto } from '@/services/zoneApi'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 export default function Zones() {
   const { t } = useTranslation()
-  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const { currentWorkspaceId } = useWorkspace()
   const queryClient = useQueryClient()
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -57,7 +57,7 @@ export default function Zones() {
     icon: 'MapPin',
   })
 
-  const workspaceIdNum = parseInt(workspaceId || '0')
+  const workspaceIdNum = currentWorkspaceId || 0
 
   // Fetch zones
   const { data: zones = [], isLoading, refetch } = useQuery({

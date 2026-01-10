@@ -149,7 +149,7 @@ const getNavData = (workspaceId: number) => ({
         },
         {
           titleKey: "navigation.zones",
-          url: `/workspace/${workspaceId}/billing/zones`,
+          url: `/billing/zones`,
           icon: MapPin,
         },
       ],

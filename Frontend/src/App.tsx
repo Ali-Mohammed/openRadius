@@ -105,7 +105,7 @@ function App() {
                           <Route path="/workspace/:id/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/workspace/:id/billing/profiles/new" element={<BillingProfileForm />} />
                           <Route path="/workspace/:id/billing/profiles/edit" element={<BillingProfileForm />} />
-                          <Route path="/workspace/:workspaceId/billing/zones" element={<Zones />} />
+                          <Route path="/billing/zones" element={<Zones />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
                           <Route path="/billing/transactions" element={<Transactions />} />
