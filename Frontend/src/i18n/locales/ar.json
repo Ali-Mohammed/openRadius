@@ -11,6 +11,7 @@
     "pleaseSignIn": "الرجاء تسجيل الدخول للمتابعة"
   },
   "navigation": {
+    "dashboards": "لوحات المعلومات",
     "integration": "التكامل",
     "sasRadius": "SAS Radius",
     "radius": "راديوس",

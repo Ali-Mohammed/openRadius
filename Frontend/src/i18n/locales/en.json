@@ -11,6 +11,7 @@
     "pleaseSignIn": "Please sign in to continue"
   },
   "navigation": {
+    "dashboards": "Dashboards",
     "integration": "Integration",
     "sasRadius": "SAS Radius",
     "radius": "Radius",

@@ -245,16 +245,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Filter and sort menu items based on search query
   const filteredNavMain = React.useMemo(() => {
     if (!searchQuery.trim()) {
-      // Sort alphabetically by translated title when no search
-      return [...data.navMain].sort((a, b) => 
-        t(a.titleKey).localeCompare(t(b.titleKey))
-      )
+      // Return items in original order (dashboards first)
+      return [...data.navMain]
     }
 
     const query = searchQuery.toLowerCase()
     return data.navMain
       .map(item => {
         const parentMatch = t(item.titleKey).toLowerCase().includes(query)
+        
+        // Handle items without sub-items (like dashboards)
+        if (!item.items) {
+          return parentMatch ? item : null
+        }
+        
         const filteredItems = item.items.filter(subItem =>
           t(subItem.titleKey).toLowerCase().includes(query)
         )
@@ -269,7 +273,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         return null
       })
       .filter(Boolean)
-      .sort((a, b) => t(a!.titleKey).localeCompare(t(b!.titleKey)))
   }, [searchQuery, t])
 
   return (
@@ -297,41 +300,56 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="gap-0">
         {/* We create a collapsible SidebarGroup for each parent. */}
         {filteredNavMain.map((item) => (
-          <Collapsible
-            key={item.titleKey}
-            title={t(item.titleKey)}
-            defaultOpen
-            className="group/collapsible"
-          >
-            <SidebarGroup>
-              <SidebarGroupLabel
-                asChild
-                className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
-              >
-                <CollapsibleTrigger>
-                  <item.icon className="mr-2 h-4 w-4 text-primary" />
-                  {t(item.titleKey)}{" "}
-                  <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {item.items.map((subItem) => (
-                      <SidebarMenuItem key={subItem.titleKey}>
-                        <SidebarMenuButton asChild isActive={location.pathname === subItem.url} className="ml-4">
-                          <Link to={subItem.url}>
-                            <subItem.icon className="mr-2 h-4 w-4 text-primary" />
-                            {t(subItem.titleKey)}
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
+          item.items ? (
+            <Collapsible
+              key={item.titleKey}
+              title={t(item.titleKey)}
+              defaultOpen
+              className="group/collapsible"
+            >
+              <SidebarGroup>
+                <SidebarGroupLabel
+                  asChild
+                  className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
+                >
+                  <CollapsibleTrigger>
+                    <item.icon className="mr-2 h-4 w-4 text-primary" />
+                    {t(item.titleKey)}{" "}
+                    <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {item.items.map((subItem) => (
+                        <SidebarMenuItem key={subItem.titleKey}>
+                          <SidebarMenuButton asChild isActive={location.pathname === subItem.url} className="ml-4">
+                            <Link to={subItem.url}>
+                              <subItem.icon className="mr-2 h-4 w-4 text-primary" />
+                              {t(subItem.titleKey)}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          ) : (
+            <SidebarGroup key={item.titleKey}>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                    <Link to={item.url}>
+                      <item.icon className="mr-2 h-4 w-4 text-primary" />
+                      {t(item.titleKey)}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarGroup>
-          </Collapsible>
+          )
         ))}
       </SidebarContent>
       <SidebarFooter>
