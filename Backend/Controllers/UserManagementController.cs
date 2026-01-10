@@ -723,6 +723,63 @@ public class UserManagementController : ControllerBase
         }
     }
 
+    // POST: api/keycloak/users/{id}/impersonate
+    [HttpPost("{id}/impersonate")]
+    public async Task<IActionResult> ImpersonateUser(string id)
+    {
+        try
+        {
+            var client = await GetAuthenticatedClient();
+            var authority = _configuration["Oidc:Authority"];
+            if (string.IsNullOrEmpty(authority))
+            {
+                return BadRequest(new { error = "Oidc:Authority configuration is missing" });
+            }
+            var realm = authority.Split("/").Last();
+            var baseUrl = authority.Replace($"/realms/{realm}", "");
+            
+            // Call Keycloak's impersonation endpoint
+            var url = $"{baseUrl}/admin/realms/{realm}/users/{id}/impersonation";
+            
+            var response = await client.PostAsync(url, null);
+            response.EnsureSuccessStatusCode();
+
+            // Get the impersonation response which contains cookies and redirect info
+            var impersonationData = await response.Content.ReadFromJsonAsync<JsonElement>();
+            
+            // Build the impersonation URL - typically redirects to account console
+            var impersonationUrl = $"{authority}/account";
+            
+            // If the response contains a specific redirect, use that
+            if (impersonationData.TryGetProperty("redirect", out var redirectProp))
+            {
+                impersonationUrl = redirectProp.GetString() ?? impersonationUrl;
+            }
+            else if (impersonationData.TryGetProperty("sameRealm", out var sameRealmProp) && sameRealmProp.GetBoolean())
+            {
+                // For same-realm impersonation, build the URL with the account console
+                impersonationUrl = $"{authority}/account";
+            }
+
+            return Ok(new { impersonationUrl });
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            _logger.LogError(ex, $"Forbidden: User does not have permission to impersonate user {id}");
+            return StatusCode(403, new { message = "You do not have permission to impersonate users" });
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogError(ex, $"User {id} not found");
+            return NotFound(new { message = "User not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error impersonating user {id}");
+            return StatusCode(500, new { message = "Failed to impersonate user", error = ex.Message });
+        }
+    }
+
     private Dictionary<string, List<string>> BuildAttributes(Dictionary<string, List<string>>? existingAttributes, string? supervisorId)
     {
         var attributes = existingAttributes ?? new Dictionary<string, List<string>>();
