@@ -91,8 +91,10 @@ export default function Zones() {
 
   // Set selected users when dialog opens
   useEffect(() => {
-    if (assignUsersDialogOpen && zoneUserIds) {
+    if (assignUsersDialogOpen && zoneUserIds && zoneUserIds.length > 0) {
       setSelectedUserIds(zoneUserIds)
+    } else if (!assignUsersDialogOpen) {
+      setSelectedUserIds([])
     }
   }, [assignUsersDialogOpen, zoneUserIds])
 
@@ -200,11 +202,10 @@ export default function Zones() {
     setRestoreDialogOpen(true)
   }
 
-  const handleAssignUsers = async (zone: Zone) => {
+  const handleAssignUsers = (zone: Zone) => {
     setSelectedZone(zone)
     setUserSearchQuery('')
     setAssignUsersDialogOpen(true)
-    await refetchZoneUsers()
   }
 
   const confirmDelete = () => {
