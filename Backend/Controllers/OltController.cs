@@ -85,10 +85,24 @@ public class OltController : ControllerBase
                     Vendor = o.Vendor,
                     Model = o.Model,
                     SerialNumber = o.SerialNumber,
+                    AssetTag = o.AssetTag,
+                    Role = o.Role,
                     ManagementIp = o.ManagementIp,
+                    ManagementVlan = o.ManagementVlan,
+                    LoopbackIp = o.LoopbackIp,
+                    MgmtInterface = o.MgmtInterface,
                     Status = o.Status,
                     Environment = o.Environment,
+                    SshEnabled = o.SshEnabled,
+                    SshPort = o.SshPort,
+                    SshUsername = o.SshUsername,
+                    SnmpVersion = o.SnmpVersion,
+                    SnmpPort = o.SnmpPort,
                     SiteName = o.SiteName,
+                    Rack = o.Rack,
+                    RackUnit = o.RackUnit,
+                    Latitude = o.Latitude,
+                    Longitude = o.Longitude,
                     PonPortCount = o.PonPorts.Count(p => !p.IsDeleted),
                     CreatedAt = o.CreatedAt,
                     UpdatedAt = o.UpdatedAt
@@ -203,6 +217,7 @@ public class OltController : ControllerBase
                 SshEnabled = dto.SshEnabled,
                 SshPort = dto.SshPort,
                 SshUsername = dto.SshUsername,
+                SshPasswordRef = dto.SshPassword, // TODO: Encrypt before storing
                 SnmpVersion = dto.SnmpVersion,
                 SnmpPort = dto.SnmpPort,
                 SiteName = dto.SiteName,
@@ -257,6 +272,10 @@ public class OltController : ControllerBase
             olt.SshEnabled = dto.SshEnabled;
             olt.SshPort = dto.SshPort;
             olt.SshUsername = dto.SshUsername;
+            if (!string.IsNullOrEmpty(dto.SshPassword))
+            {
+                olt.SshPasswordRef = dto.SshPassword; // TODO: Encrypt before storing
+            }
             olt.SnmpVersion = dto.SnmpVersion;
             olt.SnmpPort = dto.SnmpPort;
             olt.SiteName = dto.SiteName;
@@ -546,10 +565,24 @@ public class OltDto
     public string Vendor { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
     public string? SerialNumber { get; set; }
+    public string? AssetTag { get; set; }
+    public string? Role { get; set; }
     public string ManagementIp { get; set; } = string.Empty;
+    public int? ManagementVlan { get; set; }
+    public string? LoopbackIp { get; set; }
+    public string? MgmtInterface { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Environment { get; set; } = string.Empty;
+    public bool SshEnabled { get; set; }
+    public int SshPort { get; set; }
+    public string? SshUsername { get; set; }
+    public string? SnmpVersion { get; set; }
+    public int SnmpPort { get; set; }
     public string? SiteName { get; set; }
+    public string? Rack { get; set; }
+    public int? RackUnit { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
     public int PonPortCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -605,6 +638,7 @@ public class CreateOltDto
     public bool SshEnabled { get; set; } = true;
     public int SshPort { get; set; } = 22;
     public string? SshUsername { get; set; }
+    public string? SshPassword { get; set; }
     public string? SnmpVersion { get; set; }
     public int SnmpPort { get; set; } = 161;
     public string? SiteName { get; set; }
