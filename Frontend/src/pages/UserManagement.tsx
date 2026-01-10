@@ -187,8 +187,8 @@ export default function UserManagement() {
   })
 
   const toggleUserStatusMutation = useMutation({
-    mutationFn: ({ userId, enabled }: { userId: string; enabled: boolean }) =>
-      userManagementApi.toggleUserStatus(userId, enabled),
+    mutationFn: ({ userId, enabled, disabledReason }: { userId: string; enabled: boolean; disabledReason?: string }) =>
+      userManagementApi.toggleUserStatus(userId, enabled, disabledReason, disabledReason),
     onSuccess: (_, variables) => {
       toast.success(`User ${variables.enabled ? 'enabled' : 'disabled'} successfully`)
       queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -881,11 +881,8 @@ export default function UserManagement() {
                   toggleUserStatusMutation.mutate({
                     userId: userToToggle.keycloakUserId,
                     enabled: false,
+                    disabledReason: disableReason || undefined,
                   })
-                  if (disableReason) {
-                    console.log('Disable reason:', disableReason)
-                    // You can add API call here to save the reason if needed
-                  }
                   setIsDisableDialogOpen(false)
                   setUserToToggle(null)
                   setDisableReason('')
