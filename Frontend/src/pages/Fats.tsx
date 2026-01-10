@@ -868,13 +868,22 @@ export default function Fats() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="fdtId">FDT ID *</Label>
-                <Input
-                  id="fdtId"
+                <Label htmlFor="fdtId">FDT *</Label>
+                <Select
                   value={formData.fdtId}
-                  onChange={(e) => setFormData({ ...formData, fdtId: e.target.value })}
-                  placeholder="Enter FDT ID"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, fdtId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select FDT" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fdts.map((fdt) => (
+                      <SelectItem key={fdt.id} value={fdt.id}>
+                        {fdt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="capacity">Capacity *</Label>
