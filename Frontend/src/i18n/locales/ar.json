@@ -104,6 +104,7 @@
     "updateDetails": "قم بتحديث تفاصيل المستخدم أدناه.",
     "selectProfile": "اختر ملف شخصي",
     "searchProfile": "البحث عن ملف شخصي...",
+    "noProfilesFound": "لم يتم العثور على ملفات شخصية",
     "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟"
   },
   "radiusProfiles": {
