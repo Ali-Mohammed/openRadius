@@ -221,7 +221,7 @@ export const userManagementApi = {
   },
 
   // Toggle user status
-  toggleUserStatus: async (userId: string, enabled: boolean): Promise<{ message: string }> => {
+  toggleUserStatus: async (userId: string, enabled: boolean, disabledReason?: string): Promise<{ message: string }> => {
     // First get the user details from Keycloak
     const userResponse = await apiClient.get(`/api/keycloak/users/${userId}`)
     const user = userResponse.data
@@ -233,6 +233,7 @@ export const userManagementApi = {
       lastName: user.lastName,
       enabled: enabled,
       emailVerified: user.emailVerified,
+      disabledReason: disabledReason,
     })
     
     return { message: 'User status updated successfully' }
