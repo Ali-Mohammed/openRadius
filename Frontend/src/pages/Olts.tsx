@@ -56,6 +56,24 @@ export default function Olts() {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [oltToRestore, setOltToRestore] = useState<string | null>(null)
   
+  // PON Port state
+  const [ponPortDialogOpen, setPonPortDialogOpen] = useState(false)
+  const [selectedOltForPonPorts, setSelectedOltForPonPorts] = useState<Olt | null>(null)
+  const [ponPortFormOpen, setPonPortFormOpen] = useState(false)
+  const [editingPonPort, setEditingPonPort] = useState<any | null>(null)
+  const [ponPortDeleteDialogOpen, setPonPortDeleteDialogOpen] = useState(false)
+  const [ponPortToDelete, setPonPortToDelete] = useState<string | null>(null)
+  const [ponPortFormData, setPonPortFormData] = useState({
+    slot: '',
+    port: '',
+    technology: 'GPON',
+    maxSplitRatio: '',
+    currentSplitRatio: '',
+    txPowerDbm: '',
+    rxPowerDbm: '',
+    status: 'active',
+  })
+  
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState({
     name: true,
@@ -160,6 +178,55 @@ export default function Olts() {
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to restore OLT')
+    },
+  })
+
+  // PON Port Queries and Mutations
+  const { data: ponPorts = [], refetch: refetchPonPorts } = useQuery({
+    queryKey: ['ponPorts', selectedOltForPonPorts?.id],
+    queryFn: () => selectedOltForPonPorts ? oltApi.getOltPonPorts(selectedOltForPonPorts.id) : Promise.resolve([]),
+    enabled: !!selectedOltForPonPorts,
+  })
+
+  const createPonPortMutation = useMutation({
+    mutationFn: ({ oltId, data }: { oltId: string; data: any }) => 
+      oltApi.createPonPort(oltId, data),
+    onSuccess: () => {
+      refetchPonPorts()
+      queryClient.invalidateQueries({ queryKey: ['olts'] })
+      toast.success('PON port created successfully')
+      setPonPortFormOpen(false)
+      resetPonPortForm()
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to create PON port')
+    },
+  })
+
+  const updatePonPortMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      oltApi.updatePonPort(id, data),
+    onSuccess: () => {
+      refetchPonPorts()
+      queryClient.invalidateQueries({ queryKey: ['olts'] })
+      toast.success('PON port updated successfully')
+      setPonPortFormOpen(false)
+      resetPonPortForm()
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to update PON port')
+    },
+  })
+
+  const deletePonPortMutation = useMutation({
+    mutationFn: (id: string) => oltApi.deletePonPort(id),
+    onSuccess: () => {
+      refetchPonPorts()
+      queryClient.invalidateQueries({ queryKey: ['olts'] })
+      toast.success('PON port deleted successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to delete PON port')
     },
   })
 
@@ -302,6 +369,84 @@ export default function Olts() {
       restoreMutation.mutate(oltToRestore)
       setRestoreDialogOpen(false)
       setOltToRestore(null)
+    }
+  }
+
+  // PON Port Handlers
+  const handleOpenPonPortDialog = (olt: Olt) => {
+    setSelectedOltForPonPorts(olt)
+    setPonPortDialogOpen(true)
+  }
+
+  const handleClosePonPortDialog = () => {
+    setPonPortDialogOpen(false)
+    setSelectedOltForPonPorts(null)
+  }
+
+  const resetPonPortForm = () => {
+    setPonPortFormData({
+      slot: '',
+      port: '',
+      technology: 'GPON',
+      maxSplitRatio: '',
+      currentSplitRatio: '',
+      txPowerDbm: '',
+      rxPowerDbm: '',
+      status: 'active',
+    })
+    setEditingPonPort(null)
+  }
+
+  const handleOpenPonPortForm = (ponPort?: any) => {
+    if (ponPort) {
+      setEditingPonPort(ponPort)
+      setPonPortFormData({
+        slot: ponPort.slot.toString(),
+        port: ponPort.port.toString(),
+        technology: ponPort.technology,
+        maxSplitRatio: ponPort.maxSplitRatio?.toString() || '',
+        currentSplitRatio: ponPort.currentSplitRatio?.toString() || '',
+        txPowerDbm: ponPort.txPowerDbm?.toString() || '',
+        rxPowerDbm: ponPort.rxPowerDbm?.toString() || '',
+        status: ponPort.status,
+      })
+    } else {
+      resetPonPortForm()
+    }
+    setPonPortFormOpen(true)
+  }
+
+  const handleSubmitPonPort = () => {
+    if (!selectedOltForPonPorts) return
+
+    const data = {
+      slot: parseInt(ponPortFormData.slot),
+      port: parseInt(ponPortFormData.port),
+      technology: ponPortFormData.technology,
+      maxSplitRatio: ponPortFormData.maxSplitRatio ? parseInt(ponPortFormData.maxSplitRatio) : undefined,
+      currentSplitRatio: ponPortFormData.currentSplitRatio ? parseInt(ponPortFormData.currentSplitRatio) : undefined,
+      txPowerDbm: ponPortFormData.txPowerDbm ? parseFloat(ponPortFormData.txPowerDbm) : undefined,
+      rxPowerDbm: ponPortFormData.rxPowerDbm ? parseFloat(ponPortFormData.rxPowerDbm) : undefined,
+      status: ponPortFormData.status,
+    }
+
+    if (editingPonPort) {
+      updatePonPortMutation.mutate({ id: editingPonPort.id, data })
+    } else {
+      createPonPortMutation.mutate({ oltId: selectedOltForPonPorts.id, data })
+    }
+  }
+
+  const handleDeletePonPort = (ponPortId: string) => {
+    setPonPortToDelete(ponPortId)
+    setPonPortDeleteDialogOpen(true)
+  }
+
+  const confirmDeletePonPort = () => {
+    if (ponPortToDelete) {
+      deletePonPortMutation.mutate(ponPortToDelete)
+      setPonPortDeleteDialogOpen(false)
+      setPonPortToDelete(null)
     }
   }
 
