@@ -8,6 +8,7 @@ public class Zone
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Color { get; set; }
+    public string? Icon { get; set; }
     public int WorkspaceId { get; set; } // Not a foreign key - just stores the workspace ID
     
     // Soft delete
@@ -48,6 +49,7 @@ public class ZoneCreateDto
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Color { get; set; }
+    public string? Icon { get; set; }
 }
 
 public class ZoneUpdateDto
@@ -55,6 +57,7 @@ public class ZoneUpdateDto
     public string? Name { get; set; }
     public string? Description { get; set; }
     public string? Color { get; set; }
+    public string? Icon { get; set; }
 }
 
 public class ZoneResponse
@@ -63,6 +66,7 @@ public class ZoneResponse
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Color { get; set; }
+    public string? Icon { get; set; }
     public int WorkspaceId { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
