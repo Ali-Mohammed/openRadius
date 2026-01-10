@@ -11,9 +11,11 @@ export interface DatabaseInfo {
 export interface BackupHistoryItem {
   id: string;
   databaseName: string;
+  databaseType: string;
   fileName: string;
   sizeBytes: number;
   createdAt: string;
+  createdBy: string;
 }
 
 export const databaseBackupApi = {
@@ -31,8 +33,25 @@ export const databaseBackupApi = {
     return response.data;
   },
 
-  getBackupHistory: async (): Promise<BackupHistoryItem[]> => {
-    const { data } = await apiClient.get<BackupHistoryItem[]>('/api/database-backup/backup-history');
+  getBackupHistory: async (databaseName?: string): Promise<BackupHistoryItem[]> => {
+    const params = databaseName ? { databaseName } : {};
+    const { data } = await apiClient.get<BackupHistoryItem[]>('/api/database-backup/backup-history', { params });
     return data;
+  },
+
+  downloadBackup: async (backupId: string): Promise<Blob> => {
+    const response = await apiClient.get(
+      `/api/database-backup/download/${backupId}`,
+      { responseType: 'blob' }
+    );
+    return response.data;
+  },
+
+  restoreBackup: async (backupId: string): Promise<void> => {
+    await apiClient.post('/api/database-backup/restore', { backupId });
+  },
+
+  deleteBackup: async (backupId: string): Promise<void> => {
+    await apiClient.delete(`/api/database-backup/delete/${backupId}`);
   },
 };

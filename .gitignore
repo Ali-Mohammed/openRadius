@@ -37,3 +37,6 @@ logs/
 *.db
 *.sqlite
 postgres_data/
+
+# Ignore backup files
+Backend/Backups/
