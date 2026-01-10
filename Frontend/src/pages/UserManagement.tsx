@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,31 +9,40 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog, MapPin } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
+import { zoneApi, type Zone } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 export default function UserManagement() {
+  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const { currentWorkspaceId } = useWorkspace()
   const queryClient = useQueryClient()
   const [refreshKey, setRefreshKey] = useState(Date.now())
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [isZoneDialogOpen, setIsZoneDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null)
+  const [zoneAssignUser, setZoneAssignUser] = useState<User | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [temporaryPassword, setTemporaryPassword] = useState(true)
   
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
+  const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
   
   // Form fields for creating a new user
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+
+  const workspaceIdNum = parseInt(workspaceId || currentWorkspaceId?.toString() || '0')
 
   // Force refetch on mount
   useEffect(() => {
@@ -61,6 +71,29 @@ export default function UserManagement() {
     queryKey: ['roles'],
     queryFn: () => userManagementApi.getRoles(),
   })
+
+  // Fetch zones for current workspace
+  const { data: zones = [] } = useQuery({
+    queryKey: ['zones', workspaceIdNum],
+    queryFn: () => zoneApi.getZones(workspaceIdNum),
+    enabled: !!workspaceIdNum,
+  })
+
+  // Fetch user zones when dialog opens
+  const { data: userZoneIds = [], refetch: refetchUserZones } = useQuery({
+    queryKey: ['user-zones', zoneAssignUser?.keycloakUserId],
+    queryFn: () => zoneAssignUser?.keycloakUserId 
+      ? userManagementApi.getUserZones(zoneAssignUser.keycloakUserId)
+      : Promise.resolve([]),
+    enabled: !!zoneAssignUser && isZoneDialogOpen,
+  })
+
+  // Set selected zones when dialog opens
+  useEffect(() => {
+    if (isZoneDialogOpen && userZoneIds) {
+      setSelectedZoneIds(userZoneIds)
+    }
+  }, [isZoneDialogOpen, userZoneIds])
 
   // Mutations
   const syncUsersMutation = useMutation({
