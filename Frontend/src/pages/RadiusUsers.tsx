@@ -156,10 +156,17 @@ export default function RadiusUsers() {
     enabled: !!currentWorkspaceId,
   })
 
+  const { data: zonesData } = useQuery({
+    queryKey: ['zones', currentWorkspaceId],
+    queryFn: () => zoneApi.getZones(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
+  })
+
   const users = useMemo(() => usersData?.data || [], [usersData?.data])
   const pagination = usersData?.pagination
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const tags = useMemo(() => tagsData || [], [tagsData])
+  const zones = useMemo(() => zonesData || [], [zonesData])
 
   // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
