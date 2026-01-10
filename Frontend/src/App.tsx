@@ -81,6 +81,9 @@ function App() {
                           <Route path="/workspace/:id/radius/nas" element={<RadiusNas />} />
                           <Route path="/workspace/:id/radius/ip-pools" element={<RadiusIpPools />} />
                           <Route path="/network/settings" element={<NetworkSettings />} />
+                          <Route path="/network/olts" element={<Olts />} />
+                          <Route path="/network/fdts" element={<Fdts />} />
+                          <Route path="/network/fats" element={<Fats />} />
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
