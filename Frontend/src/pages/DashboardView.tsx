@@ -54,6 +54,33 @@ export default function DashboardView() {
     toast.success('Item added successfully')
   }
 
+  const handleAddTab = async (name: string) => {
+    if (!dashboard) return
+
+    try {
+      // Create new tab locally
+      const newTab: DashboardTab = {
+        id: `tab-${Date.now()}`,
+        name,
+        items: [],
+      }
+
+      const updatedTabs = [...dashboard.tabs, newTab]
+      
+      // Update dashboard in backend
+      await dashboardApi.updateDashboard(dashboard.id, {
+        tabs: updatedTabs.map(t => ({ name: t.name })),
+      })
+
+      setDashboard({ ...dashboard, tabs: updatedTabs })
+      setActiveTabId(newTab.id)
+      toast.success('Tab added successfully')
+    } catch (error) {
+      console.error('Error adding tab:', error)
+      toast.error('Failed to add tab')
+    }
+  }
+
   const handleDeleteItem = (itemId: string) => {
     if (!dashboard) return
 
