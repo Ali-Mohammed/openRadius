@@ -59,6 +59,19 @@ export interface PonPort {
   status: string;
 }
 
+export interface PonPortDetail {
+  id: string;
+  slot: number;
+  port: number;
+  technology: string;
+  maxSplitRatio?: number;
+  currentSplitRatio?: number;
+  txPowerDbm?: number;
+  rxPowerDbm?: number;
+  status: string;
+  createdAt: string;
+}
+
 export interface PonPortList {
   id: string;
   oltId: string;
@@ -68,6 +81,25 @@ export interface PonPortList {
   technology: string;
   status: string;
   label: string;
+}
+
+export interface CreatePonPortData {
+  slot: number;
+  port: number;
+  technology: string;
+  maxSplitRatio?: number;
+  status?: string;
+}
+
+export interface UpdatePonPortData {
+  slot: number;
+  port: number;
+  technology: string;
+  maxSplitRatio?: number;
+  currentSplitRatio?: number;
+  txPowerDbm?: number;
+  rxPowerDbm?: number;
+  status: string;
 }
 
 export interface CreateOltData {
@@ -201,5 +233,21 @@ export const oltApi = {
     const { data } = await apiClient.get<PonPortList[]>('/api/network/olts/pon-ports');
     return data;
   },
-};
 
+  getOltPonPorts: async (oltId: string): Promise<PonPortDetail[]> => {
+    const { data } = await apiClient.get<PonPortDetail[]>(`/api/network/olts/${oltId}/pon-ports`);
+    return data;
+  },
+
+  createPonPort: async (oltId: string, ponPortData: CreatePonPortData): Promise<PonPort> => {
+    const { data } = await apiClient.post<PonPort>(`/api/network/olts/${oltId}/pon-ports`, ponPortData);
+    return data;
+  },
+
+  updatePonPort: async (ponPortId: string, ponPortData: UpdatePonPortData): Promise<void> => {
+    await apiClient.put(`/api/network/olts/pon-ports/${ponPortId}`, ponPortData);
+  },
+
+  deletePonPort: async (ponPortId: string): Promise<void> => {
+    await apiClient.delete(`/api/network/olts/pon-ports/${ponPortId}`);
+  },
