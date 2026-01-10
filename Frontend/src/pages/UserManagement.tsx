@@ -5,8 +5,10 @@ import { toast } from 'sonner'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,9 +28,12 @@ export default function UserManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const [isZoneDialogOpen, setIsZoneDialogOpen] = useState(false)
+  const [isDisableDialogOpen, setIsDisableDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null)
   const [zoneAssignUser, setZoneAssignUser] = useState<User | null>(null)
+  const [userToToggle, setUserToToggle] = useState<User | null>(null)
+  const [disableReason, setDisableReason] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [temporaryPassword, setTemporaryPassword] = useState(true)
   
@@ -465,10 +470,17 @@ export default function UserManagement() {
                         <Button
                           onClick={() => {
                             if (user.keycloakUserId) {
-                              toggleUserStatusMutation.mutate({
-                                userId: user.keycloakUserId,
-                                enabled: user.enabled === false,
-                              })
+                              // If enabling, do it directly. If disabling, show confirmation
+                              if (user.enabled === false) {
+                                toggleUserStatusMutation.mutate({
+                                  userId: user.keycloakUserId,
+                                  enabled: true,
+                                })
+                              } else {
+                                setUserToToggle(user)
+                                setDisableReason('')
+                                setIsDisableDialogOpen(true)
+                              }
                             }
                           }}
                           variant="ghost"
@@ -827,6 +839,64 @@ export default function UserManagement() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>    </div>
+      </Dialog>
+
+      {/* Disable User Confirmation Dialog */}
+      <AlertDialog open={isDisableDialogOpen} onOpenChange={setIsDisableDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disable User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disable{' '}
+              <strong>
+                {userToToggle?.firstName} {userToToggle?.lastName}
+              </strong>
+              ? This user will no longer be able to access the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="disable-reason">Reason (optional)</Label>
+            <Textarea
+              id="disable-reason"
+              placeholder="Enter reason for disabling this user..."
+              value={disableReason}
+              onChange={(e) => setDisableReason(e.target.value)}
+              rows={3}
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setIsDisableDialogOpen(false)
+                setUserToToggle(null)
+                setDisableReason('')
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (userToToggle?.keycloakUserId) {
+                  toggleUserStatusMutation.mutate({
+                    userId: userToToggle.keycloakUserId,
+                    enabled: false,
+                  })
+                  if (disableReason) {
+                    console.log('Disable reason:', disableReason)
+                    // You can add API call here to save the reason if needed
+                  }
+                  setIsDisableDialogOpen(false)
+                  setUserToToggle(null)
+                  setDisableReason('')
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Disable User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>    </div>
   )
 }
