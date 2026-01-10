@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { fdtApi, type Fdt } from '@/services/fdtApi';
-import { formatApiError } from '@/lib/api';
+import { formatApiError } from '@/utils/errorHandler';
 import { toast } from 'sonner';
 
 export default function Fdts() {

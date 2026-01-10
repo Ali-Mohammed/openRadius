@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { oltApi, type Olt } from '@/services/oltApi';
-import { formatApiError } from '@/lib/api';
+import { formatApiError } from '@/utils/errorHandler';
 import { toast } from 'sonner';
 
 export default function Olts() {
