@@ -409,25 +409,25 @@ public class UserManagementController : ControllerBase
             if (!request.Enabled && !string.IsNullOrEmpty(request.DisabledReason))
             {
                 var currentUserId = GetCurrentUserId();
-                var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == id);
+                var dbUser = await _masterContext.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == id);
                 if (dbUser != null)
                 {
                     dbUser.DisabledReason = request.DisabledReason;
                     dbUser.DisabledAt = DateTime.UtcNow;
                     dbUser.DisabledBy = currentUserId;
-                    await _context.SaveChangesAsync();
+                    await _masterContext.SaveChangesAsync();
                 }
             }
             // If enabling user, clear disable tracking
             else if (request.Enabled)
             {
-                var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == id);
+                var dbUser = await _masterContext.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == id);
                 if (dbUser != null)
                 {
                     dbUser.DisabledReason = null;
                     dbUser.DisabledAt = null;
                     dbUser.DisabledBy = null;
-                    await _context.SaveChangesAsync();
+                    await _masterContext.SaveChangesAsync();
                 }
             }
 
