@@ -189,7 +189,7 @@ public class UserManagementController : ControllerBase
                         try
                         {
                             var zones = await _context.UserZones
-                                .Where(uz => uz.KeycloakUserId == userId)
+                                .Where(uz => uz.UserId == userId)
                                 .Join(_context.Zones,
                                     uz => uz.ZoneId,
                                     z => z.Id,
