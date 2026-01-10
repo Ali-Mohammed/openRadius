@@ -130,6 +130,40 @@ public class OltController : ControllerBase
         }
     }
 
+    [HttpGet("pon-ports")]
+    public async Task<ActionResult<IEnumerable<PonPortListDto>>> GetPonPorts()
+    {
+        try
+        {
+            var ponPorts = await _context.PonPorts
+                .Where(p => !p.IsDeleted)
+                .Include(p => p.Olt)
+                .Where(p => p.Olt != null && !p.Olt.IsDeleted)
+                .OrderBy(p => p.Olt!.Name)
+                .ThenBy(p => p.Slot)
+                .ThenBy(p => p.Port)
+                .Select(p => new PonPortListDto
+                {
+                    Id = p.Id,
+                    OltId = p.OltId,
+                    OltName = p.Olt!.Name,
+                    Slot = p.Slot,
+                    Port = p.Port,
+                    Technology = p.Technology,
+                    Status = p.Status,
+                    Label = $"{p.Olt.Name} - {p.Slot}/{p.Port} ({p.Technology})"
+                })
+                .ToListAsync();
+
+            return Ok(ponPorts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PON ports");
+            return StatusCode(500, new { message = "Failed to retrieve PON ports", error = ex.Message });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<OltDetailDto>> GetOlt(Guid id)
     {
@@ -552,40 +586,6 @@ public class OltController : ControllerBase
         {
             _logger.LogError(ex, "Error exporting OLTs to Excel");
             return StatusCode(500, new { message = "Failed to export OLTs", error = ex.Message });
-        }
-    }
-
-    [HttpGet("pon-ports")]
-    public async Task<ActionResult<IEnumerable<PonPortListDto>>> GetPonPorts()
-    {
-        try
-        {
-            var ponPorts = await _context.PonPorts
-                .Where(p => !p.IsDeleted)
-                .Include(p => p.Olt)
-                .Where(p => p.Olt != null && !p.Olt.IsDeleted)
-                .OrderBy(p => p.Olt!.Name)
-                .ThenBy(p => p.Slot)
-                .ThenBy(p => p.Port)
-                .Select(p => new PonPortListDto
-                {
-                    Id = p.Id,
-                    OltId = p.OltId,
-                    OltName = p.Olt!.Name,
-                    Slot = p.Slot,
-                    Port = p.Port,
-                    Technology = p.Technology,
-                    Status = p.Status,
-                    Label = $"{p.Olt.Name} - {p.Slot}/{p.Port} ({p.Technology})"
-                })
-                .ToListAsync();
-
-            return Ok(ponPorts);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting PON ports");
-            return StatusCode(500, new { message = "Failed to retrieve PON ports", error = ex.Message });
         }
     }
 }
