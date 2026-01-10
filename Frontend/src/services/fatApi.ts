@@ -1,4 +1,4 @@
-import api from '../lib/api';
+import { apiClient } from '../lib/api';
 
 export interface Fat {
   id: string;
@@ -53,14 +53,26 @@ export interface UpdateFatData extends CreateFatData {
 }
 
 export const fatApi = {
-  getAll: () => api.get<Fat[]>('/api/network/fats'),
+  getAll: async () => {
+    const { data } = await apiClient.get<Fat[]>('/api/network/fats');
+    return data;
+  },
   
-  getById: (id: string) => api.get<FatDetail>(`/api/network/fats/${id}`),
+  getById: async (id: string) => {
+    const { data } = await apiClient.get<FatDetail>(`/api/network/fats/${id}`);
+    return data;
+  },
   
-  create: (data: CreateFatData) => api.post<Fat>('/api/network/fats', data),
+  create: async (data: CreateFatData) => {
+    const { data: result } = await apiClient.post<Fat>('/api/network/fats', data);
+    return result;
+  },
   
-  update: (id: string, data: UpdateFatData) => 
-    api.put(`/api/network/fats/${id}`, data),
+  update: async (id: string, updateData: UpdateFatData) => {
+    await apiClient.put(`/api/network/fats/${id}`, updateData);
+  },
   
-  delete: (id: string) => api.delete(`/api/network/fats/${id}`),
+  delete: async (id: string) => {
+    await apiClient.delete(`/api/network/fats/${id}`);
+  },
 };

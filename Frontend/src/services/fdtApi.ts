@@ -1,4 +1,4 @@
-import api from '../lib/api';
+import { apiClient } from '../lib/api';
 
 export interface Fdt {
   id: string;
@@ -62,14 +62,26 @@ export interface UpdateFdtData extends CreateFdtData {
 }
 
 export const fdtApi = {
-  getAll: () => api.get<Fdt[]>('/api/network/fdts'),
+  getAll: async () => {
+    const { data } = await apiClient.get<Fdt[]>('/api/network/fdts');
+    return data;
+  },
   
-  getById: (id: string) => api.get<FdtDetail>(`/api/network/fdts/${id}`),
+  getById: async (id: string) => {
+    const { data } = await apiClient.get<FdtDetail>(`/api/network/fdts/${id}`);
+    return data;
+  },
   
-  create: (data: CreateFdtData) => api.post<Fdt>('/api/network/fdts', data),
+  create: async (data: CreateFdtData) => {
+    const { data: result } = await apiClient.post<Fdt>('/api/network/fdts', data);
+    return result;
+  },
   
-  update: (id: string, data: UpdateFdtData) => 
-    api.put(`/api/network/fdts/${id}`, data),
+  update: async (id: string, updateData: UpdateFdtData) => {
+    await apiClient.put(`/api/network/fdts/${id}`, updateData);
+  },
   
-  delete: (id: string) => api.delete(`/api/network/fdts/${id}`),
+  delete: async (id: string) => {
+    await apiClient.delete(`/api/network/fdts/${id}`);
+  },
 };

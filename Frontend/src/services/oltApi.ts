@@ -1,4 +1,4 @@
-import api from '../lib/api';
+import { apiClient } from '../lib/api';
 
 export interface Olt {
   id: string;
@@ -84,14 +84,26 @@ export interface CreateOltData {
 export interface UpdateOltData extends CreateOltData {}
 
 export const oltApi = {
-  getAll: () => api.get<Olt[]>('/api/network/olts'),
+  getAll: async () => {
+    const { data } = await apiClient.get<Olt[]>('/api/network/olts');
+    return data;
+  },
   
-  getById: (id: string) => api.get<OltDetail>(`/api/network/olts/${id}`),
+  getById: async (id: string) => {
+    const { data } = await apiClient.get<OltDetail>(`/api/network/olts/${id}`);
+    return data;
+  },
   
-  create: (data: CreateOltData) => api.post<Olt>('/api/network/olts', data),
+  create: async (data: CreateOltData) => {
+    const { data: result } = await apiClient.post<Olt>('/api/network/olts', data);
+    return result;
+  },
   
-  update: (id: string, data: UpdateOltData) => 
-    api.put(`/api/network/olts/${id}`, data),
+  update: async (id: string, updateData: UpdateOltData) => {
+    await apiClient.put(`/api/network/olts/${id}`, updateData);
+  },
   
-  delete: (id: string) => api.delete(`/api/network/olts/${id}`),
+  delete: async (id: string) => {
+    await apiClient.delete(`/api/network/olts/${id}`);
+  },
 };
