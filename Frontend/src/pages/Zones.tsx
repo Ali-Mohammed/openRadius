@@ -253,7 +253,7 @@ export default function Zones() {
       await Promise.all(promises)
       queryClient.invalidateQueries({ queryKey: ['zones'] })
       queryClient.invalidateQueries({ queryKey: ['zones-deleted'] })
-      toast.success(\ item(s) deleted successfully\)
+      toast.success(`${selectedRows.length} item(s) deleted successfully`)
       setRowSelection({})
       setBulkDeleteDialogOpen(false)
     } catch (error) {
@@ -278,7 +278,7 @@ export default function Zones() {
       await Promise.all(promises)
       queryClient.invalidateQueries({ queryKey: ['zones'] })
       queryClient.invalidateQueries({ queryKey: ['zones-deleted'] })
-      toast.success(\ item(s) restored successfully\)
+      toast.success(`${selectedRows.length} item(s) restored successfully`)
       setRowSelection({})
       setBulkRestoreDialogOpen(false)
     } catch (error) {
@@ -343,7 +343,7 @@ export default function Zones() {
             <div 
               className='rounded-lg p-1.5 flex items-center justify-center'
               style={{ 
-                backgroundColor: \15\,
+                backgroundColor: `${color}15`,
                 color: color 
               }}
             >
@@ -431,7 +431,7 @@ export default function Zones() {
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
-          onCheckedChange=(value) => row.toggleSelected(!!value)}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label='Select row'
         />
       ),
@@ -449,7 +449,7 @@ export default function Zones() {
             <div 
               className='rounded-lg p-1.5 flex items-center justify-center'
               style={{ 
-                backgroundColor: \15\,
+                backgroundColor: `${color}15`,
                 color: color 
               }}
             >
@@ -469,7 +469,7 @@ export default function Zones() {
       header: 'Deleted At',
       cell: ({ row }) => {
         const date = row.original.deletedAt ? new Date(row.original.deletedAt) : null
-        return date ? \ \\ : '-'
+        return date ? `${date.toLocaleDateString()} ${date.toLocaleTimeString()}` : '-'
       },
     },
     {
