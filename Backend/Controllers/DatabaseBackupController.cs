@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
-using System.Diagnostics;
 using System.Text;
 
 namespace Backend.Controllers;
@@ -82,48 +81,41 @@ public class DatabaseBackupController : ControllerBase
                 : GetWorkspaceConnectionString(request.DatabaseName);
 
             var dbName = ExtractDatabaseName(connectionString);
-            var host = ExtractHost(connectionString);
-            var port = ExtractPort(connectionString);
-            var username = ExtractUsername(connectionString);
-            var password = ExtractPassword(connectionString);
-
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
             var backupFileName = $"{dbName}_{timestamp}.sql";
-            var backupPath = Path.Combine(Path.GetTempPath(), backupFileName);
 
-            // Use pg_dump to create backup
-            var processInfo = new ProcessStartInfo
+            // Create SQL backup using Npgsql
+            var sqlBackup = new StringBuilder();
+            sqlBackup.AppendLine($"-- Database backup for {dbName}");
+            sqlBackup.AppendLine($"-- Generated on {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sqlBackup.AppendLine();
+
+            using var connection = new Npgsql.NpgsqlConnection(connectionString);
+            await connection.OpenAsync();
+
+            // Get all tables
+            var tables = await GetTableNames(connection);
+
+            foreach (var table in tables)
             {
-                FileName = "pg_dump",
-                Arguments = $"-h {host} -p {port} -U {username} -F p -f \"{backupPath}\" {dbName}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                sqlBackup.AppendLine($"-- Table: {table}");
+                sqlBackup.AppendLine($"DROP TABLE IF EXISTS \"{table}\" CASCADE;");
+                
+                // Get CREATE TABLE statement
+                var createTableSql = await GetCreateTableStatement(connection, table);
+                sqlBackup.AppendLine(createTableSql);
+                sqlBackup.AppendLine();
 
-            // Set password environment variable
-            processInfo.Environment["PGPASSWORD"] = password;
-
-            using var process = Process.Start(processInfo);
-            if (process == null)
-            {
-                return StatusCode(500, new { message = "Failed to start pg_dump process" });
+                // Get table data as INSERT statements
+                var insertStatements = await GenerateInsertStatements(connection, table);
+                if (!string.IsNullOrEmpty(insertStatements))
+                {
+                    sqlBackup.AppendLine(insertStatements);
+                    sqlBackup.AppendLine();
+                }
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode != 0)
-            {
-                _logger.LogError("pg_dump failed: {Error}", error);
-                return StatusCode(500, new { message = "Backup failed", error });
-            }
-
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(backupPath);
-            System.IO.File.Delete(backupPath);
-
+            var fileBytes = Encoding.UTF8.GetBytes(sqlBackup.ToString());
             return File(fileBytes, "application/sql", backupFileName);
         }
         catch (Exception ex)
@@ -131,6 +123,125 @@ public class DatabaseBackupController : ControllerBase
             _logger.LogError(ex, "Error creating database backup");
             return StatusCode(500, new { message = "Failed to create backup", error = ex.Message });
         }
+    }
+
+    private async Task<List<string>> GetTableNames(Npgsql.NpgsqlConnection connection)
+    {
+        var tables = new List<string>();
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_type = 'BASE TABLE'
+            ORDER BY table_name";
+
+        using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            tables.Add(reader.GetString(0));
+        }
+
+        return tables;
+    }
+
+    private async Task<string> GetCreateTableStatement(Npgsql.NpgsqlConnection connection, string tableName)
+    {
+        var sql = new StringBuilder();
+        sql.AppendLine($"CREATE TABLE \"{tableName}\" (");
+
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT column_name, data_type, character_maximum_length, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = @tableName
+            ORDER BY ordinal_position";
+        command.Parameters.AddWithValue("tableName", tableName);
+
+        var columns = new List<string>();
+        using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var columnName = reader.GetString(0);
+            var dataType = reader.GetString(1);
+            var maxLength = reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2);
+            var isNullable = reader.GetString(3) == "YES";
+            var defaultValue = reader.IsDBNull(4) ? null : reader.GetString(4);
+
+            var columnDef = $"    \"{columnName}\" {dataType.ToUpper()}";
+            if (maxLength.HasValue && (dataType == "character varying" || dataType == "character"))
+            {
+                columnDef += $"({maxLength})";
+            }
+            if (!isNullable)
+            {
+                columnDef += " NOT NULL";
+            }
+            if (!string.IsNullOrEmpty(defaultValue))
+            {
+                columnDef += $" DEFAULT {defaultValue}";
+            }
+            columns.Add(columnDef);
+        }
+
+        sql.AppendLine(string.Join(",\n", columns));
+        sql.AppendLine(");");
+
+        return sql.ToString();
+    }
+
+    private async Task<string> GenerateInsertStatements(Npgsql.NpgsqlConnection connection, string tableName)
+    {
+        var sql = new StringBuilder();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = $"SELECT * FROM \"{tableName}\"";
+
+        using var reader = await command.ExecuteReaderAsync();
+        
+        if (!reader.HasRows) return string.Empty;
+
+        while (await reader.ReadAsync())
+        {
+            sql.Append($"INSERT INTO \"{tableName}\" (");
+            
+            var columns = new List<string>();
+            var values = new List<string>();
+
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                columns.Add($"\"{reader.GetName(i)}\"");
+                
+                if (reader.IsDBNull(i))
+                {
+                    values.Add("NULL");
+                }
+                else
+                {
+                    var value = reader.GetValue(i);
+                    var valueStr = value switch
+                    {
+                        bool b => b ? "TRUE" : "FALSE",
+                        string s => $"'{s.Replace("'", "''")}'",
+                        DateTime dt => $"'{dt:yyyy-MM-dd HH:mm:ss}'",
+                        Guid g => $"'{g}'",
+                        byte[] bytes => $"'\\x{BitConverter.ToString(bytes).Replace("-", "")}'",
+                        _ => value.ToString()?.Replace("'", "''") ?? "NULL"
+                    };
+                    
+                    if (value is not bool && value is not null && !decimal.TryParse(value.ToString(), out _))
+                    {
+                        valueStr = valueStr.StartsWith("'") ? valueStr : $"'{valueStr}'";
+                    }
+                    
+                    values.Add(valueStr);
+                }
+            }
+
+            sql.AppendLine($"{string.Join(", ", columns)}) VALUES ({string.Join(", ", values)});");
+        }
+
+        return sql.ToString();
     }
 
     [HttpGet("backup-history")]
@@ -160,34 +271,6 @@ public class DatabaseBackupController : ControllerBase
     {
         if (string.IsNullOrEmpty(connectionString)) return "";
         var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Database=([^;]+)");
-        return match.Success ? match.Groups[1].Value : "";
-    }
-
-    private string ExtractHost(string? connectionString)
-    {
-        if (string.IsNullOrEmpty(connectionString)) return "localhost";
-        var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Host=([^;]+)");
-        return match.Success ? match.Groups[1].Value : "localhost";
-    }
-
-    private string ExtractPort(string? connectionString)
-    {
-        if (string.IsNullOrEmpty(connectionString)) return "5432";
-        var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Port=([^;]+)");
-        return match.Success ? match.Groups[1].Value : "5432";
-    }
-
-    private string ExtractUsername(string? connectionString)
-    {
-        if (string.IsNullOrEmpty(connectionString)) return "postgres";
-        var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Username=([^;]+)");
-        return match.Success ? match.Groups[1].Value : "postgres";
-    }
-
-    private string ExtractPassword(string? connectionString)
-    {
-        if (string.IsNullOrEmpty(connectionString)) return "";
-        var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Password=([^;]+)");
         return match.Success ? match.Groups[1].Value : "";
     }
 }
