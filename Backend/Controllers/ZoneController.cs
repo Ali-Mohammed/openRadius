@@ -63,6 +63,7 @@ public class ZoneController : ControllerBase
                 Name = z.Name,
                 Description = z.Description,
                 Color = z.Color,
+                Icon = z.Icon,
                 WorkspaceId = z.WorkspaceId,
                 CreatedAt = z.CreatedAt,
                 CreatedBy = z.CreatedBy,
