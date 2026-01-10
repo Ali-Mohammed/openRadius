@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -56,6 +56,7 @@ export default function Zones() {
     color: '#3b82f6',
     icon: 'MapPin',
   })
+  const hasSetInitialUsers = useRef(false)
 
   const workspaceIdNum = currentWorkspaceId || 0
 
@@ -89,14 +90,21 @@ export default function Zones() {
     enabled: !!selectedZone && assignUsersDialogOpen,
   })
 
-  // Set selected users when dialog opens
+  // Reset selected users when dialog closes
   useEffect(() => {
-    if (assignUsersDialogOpen && zoneUserIds && zoneUserIds.length > 0) {
-      setSelectedUserIds(zoneUserIds)
-    } else if (!assignUsersDialogOpen) {
+    if (!assignUsersDialogOpen) {
       setSelectedUserIds([])
+      hasSetInitialUsers.current = false
     }
-  }, [assignUsersDialogOpen, zoneUserIds])
+  }, [assignUsersDialogOpen])
+
+  // Set selected users when zone users are loaded
+  useEffect(() => {
+    if (assignUsersDialogOpen && zoneUserIds.length > 0 && !hasSetInitialUsers.current) {
+      setSelectedUserIds(zoneUserIds)
+      hasSetInitialUsers.current = true
+    }
+  }, [zoneUserIds, assignUsersDialogOpen])
 
   // Clear row selection when switching tabs
   useEffect(() => {
@@ -308,7 +316,7 @@ export default function Zones() {
   )
 
   // Columns for active zones
-  const columns: ColumnDef<Zone>[] = [
+  const columns: ColumnDef<Zone>[] = useMemo(() => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -424,10 +432,10 @@ export default function Zones() {
         )
       },
     },
-  ]
+  ], [])
 
   // Columns for deleted zones
-  const deletedColumns: ColumnDef<Zone>[] = [
+  const deletedColumns: ColumnDef<Zone>[] = useMemo(() => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -499,7 +507,7 @@ export default function Zones() {
         )
       },
     },
-  ]
+  ], [])
 
   const table = useReactTable({
     data: zones,
