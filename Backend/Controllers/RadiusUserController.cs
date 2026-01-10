@@ -122,6 +122,9 @@ public class RadiusUserController : ControllerBase
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
             LastSyncedAt = u.LastSyncedAt,
+            ZoneId = u.ZoneId,
+            ZoneName = u.Zone != null ? u.Zone.Name : null,
+            ZoneColor = u.Zone != null ? u.Zone.Color : null,
             Tags = u.RadiusUserTags.Select(ut => new RadiusTagResponse
             {
                 Id = ut.RadiusTag.Id,
@@ -389,7 +392,10 @@ public class RadiusUserController : ControllerBase
             Enabled = u.Enabled,
             DeletedAt = u.DeletedAt,
             CreatedAt = u.CreatedAt,
-            UpdatedAt = u.UpdatedAt
+            UpdatedAt = u.UpdatedAt,
+            ZoneId = u.ZoneId,
+            ZoneName = u.Zone != null ? u.Zone.Name : null,
+            ZoneColor = u.Zone != null ? u.Zone.Color : null
         });
 
         return Ok(new
@@ -760,4 +766,41 @@ public class RadiusUserController : ControllerBase
             return StatusCode(500, new { message = "Failed to fetch user tags" });
         }
     }
+
+    // POST: api/workspace/{workspaceId}/radius-users/assign-zone
+    [HttpPost("assign-zone")]
+    public async Task<IActionResult> AssignZoneToUsers(int workspaceId, [FromBody] AssignZoneDto dto)
+    {
+        try
+        {
+            var users = await _context.RadiusUsers
+                .Where(u => dto.UserIds.Contains(u.Id) && !u.IsDeleted)
+                .ToListAsync();
+
+            if (users.Count == 0)
+            {
+                return NotFound(new { message = "No valid users found" });
+            }
+
+            foreach (var user in users)
+            {
+                user.ZoneId = dto.ZoneId;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Zone assigned successfully", count = users.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning zone to users");
+            return StatusCode(500, new { message = "Failed to assign zone" });
+        }
+    }
+}
+
+public class AssignZoneDto
+{
+    public List<int> UserIds { get; set; } = new();
+    public int? ZoneId { get; set; }
 }

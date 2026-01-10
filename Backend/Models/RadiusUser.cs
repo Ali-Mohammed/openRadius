@@ -318,6 +318,9 @@ namespace Backend.Models
         public DateTime UpdatedAt { get; set; }
         public DateTime? LastSyncedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public int? ZoneId { get; set; }
+        public string? ZoneName { get; set; }
+        public string? ZoneColor { get; set; }
         public List<RadiusTagResponse> Tags { get; set; } = new();
     }
 
