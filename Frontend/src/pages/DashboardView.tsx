@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import { Plus, Edit, Settings, Filter } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
@@ -13,9 +13,10 @@ import { toast } from 'sonner'
 
 export default function DashboardView() {
   const { id } = useParams()
+  const location = useLocation()
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [activeTabId, setActiveTabId] = useState<string>('')
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(location.pathname.endsWith('/edit'))
   const [showAddItemDialog, setShowAddItemDialog] = useState(false)
   const [showAddTabDialog, setShowAddTabDialog] = useState(false)
   const [showFilters, setShowFilters] = useState(true)

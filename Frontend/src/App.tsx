@@ -99,6 +99,7 @@ function App() {
                           <Route path="/billing/transactions" element={<Transactions />} />
                           <Route path="/dashboards" element={<Dashboards />} />
                           <Route path="/dashboards/:id" element={<DashboardView />} />
+                          <Route path="/dashboards/:id/edit" element={<DashboardView />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>

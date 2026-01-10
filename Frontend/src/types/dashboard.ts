@@ -59,4 +59,7 @@ export type Dashboard = {
   globalFilters: GlobalFilter[]
   createdAt: string
   updatedAt: string
+  // List view only properties
+  tabCount?: number
+  itemCount?: number
 }

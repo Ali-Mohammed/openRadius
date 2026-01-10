@@ -4,6 +4,8 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
+import { dashboardApi } from "@/api/dashboardApi"
+import type { Dashboard } from "@/types/dashboard"
 
 import { SearchForm } from "@/components/search-form"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
@@ -39,6 +41,7 @@ const getNavData = (workspaceId: number) => ({
       titleKey: "navigation.dashboards",
       url: "/dashboards",
       icon: LayoutDashboard,
+      items: [], // Will be populated with actual dashboards
     },
     {
       titleKey: "navigation.integration",
@@ -238,9 +241,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [dashboards, setDashboards] = React.useState<Dashboard[]>([])
+
+  // Load dashboards
+  React.useEffect(() => {
+    const loadDashboards = async () => {
+      try {
+        const data = await dashboardApi.getDashboards()
+        setDashboards(data)
+      } catch (error) {
+        console.error('Error loading dashboards:', error)
+      }
+    }
+    loadDashboards()
+  }, [])
 
   // Get nav data with current workspace ID (fallback to 1 if not loaded yet)
-  const data = React.useMemo(() => getNavData(currentWorkspaceId || 1), [currentWorkspaceId])
+  const data = React.useMemo(() => {
+    const navData = getNavData(currentWorkspaceId || 1)
+    // Update dashboards items with actual dashboard data
+    const dashboardsIndex = navData.navMain.findIndex(item => item.titleKey === 'navigation.dashboards')
+    if (dashboardsIndex !== -1 && dashboards.length > 0) {
+      navData.navMain[dashboardsIndex].items = dashboards.map(dashboard => ({
+        titleKey: dashboard.name, // Use dashboard name directly, not a translation key
+        url: `/dashboards/${dashboard.id}`,
+        icon: LayoutDashboard,
+      }))
+    }
+    return navData
+  }, [currentWorkspaceId, dashboards])
 
   // Filter and sort menu items based on search query
   const filteredNavMain = React.useMemo(() => {
@@ -254,14 +283,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       .map(item => {
         const parentMatch = t(item.titleKey).toLowerCase().includes(query)
         
-        // Handle items without sub-items (like dashboards)
-        if (!item.items) {
+        // Handle items without sub-items
+        if (!item.items || item.items.length === 0) {
           return parentMatch ? item : null
         }
         
-        const filteredItems = item.items.filter(subItem =>
-          t(subItem.titleKey).toLowerCase().includes(query)
-        )
+        const filteredItems = item.items.filter(subItem => {
+          // For dashboards, use the name directly instead of translation
+          const subItemName = item.titleKey === 'navigation.dashboards' 
+            ? subItem.titleKey.toLowerCase() 
+            : t(subItem.titleKey).toLowerCase()
+          return subItemName.includes(query)
+        })
         
         // Include parent if it matches or has matching children
         if (parentMatch || filteredItems.length > 0) {
@@ -273,7 +306,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         return null
       })
       .filter(Boolean)
-  }, [searchQuery, t])
+  }, [searchQuery, t, data.navMain])
 
   return (
     <Sidebar {...props}>
@@ -321,16 +354,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {item.items.map((subItem) => (
-                        <SidebarMenuItem key={subItem.titleKey}>
-                          <SidebarMenuButton asChild isActive={location.pathname === subItem.url} className="ml-4">
-                            <Link to={subItem.url}>
-                              <subItem.icon className="mr-2 h-4 w-4 text-primary" />
-                              {t(subItem.titleKey)}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
+                      {item.items.map((subItem) => {
+                        // For dashboards, use the name directly instead of translation
+                        const displayName = item.titleKey === 'navigation.dashboards'
+                          ? subItem.titleKey
+                          : t(subItem.titleKey)
+                        return (
+                          <SidebarMenuItem key={subItem.titleKey}>
+                            <SidebarMenuButton asChild isActive={location.pathname === subItem.url} className="ml-4">
+                              <Link to={subItem.url}>
+                                <subItem.icon className="mr-2 h-4 w-4 text-primary" />
+                                {displayName}
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )
+                      })}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>

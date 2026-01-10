@@ -97,9 +97,9 @@ export default function Dashboards() {
                   </p>
                 )}
                 <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-                  <span>{dashboard.tabs.length} tabs</span>
+                  <span>{dashboard.tabCount ?? dashboard.tabs?.length ?? 0} tabs</span>
                   <span>
-                    {dashboard.tabs.reduce((acc, tab) => acc + tab.items.length, 0)} items
+                    {dashboard.itemCount ?? dashboard.tabs?.reduce((acc, tab) => acc + tab.items.length, 0) ?? 0} items
                   </span>
                 </div>
               </div>
