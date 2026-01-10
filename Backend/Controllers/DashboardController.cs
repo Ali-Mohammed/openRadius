@@ -39,6 +39,8 @@ public class DashboardController : ControllerBase
                     id = d.Id.ToString(),
                     name = d.Name,
                     description = d.Description,
+                    icon = d.Icon,
+                    color = d.Color,
                     createdAt = d.CreatedAt.ToString("o"),
                     updatedAt = d.UpdatedAt.ToString("o"),
                     tabCount = d.Tabs.Count(t => !t.IsDeleted),
@@ -74,6 +76,8 @@ public class DashboardController : ControllerBase
                     id = d.Id.ToString(),
                     name = d.Name,
                     description = d.Description,
+                    icon = d.Icon,
+                    color = d.Color,
                     tabs = d.Tabs
                         .Where(t => !t.IsDeleted)
                         .OrderBy(t => t.OrderIndex)
@@ -141,6 +145,8 @@ public class DashboardController : ControllerBase
             {
                 Name = dto.Name,
                 Description = dto.Description,
+                Icon = dto.Icon,
+                Color = dto.Color,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -208,6 +214,8 @@ public class DashboardController : ControllerBase
 
             dashboard.Name = dto.Name ?? dashboard.Name;
             dashboard.Description = dto.Description ?? dashboard.Description;
+            dashboard.Icon = dto.Icon ?? dashboard.Icon;
+            dashboard.Color = dto.Color ?? dashboard.Color;
             dashboard.UpdatedAt = DateTime.UtcNow;
 
             // Update tabs if provided
@@ -412,6 +420,8 @@ public class CreateDashboardDto
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string Icon { get; set; } = "LayoutDashboard";
+    public string Color { get; set; } = "#3b82f6";
     public List<TabDto>? Tabs { get; set; }
 }
 
@@ -419,6 +429,8 @@ public class UpdateDashboardDto
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
     public List<TabDto>? Tabs { get; set; }
     public List<GlobalFilterDto>? GlobalFilters { get; set; }
 }

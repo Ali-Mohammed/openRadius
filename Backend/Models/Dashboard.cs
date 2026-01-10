@@ -15,6 +15,12 @@ public class Dashboard
     [StringLength(1000)]
     public string? Description { get; set; }
 
+    [StringLength(100)]
+    public string Icon { get; set; } = "LayoutDashboard";
+
+    [StringLength(50)]
+    public string Color { get; set; } = "#3b82f6";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
