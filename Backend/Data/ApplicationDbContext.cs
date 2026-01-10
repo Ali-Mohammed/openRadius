@@ -46,6 +46,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<BillingProfile> BillingProfiles { get; set; }
     public DbSet<BillingProfileWallet> BillingProfileWallets { get; set; }
     public DbSet<BillingProfileAddon> BillingProfileAddons { get; set; }
+    public DbSet<Zone> Zones { get; set; }
+    public DbSet<UserZone> UserZones { get; set; }
     public DbSet<Dashboard> Dashboards { get; set; }
     public DbSet<DashboardTab> DashboardTabs { get; set; }
     public DbSet<DashboardItem> DashboardItems { get; set; }

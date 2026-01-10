@@ -257,6 +257,10 @@ namespace Backend.Models
         public string? ParentUsername { get; set; }
         public int DebtDays { get; set; }
         
+        // Zone assignment (one zone per radius user)
+        public int? ZoneId { get; set; }
+        public Zone? Zone { get; set; }
+        
         // Soft Delete
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
