@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
-import { Plus, Edit, Settings, Filter } from 'lucide-react'
+import { Plus, Edit, Settings, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { DashboardGrid } from '../components/dashboard/DashboardGrid'
 import { GlobalFilters } from '../components/dashboard/GlobalFilters'
 import { AddItemDialog } from '../components/dashboard/dialogs/AddItemDialog'
 import { AddTabDialog } from '../components/dashboard/dialogs/AddTabDialog'
+import { EditItemDialog } from '../components/dashboard/dialogs/EditItemDialog'
 import type { Dashboard, DashboardItem, DashboardTab } from '../types/dashboard'
 import { dashboardApi } from '../api/dashboardApi'
 import { toast } from 'sonner'
@@ -19,6 +20,8 @@ export default function DashboardView() {
   const [isEditing, setIsEditing] = useState(location.pathname.endsWith('/edit'))
   const [showAddItemDialog, setShowAddItemDialog] = useState(false)
   const [showAddTabDialog, setShowAddTabDialog] = useState(false)
+  const [showEditItemDialog, setShowEditItemDialog] = useState(false)
+  const [editingItem, setEditingItem] = useState<DashboardItem | null>(null)
   const [showFilters, setShowFilters] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -101,6 +104,57 @@ export default function DashboardView() {
     }
   }
 
+  const handleEditItem = (item: DashboardItem) => {
+    setEditingItem(item)
+    setShowEditItemDialog(true)
+  }
+
+  const handleSaveItem = async (itemId: string, updates: Partial<DashboardItem>, newTabId?: string) => {
+    if (!dashboard) return
+
+    try {
+      // If moving to a different tab
+      if (newTabId && newTabId !== activeTabId) {
+        // Remove from current tab and add to new tab
+        const item = dashboard.tabs
+          .find(tab => tab.id === activeTabId)
+          ?.items.find(i => i.id === itemId)
+        
+        if (item) {
+          const updatedItem = { ...item, ...updates }
+          const updatedTabs = dashboard.tabs.map(tab => {
+            if (tab.id === activeTabId) {
+              return { ...tab, items: tab.items.filter(i => i.id !== itemId) }
+            } else if (tab.id === newTabId) {
+              return { ...tab, items: [...tab.items, updatedItem] }
+            }
+            return tab
+          })
+          setDashboard({ ...dashboard, tabs: updatedTabs })
+          setActiveTabId(newTabId)
+          toast.success('Item moved and updated successfully')
+        }
+      } else {
+        // Update in current tab
+        const updatedTabs = dashboard.tabs.map(tab =>
+          tab.id === activeTabId
+            ? {
+                ...tab,
+                items: tab.items.map(item =>
+                  item.id === itemId ? { ...item, ...updates } : item
+                ),
+              }
+            : tab
+        )
+        setDashboard({ ...dashboard, tabs: updatedTabs })
+        toast.success('Item updated successfully')
+      }
+    } catch (error) {
+      console.error('Error saving item:', error)
+      toast.error('Failed to save item')
+    }
+  }
+
   const handleDeleteItem = async (itemId: string) => {
     if (!dashboard) return
 
@@ -164,6 +218,48 @@ export default function DashboardView() {
     )
 
     setDashboard({ ...dashboard, globalFilters: updatedFilters })
+  }
+
+  const handleMoveTabLeft = async (tabId: string) => {
+    if (!dashboard) return
+    
+    const currentIndex = dashboard.tabs.findIndex(t => t.id === tabId)
+    if (currentIndex <= 0) return
+
+    const newTabs = [...dashboard.tabs]
+    const temp = newTabs[currentIndex]
+    newTabs[currentIndex] = newTabs[currentIndex - 1]
+    newTabs[currentIndex - 1] = temp
+
+    try {
+      await dashboardApi.updateDashboard(dashboard.id, {
+        tabs: newTabs.map(t => ({ name: t.name })),
+      })
+      setDashboard({ ...dashboard, tabs: newTabs })
+    } catch (error) {
+      toast.error('Failed to reorder tabs')
+    }
+  }
+
+  const handleMoveTabRight = async (tabId: string) => {
+    if (!dashboard) return
+    
+    const currentIndex = dashboard.tabs.findIndex(t => t.id === tabId)
+    if (currentIndex < 0 || currentIndex >= dashboard.tabs.length - 1) return
+
+    const newTabs = [...dashboard.tabs]
+    const temp = newTabs[currentIndex]
+    newTabs[currentIndex] = newTabs[currentIndex + 1]
+    newTabs[currentIndex + 1] = temp
+
+    try {
+      await dashboardApi.updateDashboard(dashboard.id, {
+        tabs: newTabs.map(t => ({ name: t.name })),
+      })
+      setDashboard({ ...dashboard, tabs: newTabs })
+    } catch (error) {
+      toast.error('Failed to reorder tabs')
+    }
   }
 
   if (isLoading) {
@@ -231,10 +327,32 @@ export default function DashboardView() {
       <Tabs value={activeTabId} onValueChange={setActiveTabId}>
         <div className="flex items-center gap-2">
           <TabsList>
-            {dashboard.tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id}>
-                {tab.name}
-              </TabsTrigger>
+            {dashboard.tabs.map((tab, index) => (
+              <div key={tab.id} className="flex items-center gap-1">
+                {isEditing && index > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => handleMoveTabLeft(tab.id)}
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </Button>
+                )}
+                <TabsTrigger value={tab.id}>
+                  {tab.name}
+                </TabsTrigger>
+                {isEditing && index < dashboard.tabs.length - 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => handleMoveTabRight(tab.id)}
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             ))}
           </TabsList>
           {isEditing && (
@@ -255,6 +373,7 @@ export default function DashboardView() {
               <DashboardGrid
                 items={tab.items}
                 onLayoutChange={handleLayoutChange}
+                onEditItem={handleEditItem}
                 onDeleteItem={handleDeleteItem}
                 isEditing={isEditing}
               />
@@ -289,6 +408,18 @@ export default function DashboardView() {
         open={showAddTabDialog}
         onClose={() => setShowAddTabDialog(false)}
         onAdd={handleAddTab}
+      />
+
+      <EditItemDialog
+        open={showEditItemDialog}
+        onClose={() => {
+          setShowEditItemDialog(false)
+          setEditingItem(null)
+        }}
+        item={editingItem}
+        tabs={dashboard.tabs}
+        currentTabId={activeTabId}
+        onSave={handleSaveItem}
       />
     </div>
   )
