@@ -554,6 +554,40 @@ public class OltController : ControllerBase
             return StatusCode(500, new { message = "Failed to export OLTs", error = ex.Message });
         }
     }
+
+    [HttpGet("pon-ports")]
+    public async Task<ActionResult<IEnumerable<PonPortListDto>>> GetPonPorts()
+    {
+        try
+        {
+            var ponPorts = await _context.PonPorts
+                .Where(p => !p.IsDeleted)
+                .Include(p => p.Olt)
+                .Where(p => p.Olt != null && !p.Olt.IsDeleted)
+                .OrderBy(p => p.Olt!.Name)
+                .ThenBy(p => p.Slot)
+                .ThenBy(p => p.Port)
+                .Select(p => new PonPortListDto
+                {
+                    Id = p.Id,
+                    OltId = p.OltId,
+                    OltName = p.Olt!.Name,
+                    Slot = p.Slot,
+                    Port = p.Port,
+                    Technology = p.Technology,
+                    Status = p.Status,
+                    Label = $"{p.Olt.Name} - {p.Slot}/{p.Port} ({p.Technology})"
+                })
+                .ToListAsync();
+
+            return Ok(ponPorts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PON ports");
+            return StatusCode(500, new { message = "Failed to retrieve PON ports", error = ex.Message });
+        }
+    }
 }
 
 // DTOs
@@ -618,6 +652,18 @@ public class PonPortDto
     public int Port { get; set; }
     public string Technology { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+}
+
+public class PonPortListDto
+{
+    public Guid Id { get; set; }
+    public Guid OltId { get; set; }
+    public string OltName { get; set; } = string.Empty;
+    public int Slot { get; set; }
+    public int Port { get; set; }
+    public string Technology { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
 }
 
 public class CreateOltDto

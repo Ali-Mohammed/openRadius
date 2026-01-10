@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { fdtApi, type Fdt } from '@/services/fdtApi'
+import { oltApi, type PonPortList } from '@/services/oltApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -97,6 +98,12 @@ export default function Fdts() {
     queryFn: () => showTrash 
       ? fdtApi.getTrash(currentPage, pageSize)
       : fdtApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
+  })
+
+  // Fetch PON ports for dropdown
+  const { data: ponPorts = [] } = useQuery({
+    queryKey: ['ponPorts'],
+    queryFn: () => oltApi.getPonPorts(),
   })
 
   const fdts = useMemo(() => fdtsData?.data || [], [fdtsData?.data])
@@ -869,13 +876,22 @@ export default function Fdts() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="ponPortId">PON Port ID *</Label>
-                <Input
-                  id="ponPortId"
+                <Label htmlFor="ponPortId">PON Port *</Label>
+                <Select
                   value={formData.ponPortId}
-                  onChange={(e) => setFormData({ ...formData, ponPortId: e.target.value })}
-                  placeholder="Enter PON Port ID"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, ponPortId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select PON Port" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ponPorts.map((port) => (
+                      <SelectItem key={port.id} value={port.id}>
+                        {port.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cabinet">Cabinet</Label>

@@ -59,6 +59,17 @@ export interface PonPort {
   status: string;
 }
 
+export interface PonPortList {
+  id: string;
+  oltId: string;
+  oltName: string;
+  slot: number;
+  port: number;
+  technology: string;
+  status: string;
+  label: string;
+}
+
 export interface CreateOltData {
   name: string;
   hostname?: string;
@@ -184,6 +195,11 @@ export const oltApi = {
       { responseType: 'blob' }
     );
     return response.data;
+  },
+
+  getPonPorts: async (): Promise<PonPortList[]> => {
+    const { data } = await apiClient.get<PonPortList[]>('/api/network/olts/pon-ports');
+    return data;
   },
 };
 
