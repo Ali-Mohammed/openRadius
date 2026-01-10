@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { fatApi, type Fat } from '@/services/fatApi'
+import { fdtApi, type FdtList } from '@/services/fdtApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -95,6 +96,12 @@ export default function Fats() {
     queryFn: () => showTrash 
       ? fatApi.getTrash(currentPage, pageSize)
       : fatApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
+  })
+
+  // Fetch FDTs for dropdown
+  const { data: fdts = [] } = useQuery({
+    queryKey: ['fdtList'],
+    queryFn: () => fdtApi.getList(),
   })
 
   const fats = useMemo(() => fatsData?.data || [], [fatsData?.data])
