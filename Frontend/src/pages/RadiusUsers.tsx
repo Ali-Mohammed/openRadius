@@ -264,6 +264,7 @@ export default function RadiusUsers() {
         address: user.address || '',
         contractId: user.contractId || '',
         simultaneousSessions: user.simultaneousSessions?.toString() || '1',
+        zoneId: user.zoneId?.toString() || '',
       })
       setSelectedTagIds(user.tags?.map(t => t.id) || [])
     } else {
@@ -284,6 +285,7 @@ export default function RadiusUsers() {
         address: '',
         contractId: '',
         simultaneousSessions: '1',
+        zoneId: '',
       })
       setSelectedTagIds([])
     }
@@ -317,6 +319,7 @@ export default function RadiusUsers() {
       address: formData.address || undefined,
       contractId: formData.contractId || undefined,
       simultaneousSessions: parseInt(formData.simultaneousSessions) || 1,
+      zoneId: formData.zoneId ? parseInt(formData.zoneId) : undefined,
     }
 
     try {
