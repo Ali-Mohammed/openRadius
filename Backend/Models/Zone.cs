@@ -8,7 +8,7 @@ public class Zone
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Color { get; set; }
-    public int WorkspaceId { get; set; }
+    public int WorkspaceId { get; set; } // Not a foreign key - just stores the workspace ID
     
     // Soft delete
     public bool IsDeleted { get; set; }
@@ -21,9 +21,7 @@ public class Zone
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
     
-    // Navigation properties
-    [JsonIgnore]
-    public virtual Workspace Workspace { get; set; } = null!;
+    // Navigation properties (no Workspace navigation - it's in a different database)
     [JsonIgnore]
     public virtual ICollection<UserZone> UserZones { get; set; } = new List<UserZone>();
     [JsonIgnore]

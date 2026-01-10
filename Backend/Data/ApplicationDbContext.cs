@@ -316,6 +316,31 @@ public class ApplicationDbContext : DbContext
                   .HasForeignKey(e => e.CustomWalletId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
+
+        // Zone configuration - no foreign key to Workspace (it's in a different database)
+        modelBuilder.Entity<Zone>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.WorkspaceId);
+            entity.HasIndex(e => e.Name);
+            
+            // WorkspaceId is just a regular field, not a foreign key
+            entity.Property(e => e.WorkspaceId).IsRequired();
+            
+            // Add query filter to exclude soft-deleted zones by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        modelBuilder.Entity<UserZone>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.ZoneId }).IsUnique();
+            
+            entity.HasOne(e => e.Zone)
+                  .WithMany(z => z.UserZones)
+                  .HasForeignKey(e => e.ZoneId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
 
