@@ -97,7 +97,7 @@ public class FatController : ControllerBase
                     Id = fp.Id,
                     PortNumber = fp.PortNumber,
                     Status = fp.Status,
-                    Onu = fp.Onu
+                    SubscriberId = fp.SubscriberId
                 }).OrderBy(p => p.PortNumber).ToList(),
                 CreatedAt = fat.CreatedAt,
                 UpdatedAt = fat.UpdatedAt
@@ -242,7 +242,7 @@ public class FatPortDto
     public Guid Id { get; set; }
     public int PortNumber { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string? Onu { get; set; }
+    public Guid? SubscriberId { get; set; }
 }
 
 public class CreateFatDto
