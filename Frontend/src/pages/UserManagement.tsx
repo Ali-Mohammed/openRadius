@@ -195,6 +195,7 @@ export default function UserManagement() {
       userManagementApi.assignZonesToUser(userId, zoneIds),
     onSuccess: () => {
       toast.success('Zones assigned successfully')
+      queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['user-zones'] })
       queryClient.invalidateQueries({ queryKey: ['zones'] })
       setIsZoneDialogOpen(false)

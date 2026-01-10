@@ -182,6 +182,29 @@ public class UserManagementController : ControllerBase
                         }
                     }
                     
+                    // Fetch zones for this user
+                    List<ZoneInfo>? userZones = null;
+                    if (!string.IsNullOrEmpty(userId))
+                    {
+                        try
+                        {
+                            var zones = await _context.UserZones
+                                .Where(uz => uz.KeycloakUserId == userId)
+                                .Join(_context.Zones,
+                                    uz => uz.ZoneId,
+                                    z => z.Id,
+                                    (uz, z) => new ZoneInfo
+                                    {
+                                        Id = z.Id,
+                                        Name = z.Name,
+                                        Color = z.Color
+                                    })
+                                .ToListAsync();
+                            userZones = zones;
+                        }
+                        catch { /* Ignore zone fetch errors */ }
+                    }
+                    
                     userResponses.Add(new KeycloakUserResponse
                     {
                         Id = userId,
