@@ -4,31 +4,30 @@ export interface Fdt {
   id: string;
   code: string;
   name?: string;
+  ponPortId: string;
+  cabinet?: string;
   capacity: number;
   usedPorts: number;
+  splitRatio?: string;
+  installationDate?: string;
   status: string;
+  address?: string;
   zone?: string;
+  latitude?: number;
+  longitude?: number;
+  lastInspectionAt?: string;
+  nextInspectionAt?: string;
   oltName?: string;
   ponPortSlot: number;
   ponPortPort: number;
   fatCount: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface FdtDetail extends Fdt {
-  ponPortId: string;
-  cabinet?: string;
-  splitRatio?: string;
-  installationDate?: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
-  lastInspectionAt?: string;
-  nextInspectionAt?: string;
   notes?: string;
-  fdtName?: string;
   fats: FatSummary[];
-  updatedAt: string;
 }
 
 export interface FatSummary {
@@ -61,9 +60,42 @@ export interface UpdateFdtData extends CreateFdtData {
   nextInspectionAt?: string;
 }
 
+export interface PaginatedFdtsResponse {
+  data: Fdt[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalRecords: number;
+    totalPages: number;
+  };
+}
+
 export const fdtApi = {
-  getAll: async () => {
-    const { data } = await apiClient.get<Fdt[]>('/api/network/fdts');
+  getAll: async (
+    page: number = 1,
+    pageSize: number = 50,
+    search?: string,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc'
+  ) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    if (search) params.append('search', search);
+    if (sortField) params.append('sortField', sortField);
+    if (sortDirection) params.append('sortDirection', sortDirection);
+
+    const { data } = await apiClient.get<PaginatedFdtsResponse>(`/api/network/fdts?${params.toString()}`);
+    return data;
+  },
+
+  getTrash: async (page: number = 1, pageSize: number = 50) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    const { data } = await apiClient.get<PaginatedFdtsResponse>(`/api/network/fdts/trash?${params.toString()}`);
     return data;
   },
   
@@ -83,5 +115,33 @@ export const fdtApi = {
   
   delete: async (id: string) => {
     await apiClient.delete(`/api/network/fdts/${id}`);
+  },
+
+  restore: async (id: string) => {
+    await apiClient.post(`/api/network/fdts/${id}/restore`);
+  },
+
+  exportToCsv: async (search?: string, sortField?: string, sortDirection?: 'asc' | 'desc') => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (sortField) params.append('sortField', sortField);
+    if (sortDirection) params.append('sortDirection', sortDirection);
+
+    const { data } = await apiClient.get(`/api/network/fdts/export/csv?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    return data;
+  },
+
+  exportToExcel: async (search?: string, sortField?: string, sortDirection?: 'asc' | 'desc') => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (sortField) params.append('sortField', sortField);
+    if (sortDirection) params.append('sortDirection', sortDirection);
+
+    const { data } = await apiClient.get(`/api/network/fdts/export/excel?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    return data;
   },
 };
