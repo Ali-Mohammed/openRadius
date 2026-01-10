@@ -23,6 +23,7 @@ public class MasterDbContext : DbContext
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<UserGroup> UserGroups { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<BackupHistory> BackupHistories { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

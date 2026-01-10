@@ -84,6 +84,15 @@ public class DatabaseBackupController : ControllerBase
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
             var backupFileName = $"{dbName}_{timestamp}.sql";
 
+            // Create backups directory if it doesn't exist
+            var backupsDir = Path.Combine(Directory.GetCurrentDirectory(), "Backups");
+            if (!Directory.Exists(backupsDir))
+            {
+                Directory.CreateDirectory(backupsDir);
+            }
+
+            var backupFilePath = Path.Combine(backupsDir, backupFileName);
+
             // Create SQL backup using Npgsql
             var sqlBackup = new StringBuilder();
             sqlBackup.AppendLine($"-- Database backup for {dbName}");
@@ -116,6 +125,28 @@ public class DatabaseBackupController : ControllerBase
             }
 
             var fileBytes = Encoding.UTF8.GetBytes(sqlBackup.ToString());
+            
+            // Save backup to disk
+            await System.IO.File.WriteAllBytesAsync(backupFilePath, fileBytes);
+
+            // Get current user email from claims
+            var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "system";
+
+            // Save backup history to database
+            var backupHistory = new Models.BackupHistory
+            {
+                DatabaseName = request.DatabaseName,
+                DatabaseType = request.Type,
+                FileName = backupFileName,
+                FilePath = backupFilePath,
+                SizeBytes = fileBytes.Length,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userEmail
+            };
+
+            _masterContext.BackupHistories.Add(backupHistory);
+            await _masterContext.SaveChangesAsync();
+
             return File(fileBytes, "application/sql", backupFileName);
         }
         catch (Exception ex)
@@ -245,18 +276,156 @@ public class DatabaseBackupController : ControllerBase
     }
 
     [HttpGet("backup-history")]
-    public ActionResult<IEnumerable<BackupHistoryDto>> GetBackupHistory()
+    public async Task<ActionResult<IEnumerable<BackupHistoryDto>>> GetBackupHistory([FromQuery] string? databaseName = null)
     {
         try
         {
-            // This would typically come from a database table tracking backups
-            // For now, returning empty list as backups are downloaded immediately
-            return Ok(new List<BackupHistoryDto>());
+            var query = _masterContext.BackupHistories.AsQueryable();
+
+            if (!string.IsNullOrEmpty(databaseName))
+            {
+                query = query.Where(b => b.DatabaseName == databaseName);
+            }
+
+            var backups = await query
+                .OrderByDescending(b => b.CreatedAt)
+                .Select(b => new BackupHistoryDto
+                {
+                    Id = b.Id,
+                    DatabaseName = b.DatabaseName,
+                    DatabaseType = b.DatabaseType,
+                    FileName = b.FileName,
+                    SizeBytes = b.SizeBytes,
+                    CreatedAt = b.CreatedAt,
+                    CreatedBy = b.CreatedBy
+                })
+                .ToListAsync();
+
+            return Ok(backups);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting backup history");
             return StatusCode(500, new { message = "Failed to retrieve backup history", error = ex.Message });
+        }
+    }
+
+    [HttpGet("download/{backupId}")]
+    public async Task<IActionResult> DownloadBackup(Guid backupId)
+    {
+        try
+        {
+            var backup = await _masterContext.BackupHistories.FindAsync(backupId);
+            if (backup == null)
+            {
+                return NotFound(new { message = "Backup not found" });
+            }
+
+            if (!System.IO.File.Exists(backup.FilePath))
+            {
+                return NotFound(new { message = "Backup file not found on disk" });
+            }
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(backup.FilePath);
+            return File(fileBytes, "application/sql", backup.FileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading backup");
+            return StatusCode(500, new { message = "Failed to download backup", error = ex.Message });
+        }
+    }
+
+    [HttpPost("restore")]
+    public async Task<IActionResult> RestoreBackup([FromBody] RestoreRequest request)
+    {
+        try
+        {
+            var backup = await _masterContext.BackupHistories.FindAsync(request.BackupId);
+            if (backup == null)
+            {
+                return NotFound(new { message = "Backup not found" });
+            }
+
+            if (!System.IO.File.Exists(backup.FilePath))
+            {
+                return NotFound(new { message = "Backup file not found on disk" });
+            }
+
+            // Read SQL backup file
+            var sqlContent = await System.IO.File.ReadAllTextAsync(backup.FilePath);
+
+            // Get connection string for the target database
+            var connectionString = backup.DatabaseType == "master"
+                ? _configuration.GetConnectionString("DefaultConnection")
+                : GetWorkspaceConnectionString(backup.DatabaseName);
+
+            // Execute SQL restore
+            using var connection = new Npgsql.NpgsqlConnection(connectionString);
+            await connection.OpenAsync();
+
+            // Split SQL into individual statements and execute
+            var statements = sqlContent.Split(new[] { ";\r\n", ";\n" }, StringSplitOptions.RemoveEmptyEntries);
+            
+            using var transaction = await connection.BeginTransactionAsync();
+            try
+            {
+                foreach (var statement in statements)
+                {
+                    var trimmedStatement = statement.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmedStatement) || trimmedStatement.StartsWith("--"))
+                        continue;
+
+                    using var command = connection.CreateCommand();
+                    command.Transaction = transaction;
+                    command.CommandText = trimmedStatement;
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+
+            return Ok(new { message = "Database restored successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring backup");
+            return StatusCode(500, new { message = "Failed to restore backup", error = ex.Message });
+        }
+    }
+
+    [HttpDelete("delete/{backupId}")]
+    public async Task<IActionResult> DeleteBackup(Guid backupId)
+    {
+        try
+        {
+            var backup = await _masterContext.BackupHistories.FindAsync(backupId);
+            if (backup == null)
+            {
+                return NotFound(new { message = "Backup not found" });
+            }
+
+            // Delete file from disk
+            if (System.IO.File.Exists(backup.FilePath))
+            {
+                System.IO.File.Delete(backup.FilePath);
+            }
+
+            // Delete from database
+            _masterContext.BackupHistories.Remove(backup);
+            await _masterContext.SaveChangesAsync();
+
+            return Ok(new { message = "Backup deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting backup");
+            return StatusCode(500, new { message = "Failed to delete backup", error = ex.Message });
         }
     }
 
@@ -295,7 +464,14 @@ public class BackupHistoryDto
 {
     public Guid Id { get; set; }
     public string DatabaseName { get; set; } = string.Empty;
+    public string DatabaseType { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+}
+
+public class RestoreRequest
+{
+    public Guid BackupId { get; set; }
 }
