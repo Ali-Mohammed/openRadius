@@ -13,6 +13,7 @@ public class KeycloakUserRequest
     public Dictionary<string, List<string>>? Attributes { get; set; }
     public string? Password { get; set; }
     public bool TemporaryPassword { get; set; } = false;
+    public string? DisabledReason { get; set; }
 }
 
 public class KeycloakUserResponse

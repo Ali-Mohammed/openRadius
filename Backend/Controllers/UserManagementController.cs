@@ -402,6 +402,32 @@ public class UserManagementController : ControllerBase
                 return StatusCode((int)response.StatusCode, new { message = "Failed to update user", error = errorContent });
             }
 
+            // If disabling user and reason provided, save to local database
+            if (!request.Enabled && !string.IsNullOrEmpty(request.DisabledReason))
+            {
+                var currentUserId = GetCurrentUserId();
+                var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == id);
+                if (dbUser != null)
+                {
+                    dbUser.DisabledReason = request.DisabledReason;
+                    dbUser.DisabledAt = DateTime.UtcNow;
+                    dbUser.DisabledBy = currentUserId;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            // If enabling user, clear disable tracking
+            else if (request.Enabled)
+            {
+                var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == id);
+                if (dbUser != null)
+                {
+                    dbUser.DisabledReason = null;
+                    dbUser.DisabledAt = null;
+                    dbUser.DisabledBy = null;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             return Ok(new { message = "User updated successfully" });
         }
         catch (Exception ex)
