@@ -1175,6 +1175,31 @@ export default function RadiusUsers() {
                   placeholder="e.g., 1"
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="zoneId">Zone</Label>
+                <Select
+                  value={formData.zoneId}
+                  onValueChange={(value) => setFormData({ ...formData, zoneId: value })}
+                >
+                  <SelectTrigger id="zoneId">
+                    <SelectValue placeholder="Select zone (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Zone</SelectItem>
+                    {zones.map((zone) => (
+                      <SelectItem key={zone.id} value={zone.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: zone.color || '#3b82f6' }}
+                          />
+                          <span>{zone.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
