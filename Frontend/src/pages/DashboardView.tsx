@@ -7,6 +7,7 @@ import { DashboardGrid } from '../components/dashboard/DashboardGrid'
 import { GlobalFilters } from '../components/dashboard/GlobalFilters'
 import { AddItemDialog } from '../components/dashboard/dialogs/AddItemDialog'
 import type { Dashboard, DashboardItem, DashboardTab } from '../types/dashboard'
+import { dashboardApi } from '../api/dashboardApi'
 import { toast } from 'sonner'
 
 export default function DashboardView() {
@@ -16,140 +17,31 @@ export default function DashboardView() {
   const [isEditing, setIsEditing] = useState(false)
   const [showAddItemDialog, setShowAddItemDialog] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data - replace with actual API call
-    const mockDashboard: Dashboard = {
-      id: id || '1',
-      name: 'Revenue Overview',
-      description: 'Track revenue metrics and performance',
-      tabs: [
-        {
-          id: 'tab-1',
-          name: 'Overview',
-          items: [
-            {
-              id: 'item-1',
-              type: 'metric',
-              title: 'Total Revenue',
-              layout: { x: 0, y: 0, w: 6, h: 2 },
-              config: {
-                value: '$125,430',
-                label: 'Total Revenue',
-                trend: 12.5,
-                trendDirection: 'up' as const,
-              },
-            },
-            {
-              id: 'item-2',
-              type: 'metric',
-              title: 'Active Users',
-              layout: { x: 6, y: 0, w: 6, h: 2 },
-              config: {
-                value: '2,543',
-                label: 'Active Users',
-                trend: 8.2,
-                trendDirection: 'up' as const,
-              },
-            },
-            {
-              id: 'item-3',
-              type: 'metric',
-              title: 'Conversion Rate',
-              layout: { x: 12, y: 0, w: 6, h: 2 },
-              config: {
-                value: '3.24%',
-                label: 'Conversion Rate',
-                trend: 2.1,
-                trendDirection: 'down' as const,
-              },
-            },
-            {
-              id: 'item-4',
-              type: 'metric',
-              title: 'Avg Order Value',
-              layout: { x: 18, y: 0, w: 6, h: 2 },
-              config: {
-                value: '$48.30',
-                label: 'Avg Order Value',
-                trend: 5.3,
-                trendDirection: 'up' as const,
-              },
-            },
-            {
-              id: 'item-5',
-              type: 'chart',
-              title: 'Revenue Trend',
-              layout: { x: 0, y: 2, w: 16, h: 4 },
-              config: {
-                chartType: 'line' as const,
-              },
-            },
-            {
-              id: 'item-6',
-              type: 'chart',
-              title: 'Revenue by Category',
-              layout: { x: 16, y: 2, w: 8, h: 4 },
-              config: {
-                chartType: 'pie' as const,
-              },
-            },
-          ],
-        },
-        {
-          id: 'tab-2',
-          name: 'Details',
-          items: [
-            {
-              id: 'item-7',
-              type: 'table',
-              title: 'Top Products',
-              layout: { x: 0, y: 0, w: 24, h: 4 },
-              config: {
-                columns: [
-                  { key: 'product', label: 'Product' },
-                  { key: 'revenue', label: 'Revenue' },
-                  { key: 'units', label: 'Units Sold' },
-                ],
-                data: [
-                  { product: 'Product A', revenue: '$12,430', units: '245' },
-                  { product: 'Product B', revenue: '$9,820', units: '189' },
-                  { product: 'Product C', revenue: '$7,650', units: '156' },
-                ],
-              },
-            },
-          ],
-        },
-      ],
-      globalFilters: [
-        {
-          id: 'filter-1',
-          label: 'Date Range',
-          type: 'date',
-          value: new Date().toISOString(),
-        },
-        {
-          id: 'filter-2',
-          label: 'Region',
-          type: 'select',
-          value: 'all',
-          options: [
-            { label: 'All Regions', value: 'all' },
-            { label: 'North America', value: 'na' },
-            { label: 'Europe', value: 'eu' },
-            { label: 'Asia', value: 'asia' },
-          ],
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    if (id) {
+      loadDashboard()
     }
-
-    setDashboard(mockDashboard)
-    setActiveTabId(mockDashboard.tabs[0]?.id || '')
   }, [id])
 
-  const handleAddItem = (item: DashboardItem) => {
+  const loadDashboard = async () => {
+    try {
+      setIsLoading(true)
+      const data = await dashboardApi.getDashboard(id!)
+      setDashboard(data)
+      if (data.tabs.length > 0) {
+        setActiveTabId(data.tabs[0].id)
+      }
+    } catch (error) {
+      console.error('Error loading dashboard:', error)
+      toast.error('Failed to load dashboard')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAddItem = async (item: DashboardItem) => {
     if (!dashboard) return
 
     const updatedTabs = dashboard.tabs.map((tab) =>
@@ -193,8 +85,20 @@ export default function DashboardView() {
     setDashboard({ ...dashboard, globalFilters: updatedFilters })
   }
 
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+      </div>
+    )
+  }
+
   if (!dashboard) {
-    return <div className="p-6">Loading...</div>
+    return (
+      <div className="p-6">
+        <p className="text-gray-500 dark:text-gray-400">Dashboard not found</p>
+      </div>
+    )
   }
 
   const activeTab = dashboard.tabs.find((tab) => tab.id === activeTabId)

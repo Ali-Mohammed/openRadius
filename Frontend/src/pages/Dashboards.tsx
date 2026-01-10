@@ -4,75 +4,56 @@ import { Plus, LayoutDashboard, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { CreateDashboardDialog } from '../components/dashboard/dialogs/CreateDashboardDialog'
 import type { Dashboard } from '../types/dashboard'
+import { dashboardApi } from '../api/dashboardApi'
 import { toast } from 'sonner'
 
 export default function Dashboards() {
   const navigate = useNavigate()
   const [dashboards, setDashboards] = useState<Dashboard[]>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Mock data - replace with actual API call
   useEffect(() => {
-    const mockDashboards: Dashboard[] = [
-      {
-        id: '1',
-        name: 'Revenue Overview',
-        description: 'Track revenue metrics and performance',
-        tabs: [
-          {
-            id: 'tab-1',
-            name: 'Overview',
-            items: [],
-          },
-        ],
-        globalFilters: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        name: 'User Analytics',
-        description: 'Monitor user engagement and growth',
-        tabs: [
-          {
-            id: 'tab-1',
-            name: 'Overview',
-            items: [],
-          },
-        ],
-        globalFilters: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ]
-    setDashboards(mockDashboards)
+    loadDashboards()
   }, [])
 
-  const handleCreateDashboard = (name: string, description: string) => {
-    const newDashboard: Dashboard = {
-      id: `dashboard-${Date.now()}`,
-      name,
-      description,
-      tabs: [
-        {
-          id: `tab-${Date.now()}`,
-          name: 'Overview',
-          items: [],
-        },
-      ],
-      globalFilters: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const loadDashboards = async () => {
+    try {
+      setIsLoading(true)
+      const data = await dashboardApi.getDashboards()
+      setDashboards(data)
+    } catch (error) {
+      console.error('Error loading dashboards:', error)
+      toast.error('Failed to load dashboards')
+    } finally {
+      setIsLoading(false)
     }
-
-    setDashboards([...dashboards, newDashboard])
-    toast.success('Dashboard created successfully')
-    navigate(`/dashboards/${newDashboard.id}`)
   }
 
-  const handleDeleteDashboard = (id: string) => {
-    setDashboards(dashboards.filter((d) => d.id !== id))
-    toast.success('Dashboard deleted successfully')
+  const handleCreateDashboard = async (name: string, description: string) => {
+    try {
+      const newDashboard = await dashboardApi.createDashboard({
+        name,
+        description,
+        tabs: [{ name: 'Overview' }],
+      })
+      toast.success('Dashboard created successfully')
+      navigate(`/dashboards/${newDashboard.id}`)
+    } catch (error) {
+      console.error('Error creating dashboard:', error)
+      toast.error('Failed to create dashboard')
+    }
+  }
+
+  const handleDeleteDashboard = async (id: string) => {
+    try {
+      await dashboardApi.deleteDashboard(id)
+      setDashboards(dashboards.filter((d) => d.id !== id))
+      toast.success('Dashboard deleted successfully')
+    } catch (error) {
+      console.error('Error deleting dashboard:', error)
+      toast.error('Failed to delete dashboard')
+    }
   }
 
   return (
@@ -90,8 +71,13 @@ export default function Dashboards() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dashboards.map((dashboard) => (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">Loading dashboards...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {dashboards.map((dashboard) => (
           <div
             key={dashboard.id}
             className="group relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow cursor-pointer"
@@ -143,9 +129,9 @@ export default function Dashboards() {
               </div>
             </div>
           </div>
-        ))}
+          ))}
 
-        {dashboards.length === 0 && (
+          {dashboards.length === 0 && (
           <div className="col-span-full text-center py-12">
             <LayoutDashboard className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
@@ -159,8 +145,9 @@ export default function Dashboards() {
               Create Dashboard
             </Button>
           </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <CreateDashboardDialog
         open={showCreateDialog}
