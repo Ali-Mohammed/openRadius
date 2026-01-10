@@ -2,6 +2,8 @@ import { useLocation, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { AppSidebar } from '@/components/app-sidebar'
+import { useState, useEffect } from 'react'
+import { dashboardApi } from '@/api/dashboardApi'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -32,11 +34,41 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation()
   const { theme, toggleTheme, layout } = useTheme()
   const { t, i18n } = useTranslation()
+  const [dashboardName, setDashboardName] = useState<string>('')
+
+  // Load dashboard name when on a dashboard detail page
+  useEffect(() => {
+    const loadDashboardName = async () => {
+      const match = location.pathname.match(/\/dashboards\/(\d+)/)
+      if (match) {
+        try {
+          const dashboard = await dashboardApi.getDashboard(match[1])
+          setDashboardName(dashboard.name)
+        } catch (error) {
+          console.error('Error loading dashboard:', error)
+          setDashboardName('Dashboard')
+        }
+      } else {
+        setDashboardName('')
+      }
+    }
+    loadDashboardName()
+  }, [location.pathname])
 
   const getBreadcrumbs = () => {
     if (location.pathname === '/dashboard') return { parent: null, current: 'Dashboard', icon: Home }
     if (location.pathname === '/profile') return { parent: null, current: 'Profile Settings', icon: UserCog }
     if (location.pathname === '/settings') return { parent: null, current: 'Settings', icon: SlidersHorizontal }
+    if (location.pathname === '/dashboards') return { parent: null, current: 'Dashboards', icon: LayoutDashboard }
+    if (location.pathname.match(/\/dashboards\/\d+(\/edit)?$/)) {
+      const isEditMode = location.pathname.endsWith('/edit')
+      return { 
+        parent: { title: 'Dashboards', href: '/dashboards', icon: LayoutDashboard }, 
+        current: dashboardName || 'Loading...', 
+        icon: LayoutDashboard,
+        suffix: isEditMode ? ' (Edit Mode)' : ''
+      }
+    }
     if (location.pathname === '/workspace/view') return { parent: null, current: 'Workspace View', icon: Eye }
     if (location.pathname.startsWith('/workspace/') && location.pathname.endsWith('/settings')) {
       return { parent: { title: 'Workspace View', href: '/workspace/view', icon: Eye }, current: 'Workspace Settings', icon: Wrench }
@@ -146,7 +178,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <BreadcrumbItem>
                 <BreadcrumbPage className="flex items-center gap-2">
                   {breadcrumbs.icon && <breadcrumbs.icon className="h-4 w-4 text-primary" />}
-                  {breadcrumbs.current}
+                  {breadcrumbs.current}{breadcrumbs.suffix || ''}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
