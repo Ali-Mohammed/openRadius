@@ -346,7 +346,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 >
                   <div className="flex items-center w-full">
                     <item.icon className="mr-2 h-4 w-4 text-primary" />
-                    {item.url && item.url !== '#' ? (
+                    {item.titleKey === 'navigation.dashboards' && item.url && item.url !== '#' ? (
                       <Link to={item.url} className="flex-1">
                         {t(item.titleKey)}
                       </Link>
