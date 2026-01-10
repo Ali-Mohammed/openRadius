@@ -30,6 +30,14 @@ public class KeycloakUserResponse
     public string? SupervisorId { get; set; }
     public string? Supervisor { get; set; }
     public Dictionary<string, List<string>>? Attributes { get; set; }
+    public List<ZoneInfo>? Zones { get; set; }
+}
+
+public class ZoneInfo
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Color { get; set; }
 }
 
 public class KeycloakGroupResponse

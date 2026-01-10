@@ -195,7 +195,8 @@ public class UserManagementController : ControllerBase
                         Groups = userGroups,
                         RealmRoles = realmRoles,
                         SupervisorId = supervisorId,
-                        Supervisor = supervisorName
+                        Supervisor = supervisorName,
+                        Zones = userZones
                     });
                 }
             }

@@ -16,6 +16,11 @@ export interface User {
   }
   roles?: Role[]
   groups?: Group[]
+  zones?: Array<{
+    id: number
+    name: string
+    color?: string
+  }>
 }
 
 export interface Role {

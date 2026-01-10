@@ -337,6 +337,7 @@ export default function UserManagement() {
                   <TableHead>Supervisor</TableHead>
                   <TableHead>Groups</TableHead>
                   <TableHead>Roles</TableHead>
+                  <TableHead>Zones</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -384,6 +385,22 @@ export default function UserManagement() {
                             {role.name}
                           </Badge>
                         ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {user.zones?.map((zone) => (
+                          <Badge key={zone.id} variant="secondary" className="flex items-center gap-1.5">
+                            <div
+                              className="h-2 w-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: zone.color || '#3b82f6' }}
+                            />
+                            <span>{zone.name}</span>
+                          </Badge>
+                        ))}
+                        {(!user.zones || user.zones.length === 0) && (
+                          <span className="text-muted-foreground text-sm">No zones</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
