@@ -48,6 +48,7 @@
     "provisioning": "Provisioning",
     "monitoring": "Monitoring",
     "networkReports": "Reports",
+    "networkSettings": "Settings",
     "connectors": "Connectors",
     "connectorList": "CDC Connectors",
     "cdcMonitor": "Event Monitor",

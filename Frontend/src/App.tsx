@@ -40,6 +40,7 @@ import BillingProfiles from './pages/BillingProfiles'
 import BillingProfileForm from './pages/BillingProfileForm'
 import Dashboards from './pages/Dashboards'
 import DashboardView from './pages/DashboardView'
+import NetworkSettings from './pages/NetworkSettings'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -76,6 +77,7 @@ function App() {
                           <Route path="/workspace/:id/radius/tags" element={<RadiusTags />} />
                           <Route path="/workspace/:id/radius/nas" element={<RadiusNas />} />
                           <Route path="/workspace/:id/radius/ip-pools" element={<RadiusIpPools />} />
+                          <Route path="/workspace/:id/network/settings" element={<NetworkSettings />} />
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />

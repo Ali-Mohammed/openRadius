@@ -184,6 +184,11 @@ const getNavData = (workspaceId: number) => ({
           url: `/workspace/${workspaceId}/network/reports`,
           icon: BarChart3,
         },
+        {
+          titleKey: "navigation.networkSettings",
+          url: `/workspace/${workspaceId}/network/settings`,
+          icon: Settings,
+        },
       ],
     },
     {

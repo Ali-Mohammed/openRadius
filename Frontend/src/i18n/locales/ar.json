@@ -46,6 +46,7 @@
     "provisioning": "التهيئة",
     "monitoring": "المراقبة",
     "networkReports": "التقارير",
+    "networkSettings": "الإعدادات",
     "connectors": "الموصلات",
     "connectorList": "موصلات CDC",
     "cdcMonitor": "مراقبة الأحداث",
