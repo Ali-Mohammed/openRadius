@@ -62,7 +62,7 @@ const getNavData = (workspaceId: number) => ({
       items: [
         {
           titleKey: "navigation.users",
-          url: `/workspace/${workspaceId}/radius/users`,
+          url: `/radius/users`,
           icon: Users,
         },
         {
