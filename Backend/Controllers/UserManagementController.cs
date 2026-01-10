@@ -18,6 +18,7 @@ public class UserManagementController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<UserManagementController> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private string? _adminToken;
     private DateTime _tokenExpiry = DateTime.MinValue;
@@ -27,12 +28,14 @@ public class UserManagementController : ControllerBase
         IHttpClientFactory httpClientFactory,
         ILogger<UserManagementController> logger,
         ApplicationDbContext context,
+        MasterDbContext masterContext,
         IHttpContextAccessor httpContextAccessor)
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _context = context;
+        _masterContext = masterContext;
         _httpContextAccessor = httpContextAccessor;
     }
 
