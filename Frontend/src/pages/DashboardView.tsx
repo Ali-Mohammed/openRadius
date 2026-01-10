@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
-import { Plus, Edit, Settings, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Settings, Filter, GripVertical } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { DashboardGrid } from '../components/dashboard/DashboardGrid'
@@ -24,6 +24,7 @@ export default function DashboardView() {
   const [editingItem, setEditingItem] = useState<DashboardItem | null>(null)
   const [showFilters, setShowFilters] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
+  const [draggedTabIndex, setDraggedTabIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -220,45 +221,41 @@ export default function DashboardView() {
     setDashboard({ ...dashboard, globalFilters: updatedFilters })
   }
 
-  const handleMoveTabLeft = async (tabId: string) => {
-    if (!dashboard) return
-    
-    const currentIndex = dashboard.tabs.findIndex(t => t.id === tabId)
-    if (currentIndex <= 0) return
-
-    const newTabs = [...dashboard.tabs]
-    const temp = newTabs[currentIndex]
-    newTabs[currentIndex] = newTabs[currentIndex - 1]
-    newTabs[currentIndex - 1] = temp
-
-    try {
-      await dashboardApi.updateDashboard(dashboard.id, {
-        tabs: newTabs.map(t => ({ name: t.name })),
-      })
-      setDashboard({ ...dashboard, tabs: newTabs })
-    } catch (error) {
-      toast.error('Failed to reorder tabs')
-    }
+  const handleTabDragStart = (index: number) => {
+    setDraggedTabIndex(index)
   }
 
-  const handleMoveTabRight = async (tabId: string) => {
+  const handleTabDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedTabIndex === null || draggedTabIndex === index) return
+    
     if (!dashboard) return
     
-    const currentIndex = dashboard.tabs.findIndex(t => t.id === tabId)
-    if (currentIndex < 0 || currentIndex >= dashboard.tabs.length - 1) return
-
     const newTabs = [...dashboard.tabs]
-    const temp = newTabs[currentIndex]
-    newTabs[currentIndex] = newTabs[currentIndex + 1]
-    newTabs[currentIndex + 1] = temp
+    const draggedTab = newTabs[draggedTabIndex]
+    newTabs.splice(draggedTabIndex, 1)
+    newTabs.splice(index, 0, draggedTab)
+    
+    setDashboard({ ...dashboard, tabs: newTabs })
+    setDraggedTabIndex(index)
+  }
+
+  const handleTabDragEnd = async () => {
+    if (draggedTabIndex === null || !dashboard) {
+      setDraggedTabIndex(null)
+      return
+    }
 
     try {
       await dashboardApi.updateDashboard(dashboard.id, {
-        tabs: newTabs.map(t => ({ name: t.name })),
+        tabs: dashboard.tabs.map(t => ({ name: t.name })),
       })
-      setDashboard({ ...dashboard, tabs: newTabs })
+      toast.success('Tab order updated')
     } catch (error) {
-      toast.error('Failed to reorder tabs')
+      toast.error('Failed to update tab order')
+      loadDashboard() // Reload to restore original order
+    } finally {
+      setDraggedTabIndex(null)
     }
   }
 
@@ -328,30 +325,27 @@ export default function DashboardView() {
         <div className="flex items-center gap-2">
           <TabsList>
             {dashboard.tabs.map((tab, index) => (
-              <div key={tab.id} className="flex items-center gap-1">
-                {isEditing && index > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleMoveTabLeft(tab.id)}
-                  >
-                    <ChevronLeft className="h-3 w-3" />
-                  </Button>
+              <div
+                key={tab.id}
+                className="flex items-center gap-1 relative"
+                draggable={isEditing}
+                onDragStart={() => handleTabDragStart(index)}
+                onDragOver={(e) => handleTabDragOver(e, index)}
+                onDragEnd={handleTabDragEnd}
+                style={{
+                  cursor: isEditing ? 'move' : 'default',
+                  opacity: draggedTabIndex === index ? 0.5 : 1,
+                }}
+              >
+                {isEditing && (
+                  <GripVertical className="h-4 w-4 text-gray-400 absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none" />
                 )}
-                <TabsTrigger value={tab.id}>
+                <TabsTrigger 
+                  value={tab.id}
+                  className={isEditing ? 'pl-6' : ''}
+                >
                   {tab.name}
                 </TabsTrigger>
-                {isEditing && index < dashboard.tabs.length - 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleMoveTabRight(tab.id)}
-                  >
-                    <ChevronRight className="h-3 w-3" />
-                  </Button>
-                )}
               </div>
             ))}
           </TabsList>
