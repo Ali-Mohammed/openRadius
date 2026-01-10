@@ -5,6 +5,7 @@ export interface Zone {
   name: string
   description?: string
   color?: string
+  icon?: string
   workspaceId: number
   createdAt: string
   createdBy?: string
@@ -20,12 +21,14 @@ export interface ZoneCreateDto {
   name: string
   description?: string
   color?: string
+  icon?: string
 }
 
 export interface ZoneUpdateDto {
   name?: string
   description?: string
   color?: string
+  icon?: string
 }
 
 export interface AssignUsersToZoneDto {
