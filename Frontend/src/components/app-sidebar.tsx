@@ -346,10 +346,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarGroupLabel className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
                       <div className="flex items-center w-full">
                         <item.icon className="mr-2 h-4 w-4 text-primary" />
-                        <Link to={item.url} className="flex-1">
+                        <Link to={item.url} className="flex-1 cursor-pointer">
                           {t(item.titleKey)}
                         </Link>
-                        <CollapsibleTrigger className="ml-auto">
+                        <CollapsibleTrigger className="ml-auto cursor-pointer">
                           <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
                         </CollapsibleTrigger>
                       </div>
@@ -358,9 +358,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 ) : (
                   <SidebarGroupLabel
                     asChild
-                    className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
+                    className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm cursor-pointer"
                   >
-                    <CollapsibleTrigger className="w-full">
+                    <CollapsibleTrigger className="w-full cursor-pointer">
                       <item.icon className="mr-2 h-4 w-4 text-primary" />
                       {t(item.titleKey)}
                       <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
