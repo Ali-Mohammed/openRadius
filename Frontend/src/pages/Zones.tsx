@@ -344,6 +344,8 @@ export default function Zones() {
       cell: ({ row }) => {
         const name = row.getValue('name') as string
         const color = row.original.color || '#3b82f6'
+        const icon = row.original.icon || 'MapPin'
+        const IconComponent = getIconComponent(icon)
         return (
           <div className='flex items-center gap-2'>
             <div 
@@ -353,7 +355,7 @@ export default function Zones() {
                 color: color 
               }}
             >
-              <MapPin className='h-4 w-4' />
+              <IconComponent className='h-4 w-4' />
             </div>
             <span>{name}</span>
           </div>
@@ -450,6 +452,8 @@ export default function Zones() {
       cell: ({ row }) => {
         const name = row.getValue('name') as string
         const color = row.original.color || '#3b82f6'
+        const icon = row.original.icon || 'MapPin'
+        const IconComponent = getIconComponent(icon)
         return (
           <div className='flex items-center gap-2'>
             <div 
@@ -459,7 +463,7 @@ export default function Zones() {
                 color: color 
               }}
             >
-              <MapPin className='h-4 w-4' />
+              <IconComponent className='h-4 w-4' />
             </div>
             <span>{name}</span>
           </div>
