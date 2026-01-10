@@ -10,6 +10,8 @@ export interface Zone {
   createdBy?: string
   updatedAt?: string
   updatedBy?: string
+  deletedAt?: string
+  deletedBy?: string
   userCount: number
   radiusUserCount: number
 }
@@ -62,6 +64,17 @@ export const zoneApi = {
   // Delete zone
   deleteZone: async (workspaceId: number, zoneId: number): Promise<void> => {
     await apiClient.delete(`/api/workspace/${workspaceId}/zone/${zoneId}`)
+  },
+
+  // Get deleted zones
+  getDeletedZones: async (workspaceId: number): Promise<Zone[]> => {
+    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/deleted`)
+    return response.data
+  },
+
+  // Restore zone
+  restoreZone: async (workspaceId: number, zoneId: number): Promise<void> => {
+    await apiClient.post(`/api/workspace/${workspaceId}/zone/${zoneId}/restore`)
   },
 
   // Assign users to zone
