@@ -31,15 +31,6 @@ export const databaseBackupApi = {
     return response.data;
   },
 
-  exportDatabase: async (databaseName: string, type: string): Promise<Blob> => {
-    const response = await apiClient.post(
-      '/api/database-backup/export',
-      { databaseName, type },
-      { responseType: 'blob' }
-    );
-    return response.data;
-  },
-
   getBackupHistory: async (): Promise<BackupHistoryItem[]> => {
     const { data } = await apiClient.get<BackupHistoryItem[]>('/api/database-backup/backup-history');
     return data;

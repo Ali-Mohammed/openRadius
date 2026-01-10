@@ -6,14 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Database, Download, FileText, RefreshCw, HardDrive } from 'lucide-react'
+import { Database, Download, RefreshCw, HardDrive } from 'lucide-react'
 import { databaseBackupApi, type DatabaseInfo } from '@/services/databaseBackupApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 export default function DatabaseBackup() {
   const [backupDialogOpen, setBackupDialogOpen] = useState(false)
-  const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [selectedDatabase, setSelectedDatabase] = useState<DatabaseInfo | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -49,51 +48,15 @@ export default function DatabaseBackup() {
     },
   })
 
-  const exportMutation = useMutation({
-    mutationFn: ({ databaseName, type }: { databaseName: string; type: string }) =>
-      databaseBackupApi.exportDatabase(databaseName, type),
-    onSuccess: (blob, variables) => {
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${variables.databaseName}_export_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      toast.success('Database export downloaded successfully')
-      setIsProcessing(false)
-      setExportDialogOpen(false)
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error) || 'Failed to export database')
-      setIsProcessing(false)
-    },
-  })
-
   const handleBackup = (database: DatabaseInfo) => {
     setSelectedDatabase(database)
     setBackupDialogOpen(true)
-  }
-
-  const handleExport = (database: DatabaseInfo) => {
-    setSelectedDatabase(database)
-    setExportDialogOpen(true)
   }
 
   const confirmBackup = () => {
     if (!selectedDatabase) return
     setIsProcessing(true)
     backupMutation.mutate({
-      databaseName: selectedDatabase.name,
-      type: selectedDatabase.type,
-    })
-  }
-
-  const confirmExport = () => {
-    if (!selectedDatabase) return
-    setIsProcessing(true)
-    exportMutation.mutate({
       databaseName: selectedDatabase.name,
       type: selectedDatabase.type,
     })
@@ -122,8 +85,8 @@ export default function DatabaseBackup() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Database Backup & Export</h1>
-          <p className="text-muted-foreground">Backup and export your databases</p>
+          <h1 className="text-3xl font-bold">Database Backup</h1>
+          <p className="text-muted-foreground">Backup your databases to SQL files</p>
         </div>
         <Button
           onClick={() => refetch()}
@@ -140,7 +103,7 @@ export default function DatabaseBackup() {
         <CardHeader>
           <CardTitle>Available Databases</CardTitle>
           <CardDescription>
-            Select a database to backup or export
+            Select a database to backup
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -197,16 +160,7 @@ export default function DatabaseBackup() {
                       disabled={isProcessing}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Backup (SQL)
-                    </Button>
-                    <Button
-                      onClick={() => handleExport(database)}
-                      variant="outline"
-                      size="sm"
-                      disabled={isProcessing}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Export (CSV)
+                      Backup
                     </Button>
                   </div>
                 </div>
@@ -278,35 +232,6 @@ export default function DatabaseBackup() {
                 <>
                   <Download className="h-4 w-4 mr-2" />
                   Create Backup
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Export Confirmation Dialog */}
-      <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Export Database</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will export all tables from <strong>{selectedDatabase?.displayName}</strong> to CSV format.
-              The export file will be downloaded to your computer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmExport} disabled={isProcessing}>
-              {isProcessing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export to CSV
                 </>
               )}
             </AlertDialogAction>

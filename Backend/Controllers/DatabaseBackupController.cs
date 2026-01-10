@@ -133,42 +133,6 @@ public class DatabaseBackupController : ControllerBase
         }
     }
 
-    [HttpPost("export")]
-    public async Task<IActionResult> ExportDatabase([FromBody] BackupRequest request)
-    {
-        try
-        {
-            var connectionString = request.Type == "master"
-                ? _configuration.GetConnectionString("DefaultConnection")
-                : GetWorkspaceConnectionString(request.DatabaseName);
-
-            var dbName = ExtractDatabaseName(connectionString);
-
-            // Get all tables
-            var tables = await GetTables(connectionString ?? "");
-            var csvData = new StringBuilder();
-
-            foreach (var table in tables)
-            {
-                csvData.AppendLine($"--- Table: {table} ---");
-                var tableData = await ExportTableToCsv(connectionString ?? "", table);
-                csvData.AppendLine(tableData);
-                csvData.AppendLine();
-            }
-
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-            var fileName = $"{dbName}_export_{timestamp}.csv";
-            var bytes = Encoding.UTF8.GetBytes(csvData.ToString());
-
-            return File(bytes, "text/csv", fileName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error exporting database");
-            return StatusCode(500, new { message = "Failed to export database", error = ex.Message });
-        }
-    }
-
     [HttpGet("backup-history")]
     public ActionResult<IEnumerable<BackupHistoryDto>> GetBackupHistory()
     {
@@ -225,66 +189,6 @@ public class DatabaseBackupController : ControllerBase
         if (string.IsNullOrEmpty(connectionString)) return "";
         var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Password=([^;]+)");
         return match.Success ? match.Groups[1].Value : "";
-    }
-
-    private async Task<List<string>> GetTables(string connectionString)
-    {
-        var tables = new List<string>();
-        using var connection = new Npgsql.NpgsqlConnection(connectionString);
-        await connection.OpenAsync();
-
-        var command = connection.CreateCommand();
-        command.CommandText = @"
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_type = 'BASE TABLE'
-            ORDER BY table_name";
-
-        using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            tables.Add(reader.GetString(0));
-        }
-
-        return tables;
-    }
-
-    private async Task<string> ExportTableToCsv(string connectionString, string tableName)
-    {
-        var csv = new StringBuilder();
-        using var connection = new Npgsql.NpgsqlConnection(connectionString);
-        await connection.OpenAsync();
-
-        var command = connection.CreateCommand();
-        command.CommandText = $"SELECT * FROM \"{tableName}\" LIMIT 1000";
-
-        using var reader = await command.ExecuteReaderAsync();
-
-        // Write headers
-        if (reader.FieldCount > 0)
-        {
-            var headers = new List<string>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                headers.Add(reader.GetName(i));
-            }
-            csv.AppendLine(string.Join(",", headers.Select(h => $"\"{h}\"")));
-
-            // Write data
-            while (await reader.ReadAsync())
-            {
-                var values = new List<string>();
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    var value = reader.IsDBNull(i) ? "" : reader.GetValue(i)?.ToString() ?? "";
-                    values.Add($"\"{value.Replace("\"", "\"\"")}\"");
-                }
-                csv.AppendLine(string.Join(",", values));
-            }
-        }
-
-        return csv.ToString();
     }
 }
 
