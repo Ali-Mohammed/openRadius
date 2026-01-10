@@ -1185,7 +1185,7 @@ export default function RadiusUsers() {
                     <SelectValue placeholder="Select zone (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Zone</SelectItem>
+                    <SelectItem value="0">No Zone</SelectItem>
                     {zones.map((zone) => (
                       <SelectItem key={zone.id} value={zone.id.toString()}>
                         <div className="flex items-center gap-2">
