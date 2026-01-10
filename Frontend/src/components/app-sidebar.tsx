@@ -341,23 +341,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="group/collapsible"
             >
               <SidebarGroup>
-                <SidebarGroupLabel
-                  className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
-                >
-                  <div className="flex items-center w-full">
-                    <item.icon className="mr-2 h-4 w-4 text-primary" />
-                    {item.titleKey === 'navigation.dashboards' && item.url && item.url !== '#' ? (
-                      <Link to={item.url} className="flex-1">
-                        {t(item.titleKey)}
-                      </Link>
-                    ) : (
-                      <span className="flex-1">{t(item.titleKey)}</span>
-                    )}
-                    <CollapsibleTrigger className="ml-auto">
-                      <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                {item.titleKey === 'navigation.dashboards' ? (
+                  <>
+                    <SidebarGroupLabel className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
+                      <div className="flex items-center w-full">
+                        <item.icon className="mr-2 h-4 w-4 text-primary" />
+                        <Link to={item.url} className="flex-1">
+                          {t(item.titleKey)}
+                        </Link>
+                        <CollapsibleTrigger className="ml-auto">
+                          <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                        </CollapsibleTrigger>
+                      </div>
+                    </SidebarGroupLabel>
+                  </>
+                ) : (
+                  <SidebarGroupLabel
+                    asChild
+                    className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
+                  >
+                    <CollapsibleTrigger className="w-full">
+                      <item.icon className="mr-2 h-4 w-4 text-primary" />
+                      {t(item.titleKey)}
+                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                     </CollapsibleTrigger>
-                  </div>
-                </SidebarGroupLabel>
+                  </SidebarGroupLabel>
+                )}
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu>
