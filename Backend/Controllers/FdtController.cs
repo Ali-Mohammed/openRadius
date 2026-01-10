@@ -298,6 +298,39 @@ public class FdtController : ControllerBase
         }
     }
 
+    [HttpGet("list")]
+    public async Task<ActionResult<IEnumerable<FdtListDto>>> GetFdtList()
+    {
+        try
+        {
+            var fdts = await _context.Fdts
+                .Where(f => !f.IsDeleted)
+                .Include(f => f.PonPort)
+                .ThenInclude(p => p!.Olt)
+                .OrderBy(f => f.Code)
+                .Select(f => new FdtListDto
+                {
+                    Id = f.Id,
+                    Code = f.Code,
+                    Name = f.Name,
+                    OltName = f.PonPort!.Olt!.Name,
+                    PonPortSlot = f.PonPort.Slot,
+                    PonPortPort = f.PonPort.Port,
+                    Label = f.Name != null 
+                        ? $"{f.Code} - {f.Name} ({f.PonPort.Olt.Name} {f.PonPort.Slot}/{f.PonPort.Port})"
+                        : $"{f.Code} ({f.PonPort.Olt.Name} {f.PonPort.Slot}/{f.PonPort.Port})"
+                })
+                .ToListAsync();
+
+            return Ok(fdts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting FDT list");
+            return StatusCode(500, new { message = "Failed to retrieve FDT list", error = ex.Message });
+        }
+    }
+
     [HttpGet("trash")]
     public async Task<ActionResult<PaginatedResponse<FdtDto>>> GetTrash(
         [FromQuery] int page = 1,
@@ -581,4 +614,15 @@ public class UpdateFdtDto : CreateFdtDto
     public new string Status { get; set; } = string.Empty;
     public DateTime? LastInspectionAt { get; set; }
     public DateTime? NextInspectionAt { get; set; }
+}
+
+public class FdtListDto
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string? Name { get; set; }
+    public string OltName { get; set; } = string.Empty;
+    public int PonPortSlot { get; set; }
+    public int PonPortPort { get; set; }
+    public string Label { get; set; } = string.Empty;
 }
