@@ -30,11 +30,13 @@ export default function Dashboards() {
     }
   }
 
-  const handleCreateDashboard = async (name: string, description: string) => {
+  const handleCreateDashboard = async (name: string, description: string, icon: string, color: string) => {
     try {
       const newDashboard = await dashboardApi.createDashboard({
         name,
         description,
+        icon,
+        color,
         tabs: [{ name: 'Overview' }],
       })
       toast.success('Dashboard created successfully')

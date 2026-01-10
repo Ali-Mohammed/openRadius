@@ -55,6 +55,8 @@ export type Dashboard = {
   id: string
   name: string
   description?: string
+  icon?: string
+  color?: string
   tabs: DashboardTab[]
   globalFilters: GlobalFilter[]
   createdAt: string
