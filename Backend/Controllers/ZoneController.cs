@@ -43,6 +43,33 @@ public class ZoneController : ControllerBase
                 UpdatedAt = z.UpdatedAt,
                 UpdatedBy = z.UpdatedBy,
                 UserCount = z.UserZones.Count,
+                RadiusUserCount = z.RadiusUsers.Count(ru => !z.IsDeleted)
+            })
+            .ToListAsync();
+
+        return Ok(zones);
+    }
+
+    // GET: api/workspace/{workspaceId}/zone/deleted
+    [HttpGet("deleted")]
+    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetDeletedZones(int workspaceId)
+    {
+        var zones = await _context.Zones
+            .Where(z => z.WorkspaceId == workspaceId && z.IsDeleted)
+            .Select(z => new ZoneResponse
+            {
+                Id = z.Id,
+                Name = z.Name,
+                Description = z.Description,
+                Color = z.Color,
+                WorkspaceId = z.WorkspaceId,
+                CreatedAt = z.CreatedAt,
+                CreatedBy = z.CreatedBy,
+                UpdatedAt = z.UpdatedAt,
+                UpdatedBy = z.UpdatedBy,
+                DeletedAt = z.DeletedAt,
+                DeletedBy = z.DeletedBy,
+                UserCount = z.UserZones.Count,
                 RadiusUserCount = z.RadiusUsers.Count(ru => !ru.IsDeleted)
             })
             .ToListAsync();
@@ -188,6 +215,31 @@ public class ZoneController : ControllerBase
         {
             user.ZoneId = null;
         }
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // POST: api/workspace/{workspaceId}/zone/{id}/restore
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreZone(int workspaceId, int id)
+    {
+        var zone = await _context.Zones
+            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && z.IsDeleted);
+
+        if (zone == null)
+        {
+            return NotFound(new { message = "Deleted zone not found" });
+        }
+
+        var userId = GetCurrentUserId();
+
+        zone.IsDeleted = false;
+        zone.DeletedAt = null;
+        zone.DeletedBy = null;
+        zone.UpdatedAt = DateTime.UtcNow;
+        zone.UpdatedBy = userId;
 
         await _context.SaveChangesAsync();
 

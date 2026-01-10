@@ -68,6 +68,8 @@ public class ZoneResponse
     public string? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
     public int UserCount { get; set; }
     public int RadiusUserCount { get; set; }
 }
