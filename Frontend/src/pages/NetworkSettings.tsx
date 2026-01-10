@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -30,20 +31,12 @@ import {
   SelectValue,
 } from '../components/ui/select'
 import { toast } from 'sonner'
-
-interface OltDevice {
-  id: number
-  name: string
-  status: 'active' | 'inactive' | 'maintenance'
-}
+import { oltDeviceApi, type OltDevice } from '../api/oltDeviceApi'
+import { formatApiError } from '../utils/errorHandler'
 
 export default function NetworkSettings() {
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('olt-devices')
-  const [devices, setDevices] = useState<OltDevice[]>([
-    { id: 1, name: 'OLT-Main-01', status: 'active' },
-    { id: 2, name: 'OLT-Main-02', status: 'active' },
-    { id: 3, name: 'OLT-Backup-01', status: 'inactive' },
-  ])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
@@ -51,22 +44,59 @@ export default function NetworkSettings() {
     status: 'active' as OltDevice['status'],
   })
 
+  // Fetch devices
+  const { data: devices = [], isLoading } = useQuery({
+    queryKey: ['olt-devices'],
+    queryFn: oltDeviceApi.getDevices,
+  })
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: oltDeviceApi.createDevice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['olt-devices'] })
+      toast.success('OLT device added successfully')
+      setIsAddDialogOpen(false)
+      setFormData({ name: '', status: 'active' })
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { name: string; status: OltDevice['status'] } }) =>
+      oltDeviceApi.updateDevice(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['olt-devices'] })
+      toast.success('Device updated successfully')
+      setEditingId(null)
+      setFormData({ name: '', status: 'active' })
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: oltDeviceApi.deleteDevice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['olt-devices'] })
+      toast.success('Device deleted successfully')
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
   const handleAdd = () => {
     if (!formData.name.trim()) {
       toast.error('Device name is required')
       return
     }
-
-    const newDevice: OltDevice = {
-      id: Math.max(0, ...devices.map(d => d.id)) + 1,
-      name: formData.name,
-      status: formData.status,
-    }
-
-    setDevices([...devices, newDevice])
-    toast.success('OLT device added successfully')
-    setIsAddDialogOpen(false)
-    setFormData({ name: '', status: 'active' })
+    createMutation.mutate(formData)
   }
 
   const handleEdit = (device: OltDevice) => {
@@ -79,15 +109,7 @@ export default function NetworkSettings() {
       toast.error('Device name is required')
       return
     }
-
-    setDevices(devices.map(d => 
-      d.id === id 
-        ? { ...d, name: formData.name, status: formData.status }
-        : d
-    ))
-    toast.success('Device updated successfully')
-    setEditingId(null)
-    setFormData({ name: '', status: 'active' })
+    updateMutation.mutate({ id, data: formData })
   }
 
   const handleCancel = () => {
@@ -96,8 +118,7 @@ export default function NetworkSettings() {
   }
 
   const handleDelete = (id: number) => {
-    setDevices(devices.filter(d => d.id !== id))
-    toast.success('Device deleted successfully')
+    deleteMutation.mutate(id)
   }
 
   const getStatusBadge = (status: OltDevice['status']) => {
@@ -145,15 +166,20 @@ export default function NetworkSettings() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Device Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading devices...
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Device Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {devices.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-muted-foreground">
@@ -235,8 +261,7 @@ export default function NetworkSettings() {
                     ))
                   )}
                 </TableBody>
-              </Table>
-            </CardContent>
+              </Table>              )}            </CardContent>
           </Card>
         </TabsContent>
 

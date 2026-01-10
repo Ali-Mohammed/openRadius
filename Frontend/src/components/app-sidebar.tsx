@@ -156,37 +156,37 @@ const getNavData = (workspaceId: number) => ({
       items: [
         {
           titleKey: "navigation.olts",
-          url: `/workspace/${workspaceId}/network/olts`,
+          url: "/network/olts",
           icon: Cable,
         },
         {
           titleKey: "navigation.fdts",
-          url: `/workspace/${workspaceId}/network/fdts`,
+          url: "/network/fdts",
           icon: Box,
         },
         {
           titleKey: "navigation.fats",
-          url: `/workspace/${workspaceId}/network/fats`,
+          url: "/network/fats",
           icon: Box,
         },
         {
           titleKey: "navigation.provisioning",
-          url: `/workspace/${workspaceId}/network/provisioning`,
+          url: "/network/provisioning",
           icon: Zap,
         },
         {
           titleKey: "navigation.monitoring",
-          url: `/workspace/${workspaceId}/network/monitoring`,
+          url: "/network/monitoring",
           icon: Monitor,
         },
         {
           titleKey: "navigation.networkReports",
-          url: `/workspace/${workspaceId}/network/reports`,
+          url: "/network/reports",
           icon: BarChart3,
         },
         {
           titleKey: "navigation.networkSettings",
-          url: `/workspace/${workspaceId}/network/settings`,
+          url: "/network/settings",
           icon: Settings,
         },
       ],

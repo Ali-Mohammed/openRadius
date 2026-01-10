@@ -50,6 +50,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<DashboardTab> DashboardTabs { get; set; }
     public DbSet<DashboardItem> DashboardItems { get; set; }
     public DbSet<DashboardGlobalFilter> DashboardGlobalFilters { get; set; }
+    public DbSet<OltDevice> OltDevices { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
