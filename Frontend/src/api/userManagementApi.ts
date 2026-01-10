@@ -239,4 +239,15 @@ export const userManagementApi = {
     return response.data
   },
 
+  // Zone assignments
+  assignZonesToUser: async (userId: string, zoneIds: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post(`/api/keycloak/users/${userId}/assign-zones`, { zoneIds })
+    return response.data
+  },
+
+  getUserZones: async (userId: string): Promise<number[]> => {
+    const response = await apiClient.get(`/api/keycloak/users/${userId}/zones`)
+    return response.data
+  },
+
 }

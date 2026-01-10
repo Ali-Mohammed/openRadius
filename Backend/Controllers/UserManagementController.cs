@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Backend.Models;
+using Backend.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -15,17 +17,28 @@ public class UserManagementController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<UserManagementController> _logger;
+    private readonly ApplicationDbContext _context;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private string? _adminToken;
     private DateTime _tokenExpiry = DateTime.MinValue;
 
     public UserManagementController(
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
-        ILogger<UserManagementController> logger)
+        ILogger<UserManagementController> logger,
+        ApplicationDbContext context,
+        IHttpContextAccessor httpContextAccessor)
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _context = context;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private string? GetCurrentUserId()
+    {
+        return _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
     }
 
     private async Task<string> GetAdminToken()
@@ -795,5 +808,72 @@ public class UserManagementController : ControllerBase
         }
         
         return attributes;
+    }
+
+    // POST: api/keycloak/users/{userId}/assign-zones
+    [HttpPost("{userId}/assign-zones")]
+    public async Task<IActionResult> AssignZonesToUser(string userId, [FromBody] AssignZonesToUserDto dto)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+
+            // Remove existing assignments for this user
+            var existingAssignments = await _context.UserZones
+                .Where(uz => uz.UserId == userId)
+                .ToListAsync();
+            _context.UserZones.RemoveRange(existingAssignments);
+
+            // Add new assignments
+            foreach (var zoneId in dto.ZoneIds)
+            {
+                // Verify zone exists
+                var zoneExists = await _context.Zones
+                    .AnyAsync(z => z.Id == zoneId && !z.IsDeleted);
+
+                if (!zoneExists)
+                {
+                    return BadRequest(new { message = $"Zone with ID {zoneId} not found" });
+                }
+
+                var userZone = new UserZone
+                {
+                    UserId = userId,
+                    ZoneId = zoneId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = currentUserId
+                };
+                _context.UserZones.Add(userZone);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Zones assigned successfully", count = dto.ZoneIds.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error assigning zones to user {userId}");
+            return StatusCode(500, new { message = "Failed to assign zones", error = ex.Message });
+        }
+    }
+
+    // GET: api/keycloak/users/{userId}/zones
+    [HttpGet("{userId}/zones")]
+    public async Task<IActionResult> GetUserZones(string userId)
+    {
+        try
+        {
+            var zoneIds = await _context.UserZones
+                .Where(uz => uz.UserId == userId)
+                .Select(uz => uz.ZoneId)
+                .ToListAsync();
+
+            return Ok(zoneIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting zones for user {userId}");
+            return StatusCode(500, new { message = "Failed to get user zones", error = ex.Message });
+        }
     }
 }

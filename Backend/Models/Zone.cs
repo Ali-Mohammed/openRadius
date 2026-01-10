@@ -77,6 +77,11 @@ public class AssignUsersToZoneDto
     public List<string> UserIds { get; set; } = new();
 }
 
+public class AssignZonesToUserDto
+{
+    public List<int> ZoneIds { get; set; } = new();
+}
+
 public class AssignRadiusUsersToZoneDto
 {
     public List<int> RadiusUserIds { get; set; } = new();
