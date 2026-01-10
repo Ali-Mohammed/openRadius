@@ -36,6 +36,11 @@ const getNavData = (workspaceId: number) => ({
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
     {
+      titleKey: "navigation.dashboards",
+      url: "/dashboards",
+      icon: LayoutDashboard,
+    },
+    {
       titleKey: "navigation.integration",
       url: "#",
       icon: Plug,

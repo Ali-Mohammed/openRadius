@@ -38,6 +38,8 @@ import Addons from './pages/Addons'
 import BillingGroups from './pages/BillingGroups'
 import BillingProfiles from './pages/BillingProfiles'
 import BillingProfileForm from './pages/BillingProfileForm'
+import Dashboards from './pages/Dashboards'
+import DashboardView from './pages/DashboardView'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -95,6 +97,8 @@ function App() {
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
                           <Route path="/billing/transactions" element={<Transactions />} />
+                          <Route path="/dashboards" element={<Dashboards />} />
+                          <Route path="/dashboards/:id" element={<DashboardView />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>
