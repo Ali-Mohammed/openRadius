@@ -212,7 +212,8 @@ public class FatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating FAT");
-            return StatusCode(500, new { message = "Failed to create FAT", error = ex.Message });
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, new { message = "Failed to create FAT", error = innerMessage });
         }
     }
 
@@ -225,6 +226,13 @@ public class FatController : ControllerBase
             if (fat == null)
                 return NotFound(new { message = "FAT not found" });
 
+            // Validate FDT exists if it's being changed
+            var fdtExists = await _context.Fdts
+                .AnyAsync(f => f.Id == dto.FdtId && !f.IsDeleted);
+            
+            if (!fdtExists)
+                return BadRequest(new { message = "FDT not found or is deleted" });
+
             fat.Code = dto.Code;
             fat.Name = dto.Name;
             fat.FdtId = dto.FdtId;
@@ -235,7 +243,7 @@ public class FatController : ControllerBase
             fat.Address = dto.Address;
             fat.Latitude = dto.Latitude;
             fat.Longitude = dto.Longitude;
-            fat.LastInspectionAt = dto.LastInspectionAt;
+            fat.LastInspectionAt = dto.LastInspectionAt?.ToUniversalTime();
             fat.Notes = dto.Notes;
             fat.UpdatedAt = DateTime.UtcNow;
 
