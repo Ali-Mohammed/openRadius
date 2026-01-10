@@ -99,7 +99,7 @@ export function DashboardGrid({
         isResizable={isEditing}
         compactType="vertical"
         preventCollision={false}
-        resizeHandles={['se']}
+        resizeHandles={['se', 's', 'e', 'sw', 'ne', 'nw', 'n', 'w']}
         margin={[10, 10]}
         containerPadding={[10, 10]}
       >

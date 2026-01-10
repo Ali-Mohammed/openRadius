@@ -47,12 +47,31 @@ export default function DashboardView() {
   const handleAddItem = async (item: DashboardItem) => {
     if (!dashboard) return
 
-    const updatedTabs = dashboard.tabs.map((tab) =>
-      tab.id === activeTabId ? { ...tab, items: [...tab.items, item] } : tab
-    )
+    try {
+      // Find the active tab to get its numeric ID
+      const activeTab = dashboard.tabs.find(tab => tab.id === activeTabId)
+      if (!activeTab) return
 
-    setDashboard({ ...dashboard, tabs: updatedTabs })
-    toast.success('Item added successfully')
+      // Add item to backend
+      const newItem = await dashboardApi.addItem(dashboard.id, {
+        tabId: parseInt(activeTab.id),
+        type: item.type,
+        title: item.title,
+        layout: item.layout,
+        config: item.config,
+      })
+
+      // Update local state with the returned item
+      const updatedTabs = dashboard.tabs.map((tab) =>
+        tab.id === activeTabId ? { ...tab, items: [...tab.items, newItem] } : tab
+      )
+
+      setDashboard({ ...dashboard, tabs: updatedTabs })
+      toast.success('Item added successfully')
+    } catch (error) {
+      console.error('Error adding item:', error)
+      toast.error('Failed to add item')
+    }
   }
 
   const handleAddTab = async (name: string) => {
@@ -82,27 +101,59 @@ export default function DashboardView() {
     }
   }
 
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = async (itemId: string) => {
     if (!dashboard) return
 
-    const updatedTabs = dashboard.tabs.map((tab) =>
-      tab.id === activeTabId
-        ? { ...tab, items: tab.items.filter((item) => item.id !== itemId) }
-        : tab
-    )
+    try {
+      // Delete item from backend
+      await dashboardApi.deleteItem(dashboard.id, itemId)
 
-    setDashboard({ ...dashboard, tabs: updatedTabs })
-    toast.success('Item removed successfully')
+      // Update local state
+      const updatedTabs = dashboard.tabs.map((tab) =>
+        tab.id === activeTabId
+          ? { ...tab, items: tab.items.filter((item) => item.id !== itemId) }
+          : tab
+      )
+
+      setDashboard({ ...dashboard, tabs: updatedTabs })
+      toast.success('Item removed successfully')
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      toast.error('Failed to delete item')
+    }
   }
 
-  const handleLayoutChange = (updatedItems: DashboardItem[]) => {
+  const handleLayoutChange = async (updatedItems: DashboardItem[]) => {
     if (!dashboard) return
 
+    // Update local state immediately for smooth UX
     const updatedTabs = dashboard.tabs.map((tab) =>
       tab.id === activeTabId ? { ...tab, items: updatedItems } : tab
     )
 
     setDashboard({ ...dashboard, tabs: updatedTabs })
+
+    // Persist layout changes to backend
+    try {
+      // Update all items that changed position
+      const currentTab = dashboard.tabs.find(tab => tab.id === activeTabId)
+      if (currentTab) {
+        for (const item of updatedItems) {
+          const originalItem = currentTab.items.find(i => i.id === item.id)
+          // Only update if layout actually changed
+          if (originalItem && 
+              (originalItem.layout.x !== item.layout.x ||
+               originalItem.layout.y !== item.layout.y ||
+               originalItem.layout.w !== item.layout.w ||
+               originalItem.layout.h !== item.layout.h)) {
+            await dashboardApi.updateItemLayout(dashboard.id, item.id, item.layout)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating layout:', error)
+      // Don't show error toast for layout updates to avoid spam
+    }
   }
 
   const handleFilterChange = (filterId: string, value: any) => {
