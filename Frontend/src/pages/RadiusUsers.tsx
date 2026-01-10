@@ -1176,16 +1176,16 @@ export default function RadiusUsers() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="zoneId">Zone</Label>
+                <Label htmlFor="zoneId">{t('radiusUsers.zone')}</Label>
                 <Select
                   value={formData.zoneId}
                   onValueChange={(value) => setFormData({ ...formData, zoneId: value })}
                 >
                   <SelectTrigger id="zoneId">
-                    <SelectValue placeholder="Select zone (optional)" />
+                    <SelectValue placeholder={t('radiusUsers.selectZone')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">No Zone</SelectItem>
+                    <SelectItem value="0">{t('radiusUsers.noZone')}</SelectItem>
                     {zones.map((zone) => (
                       <SelectItem key={zone.id} value={zone.id.toString()}>
                         <div className="flex items-center gap-2">

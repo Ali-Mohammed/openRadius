@@ -105,6 +105,9 @@
     "selectProfile": "اختر ملف شخصي",
     "searchProfile": "البحث عن ملف شخصي...",
     "noProfilesFound": "لم يتم العثور على ملفات شخصية",
+    "zone": "المنطقة",
+    "selectZone": "اختر المنطقة (اختياري)",
+    "noZone": "بدون منطقة",
     "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟"
   },
   "radiusProfiles": {
