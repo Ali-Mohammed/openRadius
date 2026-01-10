@@ -180,6 +180,22 @@ export default function UserManagement() {
     },
   })
 
+  const assignZonesMutation = useMutation({
+    mutationFn: ({ userId, zoneIds }: { userId: string; zoneIds: number[] }) =>
+      userManagementApi.assignZonesToUser(userId, zoneIds),
+    onSuccess: () => {
+      toast.success('Zones assigned successfully')
+      queryClient.invalidateQueries({ queryKey: ['user-zones'] })
+      queryClient.invalidateQueries({ queryKey: ['zones'] })
+      setIsZoneDialogOpen(false)
+      setZoneAssignUser(null)
+      setSelectedZoneIds([])
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
   const handleOpenDialog = (user?: User) => {
     if (user) {
       setEditingUser(user)
@@ -382,6 +398,18 @@ export default function UserManagement() {
                           title="Reset password"
                         >
                           <Key className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setZoneAssignUser(user)
+                            setIsZoneDialogOpen(true)
+                            refetchUserZones()
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          title="Assign zones"
+                        >
+                          <MapPin className="h-4 w-4 text-purple-600" />
                         </Button>
                         <Button
                           onClick={() => {
