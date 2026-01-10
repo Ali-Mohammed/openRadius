@@ -37,6 +37,7 @@
     "appSetting": "App Setting",
     "general": "General",
     "oidc": "OIDC",
+    "databaseBackup": "Database Backup",
     "userManagement": "User Management",
     "roles": "Roles",
     "permissions": "Permissions",

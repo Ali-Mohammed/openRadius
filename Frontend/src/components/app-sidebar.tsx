@@ -245,6 +245,11 @@ const getNavData = (workspaceId: number) => ({
           url: "/settings/oidc",
           icon: Key,
         },
+        {
+          titleKey: "navigation.databaseBackup",
+          url: "/settings/database-backup",
+          icon: Database,
+        },
       ],
     },
     {

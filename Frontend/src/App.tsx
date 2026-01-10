@@ -44,6 +44,7 @@ import NetworkSettings from './pages/NetworkSettings'
 import Olts from './pages/Olts'
 import Fdts from './pages/Fdts'
 import Fats from './pages/Fats'
+import DatabaseBackup from './pages/DatabaseBackup'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -87,6 +88,7 @@ function App() {
                           <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
+                          <Route path="/settings/database-backup" element={<DatabaseBackup />} />
                           <Route path="/users" element={<UserManagement />} />
                           <Route path="/roles" element={<RolesPage />} />
                           <Route path="/permissions" element={<PermissionsPage />} />

@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -95,6 +95,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname.includes('/billing/profiles')) return { parent: null, current: 'Billing Profiles', icon: Settings }
     if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Wrench }
     if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Key }
+    if (location.pathname === '/settings/database-backup') return { parent: null, current: 'Database Backup', icon: Database }
     return { parent: null, current: 'Dashboard', icon: Home }
   }
 
