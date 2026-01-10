@@ -100,11 +100,11 @@ export default function Zones() {
 
   // Set selected users when zone users are loaded
   useEffect(() => {
-    if (assignUsersDialogOpen && zoneUserIds.length > 0 && !hasSetInitialUsers.current) {
+    if (assignUsersDialogOpen && zoneUserIds && zoneUserIds.length > 0 && !hasSetInitialUsers.current) {
       setSelectedUserIds(zoneUserIds)
       hasSetInitialUsers.current = true
     }
-  }, [zoneUserIds, assignUsersDialogOpen])
+  }, [assignUsersDialogOpen, zoneUserIds])
 
   // Clear row selection when switching tabs
   useEffect(() => {
@@ -841,8 +841,7 @@ export default function Zones() {
                     filteredUsers.map((user) => (
                       <div
                         key={user.keycloakUserId || user.id}
-                        className='flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer'
-                        onClick={() => handleToggleUser(user.keycloakUserId || user.id.toString())}
+                        className='flex items-center space-x-2 p-2 hover:bg-accent rounded-md'
                       >
                         <Checkbox
                           checked={selectedUserIds.includes(user.keycloakUserId || user.id.toString())}
