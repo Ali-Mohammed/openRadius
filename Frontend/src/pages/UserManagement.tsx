@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -36,6 +36,7 @@ export default function UserManagement() {
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
   const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
+  const hasSetInitialZones = useRef(false)
   
   // Form fields for creating a new user
   const [firstName, setFirstName] = useState('')
@@ -88,10 +89,19 @@ export default function UserManagement() {
     enabled: !!zoneAssignUser && isZoneDialogOpen,
   })
 
-  // Set selected zones when dialog opens
+  // Reset zones when dialog closes
   useEffect(() => {
-    if (isZoneDialogOpen && userZoneIds) {
+    if (!isZoneDialogOpen) {
+      setSelectedZoneIds([])
+      hasSetInitialZones.current = false
+    }
+  }, [isZoneDialogOpen])
+
+  // Set selected zones when data loads (only once)
+  useEffect(() => {
+    if (isZoneDialogOpen && userZoneIds && !hasSetInitialZones.current) {
       setSelectedZoneIds(userZoneIds)
+      hasSetInitialZones.current = true
     }
   }, [isZoneDialogOpen, userZoneIds])
 
@@ -403,7 +413,6 @@ export default function UserManagement() {
                           onClick={() => {
                             setZoneAssignUser(user)
                             setIsZoneDialogOpen(true)
-                            refetchUserZones()
                           }}
                           variant="ghost"
                           size="icon"
