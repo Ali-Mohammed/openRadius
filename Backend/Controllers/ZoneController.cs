@@ -118,6 +118,7 @@ public class ZoneController : ControllerBase
             Name = dto.Name,
             Description = dto.Description,
             Color = dto.Color,
+            Icon = dto.Icon,
             WorkspaceId = workspaceId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
@@ -132,6 +133,7 @@ public class ZoneController : ControllerBase
             Name = zone.Name,
             Description = zone.Description,
             Color = zone.Color,
+            Icon = zone.Icon,
             WorkspaceId = zone.WorkspaceId,
             CreatedAt = zone.CreatedAt,
             CreatedBy = zone.CreatedBy,
@@ -161,6 +163,7 @@ public class ZoneController : ControllerBase
         if (dto.Name != null) zone.Name = dto.Name;
         if (dto.Description != null) zone.Description = dto.Description;
         if (dto.Color != null) zone.Color = dto.Color;
+        if (dto.Icon != null) zone.Icon = dto.Icon;
         
         zone.UpdatedAt = DateTime.UtcNow;
         zone.UpdatedBy = userId;
