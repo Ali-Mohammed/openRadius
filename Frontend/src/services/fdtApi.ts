@@ -154,4 +154,9 @@ export const fdtApi = {
     });
     return data;
   },
+
+  getList: async () => {
+    const { data } = await apiClient.get<FdtList[]>('/api/network/fdts/list');
+    return data;
+  },
 };
