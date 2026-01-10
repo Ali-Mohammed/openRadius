@@ -233,4 +233,10 @@ export const userManagementApi = {
     return { message: 'User status updated successfully' }
   },
 
+  // Impersonate user
+  impersonateUser: async (userId: string): Promise<{ impersonationUrl: string }> => {
+    const response = await apiClient.post(`/api/keycloak/users/${userId}/impersonate`)
+    return response.data
+  },
+
 }

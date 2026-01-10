@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck } from 'lucide-react'
+import { Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -349,6 +349,27 @@ export default function UserManagement() {
                           title="Reset password"
                         >
                           <Key className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (user.keycloakUserId) {
+                              userManagementApi.impersonateUser(user.keycloakUserId)
+                                .then((response) => {
+                                  if (response.impersonationUrl) {
+                                    window.open(response.impersonationUrl, '_blank')
+                                    toast.success(`Impersonating ${user.firstName} ${user.lastName}`)
+                                  }
+                                })
+                                .catch((error) => {
+                                  toast.error(formatApiError(error))
+                                })
+                            }
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          title="Impersonate user"
+                        >
+                          <UserCog className="h-4 w-4 text-blue-600" />
                         </Button>
                         <Button
                           onClick={() => {
