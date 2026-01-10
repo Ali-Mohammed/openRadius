@@ -94,16 +94,19 @@ export default function UserManagement() {
     if (!isZoneDialogOpen) {
       setSelectedZoneIds([])
       hasSetInitialZones.current = false
+      setZoneAssignUser(null)
     }
   }, [isZoneDialogOpen])
 
-  // Set selected zones when data loads (only once)
+  // Set selected zones when dialog opens or data loads
   useEffect(() => {
-    if (isZoneDialogOpen && userZoneIds && !hasSetInitialZones.current) {
-      setSelectedZoneIds(userZoneIds)
+    if (isZoneDialogOpen && zoneAssignUser && !hasSetInitialZones.current) {
+      // Use zones from the user object if available, otherwise use fetched zones
+      const zonesToSet = zoneAssignUser.zones?.map(z => z.id) || userZoneIds
+      setSelectedZoneIds(zonesToSet)
       hasSetInitialZones.current = true
     }
-  }, [isZoneDialogOpen, userZoneIds])
+  }, [isZoneDialogOpen, zoneAssignUser, userZoneIds])
 
   // Mutations
   const syncUsersMutation = useMutation({
