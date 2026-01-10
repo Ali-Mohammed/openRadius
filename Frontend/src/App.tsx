@@ -41,6 +41,9 @@ import BillingProfileForm from './pages/BillingProfileForm'
 import Dashboards from './pages/Dashboards'
 import DashboardView from './pages/DashboardView'
 import NetworkSettings from './pages/NetworkSettings'
+import Olts from './pages/Olts'
+import Fdts from './pages/Fdts'
+import Fats from './pages/Fats'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
