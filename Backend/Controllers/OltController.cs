@@ -164,6 +164,130 @@ public class OltController : ControllerBase
         }
     }
 
+    [HttpPost("{oltId}/pon-ports")]
+    public async Task<ActionResult<PonPortDto>> CreatePonPort(Guid oltId, [FromBody] CreatePonPortDto dto)
+    {
+        try
+        {
+            var olt = await _context.Olts.FirstOrDefaultAsync(o => o.Id == oltId && !o.IsDeleted);
+            if (olt == null)
+                return NotFound(new { message = "OLT not found" });
+
+            var ponPort = new PonPort
+            {
+                OltId = oltId,
+                Slot = dto.Slot,
+                Port = dto.Port,
+                Technology = dto.Technology,
+                MaxSplitRatio = dto.MaxSplitRatio,
+                Status = dto.Status ?? "active"
+            };
+
+            _context.PonPorts.Add(ponPort);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetOlt), new { id = oltId }, new PonPortDto
+            {
+                Id = ponPort.Id,
+                Slot = ponPort.Slot,
+                Port = ponPort.Port,
+                Technology = ponPort.Technology,
+                Status = ponPort.Status
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating PON port for OLT {OltId}", oltId);
+            return StatusCode(500, new { message = "Failed to create PON port", error = ex.Message });
+        }
+    }
+
+    [HttpGet("{oltId}/pon-ports")]
+    public async Task<ActionResult<IEnumerable<PonPortDetailDto>>> GetOltPonPorts(Guid oltId)
+    {
+        try
+        {
+            var olt = await _context.Olts.FirstOrDefaultAsync(o => o.Id == oltId && !o.IsDeleted);
+            if (olt == null)
+                return NotFound(new { message = "OLT not found" });
+
+            var ponPorts = await _context.PonPorts
+                .Where(p => p.OltId == oltId && !p.IsDeleted)
+                .OrderBy(p => p.Slot)
+                .ThenBy(p => p.Port)
+                .Select(p => new PonPortDetailDto
+                {
+                    Id = p.Id,
+                    Slot = p.Slot,
+                    Port = p.Port,
+                    Technology = p.Technology,
+                    MaxSplitRatio = p.MaxSplitRatio,
+                    CurrentSplitRatio = p.CurrentSplitRatio,
+                    TxPowerDbm = p.TxPowerDbm,
+                    RxPowerDbm = p.RxPowerDbm,
+                    Status = p.Status,
+                    CreatedAt = p.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(ponPorts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PON ports for OLT {OltId}", oltId);
+            return StatusCode(500, new { message = "Failed to retrieve PON ports", error = ex.Message });
+        }
+    }
+
+    [HttpPut("pon-ports/{ponPortId}")]
+    public async Task<IActionResult> UpdatePonPort(Guid ponPortId, [FromBody] UpdatePonPortDto dto)
+    {
+        try
+        {
+            var ponPort = await _context.PonPorts.FirstOrDefaultAsync(p => p.Id == ponPortId && !p.IsDeleted);
+            if (ponPort == null)
+                return NotFound(new { message = "PON port not found" });
+
+            ponPort.Slot = dto.Slot;
+            ponPort.Port = dto.Port;
+            ponPort.Technology = dto.Technology;
+            ponPort.MaxSplitRatio = dto.MaxSplitRatio;
+            ponPort.CurrentSplitRatio = dto.CurrentSplitRatio;
+            ponPort.TxPowerDbm = dto.TxPowerDbm;
+            ponPort.RxPowerDbm = dto.RxPowerDbm;
+            ponPort.Status = dto.Status;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "PON port updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating PON port {PonPortId}", ponPortId);
+            return StatusCode(500, new { message = "Failed to update PON port", error = ex.Message });
+        }
+    }
+
+    [HttpDelete("pon-ports/{ponPortId}")]
+    public async Task<IActionResult> DeletePonPort(Guid ponPortId)
+    {
+        try
+        {
+            var ponPort = await _context.PonPorts.FirstOrDefaultAsync(p => p.Id == ponPortId && !p.IsDeleted);
+            if (ponPort == null)
+                return NotFound(new { message = "PON port not found" });
+
+            ponPort.IsDeleted = true;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "PON port deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting PON port {PonPortId}", ponPortId);
+            return StatusCode(500, new { message = "Failed to delete PON port", error = ex.Message });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<OltDetailDto>> GetOlt(Guid id)
     {
@@ -696,4 +820,39 @@ public class CreateOltDto
 
 public class UpdateOltDto : CreateOltDto
 {
+}
+
+public class CreatePonPortDto
+{
+    public int Slot { get; set; }
+    public int Port { get; set; }
+    public string Technology { get; set; } = "GPON";
+    public int? MaxSplitRatio { get; set; }
+    public string? Status { get; set; }
+}
+
+public class UpdatePonPortDto
+{
+    public int Slot { get; set; }
+    public int Port { get; set; }
+    public string Technology { get; set; } = "GPON";
+    public int? MaxSplitRatio { get; set; }
+    public int? CurrentSplitRatio { get; set; }
+    public decimal? TxPowerDbm { get; set; }
+    public decimal? RxPowerDbm { get; set; }
+    public string Status { get; set; } = "active";
+}
+
+public class PonPortDetailDto
+{
+    public Guid Id { get; set; }
+    public int Slot { get; set; }
+    public int Port { get; set; }
+    public string Technology { get; set; } = string.Empty;
+    public int? MaxSplitRatio { get; set; }
+    public int? CurrentSplitRatio { get; set; }
+    public decimal? TxPowerDbm { get; set; }
+    public decimal? RxPowerDbm { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
