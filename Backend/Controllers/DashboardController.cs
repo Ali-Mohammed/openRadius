@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
@@ -7,7 +8,8 @@ using System.Text.Json;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/workspaces/{workspaceId}/[controller]")]
+[Route("api/[controller]")]
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -21,9 +23,9 @@ public class DashboardController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/workspaces/{workspaceId}/dashboard
+    // GET: api/dashboard
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetDashboards(int workspaceId)
+    public async Task<ActionResult<IEnumerable<object>>> GetDashboards()
     {
         try
         {
@@ -51,14 +53,14 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting dashboards for workspace {WorkspaceId}", workspaceId);
+            _logger.LogError(ex, "Error getting dashboards");
             return StatusCode(500, new { message = "Error retrieving dashboards" });
         }
     }
 
-    // GET: api/workspaces/{workspaceId}/dashboard/{id}
+    // GET: api/dashboard/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<object>> GetDashboard(int workspaceId, int id)
+    public async Task<ActionResult<object>> GetDashboard(int id)
     {
         try
         {
@@ -124,14 +126,14 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting dashboard {DashboardId} for workspace {WorkspaceId}", id, workspaceId);
+            _logger.LogError(ex, "Error getting dashboard {DashboardId}", id);
             return StatusCode(500, new { message = "Error retrieving dashboard" });
         }
     }
 
-    // POST: api/workspaces/{workspaceId}/dashboard
+    // POST: api/dashboard
     [HttpPost]
-    public async Task<ActionResult<object>> CreateDashboard(int workspaceId, [FromBody] CreateDashboardDto dto)
+    public async Task<ActionResult<object>> CreateDashboard([FromBody] CreateDashboardDto dto)
     {
         try
         {
@@ -170,7 +172,7 @@ public class DashboardController : ControllerBase
 
             return CreatedAtAction(
                 nameof(GetDashboard),
-                new { workspaceId, id = dashboard.Id },
+                new { id = dashboard.Id },
                 new
                 {
                     id = dashboard.Id.ToString(),
@@ -182,14 +184,14 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating dashboard for workspace {WorkspaceId}", workspaceId);
+            _logger.LogError(ex, "Error creating dashboard");
             return StatusCode(500, new { message = "Error creating dashboard" });
         }
     }
 
-    // PUT: api/workspaces/{workspaceId}/dashboard/{id}
+    // PUT: api/dashboard/{id}
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateDashboard(int workspaceId, int id, [FromBody] UpdateDashboardDto dto)
+    public async Task<IActionResult> UpdateDashboard(int id, [FromBody] UpdateDashboardDto dto)
     {
         try
         {
@@ -259,14 +261,14 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating dashboard {DashboardId} for workspace {WorkspaceId}", id, workspaceId);
+            _logger.LogError(ex, "Error updating dashboard {DashboardId}", id);
             return StatusCode(500, new { message = "Error updating dashboard" });
         }
     }
 
-    // DELETE: api/workspaces/{workspaceId}/dashboard/{id}
+    // DELETE: api/dashboard/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteDashboard(int workspaceId, int id)
+    public async Task<IActionResult> DeleteDashboard(int id)
     {
         try
         {
@@ -287,14 +289,14 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting dashboard {DashboardId} for workspace {WorkspaceId}", id, workspaceId);
+            _logger.LogError(ex, "Error deleting dashboard {DashboardId}", id);
             return StatusCode(500, new { message = "Error deleting dashboard" });
         }
     }
 
-    // POST: api/workspaces/{workspaceId}/dashboard/{id}/items
+    // POST: api/dashboard/{id}/items
     [HttpPost("{id}/items")]
-    public async Task<ActionResult<object>> AddItem(int workspaceId, int id, [FromBody] AddItemDto dto)
+    public async Task<ActionResult<object>> AddItem(int id, [FromBody] AddItemDto dto)
     {
         try
         {
@@ -344,9 +346,9 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // PUT: api/workspaces/{workspaceId}/dashboard/{id}/items/{itemId}/layout
+    // PUT: api/dashboard/{id}/items/{itemId}/layout
     [HttpPut("{id}/items/{itemId}/layout")]
-    public async Task<IActionResult> UpdateItemLayout(int workspaceId, int id, int itemId, [FromBody] LayoutDto layout)
+    public async Task<IActionResult> UpdateItemLayout(int id, int itemId, [FromBody] LayoutDto layout)
     {
         try
         {
@@ -376,9 +378,9 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // DELETE: api/workspaces/{workspaceId}/dashboard/{id}/items/{itemId}
+    // DELETE: api/dashboard/{id}/items/{itemId}
     [HttpDelete("{id}/items/{itemId}")]
-    public async Task<IActionResult> DeleteItem(int workspaceId, int id, int itemId)
+    public async Task<IActionResult> DeleteItem(int id, int itemId)
     {
         try
         {

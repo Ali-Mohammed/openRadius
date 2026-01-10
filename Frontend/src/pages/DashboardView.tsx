@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { DashboardGrid } from '../components/dashboard/DashboardGrid'
 import { GlobalFilters } from '../components/dashboard/GlobalFilters'
 import { AddItemDialog } from '../components/dashboard/dialogs/AddItemDialog'
+import { AddTabDialog } from '../components/dashboard/dialogs/AddTabDialog'
 import type { Dashboard, DashboardItem, DashboardTab } from '../types/dashboard'
 import { dashboardApi } from '../api/dashboardApi'
 import { toast } from 'sonner'
@@ -16,6 +17,7 @@ export default function DashboardView() {
   const [activeTabId, setActiveTabId] = useState<string>('')
   const [isEditing, setIsEditing] = useState(false)
   const [showAddItemDialog, setShowAddItemDialog] = useState(false)
+  const [showAddTabDialog, setShowAddTabDialog] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -148,13 +150,25 @@ export default function DashboardView() {
       )}
 
       <Tabs value={activeTabId} onValueChange={setActiveTabId}>
-        <TabsList>
-          {dashboard.tabs.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id}>
-              {tab.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="flex items-center gap-2">
+          <TabsList>
+            {dashboard.tabs.map((tab) => (
+              <TabsTrigger key={tab.id} value={tab.id}>
+                {tab.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {isEditing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddTabDialog(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Tab
+            </Button>
+          )}
+        </div>
 
         {dashboard.tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-6">
@@ -190,6 +204,12 @@ export default function DashboardView() {
         open={showAddItemDialog}
         onClose={() => setShowAddItemDialog(false)}
         onAdd={handleAddItem}
+      />
+
+      <AddTabDialog
+        open={showAddTabDialog}
+        onClose={() => setShowAddTabDialog(false)}
+        onAdd={handleAddTab}
       />
     </div>
   )
