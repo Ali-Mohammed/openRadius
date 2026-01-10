@@ -151,7 +151,7 @@ public class DatabaseBackupController : ControllerBase
             foreach (var table in tables)
             {
                 csvData.AppendLine($"--- Table: {table} ---");
-                var tableData = await ExportTableToCsv(connectionString, table);
+                var tableData = await ExportTableToCsv(connectionString ?? "", table);
                 csvData.AppendLine(tableData);
                 csvData.AppendLine();
             }
