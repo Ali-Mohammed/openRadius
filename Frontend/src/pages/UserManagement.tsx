@@ -700,6 +700,103 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      {/* Zone Assignment Dialog */}
+      <Dialog open={isZoneDialogOpen} onOpenChange={setIsZoneDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Assign Zones to User</DialogTitle>
+            <DialogDescription>
+              Select multiple zones for <strong>{zoneAssignUser?.firstName} {zoneAssignUser?.lastName}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="border rounded-md max-h-[400px] overflow-y-auto">
+              <div className="p-2 space-y-1">
+                {zones.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No zones found
+                  </div>
+                ) : (
+                  zones.map((zone) => (
+                    <div
+                      key={zone.id}
+                      className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer"
+                      onClick={() => {
+                        setSelectedZoneIds(prev =>
+                          prev.includes(zone.id)
+                            ? prev.filter(id => id !== zone.id)
+                            : [...prev, zone.id]
+                        )
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedZoneIds.includes(zone.id)}
+                        onCheckedChange={() => {
+                          setSelectedZoneIds(prev =>
+                            prev.includes(zone.id)
+                              ? prev.filter(id => id !== zone.id)
+                              : [...prev, zone.id]
+                          )
+                        }}
+                      />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div
+                          className="h-4 w-4 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: zone.color || '#3b82f6' }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{zone.name}</div>
+                          {zone.description && (
+                            <div className="text-sm text-muted-foreground truncate">
+                              {zone.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{selectedZoneIds.length} zone(s) selected</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedZoneIds([])}
+                disabled={selectedZoneIds.length === 0}
+              >
+                Clear selection
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsZoneDialogOpen(false)
+                setZoneAssignUser(null)
+                setSelectedZoneIds([])
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (zoneAssignUser?.keycloakUserId) {
+                  assignZonesMutation.mutate({
+                    userId: zoneAssignUser.keycloakUserId,
+                    zoneIds: selectedZoneIds,
+                  })
+                }
+              }}
+              disabled={assignZonesMutation.isPending}
+            >
+              {assignZonesMutation.isPending ? 'Assigning...' : 'Assign Zones'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>    </div>
   )
 }

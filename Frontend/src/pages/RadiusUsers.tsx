@@ -17,6 +17,7 @@ import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Arc
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
+import { zoneApi, type Zone } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -102,6 +103,7 @@ export default function RadiusUsers() {
     address: '',
     contractId: '',
     simultaneousSessions: '1',
+    zoneId: '',
   })
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
