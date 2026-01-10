@@ -12,16 +12,16 @@ namespace Backend.Controllers;
 [Authorize]
 public class DatabaseBackupController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<DatabaseBackupController> _logger;
     private readonly IConfiguration _configuration;
 
     public DatabaseBackupController(
-        ApplicationDbContext context,
+        MasterDbContext masterContext,
         ILogger<DatabaseBackupController> logger,
         IConfiguration configuration)
     {
-        _context = context;
+        _masterContext = masterContext;
         _logger = logger;
         _configuration = configuration;
     }
@@ -34,36 +34,36 @@ public class DatabaseBackupController : ControllerBase
             var databases = new List<DatabaseInfo>();
 
             // Add master database
-            var masterConnectionString = _configuration.GetConnectionString("DefaultConnection");
+            var masterConnectionString = _configuration.GetConnectionString("DefaultConnection") ?? "";
             var masterDbName = ExtractDatabaseName(masterConnectionString);
             databases.Add(new DatabaseInfo
             {
-                Name = masterDbName,
+                Name = masterDbName ?? "master",
                 DisplayName = "Master Database",
                 Type = "master",
                 ConnectionString = masterConnectionString
             });
 
-            // Add workspace databases
-            var workspaces = await _context.Workspaces
-                .Where(w => !w.IsDeleted)
-                .Select(w => new { w.Id, w.Name, w.DatabaseName })
-                .ToListAsync();
+        // Add workspace databases
+        var workspaces = await _masterContext.Workspaces
+            .Where(w => w.DeletedAt == null)
+            .ToListAsync();
 
-            foreach (var workspace in workspaces)
+        foreach (var workspace in workspaces)
+        {
+            var dbName = $"openradius_workspace_{workspace.Id}";
+            var workspaceConnectionString = GetWorkspaceConnectionString(dbName);
+            databases.Add(new DatabaseInfo
             {
-                var workspaceConnectionString = GetWorkspaceConnectionString(workspace.DatabaseName);
-                databases.Add(new DatabaseInfo
-                {
-                    Name = workspace.DatabaseName,
-                    DisplayName = $"{workspace.Name} (Workspace)",
-                    Type = "workspace",
-                    WorkspaceId = workspace.Id,
-                    ConnectionString = workspaceConnectionString
-                });
-            }
+                Name = dbName,
+                DisplayName = $"{workspace.Name} (Workspace)",
+                Type = "workspace",
+                WorkspaceId = workspace.Id,
+                ConnectionString = workspaceConnectionString
+            });
+        }
 
-            return Ok(databases);
+        return Ok(databases);
         }
         catch (Exception ex)
         {
@@ -145,7 +145,7 @@ public class DatabaseBackupController : ControllerBase
             var dbName = ExtractDatabaseName(connectionString);
 
             // Get all tables
-            var tables = await GetTables(connectionString);
+            var tables = await GetTables(connectionString ?? "");
             var csvData = new StringBuilder();
 
             foreach (var table in tables)
@@ -294,7 +294,7 @@ public class DatabaseInfo
     public string Name { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
-    public Guid? WorkspaceId { get; set; }
+    public int? WorkspaceId { get; set; }
     public string ConnectionString { get; set; } = string.Empty;
 }
 
