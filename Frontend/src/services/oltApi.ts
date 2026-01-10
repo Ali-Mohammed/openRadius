@@ -251,3 +251,4 @@ export const oltApi = {
   deletePonPort: async (ponPortId: string): Promise<void> => {
     await apiClient.delete(`/api/network/olts/pon-ports/${ponPortId}`);
   },
+};
