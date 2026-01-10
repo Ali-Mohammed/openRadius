@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, Users as UsersIcon, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3 } from "lucide-react"
+import { ChevronRight, Plug, Users, Users as UsersIcon, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useTranslation } from "react-i18next"
@@ -146,6 +146,11 @@ const getNavData = (workspaceId: number) => ({
           titleKey: "navigation.balances",
           url: "/billing/balances",
           icon: Coins,
+        },
+        {
+          titleKey: "navigation.zones",
+          url: `/workspace/${workspaceId}/billing/zones`,
+          icon: MapPin,
         },
       ],
     },
