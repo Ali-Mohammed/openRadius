@@ -1388,6 +1388,249 @@ export default function Olts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* PON Port Management Dialog */}
+      <Dialog open={ponPortDialogOpen} onOpenChange={setPonPortDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage PON Ports - {selectedOltForPonPorts?.name}</DialogTitle>
+            <DialogDescription>
+              Add, edit, or delete PON ports for this OLT
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => handleOpenPonPortForm()} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add PON Port
+              </Button>
+            </div>
+
+            {ponPorts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No PON ports configured. Click "Add PON Port" to create one.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Slot</TableHead>
+                    <TableHead>Port</TableHead>
+                    <TableHead>Technology</TableHead>
+                    <TableHead>Max Split</TableHead>
+                    <TableHead>Current Split</TableHead>
+                    <TableHead>TX Power (dBm)</TableHead>
+                    <TableHead>RX Power (dBm)</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ponPorts.map((ponPort: any) => (
+                    <TableRow key={ponPort.id}>
+                      <TableCell>{ponPort.slot}</TableCell>
+                      <TableCell>{ponPort.port}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{ponPort.technology}</Badge>
+                      </TableCell>
+                      <TableCell>{ponPort.maxSplitRatio || '-'}</TableCell>
+                      <TableCell>{ponPort.currentSplitRatio || '-'}</TableCell>
+                      <TableCell>{ponPort.txPowerDbm?.toFixed(2) || '-'}</TableCell>
+                      <TableCell>{ponPort.rxPowerDbm?.toFixed(2) || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={ponPort.status === 'active' ? 'default' : 'secondary'}>
+                          {ponPort.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenPonPortForm(ponPort)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeletePonPort(ponPort.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClosePonPortDialog}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PON Port Form Dialog */}
+      <Dialog open={ponPortFormOpen} onOpenChange={setPonPortFormOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingPonPort ? 'Edit PON Port' : 'Add PON Port'}</DialogTitle>
+            <DialogDescription>
+              {editingPonPort ? 'Update PON port details' : 'Create a new PON port for this OLT'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ponSlot">Slot *</Label>
+                <Input
+                  id="ponSlot"
+                  type="number"
+                  value={ponPortFormData.slot}
+                  onChange={(e) => setPonPortFormData({ ...ponPortFormData, slot: e.target.value })}
+                  placeholder="e.g., 1"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ponPort">Port *</Label>
+                <Input
+                  id="ponPort"
+                  type="number"
+                  value={ponPortFormData.port}
+                  onChange={(e) => setPonPortFormData({ ...ponPortFormData, port: e.target.value })}
+                  placeholder="e.g., 1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ponTechnology">Technology *</Label>
+                <Select
+                  value={ponPortFormData.technology}
+                  onValueChange={(value) => setPonPortFormData({ ...ponPortFormData, technology: value })}
+                >
+                  <SelectTrigger id="ponTechnology">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GPON">GPON</SelectItem>
+                    <SelectItem value="EPON">EPON</SelectItem>
+                    <SelectItem value="XGS-PON">XGS-PON</SelectItem>
+                    <SelectItem value="10G-EPON">10G-EPON</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ponMaxSplitRatio">Max Split Ratio</Label>
+                <Input
+                  id="ponMaxSplitRatio"
+                  type="number"
+                  value={ponPortFormData.maxSplitRatio}
+                  onChange={(e) => setPonPortFormData({ ...ponPortFormData, maxSplitRatio: e.target.value })}
+                  placeholder="e.g., 128"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ponCurrentSplit">Current Split Ratio</Label>
+                <Input
+                  id="ponCurrentSplit"
+                  type="number"
+                  value={ponPortFormData.currentSplitRatio}
+                  onChange={(e) => setPonPortFormData({ ...ponPortFormData, currentSplitRatio: e.target.value })}
+                  placeholder="e.g., 64"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ponStatus">Status</Label>
+                <Select
+                  value={ponPortFormData.status}
+                  onValueChange={(value) => setPonPortFormData({ ...ponPortFormData, status: value })}
+                >
+                  <SelectTrigger id="ponStatus">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ponTxPower">TX Power (dBm)</Label>
+                <Input
+                  id="ponTxPower"
+                  type="number"
+                  step="0.01"
+                  value={ponPortFormData.txPowerDbm}
+                  onChange={(e) => setPonPortFormData({ ...ponPortFormData, txPowerDbm: e.target.value })}
+                  placeholder="e.g., 2.5"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ponRxPower">RX Power (dBm)</Label>
+                <Input
+                  id="ponRxPower"
+                  type="number"
+                  step="0.01"
+                  value={ponPortFormData.rxPowerDbm}
+                  onChange={(e) => setPonPortFormData({ ...ponPortFormData, rxPowerDbm: e.target.value })}
+                  placeholder="e.g., -28.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPonPortFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitPonPort}
+              disabled={createPonPortMutation.isPending || updatePonPortMutation.isPending}
+            >
+              {editingPonPort ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PON Port Delete Confirmation Dialog */}
+      <AlertDialog open={ponPortDeleteDialogOpen} onOpenChange={setPonPortDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete PON Port?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this PON port. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeletePonPort}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
