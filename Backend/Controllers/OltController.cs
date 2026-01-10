@@ -365,10 +365,24 @@ public class OltController : ControllerBase
                     Vendor = o.Vendor,
                     Model = o.Model,
                     SerialNumber = o.SerialNumber,
+                    AssetTag = o.AssetTag,
+                    Role = o.Role,
                     ManagementIp = o.ManagementIp,
+                    ManagementVlan = o.ManagementVlan,
+                    LoopbackIp = o.LoopbackIp,
+                    MgmtInterface = o.MgmtInterface,
                     Status = o.Status,
                     Environment = o.Environment,
+                    SshEnabled = o.SshEnabled,
+                    SshPort = o.SshPort,
+                    SshUsername = o.SshUsername,
+                    SnmpVersion = o.SnmpVersion,
+                    SnmpPort = o.SnmpPort,
                     SiteName = o.SiteName,
+                    Rack = o.Rack,
+                    RackUnit = o.RackUnit,
+                    Latitude = o.Latitude,
+                    Longitude = o.Longitude,
                     PonPortCount = o.PonPorts.Count(p => !p.IsDeleted),
                     CreatedAt = o.CreatedAt,
                     UpdatedAt = o.UpdatedAt
@@ -590,20 +604,6 @@ public class OltDto
 
 public class OltDetailDto : OltDto
 {
-    public string? AssetTag { get; set; }
-    public string? Role { get; set; }
-    public int? ManagementVlan { get; set; }
-    public string? LoopbackIp { get; set; }
-    public string? MgmtInterface { get; set; }
-    public bool SshEnabled { get; set; }
-    public int SshPort { get; set; }
-    public string? SshUsername { get; set; }
-    public string? SnmpVersion { get; set; }
-    public int SnmpPort { get; set; }
-    public string? Rack { get; set; }
-    public int? RackUnit { get; set; }
-    public decimal? Latitude { get; set; }
-    public decimal? Longitude { get; set; }
     public long? UptimeSeconds { get; set; }
     public decimal? CpuUsagePct { get; set; }
     public decimal? MemoryUsagePct { get; set; }
