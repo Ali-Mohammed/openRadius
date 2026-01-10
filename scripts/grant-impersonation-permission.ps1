@@ -121,7 +121,7 @@ $roleJson = $roleToAssign | ConvertTo-Json -Depth 10
 try {
     Invoke-RestMethod -Uri $assignRoleUrl -Method Post -Headers $headers -Body $roleJson
     Write-Host "Successfully assigned impersonation permission!" -ForegroundColor Green
-    Write-Host "`nUser '$userName' can now impersonate other users" -ForegroundColor Green
+    Write-Host "User $userName can now impersonate other users" -ForegroundColor Green
 }
 catch {
     # Check if role is already assigned
