@@ -39,6 +39,16 @@ export interface FatSummary {
   status: string;
 }
 
+export interface FdtList {
+  id: string;
+  code: string;
+  name?: string;
+  oltName: string;
+  ponPortSlot: number;
+  ponPortPort: number;
+  label: string;
+}
+
 export interface CreateFdtData {
   code: string;
   name?: string;
