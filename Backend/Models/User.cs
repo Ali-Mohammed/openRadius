@@ -19,6 +19,11 @@ public class User
     public int? DefaultWorkspaceId { get; set; }
     public int? CurrentWorkspaceId { get; set; }
     
+    // User status tracking
+    public string? DisabledReason { get; set; }
+    public DateTime? DisabledAt { get; set; }
+    public string? DisabledBy { get; set; }
+    
     // Navigation properties
     public Workspace? DefaultWorkspace { get; set; }
     public Workspace? CurrentWorkspace { get; set; }
