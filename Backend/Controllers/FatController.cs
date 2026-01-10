@@ -79,19 +79,15 @@ public class FatController : ControllerBase
                 Code = fat.Code,
                 Name = fat.Name,
                 FdtId = fat.FdtId,
-                Pole = fat.Pole,
                 Capacity = fat.Capacity,
                 UsedPorts = fat.UsedPorts,
-                CoverageRadiusMeters = fat.CoverageRadiusMeters,
-                InstallationType = fat.InstallationType,
-                InstallationDate = fat.InstallationDate,
+                CoverageRadiusM = fat.CoverageRadiusM,
+                Installation = fat.Installation,
                 Status = fat.Status,
                 Address = fat.Address,
-                Zone = fat.Zone,
                 Latitude = fat.Latitude,
                 Longitude = fat.Longitude,
                 LastInspectionAt = fat.LastInspectionAt,
-                NextInspectionAt = fat.NextInspectionAt,
                 Notes = fat.Notes,
                 FdtCode = fat.Fdt!.Code,
                 FdtName = fat.Fdt.Name,
@@ -101,9 +97,7 @@ public class FatController : ControllerBase
                     Id = fp.Id,
                     PortNumber = fp.PortNumber,
                     Status = fp.Status,
-                    SubscriberName = fp.SubscriberName,
-                    SubscriberPhone = fp.SubscriberPhone,
-                    ActivationDate = fp.ActivationDate
+                    Onu = fp.Onu
                 }).OrderBy(p => p.PortNumber).ToList(),
                 CreatedAt = fat.CreatedAt,
                 UpdatedAt = fat.UpdatedAt
@@ -128,14 +122,11 @@ public class FatController : ControllerBase
                 Code = dto.Code,
                 Name = dto.Name,
                 FdtId = dto.FdtId,
-                Pole = dto.Pole,
                 Capacity = dto.Capacity,
-                CoverageRadiusMeters = dto.CoverageRadiusMeters,
-                InstallationType = dto.InstallationType,
-                InstallationDate = dto.InstallationDate,
+                CoverageRadiusM = dto.CoverageRadiusM,
+                Installation = dto.Installation,
                 Status = dto.Status ?? "active",
                 Address = dto.Address,
-                Zone = dto.Zone,
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
                 Notes = dto.Notes
@@ -172,18 +163,14 @@ public class FatController : ControllerBase
             fat.Code = dto.Code;
             fat.Name = dto.Name;
             fat.FdtId = dto.FdtId;
-            fat.Pole = dto.Pole;
             fat.Capacity = dto.Capacity;
-            fat.CoverageRadiusMeters = dto.CoverageRadiusMeters;
-            fat.InstallationType = dto.InstallationType;
-            fat.InstallationDate = dto.InstallationDate;
+            fat.CoverageRadiusM = dto.CoverageRadiusM;
+            fat.Installation = dto.Installation;
             fat.Status = dto.Status;
             fat.Address = dto.Address;
-            fat.Zone = dto.Zone;
             fat.Latitude = dto.Latitude;
             fat.Longitude = dto.Longitude;
             fat.LastInspectionAt = dto.LastInspectionAt;
-            fat.NextInspectionAt = dto.NextInspectionAt;
             fat.Notes = dto.Notes;
             fat.UpdatedAt = DateTime.UtcNow;
 
@@ -229,7 +216,7 @@ public class FatDto
     public int Capacity { get; set; }
     public int UsedPorts { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string? Zone { get; set; }
+    public string? Address { get; set; }
     public string FdtCode { get; set; } = string.Empty;
     public string OltName { get; set; } = string.Empty;
     public int PortCount { get; set; }
@@ -239,15 +226,11 @@ public class FatDto
 public class FatDetailDto : FatDto
 {
     public Guid FdtId { get; set; }
-    public string? Pole { get; set; }
-    public decimal? CoverageRadiusMeters { get; set; }
-    public string? InstallationType { get; set; }
-    public DateTime? InstallationDate { get; set; }
-    public string? Address { get; set; }
+    public int? CoverageRadiusM { get; set; }
+    public string? Installation { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public DateTime? LastInspectionAt { get; set; }
-    public DateTime? NextInspectionAt { get; set; }
     public string? Notes { get; set; }
     public string? FdtName { get; set; }
     public List<FatPortDto> Ports { get; set; } = new();
@@ -259,9 +242,7 @@ public class FatPortDto
     public Guid Id { get; set; }
     public int PortNumber { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string? SubscriberName { get; set; }
-    public string? SubscriberPhone { get; set; }
-    public DateTime? ActivationDate { get; set; }
+    public string? Onu { get; set; }
 }
 
 public class CreateFatDto
@@ -269,14 +250,11 @@ public class CreateFatDto
     public string Code { get; set; } = string.Empty;
     public string? Name { get; set; }
     public Guid FdtId { get; set; }
-    public string? Pole { get; set; }
     public int Capacity { get; set; }
-    public decimal? CoverageRadiusMeters { get; set; }
-    public string? InstallationType { get; set; }
-    public DateTime? InstallationDate { get; set; }
+    public int? CoverageRadiusM { get; set; }
+    public string? Installation { get; set; }
     public string? Status { get; set; }
     public string? Address { get; set; }
-    public string? Zone { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public string? Notes { get; set; }
@@ -285,5 +263,4 @@ public class CreateFatDto
 public class UpdateFatDto : CreateFatDto
 {
     public DateTime? LastInspectionAt { get; set; }
-    public DateTime? NextInspectionAt { get; set; }
 }
