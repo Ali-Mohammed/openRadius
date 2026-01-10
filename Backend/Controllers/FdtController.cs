@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using System.Text;
+using ClosedXML.Excel;
 
 namespace Backend.Controllers;
 
@@ -21,7 +23,12 @@ public class FdtController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<FdtDto>>> GetFdts()
+    public async Task<ActionResult<PaginatedResponse<FdtDto>>> GetFdts(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = "asc")
     {
         try
         {
