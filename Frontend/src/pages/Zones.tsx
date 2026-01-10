@@ -18,6 +18,7 @@ import { Label } from '../components/ui/label'
 import { Checkbox } from '../components/ui/checkbox'
 import { Textarea } from '../components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, RotateCcw, Users, Radio, MapPin, UserPlus } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -25,6 +26,7 @@ import { zoneApi, type Zone } from '@/services/zoneApi'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { formatApiError } from '@/utils/errorHandler'
 import type { ZoneCreateDto, ZoneUpdateDto } from '@/services/zoneApi'
+import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
 export default function Zones() {
   const { t } = useTranslation()
@@ -47,10 +49,12 @@ export default function Zones() {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null)
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
   const [formData, setFormData] = useState<ZoneCreateDto>({
     name: '',
     description: '',
     color: '#3b82f6',
+    icon: 'MapPin',
   })
 
   const workspaceIdNum = parseInt(workspaceId || '0')
@@ -170,8 +174,9 @@ export default function Zones() {
   })
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', color: '#3b82f6' })
+    setFormData({ name: '', description: '', color: '#3b82f6', icon: 'MapPin' })
     setEditingZone(null)
+    setIconPopoverOpen(false)
   }
 
   const handleEdit = (zone: Zone) => {
@@ -180,6 +185,7 @@ export default function Zones() {
       name: zone.name,
       description: zone.description,
       color: zone.color || '#3b82f6',
+      icon: zone.icon || 'MapPin',
     })
     setOpen(true)
   }
@@ -535,7 +541,7 @@ export default function Zones() {
               <DialogHeader>
                 <DialogTitle>{editingZone ? 'Edit Zone' : 'Add New Zone'}</DialogTitle>
                 <DialogDescription>
-                  {editingZone ? 'Update the zone details' : 'Fill in the details to create a new zone'}
+                  {editingZone ? 'Update the zone details' : 'Fill in the details to create a new Zone entry'}
                 </DialogDescription>
               </DialogHeader>
               <div className='grid gap-4 py-4'>
@@ -557,20 +563,89 @@ export default function Zones() {
                     rows={3}
                   />
                 </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='color'>Color</Label>
-                  <div className='flex items-center gap-2'>
-                    <Input
-                      id='color'
-                      type='color'
+                <div className='grid grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='color'>Color</Label>
+                    <Select
                       value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className='w-20 h-10'
-                    />
-                    <Input
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, color: value })}
+                    >
+                      <SelectTrigger>
+                        <div className='flex items-center gap-2'>
+                          <div
+                            className='w-4 h-4 rounded-full border'
+                            style={{ backgroundColor: formData.color }}
+                          />
+                          <span>
+                            {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Select Color'}
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_COLORS.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className='flex items-center gap-2'>
+                              <div
+                                className='w-4 h-4 rounded-full border'
+                                style={{ backgroundColor: color.value }}
+                              />
+                              {color.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className='space-y-2'>
+                    <Label htmlFor='icon'>Icon</Label>
+                    <div className='relative'>
+                      <Button
+                        variant='outline'
+                        className='w-full justify-start'
+                        type='button'
+                        onClick={() => setIconPopoverOpen(!iconPopoverOpen)}
+                      >
+                        {(() => {
+                          const IconComponent = getIconComponent(formData.icon || 'MapPin')
+                          return <IconComponent className='w-4 h-4 mr-2' />
+                        })()}
+                        {formData.icon || 'MapPin'}
+                      </Button>
+                      {iconPopoverOpen && (
+                        <div className='absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-800 border rounded-md shadow-lg z-50'>
+                          <div className='grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto'>
+                            {AVAILABLE_ICONS.map((iconData) => {
+                              const IconComponent = iconData.icon
+                              const isSelected = formData.icon === iconData.name
+                              return (
+                                <button
+                                  key={iconData.name}
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setFormData({ ...formData, icon: iconData.name })
+                                    setIconPopoverOpen(false)
+                                  }}
+                                  className={`p-2 rounded flex items-center justify-center ${
+                                    isSelected
+                                      ? 'bg-blue-500 text-white'
+                                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                  }`}
+                                  style={{
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  title={iconData.name}
+                                >
+                                  <IconComponent className='w-4 h-4' />
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
