@@ -24,6 +24,16 @@ import {
   DialogTitle,
 } from '../components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -38,6 +48,8 @@ export default function NetworkSettings() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('olt-devices')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deviceToDelete, setDeviceToDelete] = useState<OltDevice | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -117,8 +129,17 @@ export default function NetworkSettings() {
     setFormData({ name: '', status: 'active' })
   }
 
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id)
+  const handleDelete = (device: OltDevice) => {
+    setDeviceToDelete(device)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (deviceToDelete) {
+      deleteMutation.mutate(deviceToDelete.id)
+      setDeleteDialogOpen(false)
+      setDeviceToDelete(null)
+    }
   }
 
   const getStatusBadge = (status: OltDevice['status']) => {
@@ -250,7 +271,7 @@ export default function NetworkSettings() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleDelete(device.id)}
+                                onClick={() => handleDelete(device)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -338,6 +359,22 @@ export default function NetworkSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the OLT device "{deviceToDelete?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
