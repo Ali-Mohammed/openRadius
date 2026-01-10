@@ -397,7 +397,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           {t(item.titleKey)}
                         </Link>
                         <CollapsibleTrigger className="ml-auto cursor-pointer">
-                          <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
                         </CollapsibleTrigger>
                       </div>
                     </SidebarGroupLabel>
