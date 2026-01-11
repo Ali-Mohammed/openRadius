@@ -113,7 +113,7 @@ public class RadiusIpPoolController : ControllerBase
         }
 
         var ipPool = await _context.RadiusIpPools
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
         if (ipPool == null)
         {
@@ -229,7 +229,7 @@ public class RadiusIpPoolController : ControllerBase
         }
 
         var ipPool = await _context.RadiusIpPools
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
         if (ipPool == null)
         {

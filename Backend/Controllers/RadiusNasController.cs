@@ -118,7 +118,7 @@ public class RadiusNasController : ControllerBase
         }
 
         var nasDevice = await _context.RadiusNasDevices
-            .FirstOrDefaultAsync(n => n.Id == id && n.WorkspaceId == workspaceId.Value && !n.IsDeleted);
+            .FirstOrDefaultAsync(n => n.Id == id && !n.IsDeleted);
 
         if (nasDevice == null)
         {
@@ -269,7 +269,7 @@ public class RadiusNasController : ControllerBase
         }
 
         var nasDevice = await _context.RadiusNasDevices
-            .FirstOrDefaultAsync(n => n.Id == id && n.WorkspaceId == workspaceId.Value && !n.IsDeleted);
+            .FirstOrDefaultAsync(n => n.Id == id && !n.IsDeleted);
 
         if (nasDevice == null)
         {
