@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using Backend.Services;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/workspaces/{WorkspaceId}/radius/profiles")]
+[Route("api/radius/profiles")]
 public class RadiusProfileController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -27,9 +28,17 @@ public class RadiusProfileController : ControllerBase
         _logger = logger;
     }
 
+    private async Task<int?> GetCurrentWorkspaceIdAsync()
+    {
+        var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+        if (string.IsNullOrEmpty(userEmail)) return null;
+        
+        var user = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+        return user?.CurrentWorkspaceId;
+    }
+
     [HttpGet]
     public async Task<ActionResult<object>> GetProfiles(
-        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null,
@@ -37,8 +46,14 @@ public class RadiusProfileController : ControllerBase
         [FromQuery] string? sortField = null,
         [FromQuery] string? sortDirection = null)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var query = _context.RadiusProfiles
-            .Where(p => p.WorkspaceId == WorkspaceId && (includeDeleted || !p.IsDeleted));
+            .Where(p => p.WorkspaceId == workspaceId.Value && (includeDeleted || !p.IsDeleted));
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -64,7 +79,7 @@ public class RadiusProfileController : ControllerBase
                 .Select(p => new { 
                     Profile = p, 
                     UserCount = _context.RadiusUsers
-                        .Count(u => u.WorkspaceId == WorkspaceId && !u.IsDeleted && u.ProfileId == p.Id)
+                        .Count(u => u.WorkspaceId == workspaceId.Value && !u.IsDeleted && u.ProfileId == p.Id)
                 })
                 .ToListAsync();
             
@@ -171,10 +186,16 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusProfileResponse>> GetProfile(int WorkspaceId, int id)
+    public async Task<ActionResult<RadiusProfileResponse>> GetProfile(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var profile = await _context.RadiusProfiles
-            .Where(p => p.Id == id && p.WorkspaceId == WorkspaceId)
+            .Where(p => p.Id == id && p.WorkspaceId == workspaceId.Value)
             .FirstOrDefaultAsync();
 
         if (profile == null)
@@ -184,14 +205,14 @@ public class RadiusProfileController : ControllerBase
 
         // Calculate actual user count
         var userCount = await _context.RadiusUsers
-            .CountAsync(u => u.WorkspaceId == WorkspaceId && 
+            .CountAsync(u => u.WorkspaceId == workspaceId.Value && 
                              !u.IsDeleted && 
                              u.ProfileId == profile.Id);
 
         // Get custom wallets linked to this profile
         var profileWallets = await _context.RadiusProfileWallets
             .Include(pw => pw.CustomWallet)
-            .Where(pw => pw.RadiusProfileId == profile.Id && pw.WorkspaceId == WorkspaceId)
+            .Where(pw => pw.RadiusProfileId == profile.Id && pw.WorkspaceId == workspaceId.Value)
             .Select(pw => new ProfileWalletConfig
             {
                 CustomWalletId = pw.CustomWalletId,
@@ -231,12 +252,18 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<RadiusProfileResponse>> CreateProfile(int WorkspaceId, [FromBody] CreateProfileRequest request)
+    public async Task<ActionResult<RadiusProfileResponse>> CreateProfile([FromBody] CreateProfileRequest request)
     {
-        var workspace = await _masterContext.Workspaces.FindAsync(WorkspaceId);
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
+        var workspace = await _masterContext.Workspaces.FindAsync(workspaceId.Value);
         if (workspace == null)
         {
-            return NotFound($"Workspace with ID {WorkspaceId} not found");
+            return NotFound($"Workspace with ID {workspaceId} not found");
         }
 
         var profile = new RadiusProfile
@@ -256,7 +283,7 @@ public class RadiusProfileController : ControllerBase
             SiteId = request.SiteId,
             Color = request.Color,
             Icon = request.Icon,
-            WorkspaceId = WorkspaceId,
+            WorkspaceId = workspaceId.Value,
             ExternalId = 0,
             OnlineUsersCount = 0,
             UsersCount = 0,
@@ -275,7 +302,7 @@ public class RadiusProfileController : ControllerBase
             {
                 var profileWallet = new RadiusProfileWallet
                 {
-                    WorkspaceId = WorkspaceId,
+                    WorkspaceId = workspaceId.Value,
                     RadiusProfileId = profile.Id,
                     CustomWalletId = wallet.CustomWalletId,
                     Amount = wallet.Amount,
@@ -286,7 +313,7 @@ public class RadiusProfileController : ControllerBase
             await _context.SaveChangesAsync();
         }
 
-        _logger.LogInformation("Created radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
+        _logger.LogInformation("Created radius profile {Name} for workspace {WorkspaceId}", profile.Name, workspaceId.Value);
 
         // Get wallet names for response
         var profileWallets = request.CustomWallets?.Select(w => new ProfileWalletConfig
@@ -327,10 +354,16 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProfile(int WorkspaceId, int id, [FromBody] UpdateProfileRequest request)
+    public async Task<IActionResult> UpdateProfile(int id, [FromBody] UpdateProfileRequest request)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value);
 
         if (profile == null)
         {
@@ -359,7 +392,7 @@ public class RadiusProfileController : ControllerBase
         {
             // Remove existing wallet links
             var existingWallets = await _context.RadiusProfileWallets
-                .Where(pw => pw.RadiusProfileId == id && pw.WorkspaceId == WorkspaceId)
+                .Where(pw => pw.RadiusProfileId == id && pw.WorkspaceId == workspaceId.Value)
                 .ToListAsync();
             _context.RadiusProfileWallets.RemoveRange(existingWallets);
 
@@ -368,7 +401,7 @@ public class RadiusProfileController : ControllerBase
             {
                 var profileWallet = new RadiusProfileWallet
                 {
-                    WorkspaceId = WorkspaceId,
+                    WorkspaceId = workspaceId.Value,
                     RadiusProfileId = profile.Id,
                     CustomWalletId = wallet.CustomWalletId,
                     Amount = wallet.Amount,
@@ -380,16 +413,22 @@ public class RadiusProfileController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Updated radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
+        _logger.LogInformation("Updated radius profile {Name} for workspace {WorkspaceId}", profile.Name, workspaceId.Value);
 
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProfile(int WorkspaceId, int id)
+    public async Task<IActionResult> DeleteProfile(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && !p.IsDeleted);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && !p.IsDeleted);
 
         if (profile == null)
         {
@@ -400,16 +439,22 @@ public class RadiusProfileController : ControllerBase
         profile.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Soft deleted radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
+        _logger.LogInformation("Soft deleted radius profile {Name} for workspace {WorkspaceId}", profile.Name, workspaceId.Value);
 
         return NoContent();
     }
 
     [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreProfile(int WorkspaceId, int id)
+    public async Task<IActionResult> RestoreProfile(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && p.IsDeleted);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.IsDeleted);
 
         if (profile == null)
         {

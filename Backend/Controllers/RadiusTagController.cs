@@ -2,28 +2,46 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using System.Security.Claims;
 
 namespace Backend.Controllers
 {
     [ApiController]
-    [Route("api/workspace/{workspaceId}/radius/tags")]
+    [Route("api/radius/tags")]
     public class RadiusTagController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly MasterDbContext _masterContext;
         private readonly ILogger<RadiusTagController> _logger;
 
-        public RadiusTagController(ApplicationDbContext context, ILogger<RadiusTagController> logger)
+        public RadiusTagController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusTagController> logger)
         {
             _context = context;
+            _masterContext = masterContext;
             _logger = logger;
         }
 
-        // GET: api/workspace/{workspaceId}/radius/tags
+        private async Task<int?> GetCurrentWorkspaceIdAsync()
+        {
+            var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+            if (string.IsNullOrEmpty(userEmail)) return null;
+            
+            var user = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            return user?.CurrentWorkspaceId;
+        }
+
+        // GET: api/radius/tags
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetTags([FromRoute] int workspaceId, [FromQuery] bool includeDeleted = false)
+        public async Task<ActionResult<IEnumerable<object>>> GetTags([FromQuery] bool includeDeleted = false)
         {
             try
             {
+                var workspaceId = await GetCurrentWorkspaceIdAsync();
+                if (workspaceId == null)
+                {
+                    return Unauthorized(new { message = "User workspace not found" });
+                }
+
                 var query = _context.RadiusTags.AsQueryable();
 
                 if (!includeDeleted)
@@ -58,9 +76,9 @@ namespace Backend.Controllers
             }
         }
 
-        // GET: api/workspace/{workspaceId}/radius/tags/{id}
+        // GET: api/radius/tags/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<object>> GetTag([FromRoute] int workspaceId, int id)
+        public async Task<ActionResult<object>> GetTag(int id)
         {
             try
             {
@@ -95,9 +113,9 @@ namespace Backend.Controllers
             }
         }
 
-        // POST: api/workspace/{workspaceId}/radius/tags
+        // POST: api/radius/tags
         [HttpPost]
-        public async Task<ActionResult<object>> CreateTag([FromRoute] int workspaceId, [FromBody] CreateRadiusTagRequest request)
+        public async Task<ActionResult<object>> CreateTag([FromBody] CreateRadiusTagRequest request)
         {
             try
             {
@@ -121,7 +139,7 @@ namespace Backend.Controllers
                 _context.RadiusTags.Add(tag);
                 await _context.SaveChangesAsync();
 
-                return CreatedAtAction(nameof(GetTag), new { workspaceId, id = tag.Id }, new
+                return CreatedAtAction(nameof(GetTag), new { id = tag.Id }, new
                 {
                     tag.Id,
                     tag.Title,
@@ -139,9 +157,9 @@ namespace Backend.Controllers
             }
         }
 
-        // PUT: api/workspace/{workspaceId}/radius/tags/{id}
+        // PUT: api/radius/tags/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTag([FromRoute] int workspaceId, int id, [FromBody] UpdateRadiusTagRequest request)
+        public async Task<IActionResult> UpdateTag(int id, [FromBody] UpdateRadiusTagRequest request)
         {
             try
             {
@@ -186,9 +204,9 @@ namespace Backend.Controllers
             }
         }
 
-        // DELETE: api/workspace/{workspaceId}/radius/tags/{id} (Soft delete)
+        // DELETE: api/radius/tags/{id} (Soft delete)
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTag([FromRoute] int workspaceId, int id)
+        public async Task<IActionResult> DeleteTag(int id)
         {
             try
             {
@@ -210,9 +228,9 @@ namespace Backend.Controllers
             }
         }
 
-        // POST: api/workspace/{workspaceId}/radius/tags/{id}/restore
+        // POST: api/radius/tags/{id}/restore
         [HttpPost("{id}/restore")]
-        public async Task<IActionResult> RestoreTag([FromRoute] int workspaceId, int id)
+        public async Task<IActionResult> RestoreTag(int id)
         {
             try
             {
@@ -235,9 +253,9 @@ namespace Backend.Controllers
             }
         }
 
-        // GET: api/workspace/{workspaceId}/radius/tags/{id}/users
+        // GET: api/radius/tags/{id}/users
         [HttpGet("{id}/users")]
-        public async Task<ActionResult<IEnumerable<object>>> GetTagUsers([FromRoute] int workspaceId, int id)
+        public async Task<ActionResult<IEnumerable<object>>> GetTagUsers(int id)
         {
             try
             {
