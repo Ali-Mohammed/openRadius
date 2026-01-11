@@ -55,27 +55,27 @@ const getNavData = (workspaceId: number) => ({
         },
         {
           titleKey: "navigation.profiles",
-          url: `/workspace/${workspaceId}/radius/profiles`,
+          url: `/radius/profiles`,
           icon: CircleUser,
         },
         {
           titleKey: "navigation.groups",
-          url: `/workspace/${workspaceId}/radius/groups`,
+          url: `/radius/groups`,
           icon: UsersRound,
         },
         {
           titleKey: "navigation.tags",
-          url: `/workspace/${workspaceId}/radius/tags`,
+          url: `/radius/tags`,
           icon: Tag,
         },
         {
           titleKey: "navigation.nas",
-          url: `/workspace/${workspaceId}/radius/nas`,
+          url: `/radius/nas`,
           icon: Server,
         },
         {
           titleKey: "navigation.ipPools",
-          url: `/workspace/${workspaceId}/radius/ip-pools`,
+          url: `/radius/ip-pools`,
           icon: Network,
         },
       ],
