@@ -42,6 +42,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionComment> TransactionComments { get; set; }
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
+    public DbSet<Automation> Automations { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
     public DbSet<BillingProfile> BillingProfiles { get; set; }
     public DbSet<BillingProfileWallet> BillingProfileWallets { get; set; }
