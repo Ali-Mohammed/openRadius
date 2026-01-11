@@ -231,19 +231,6 @@ export default function RadiusUsers() {
     },
   })
 
-  const syncMutation = useMutation({
-    mutationFn: () => radiusUserApi.sync(WORKSPACE_ID),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', WORKSPACE_ID] })
-      toast.success(
-        `Synced ${response.totalUsers} users (${response.newUsers} created, ${response.updatedUsers} updated)`
-      )
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error) || 'Failed to sync users')
-    },
-  })
-
   // Handlers
   const handleOpenDialog = (user?: RadiusUser) => {
     if (user) {
@@ -426,10 +413,6 @@ export default function RadiusUsers() {
     return pages
   }, [])
 
-  const handleSync = () => {
-    syncMutation.mutate()
-  }
-
   const handleExportCsv = async () => {
     setIsExporting(true)
     try {
@@ -522,10 +505,6 @@ export default function RadiusUsers() {
           </Button>
           {!showTrash && (
             <>
-              <Button onClick={handleSync} variant="outline" disabled={syncMutation.isPending}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-                {t('radiusUsers.syncUsers')}
-              </Button>
               <Button onClick={() => handleOpenDialog()}>
                 <Plus className="h-4 w-4 mr-2" />
                 {t('radiusUsers.addUser')}
