@@ -152,6 +152,11 @@ const getNavData = (workspaceId: number) => ({
           url: `/billing/zones`,
           icon: MapPin,
         },
+        {
+          titleKey: "navigation.automations",
+          url: "/billing/automations",
+          icon: Zap,
+        },
       ],
     },
     {
