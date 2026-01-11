@@ -26,8 +26,6 @@ import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/ic
 
 export default function RadiusGroups() {
   const { t } = useTranslation()
-  const { id } = useParams<{ id: string }>()
-  const workspaceId = parseInt(id || '0')
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -90,7 +88,6 @@ export default function RadiusGroups() {
     queryFn: () => showTrash
       ? radiusGroupApi.getTrash(currentPage, pageSize)
       : radiusGroupApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
-    enabled: workspaceId > 0,
   })
 
   const groups = useMemo(() => groupsData?.data || [], [groupsData?.data])
@@ -295,7 +292,7 @@ export default function RadiusGroups() {
   }
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['radius-groups', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['radius-groups'] })
   }
 
   // Toggle all columns

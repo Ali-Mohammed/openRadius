@@ -38,9 +38,6 @@ public class RadiusIpPool
     [Column("deleted_at")]
     public DateTime? DeletedAt { get; set; }
 
-    [Column("workspace_id")]
-    public int WorkspaceId { get; set; }
-
     [NotMapped]
     public bool IsDeleted => DeletedAt.HasValue;
 }

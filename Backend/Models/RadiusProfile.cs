@@ -118,7 +118,6 @@ public class RadiusProfile
     public int UsersCount { get; set; }
     public string Color { get; set; } = "#3b82f6";
     public string Icon { get; set; } = "Package";
-    public int WorkspaceId { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; }

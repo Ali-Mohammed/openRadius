@@ -40,14 +40,22 @@ public class RadiusGroupController : ControllerBase
         [FromQuery] string? sortDirection = "asc",
         [FromQuery] bool includeDeleted = false)
     {
+        _logger.LogInformation("GetGroups called: page={Page}, pageSize={PageSize}, search={Search}", page, pageSize, search);
+        
         var workspaceId = await GetCurrentWorkspaceIdAsync();
         if (workspaceId == null)
         {
+            _logger.LogWarning("User workspace not found for GetGroups");
             return Unauthorized(new { message = "User workspace not found" });
         }
 
+        _logger.LogInformation("Querying groups for workspace");
+        
         var query = _context.RadiusGroups
-            .Where(g => g.WorkspaceId == workspaceId.Value && (includeDeleted || !g.IsDeleted));
+            .Where(g => includeDeleted || !g.IsDeleted);
+        
+        var totalInWorkspace = await _context.RadiusGroups.CountAsync();
+        _logger.LogInformation("Total groups in workspace: {Total}", totalInWorkspace);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -234,7 +242,6 @@ public class RadiusGroupController : ControllerBase
                 IsActive = request.IsActive,
                 Color = request.Color ?? "#3b82f6",
                 Icon = request.Icon ?? "Users",
-                WorkspaceId = workspaceId.Value,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -276,7 +283,7 @@ public class RadiusGroupController : ControllerBase
         }
 
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && !g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && !g.IsDeleted);
 
         if (group == null)
         {
@@ -324,7 +331,7 @@ public class RadiusGroupController : ControllerBase
         }
 
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && !g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && !g.IsDeleted);
 
         if (group == null)
         {
@@ -349,7 +356,7 @@ public class RadiusGroupController : ControllerBase
         }
 
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && g.IsDeleted);
 
         if (group == null)
         {
@@ -376,7 +383,7 @@ public class RadiusGroupController : ControllerBase
         }
 
         var query = _context.RadiusGroups
-            .Where(g => g.WorkspaceId == workspaceId.Value && g.IsDeleted);
+            .Where(g => g.IsDeleted);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);

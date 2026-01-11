@@ -16,9 +16,6 @@ public class RadiusGroup
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     
-    // Foreign Keys
-    public int WorkspaceId { get; set; }
-    
     // Timestamps
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

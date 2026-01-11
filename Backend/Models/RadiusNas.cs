@@ -150,11 +150,6 @@ namespace Backend.Models
         /// Timestamp when the record was soft deleted
         /// </summary>
         public DateTime? DeletedAt { get; set; }
-
-        /// <summary>
-        /// Foreign key to the workspace
-        /// </summary>
-        public int WorkspaceId { get; set; }
     }
 
     /// <summary>
