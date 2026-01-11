@@ -56,7 +56,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("BackupHistories");
+                    b.ToTable("BackupHistories", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Group", b =>
@@ -95,7 +95,7 @@ namespace Backend.Migrations.MasterDb
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Groups");
+                    b.ToTable("Groups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.OidcSettings", b =>
@@ -184,7 +184,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("OidcSettings");
+                    b.ToTable("OidcSettings", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Permission", b =>
@@ -222,7 +222,7 @@ namespace Backend.Migrations.MasterDb
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Role", b =>
@@ -261,7 +261,7 @@ namespace Backend.Migrations.MasterDb
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>
@@ -279,7 +279,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("RolePermissions");
+                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.User", b =>
@@ -340,7 +340,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasIndex("SupervisorId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserGroup", b =>
@@ -358,7 +358,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("UserGroups");
+                    b.ToTable("UserGroups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserRole", b =>
@@ -376,7 +376,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Workspace", b =>
@@ -445,7 +445,7 @@ namespace Backend.Migrations.MasterDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("Workspaces");
+                    b.ToTable("Workspaces", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>

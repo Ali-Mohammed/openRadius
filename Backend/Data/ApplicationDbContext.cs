@@ -48,6 +48,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BillingProfile> BillingProfiles { get; set; }
     public DbSet<BillingProfileWallet> BillingProfileWallets { get; set; }
     public DbSet<BillingProfileAddon> BillingProfileAddons { get; set; }
+    public DbSet<TablePreference> TablePreferences { get; set; }
     public DbSet<Zone> Zones { get; set; }
     public DbSet<UserZone> UserZones { get; set; }
     public DbSet<Dashboard> Dashboards { get; set; }
@@ -342,6 +343,14 @@ public class ApplicationDbContext : DbContext
                   .WithMany(z => z.UserZones)
                   .HasForeignKey(e => e.ZoneId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TablePreference>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.TableName).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => new { e.UserId, e.WorkspaceId, e.TableName }).IsUnique();
         });
     }
 }

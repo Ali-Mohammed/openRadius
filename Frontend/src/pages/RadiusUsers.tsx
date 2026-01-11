@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 
 export default function RadiusUsers() {
   const { t, i18n } = useTranslation()
@@ -228,6 +229,71 @@ export default function RadiusUsers() {
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const tags = useMemo(() => tagsData || [], [tagsData])
   const zones = useMemo(() => zonesData || [], [zonesData])
+
+  // Track if preferences have been loaded
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!currentWorkspaceId) return
+
+      try {
+        const preferences = await tablePreferenceApi.getPreference('radius-users', currentWorkspaceId)
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths(JSON.parse(preferences.columnWidths))
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility(JSON.parse(preferences.columnVisibility))
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
+          }
+        }
+      } catch (error) {
+        // Silently fail if preferences don't exist
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [currentWorkspaceId])
+
+  // Auto-save preferences when they change (but not on initial load)
+  useEffect(() => {
+    if (!preferencesLoaded) return // Don't save until preferences are loaded
+
+    const savePreferences = async () => {
+      if (!currentWorkspaceId) return
+
+      try {
+        await tablePreferenceApi.savePreference({
+          workspaceId: currentWorkspaceId,
+          tableName: 'radius-users',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+        console.log('Table preferences saved successfully')
+      } catch (error) {
+        // Silently fail - don't show error to user for preference saves
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    // Debounce the save to avoid too many API calls
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId, preferencesLoaded])
 
   // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
