@@ -51,8 +51,9 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { getAutomationById, updateAutomation } from '../api/automations';
+import { workflowHistoryApi } from '../api/workflowHistory';
 
 
 const nodeTypes = {
@@ -95,7 +96,6 @@ const COMMENT_TYPES = [
 
 export default function WorkflowDesigner() {
   const { automationId } = useParams<{ automationId: string }>();
-  const queryClient = useQueryClient();
   const isLoadingFromServer = useRef(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -106,14 +106,33 @@ export default function WorkflowDesigner() {
     show: boolean;
     item: any;
   }>({ show: false, item: null });
-  const [history, setHistory] = useState<Array<{
-    id: number;
-    timestamp: Date;
-    nodes: any[];
-    edges: any[];
-    nodeCount: number;
-    edgeCount: number;
-  }>>([]);
+
+  // Load history from backend
+  const { data: history = [], refetch: refetchHistory, isError: historyError, error: historyErrorData } = useQuery({
+    queryKey: ['workflowHistory', automationId],
+    queryFn: async () => {
+      console.log('Fetching history for automation:', automationId);
+      const data = await workflowHistoryApi.getHistoryByAutomation(parseInt(automationId!), 50);
+      console.log('History loaded:', data);
+      return data;
+    },
+    enabled: !!automationId && showHistory,
+  });
+
+  // Refetch history when panel opens
+  React.useEffect(() => {
+    if (showHistory) {
+      console.log('History panel opened, refetching...');
+      refetchHistory();
+    }
+  }, [showHistory, refetchHistory]);
+
+  // Log history errors
+  React.useEffect(() => {
+    if (historyError) {
+      console.error('History query error:', historyErrorData);
+    }
+  }, [historyError, historyErrorData]);
 
   const { data: automation, isLoading } = useQuery({
     queryKey: ['automation', automationId],
@@ -153,25 +172,40 @@ export default function WorkflowDesigner() {
     }
   }, [automation, reactFlowInstance, setNodes, setEdges]);
 
+  // Mutation to save history to backend
+  const saveHistoryMutation = useMutation({
+    mutationFn: (data: { workflowJson: string; nodeCount: number; edgeCount: number }) => {
+      console.log('Saving to history:', data);
+      return workflowHistoryApi.createHistory({
+        automationId: parseInt(automationId!),
+        ...data,
+      });
+    },
+    onSuccess: (data) => {
+      console.log('History saved successfully:', data);
+      refetchHistory();
+    },
+    onError: (error) => {
+      console.error('Error saving history:', error);
+    },
+  });
+
   // Auto-save to history when nodes or edges change
   React.useEffect(() => {
     if ((nodes.length > 0 || edges.length > 0) && automation && !isLoadingFromServer.current) {
       const timer = setTimeout(() => {
-        setHistory(prev => [
-          {
-            id: Date.now(),
-            timestamp: new Date(),
-            nodes: JSON.parse(JSON.stringify(nodes)),
-            edges: JSON.parse(JSON.stringify(edges)),
-            nodeCount: nodes.length,
-            edgeCount: edges.length,
-          },
-          ...prev.slice(0, 49) // Keep last 50 versions
-        ]);
-      }, 1000); // Debounce 1 second
+        console.log('Auto-saving history after 2s debounce');
+        const workflowJson = JSON.stringify({ nodes, edges });
+        saveHistoryMutation.mutate({
+          workflowJson,
+          nodeCount: nodes.length,
+          edgeCount: edges.length,
+        });
+      }, 2000); // Debounce 2 seconds for backend saves
       
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges, automation]);
 
   const saveMutation = useMutation({
@@ -284,11 +318,17 @@ export default function WorkflowDesigner() {
 
   const confirmRestore = useCallback(() => {
     if (restoreConfirm.item) {
-      setNodes(restoreConfirm.item.nodes);
-      setEdges(restoreConfirm.item.edges);
-      setShowHistory(false);
-      setRestoreConfirm({ show: false, item: null });
-      toast.success('Workflow restored from history');
+      try {
+        const workflow = JSON.parse(restoreConfirm.item.workflowJson);
+        setNodes(workflow.nodes || []);
+        setEdges(workflow.edges || []);
+        setShowHistory(false);
+        setRestoreConfirm({ show: false, item: null });
+        toast.success('Workflow restored from history');
+      } catch (error) {
+        console.error('Error parsing workflow JSON:', error);
+        toast.error('Failed to restore workflow');
+      }
     }
   }, [restoreConfirm.item, setNodes, setEdges]);
 
@@ -311,7 +351,7 @@ export default function WorkflowDesigner() {
                     {[1, 2].map((j) => (
                       <div key={j} className="border border-gray-200 rounded p-2 animate-pulse">
                         <div className="flex items-start gap-2">
-                          <div className="h-5 w-5 bg-gray-200 rounded flex-shrink-0"></div>
+                          <div className="h-5 w-5 bg-gray-200 rounded shrink-0"></div>
                           <div className="flex-1">
                             <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
                             <div className="h-2 bg-gray-200 rounded w-full"></div>
@@ -661,12 +701,12 @@ export default function WorkflowDesigner() {
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-semibold text-gray-700">
-                            {new Date(item.timestamp).toLocaleTimeString()}
+                            {new Date(item.createdAt).toLocaleTimeString()}
                           </span>
                           <RotateCcw className="h-3.5 w-3.5 text-gray-400 group-hover:text-blue-600" />
                         </div>
                         <div className="text-xs text-gray-600">
-                          {new Date(item.timestamp).toLocaleDateString()}
+                          {new Date(item.createdAt).toLocaleDateString()}
                         </div>
                         <div className="flex gap-3 mt-2 text-xs">
                           <span className="text-blue-600">{item.nodeCount} nodes</span>
@@ -740,7 +780,7 @@ export default function WorkflowDesigner() {
               {restoreConfirm.item && (
                 <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-1">
                   <div className="text-sm font-medium text-gray-900">
-                    {new Date(restoreConfirm.item.timestamp).toLocaleString()}
+                    {new Date(restoreConfirm.item.createdAt).toLocaleString()}
                   </div>
                   <div className="text-xs text-gray-600">
                     {restoreConfirm.item.nodeCount} nodes, {restoreConfirm.item.edgeCount} connections

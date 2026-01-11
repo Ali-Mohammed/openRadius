@@ -43,6 +43,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
     public DbSet<Automation> Automations { get; set; }
+    public DbSet<WorkflowHistory> WorkflowHistories { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
     public DbSet<BillingProfile> BillingProfiles { get; set; }
     public DbSet<BillingProfileWallet> BillingProfileWallets { get; set; }
