@@ -11,55 +11,49 @@ namespace Backend.Controllers;
 public class TablePreferenceController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public TablePreferenceController(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+    public TablePreferenceController(ApplicationDbContext context, MasterDbContext masterContext, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _masterContext = masterContext;
         _httpContextAccessor = httpContextAccessor;
     }
 
-    private string GetCurrentUserId()
+    private async Task<int> GetCurrentUserIdAsync()
     {
-        // Try multiple claim types in order of preference
-        var claims = _httpContextAccessor.HttpContext?.User?.Claims;
-        
-        // First try 'sub' (standard JWT subject claim)
-        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
-        
-        // Fallback to 'preferred_username' (Keycloak)
-        if (string.IsNullOrEmpty(userIdClaim))
-        {
-            userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("preferred_username")?.Value;
-        }
-        
-        // Fallback to email
-        if (string.IsNullOrEmpty(userIdClaim))
-        {
-            userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
-        }
+        // Get email from claims
+        var email = _httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
         
         // Fallback to name claim
-        if (string.IsNullOrEmpty(userIdClaim))
+        if (string.IsNullOrEmpty(email))
         {
-            userIdClaim = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
+            email = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
         }
         
-        if (string.IsNullOrEmpty(userIdClaim))
+        if (string.IsNullOrEmpty(email))
         {
-            throw new UnauthorizedAccessException("User ID not found in claims");
+            throw new UnauthorizedAccessException("User email not found in claims");
         }
         
-        return userIdClaim;
+        // Get user ID from database
+        var user = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("User not found in database");
+        }
+        
+        return user.Id;
     }
 
     [HttpGet("{tableName}")]
-    public async Task<ActionResult<TablePreference>> GetPreference(string tableName, [FromQuery] int workspaceId)
+    public async Task<ActionResult<TablePreference>> GetPreference(string tableName)
     {
-        var userId = GetCurrentUserId();
+        var userId = await GetCurrentUserIdAsync();
 
         var preference = await _context.TablePreferences
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.WorkspaceId == workspaceId && p.TableName == tableName);
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.TableName == tableName);
 
         if (preference == null)
         {
@@ -72,10 +66,10 @@ public class TablePreferenceController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<TablePreference>> SavePreference([FromBody] TablePreferenceDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId = await GetCurrentUserIdAsync();
 
         var existing = await _context.TablePreferences
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.WorkspaceId == dto.WorkspaceId && p.TableName == dto.TableName);
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.TableName == dto.TableName);
 
         if (existing != null)
         {
@@ -96,7 +90,6 @@ public class TablePreferenceController : ControllerBase
             var preference = new TablePreference
             {
                 UserId = userId,
-                WorkspaceId = dto.WorkspaceId,
                 TableName = dto.TableName,
                 ColumnWidths = dto.ColumnWidths,
                 ColumnOrder = dto.ColumnOrder,
@@ -110,17 +103,17 @@ public class TablePreferenceController : ControllerBase
             _context.TablePreferences.Add(preference);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetPreference), new { tableName = preference.TableName, workspaceId = preference.WorkspaceId }, preference);
+            return CreatedAtAction(nameof(GetPreference), new { tableName = preference.TableName }, preference);
         }
     }
 
     [HttpDelete("{tableName}")]
-    public async Task<IActionResult> DeletePreference(string tableName, [FromQuery] int workspaceId)
+    public async Task<IActionResult> DeletePreference(string tableName)
     {
-        var userId = GetCurrentUserId();
+        var userId = await GetCurrentUserIdAsync();
 
         var preference = await _context.TablePreferences
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.WorkspaceId == workspaceId && p.TableName == tableName);
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.TableName == tableName);
 
         if (preference == null)
         {
@@ -136,7 +129,6 @@ public class TablePreferenceController : ControllerBase
 
 public class TablePreferenceDto
 {
-    public int WorkspaceId { get; set; }
     public string TableName { get; set; } = string.Empty;
     public string? ColumnWidths { get; set; }
     public string? ColumnOrder { get; set; }

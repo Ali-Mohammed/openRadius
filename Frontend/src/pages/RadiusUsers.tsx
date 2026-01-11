@@ -236,10 +236,8 @@ export default function RadiusUsers() {
   // Load table preferences on mount
   useEffect(() => {
     const loadPreferences = async () => {
-      if (!currentWorkspaceId) return
-
       try {
-        const preferences = await tablePreferenceApi.getPreference('radius-users', currentWorkspaceId)
+        const preferences = await tablePreferenceApi.getPreference('radius-users')
         if (preferences) {
           if (preferences.columnWidths) {
             setColumnWidths(JSON.parse(preferences.columnWidths))
@@ -264,18 +262,15 @@ export default function RadiusUsers() {
     }
 
     loadPreferences()
-  }, [currentWorkspaceId])
+  }, [])
 
   // Auto-save preferences when they change (but not on initial load)
   useEffect(() => {
     if (!preferencesLoaded) return // Don't save until preferences are loaded
 
     const savePreferences = async () => {
-      if (!currentWorkspaceId) return
-
       try {
         await tablePreferenceApi.savePreference({
-          workspaceId: currentWorkspaceId,
           tableName: 'radius-users',
           columnWidths: JSON.stringify(columnWidths),
           columnOrder: JSON.stringify(columnOrder),

@@ -348,9 +348,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<TablePreference>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.UserId).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.UserId).IsRequired();
             entity.Property(e => e.TableName).IsRequired().HasMaxLength(100);
-            entity.HasIndex(e => new { e.UserId, e.WorkspaceId, e.TableName }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.TableName }).IsUnique();
         });
     }
 }

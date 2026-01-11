@@ -3,8 +3,7 @@ namespace Backend.Models
     public class TablePreference
     {
         public int Id { get; set; }
-        public string UserId { get; set; } = string.Empty;
-        public int WorkspaceId { get; set; }
+        public int UserId { get; set; }
         public string TableName { get; set; } = string.Empty;
         public string? ColumnWidths { get; set; } // JSON
         public string? ColumnOrder { get; set; } // JSON

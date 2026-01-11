@@ -2,8 +2,7 @@ import { apiClient } from '../lib/api'
 
 export interface TablePreference {
   id: number
-  userId: string
-  workspaceId: number
+  userId: number
   tableName: string
   columnWidths?: string
   columnOrder?: string
@@ -15,7 +14,6 @@ export interface TablePreference {
 }
 
 export interface SaveTablePreferenceDto {
-  workspaceId: number
   tableName: string
   columnWidths?: string
   columnOrder?: string
@@ -25,9 +23,9 @@ export interface SaveTablePreferenceDto {
 }
 
 export const tablePreferenceApi = {
-  getPreference: async (tableName: string, workspaceId: number): Promise<TablePreference | null> => {
+  getPreference: async (tableName: string): Promise<TablePreference | null> => {
     try {
-      const response = await apiClient.get(`/api/table-preferences/${tableName}?workspaceId=${workspaceId}`)
+      const response = await apiClient.get(`/api/table-preferences/${tableName}`)
       return response.data
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -42,7 +40,7 @@ export const tablePreferenceApi = {
     return response.data
   },
 
-  deletePreference: async (tableName: string, workspaceId: number): Promise<void> => {
-    await apiClient.delete(`/api/table-preferences/${tableName}?workspaceId=${workspaceId}`)
+  deletePreference: async (tableName: string): Promise<void> => {
+    await apiClient.delete(`/api/table-preferences/${tableName}`)
   },
 }
