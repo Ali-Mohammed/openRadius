@@ -113,6 +113,7 @@ export default function RadiusUsers() {
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [bulkRenewDialogOpen, setBulkRenewDialogOpen] = useState(false)
+  const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -293,6 +294,21 @@ export default function RadiusUsers() {
       setBulkRenewDialogOpen(false)
     } catch (error) {
       toast.error(formatApiError(error) || 'Failed to renew users')
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkRestore = async () => {
+    setBulkActionLoading(true)
+    try {
+      await Promise.all(selectedUserIds.map(id => radiusUserApi.restore(id)))
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+      toast.success(`Successfully restored ${selectedUserIds.length} user(s)`)
+      setSelectedUserIds([])
+      setBulkRestoreDialogOpen(false)
+    } catch (error) {
+      toast.error(formatApiError(error) || 'Failed to restore users')
     } finally {
       setBulkActionLoading(false)
     }
@@ -1131,16 +1147,43 @@ export default function RadiusUsers() {
             {selectedUserIds.length} user(s) selected
           </span>
           <div className="h-4 w-px bg-primary-foreground/20" />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => setBulkRenewDialogOpen(true)}
-            disabled={bulkActionLoading}
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Renew
-          </Button>
+          
+          {showTrash ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setBulkRestoreDialogOpen(true)}
+              disabled={bulkActionLoading}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restore
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => setBulkRenewDialogOpen(true)}
+                disabled={bulkActionLoading}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Renew
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                disabled={bulkActionLoading}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </>
+          )}
+          
           <Button
             variant="ghost"
             size="sm"
