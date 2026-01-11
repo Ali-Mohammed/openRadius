@@ -1272,6 +1272,26 @@ export default function RadiusUsers() {
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" title="Table settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleResetColumns}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Columns
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
             <Plus className="h-4 w-4 mr-2" />
