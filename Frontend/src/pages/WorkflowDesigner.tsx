@@ -17,6 +17,16 @@ import { ActionNode } from '../components/workflow/ActionNode';
 import { ConditionNode } from '../components/workflow/ConditionNode';
 import { CommentNode } from '../components/workflow/CommentNode';
 import { Button } from '../components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { 
   Save, 
   Play,
@@ -91,6 +101,10 @@ export default function WorkflowDesigner() {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [restoreConfirm, setRestoreConfirm] = useState<{
+    show: boolean;
+    item: any;
+  }>({ show: false, item: null });
   const [history, setHistory] = useState<Array<{
     id: number;
     timestamp: Date;
@@ -259,11 +273,18 @@ export default function WorkflowDesigner() {
   };
 
   const restoreFromHistory = useCallback((historyItem: any) => {
-    setNodes(historyItem.nodes);
-    setEdges(historyItem.edges);
-    setShowHistory(false);
-    toast.success('Workflow restored from history');
-  }, [setNodes, setEdges]);
+    setRestoreConfirm({ show: true, item: historyItem });
+  }, []);
+
+  const confirmRestore = useCallback(() => {
+    if (restoreConfirm.item) {
+      setNodes(restoreConfirm.item.nodes);
+      setEdges(restoreConfirm.item.edges);
+      setShowHistory(false);
+      setRestoreConfirm({ show: false, item: null });
+      toast.success('Workflow restored from history');
+    }
+  }, [restoreConfirm.item, setNodes, setEdges]);
 
   if (isLoading) {
     return (
@@ -617,7 +638,7 @@ export default function WorkflowDesigner() {
           {/* History Toggle Button */}
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="absolute top-4 right-4 z-40 bg-white border shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50"
+            className="absolute top-4 left-60 z-40 bg-white border shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50"
             title="Version History"
           >
             <History className="h-4 w-4 text-gray-700" />
@@ -661,6 +682,35 @@ export default function WorkflowDesigner() {
           </div>
         </div>
       </div>
+      
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={restoreConfirm.show} onOpenChange={(open) => !open && setRestoreConfirm({ show: false, item: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Workflow Version?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace your current workflow with the selected version from history.
+              {restoreConfirm.item && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-1">
+                  <div className="text-sm font-medium text-gray-900">
+                    {new Date(restoreConfirm.item.timestamp).toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {restoreConfirm.item.nodeCount} nodes, {restoreConfirm.item.edgeCount} connections
+                  </div>
+                </div>
+              )}
+              <div className="mt-3 text-amber-600 font-medium">
+                Any unsaved changes will be lost.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestore}>Restore Version</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
