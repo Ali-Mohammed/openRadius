@@ -44,18 +44,6 @@ const getNavData = (workspaceId: number) => ({
       items: [], // Will be populated with actual dashboards
     },
     {
-      titleKey: "navigation.integration",
-      url: "#",
-      icon: Plug,
-      items: [
-        {
-          titleKey: "navigation.sasRadius",
-          url: "/integration/sas-radius",
-          icon: Radio,
-        },
-      ],
-    },
-    {
       titleKey: "navigation.radius",
       url: "#",
       icon: LayoutDashboard,
@@ -224,12 +212,12 @@ const getNavData = (workspaceId: number) => ({
       ],
     },
     {
-      titleKey: "navigation.workspace",
+      titleKey: "navigation.appSetting",
       url: "#",
-      icon: Building2,
+      icon: SlidersHorizontal,
       items: [
         {
-          titleKey: "navigation.view",
+          titleKey: "navigation.workspace",
           url: "/workspace/view",
           icon: Eye,
         },
@@ -238,13 +226,6 @@ const getNavData = (workspaceId: number) => ({
           url: "/workspace/setting",
           icon: Wrench,
         },
-      ],
-    },
-    {
-      titleKey: "navigation.appSetting",
-      url: "#",
-      icon: SlidersHorizontal,
-      items: [
         {
           titleKey: "navigation.general",
           url: `/workspace/${workspaceId}/settings/general`,
@@ -259,6 +240,11 @@ const getNavData = (workspaceId: number) => ({
           titleKey: "navigation.databaseBackup",
           url: "/settings/database-backup",
           icon: Database,
+        },
+        {
+          titleKey: "navigation.sasRadius",
+          url: "/integration/sas-radius",
+          icon: Radio,
         },
       ],
     },
