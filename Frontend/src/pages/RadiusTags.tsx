@@ -28,7 +28,6 @@ interface RadiusTag {
 }
 
 export default function RadiusTags() {
-  const { id: workspaceId } = useParams()
   const queryClient = useQueryClient()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -41,20 +40,15 @@ export default function RadiusTags() {
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
 
   const { data: tags = [], isLoading } = useQuery({
-    queryKey: ['radiusTags', workspaceId],
-    queryFn: async () => {
-      const response = await apiClient.get(`/api/workspace/${workspaceId}/radius/tags`)
-      return response.data
-    },
+    queryKey: ['radiusTags'],
+    queryFn: () => radiusTagApi.getAll(false),
   })
 
   const createTagMutation = useMutation({
-    mutationFn: async (data: { title: string; description?: string; status: string; color: string; icon?: string }) => {
-      const response = await apiClient.post(`/api/workspace/${workspaceId}/radius/tags`, data)
-      return response.data
-    },
+    mutationFn: (data: { title: string; description?: string; status: string; color: string; icon?: string }) =>
+      radiusTagApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radiusTags', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radiusTags'] })
       setShowCreateDialog(false)
       resetForm()
       toast.success('Tag created successfully')
@@ -65,12 +59,10 @@ export default function RadiusTags() {
   })
 
   const updateTagMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await apiClient.put(`/api/workspace/${workspaceId}/radius/tags/${id}`, data)
-      return response.data
-    },
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      radiusTagApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radiusTags', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radiusTags'] })
       setShowEditDialog(false)
       setEditingTag(null)
       resetForm()
@@ -82,12 +74,9 @@ export default function RadiusTags() {
   })
 
   const deleteTagMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiClient.delete(`/api/workspace/${workspaceId}/radius/tags/${id}`)
-      return response.data
-    },
+    mutationFn: (id: number) => radiusTagApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radiusTags', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radiusTags'] })
       toast.success('Tag deleted successfully')
     },
     onError: (error: any) => {
@@ -96,12 +85,9 @@ export default function RadiusTags() {
   })
 
   const restoreTagMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiClient.post(`/api/workspace/${workspaceId}/radius/tags/${id}/restore`)
-      return response.data
-    },
+    mutationFn: (id: number) => radiusTagApi.restore(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radiusTags', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radiusTags'] })
       toast.success('Tag restored successfully')
     },
     onError: (error: any) => {
