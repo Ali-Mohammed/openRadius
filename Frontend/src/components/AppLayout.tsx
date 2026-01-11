@@ -96,6 +96,17 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Wrench }
     if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Key }
     if (location.pathname === '/settings/database-backup') return { parent: null, current: 'Database Backup', icon: Database }
+    if (location.pathname.includes('/billing/automations')) {
+      // Check if it's the workflow designer page
+      if (location.pathname.match(/\/billing\/automations\/\d+\/design/)) {
+        return { 
+          parent: { title: 'Automations', href: '/billing/automations', icon: Settings }, 
+          current: 'Workflow Designer', 
+          icon: Settings 
+        }
+      }
+      return { parent: null, current: 'Automations', icon: Settings }
+    }
     return { parent: null, current: 'Dashboard', icon: Home }
   }
 

@@ -16,7 +16,27 @@ import { TriggerNode } from '../components/workflow/TriggerNode';
 import { ActionNode } from '../components/workflow/ActionNode';
 import { ConditionNode } from '../components/workflow/ConditionNode';
 import { Button } from '../components/ui/button';
-import { ChevronRight, Save, Play } from 'lucide-react';
+import { 
+  ChevronRight, 
+  Save, 
+  Play,
+  UserPlus,
+  UserCog,
+  Clock,
+  UserX,
+  CreditCard,
+  Trash2,
+  Mail,
+  Bell,
+  Wallet,
+  WalletCards,
+  UserMinus,
+  Percent,
+  FileEdit,
+  Scale,
+  CheckCircle,
+  Calendar
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAutomationById, updateAutomation } from '../api/automations';
@@ -36,28 +56,28 @@ const nodeTypes = {
 };
 
 const TRIGGER_TYPES = [
-  { value: 'user-created', label: 'User Created', description: 'When a new user is created' },
-  { value: 'user-updated', label: 'User Updated', description: 'When user profile is updated' },
-  { value: 'user-expired', label: 'User Expired', description: 'When user subscription expires' },
-  { value: 'user-churned', label: 'User Churned', description: 'When user stops service' },
-  { value: 'payment-received', label: 'Payment Received', description: 'When payment is received' },
-  { value: 'user-deleted', label: 'User Deleted', description: 'When user is deleted' },
+  { value: 'user-created', label: 'User Created', description: 'When a new user is created', icon: UserPlus },
+  { value: 'user-updated', label: 'User Updated', description: 'When user profile is updated', icon: UserCog },
+  { value: 'user-expired', label: 'User Expired', description: 'When user subscription expires', icon: Clock },
+  { value: 'user-churned', label: 'User Churned', description: 'When user stops service', icon: UserX },
+  { value: 'payment-received', label: 'Payment Received', description: 'When payment is received', icon: CreditCard },
+  { value: 'user-deleted', label: 'User Deleted', description: 'When user is deleted', icon: Trash2 },
 ];
 
 const ACTION_TYPES = [
-  { value: 'send-email', label: 'Send Email', description: 'Send an email notification' },
-  { value: 'send-notification', label: 'Send Notification', description: 'Send in-app notification' },
-  { value: 'credit-wallet', label: 'Credit Wallet', description: 'Add credits to user wallet' },
-  { value: 'debit-wallet', label: 'Debit Wallet', description: 'Deduct credits from wallet' },
-  { value: 'suspend-user', label: 'Suspend User', description: 'Suspend user account' },
-  { value: 'apply-discount', label: 'Apply Discount', description: 'Apply a discount code' },
-  { value: 'update-profile', label: 'Update Profile', description: 'Update user profile fields' },
+  { value: 'send-email', label: 'Send Email', description: 'Send an email notification', icon: Mail },
+  { value: 'send-notification', label: 'Send Notification', description: 'Send in-app notification', icon: Bell },
+  { value: 'credit-wallet', label: 'Credit Wallet', description: 'Add credits to user wallet', icon: Wallet },
+  { value: 'debit-wallet', label: 'Debit Wallet', description: 'Deduct credits from wallet', icon: WalletCards },
+  { value: 'suspend-user', label: 'Suspend User', description: 'Suspend user account', icon: UserMinus },
+  { value: 'apply-discount', label: 'Apply Discount', description: 'Apply a discount code', icon: Percent },
+  { value: 'update-profile', label: 'Update Profile', description: 'Update user profile fields', icon: FileEdit },
 ];
 
 const CONDITION_TYPES = [
-  { value: 'balance-check', label: 'Check Balance', description: 'Check if balance meets condition' },
-  { value: 'user-status', label: 'User Status', description: 'Check user status' },
-  { value: 'date-check', label: 'Date Check', description: 'Check date conditions' },
+  { value: 'balance-check', label: 'Check Balance', description: 'Check if balance meets condition', icon: Scale },
+  { value: 'user-status', label: 'User Status', description: 'Check user status', icon: CheckCircle },
+  { value: 'date-check', label: 'Date Check', description: 'Check date conditions', icon: Calendar },
 ];
 
 export default function WorkflowDesigner() {
@@ -72,22 +92,48 @@ export default function WorkflowDesigner() {
     queryKey: ['automation', automationId],
     queryFn: () => getAutomationById(parseInt(automationId!)),
     enabled: !!automationId,
-    onSuccess: (data) => {
-      if (data.workflowJson) {
-        try {
-          const workflow = JSON.parse(data.workflowJson);
-          setNodes(workflow.nodes || []);
-          setEdges(workflow.edges || []);
-        } catch (error) {
-          console.error('Error parsing workflow JSON:', error);
-        }
-      }
-    },
   });
+
+  // Load workflow when automation data changes
+  React.useEffect(() => {
+    if (automation?.workflowJson) {
+      try {
+        const workflow = JSON.parse(automation.workflowJson);
+        console.log('Loading workflow from backend:', workflow);
+        
+        if (workflow.nodes && Array.isArray(workflow.nodes)) {
+          setNodes(workflow.nodes);
+        }
+        if (workflow.edges && Array.isArray(workflow.edges)) {
+          setEdges(workflow.edges);
+        }
+        
+        // Restore viewport if saved and reactFlowInstance is ready
+        if (workflow.viewport && reactFlowInstance) {
+          setTimeout(() => {
+            reactFlowInstance.setViewport(workflow.viewport);
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Error parsing workflow JSON:', error);
+      }
+    }
+  }, [automation, reactFlowInstance, setNodes, setEdges]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const workflowJson = JSON.stringify({ nodes, edges });
+      const workflowJson = JSON.stringify({ 
+        nodes, 
+        edges,
+        viewport: reactFlowInstance?.getViewport() || { x: 0, y: 0, zoom: 1 }
+      });
+      
+      console.log('Saving workflow with data:', { 
+        nodeCount: nodes.length, 
+        edgeCount: edges.length,
+        workflowJson 
+      });
+      
       return updateAutomation(parseInt(automationId!), {
         title: automation!.title,
         description: automation!.description,
@@ -98,11 +144,13 @@ export default function WorkflowDesigner() {
         workflowJson,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Workflow saved successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['automation', automationId] });
       toast.success('Workflow saved successfully');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error saving workflow:', error);
       toast.error('Failed to save workflow');
     },
   });
@@ -152,6 +200,12 @@ export default function WorkflowDesigner() {
   };
 
   const handleSave = () => {
+    console.log('Save button clicked. Current state:', { 
+      nodeCount: nodes.length, 
+      edgeCount: edges.length,
+      nodes,
+      edges 
+    });
     saveMutation.mutate();
   };
 
@@ -169,37 +223,6 @@ export default function WorkflowDesigner() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-1.5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-1.5 text-sm">
-          <button
-            onClick={() => navigate('/billing/automations')}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Billing
-          </button>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          <button
-            onClick={() => navigate('/billing/automations')}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Automations
-          </button>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">Workflow Designer</span>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleTest} size="sm" className="h-7 text-xs">
-            <Play className="h-3 w-3 mr-1.5" />
-            Test
-          </Button>
-          <Button onClick={handleSave} size="sm" className="h-7 text-xs">
-            <Save className="h-3 w-3 mr-1.5" />
-            Save
-          </Button>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
@@ -217,7 +240,9 @@ export default function WorkflowDesigner() {
                 Triggers
               </h3>
               <div className="space-y-2">
-                {TRIGGER_TYPES.map((trigger) => (
+                {TRIGGER_TYPES.map((trigger) => {
+                  const Icon = trigger.icon;
+                  return (
                   <div
                     key={trigger.value}
                     draggable
@@ -230,10 +255,13 @@ export default function WorkflowDesigner() {
                     }
                     className="border-2 border-blue-200 bg-blue-50 rounded-lg p-3 cursor-move hover:border-blue-400 hover:shadow-md transition-all"
                   >
-                    <div className="font-medium text-sm text-blue-900">{trigger.label}</div>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-blue-600" />
+                      <div className="font-medium text-sm text-blue-900">{trigger.label}</div>
+                    </div>
                     <div className="text-xs text-blue-600 mt-1">{trigger.description}</div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
 
@@ -244,7 +272,9 @@ export default function WorkflowDesigner() {
                 Actions
               </h3>
               <div className="space-y-2">
-                {ACTION_TYPES.map((action) => (
+                {ACTION_TYPES.map((action) => {
+                  const Icon = action.icon;
+                  return (
                   <div
                     key={action.value}
                     draggable
@@ -257,10 +287,13 @@ export default function WorkflowDesigner() {
                     }
                     className="border-2 border-green-200 bg-green-50 rounded-lg p-3 cursor-move hover:border-green-400 hover:shadow-md transition-all"
                   >
-                    <div className="font-medium text-sm text-green-900">{action.label}</div>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-green-600" />
+                      <div className="font-medium text-sm text-green-900">{action.label}</div>
+                    </div>
                     <div className="text-xs text-green-600 mt-1">{action.description}</div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
 
@@ -271,7 +304,9 @@ export default function WorkflowDesigner() {
                 Conditions
               </h3>
               <div className="space-y-2">
-                {CONDITION_TYPES.map((condition) => (
+                {CONDITION_TYPES.map((condition) => {
+                  const Icon = condition.icon;
+                  return (
                   <div
                     key={condition.value}
                     draggable
@@ -284,10 +319,13 @@ export default function WorkflowDesigner() {
                     }
                     className="border-2 border-yellow-200 bg-yellow-50 rounded-lg p-3 cursor-move hover:border-yellow-400 hover:shadow-md transition-all"
                   >
-                    <div className="font-medium text-sm text-yellow-900">{condition.label}</div>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-yellow-600" />
+                      <div className="font-medium text-sm text-yellow-900">{condition.label}</div>
+                    </div>
                     <div className="text-xs text-yellow-600 mt-1">{condition.description}</div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </div>
@@ -315,7 +353,10 @@ export default function WorkflowDesigner() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
-            fitView
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            minZoom={0.2}
+            maxZoom={2}
+            fitView={false}
             className="bg-gray-50"
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
@@ -341,6 +382,43 @@ export default function WorkflowDesigner() {
               </div>
             </Panel>
           </ReactFlow>
+          
+          {/* Loading Indicator */}
+          {(isLoading || saveMutation.isPending) && (
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+              <div className="bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-gray-200 flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {isLoading ? 'Loading workflow...' : 'Saving...'}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* Floating Action Buttons */}
+          <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+            <Button 
+              variant="outline" 
+              onClick={handleTest} 
+              size="lg"
+              className="shadow-lg hover:shadow-xl transition-all bg-white"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Test
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              size="lg"
+              className="shadow-lg hover:shadow-xl transition-all"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </div>
         </div>
       </div>
     </div>
