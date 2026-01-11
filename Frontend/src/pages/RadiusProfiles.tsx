@@ -128,10 +128,10 @@ export default function RadiusProfiles() {
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, isFetching, error: profilesError } = useQuery({
-    queryKey: ['radius-profiles', workspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-profiles', currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash
-      ? radiusProfileApi.getTrash(workspaceId, currentPage, pageSize)
-      : radiusProfileApi.getAll(workspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection),
+      ? radiusProfileApi.getTrash(currentPage, pageSize)
+      : radiusProfileApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
     enabled: workspaceId > 0,
   })
 
@@ -191,9 +191,9 @@ export default function RadiusProfiles() {
 
   // Profile mutations
   const createProfileMutation = useMutation({
-    mutationFn: (data: any) => radiusProfileApi.create(workspaceId, data),
+    mutationFn: (data: any) => radiusProfileApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
       toast.success('Profile created successfully')
       handleCloseProfileDialog()
     },
@@ -204,9 +204,9 @@ export default function RadiusProfiles() {
 
   const updateProfileMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      radiusProfileApi.update(workspaceId, id, data),
+      radiusProfileApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
       toast.success('Profile updated successfully')
       handleCloseProfileDialog()
     },
@@ -216,9 +216,9 @@ export default function RadiusProfiles() {
   })
 
   const deleteProfileMutation = useMutation({
-    mutationFn: (id: number) => radiusProfileApi.delete(workspaceId, id),
+    mutationFn: (id: number) => radiusProfileApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
       toast.success('Profile deleted successfully')
     },
     onError: (error: any) => {
@@ -227,9 +227,9 @@ export default function RadiusProfiles() {
   })
 
   const restoreProfileMutation = useMutation({
-    mutationFn: (id: number) => radiusProfileApi.restore(workspaceId, id),
+    mutationFn: (id: number) => radiusProfileApi.restore(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
       toast.success('Profile restored successfully')
     },
     onError: (error: any) => {

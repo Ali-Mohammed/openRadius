@@ -86,10 +86,10 @@ export default function RadiusGroups() {
 
   // Group queries
   const { data: groupsData, isLoading: isLoadingGroups, isFetching, error: groupsError } = useQuery({
-    queryKey: ['radius-groups', workspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-groups', currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash
-      ? radiusGroupApi.getTrash(workspaceId, currentPage, pageSize)
-      : radiusGroupApi.getAll(workspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection),
+      ? radiusGroupApi.getTrash(currentPage, pageSize)
+      : radiusGroupApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
     enabled: workspaceId > 0,
   })
 
@@ -149,9 +149,9 @@ export default function RadiusGroups() {
 
   // Group mutations
   const createGroupMutation = useMutation({
-    mutationFn: (data: any) => radiusGroupApi.create(workspaceId, data),
+    mutationFn: (data: any) => radiusGroupApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-groups', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-groups'] })
       toast.success('Group created successfully')
       setIsGroupDialogOpen(false)
       resetForm()
@@ -164,9 +164,9 @@ export default function RadiusGroups() {
   })
 
   const updateGroupMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => radiusGroupApi.update(workspaceId, id, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => radiusGroupApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-groups', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-groups'] })
       toast.success('Group updated successfully')
       setIsGroupDialogOpen(false)
       setEditingGroup(null)
@@ -180,9 +180,9 @@ export default function RadiusGroups() {
   })
 
   const deleteGroupMutation = useMutation({
-    mutationFn: (id: number) => radiusGroupApi.delete(workspaceId, id),
+    mutationFn: (id: number) => radiusGroupApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-groups', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-groups'] })
       toast.success('Group deleted successfully')
       setDeleteDialogOpen(false)
       setGroupToDelete(null)
@@ -195,9 +195,9 @@ export default function RadiusGroups() {
   })
 
   const restoreGroupMutation = useMutation({
-    mutationFn: (id: number) => radiusGroupApi.restore(workspaceId, id),
+    mutationFn: (id: number) => radiusGroupApi.restore(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-groups', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-groups'] })
       toast.success('Group restored successfully')
       setRestoreDialogOpen(false)
       setGroupToRestore(null)

@@ -104,10 +104,10 @@ export default function RadiusNasPage() {
 
   // NAS queries
   const { data: nasData, isLoading, isFetching, error } = useQuery({
-    queryKey: ['radius-nas', workspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-nas', currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash
-      ? radiusNasApi.getTrash(workspaceId, currentPage, pageSize)
-      : radiusNasApi.getAll(workspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection),
+      ? radiusNasApi.getTrash(currentPage, pageSize)
+      : radiusNasApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
     enabled: workspaceId > 0,
   })
 
@@ -116,8 +116,8 @@ export default function RadiusNasPage() {
 
   // IP Pools query for dropdown
   const { data: ipPoolsData } = useQuery({
-    queryKey: ['radius-ip-pools-all', workspaceId],
-    queryFn: () => radiusIpPoolApi.getAll(workspaceId, 1, 200, '', '', 'asc', false),
+    queryKey: ['radius-ip-pools-all'],
+    queryFn: () => radiusIpPoolApi.getAll(1, 200, '', '', 'asc', false),
     enabled: workspaceId > 0,
   })
 
@@ -168,9 +168,9 @@ export default function RadiusNasPage() {
 
   // NAS mutations
   const createNasMutation = useMutation({
-    mutationFn: (data: any) => radiusNasApi.create(workspaceId, data),
+    mutationFn: (data: any) => radiusNasApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-nas'] })
       toast.success('NAS device created successfully')
       handleCloseNasDialog()
     },
@@ -181,9 +181,9 @@ export default function RadiusNasPage() {
 
   const updateNasMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      radiusNasApi.update(workspaceId, id, data),
+      radiusNasApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-nas'] })
       toast.success('NAS device updated successfully')
       handleCloseNasDialog()
     },
@@ -193,9 +193,9 @@ export default function RadiusNasPage() {
   })
 
   const deleteNasMutation = useMutation({
-    mutationFn: (id: number) => radiusNasApi.delete(workspaceId, id),
+    mutationFn: (id: number) => radiusNasApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-nas'] })
       toast.success('NAS device deleted successfully')
     },
     onError: (error: any) => {
@@ -204,9 +204,9 @@ export default function RadiusNasPage() {
   })
 
   const restoreNasMutation = useMutation({
-    mutationFn: (id: number) => radiusNasApi.restore(workspaceId, id),
+    mutationFn: (id: number) => radiusNasApi.restore(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-nas', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-nas'] })
       toast.success('NAS device restored successfully')
     },
     onError: (error: any) => {

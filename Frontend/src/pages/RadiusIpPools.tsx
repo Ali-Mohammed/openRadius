@@ -62,10 +62,10 @@ export default function RadiusIpPoolsPage() {
 
   // IP Pool queries
   const { data: poolData, isLoading, isFetching, error } = useQuery({
-    queryKey: ['radius-ip-pools', workspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-ip-pools', currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash
-      ? radiusIpPoolApi.getTrash(workspaceId, currentPage, pageSize)
-      : radiusIpPoolApi.getAll(workspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection),
+      ? radiusIpPoolApi.getTrash(currentPage, pageSize)
+      : radiusIpPoolApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
     enabled: workspaceId > 0,
   })
 
@@ -117,9 +117,9 @@ export default function RadiusIpPoolsPage() {
 
   // IP Pool mutations
   const createMutation = useMutation({
-    mutationFn: (data: any) => radiusIpPoolApi.create(workspaceId, data),
+    mutationFn: (data: any) => radiusIpPoolApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools'] })
       toast.success('IP Pool created successfully')
       handleCloseDialog()
     },
@@ -130,9 +130,9 @@ export default function RadiusIpPoolsPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      radiusIpPoolApi.update(workspaceId, id, data),
+      radiusIpPoolApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools'] })
       toast.success('IP Pool updated successfully')
       handleCloseDialog()
     },
@@ -142,9 +142,9 @@ export default function RadiusIpPoolsPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => radiusIpPoolApi.delete(workspaceId, id),
+    mutationFn: (id: number) => radiusIpPoolApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools'] })
       toast.success('IP Pool deleted successfully')
     },
     onError: (error: any) => {
@@ -153,9 +153,9 @@ export default function RadiusIpPoolsPage() {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: (id: number) => radiusIpPoolApi.restore(workspaceId, id),
+    mutationFn: (id: number) => radiusIpPoolApi.restore(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-pools'] })
       toast.success('IP Pool restored successfully')
     },
     onError: (error: any) => {
