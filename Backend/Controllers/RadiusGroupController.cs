@@ -214,41 +214,55 @@ public class RadiusGroupController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RadiusGroupResponse>> CreateGroup([FromBody] CreateGroupRequest request)
     {
-        var workspaceId = await GetCurrentWorkspaceIdAsync();
-        if (workspaceId == null)
+        try
         {
-            return Unauthorized(new { message = "User workspace not found" });
+            _logger.LogInformation("Creating group: {Name}, Subscription: {Subscription}", request.Name, request.Subscription);
+            
+            var workspaceId = await GetCurrentWorkspaceIdAsync();
+            if (workspaceId == null)
+            {
+                _logger.LogWarning("User workspace not found for group creation");
+                return Unauthorized(new { message = "User workspace not found" });
+            }
+
+            _logger.LogInformation("Creating group for workspace: {WorkspaceId}", workspaceId.Value);
+
+            var group = new RadiusGroup
+            {
+                Name = request.Name,
+                Subscription = request.Subscription,
+                IsActive = request.IsActive,
+                Color = request.Color ?? "#3b82f6",
+                Icon = request.Icon ?? "Users",
+                WorkspaceId = workspaceId.Value,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.RadiusGroups.Add(group);
+            var saved = await _context.SaveChangesAsync();
+            _logger.LogInformation("Group saved to database. Affected rows: {Saved}, Group ID: {Id}", saved, group.Id);
+
+            var response = new RadiusGroupResponse
+            {
+                Id = group.Id,
+                Name = group.Name,
+                Subscription = group.Subscription,
+                IsActive = group.IsActive,
+                Color = group.Color,
+                Icon = group.Icon,
+                UsersCount = 0,
+                CreatedAt = group.CreatedAt,
+                UpdatedAt = group.UpdatedAt
+            };
+
+            return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, response);
         }
-
-        var group = new RadiusGroup
+        catch (Exception ex)
         {
-            Name = request.Name,
-            Subscription = request.Subscription,
-            IsActive = request.IsActive,
-            Color = request.Color ?? "#3b82f6",
-            Icon = request.Icon ?? "Users",
-            WorkspaceId = workspaceId.Value,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        _context.RadiusGroups.Add(group);
-        await _context.SaveChangesAsync();
-
-        var response = new RadiusGroupResponse
-        {
-            Id = group.Id,
-            Name = group.Name,
-            Subscription = group.Subscription,
-            IsActive = group.IsActive,
-            Color = group.Color,
-            Icon = group.Icon,
-            UsersCount = 0,
-            CreatedAt = group.CreatedAt,
-            UpdatedAt = group.UpdatedAt
-        };
-
-        return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, response);
+            _logger.LogError(ex, "Error creating group: {Message}", ex.Message);
+            return StatusCode(500, new { message = "Failed to create group", error = ex.Message });
+        }
     }
 
     // PUT: api/radius/groups/{id}
