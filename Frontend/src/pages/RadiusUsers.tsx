@@ -1188,16 +1188,6 @@ export default function RadiusUsers() {
             variant="ghost"
             size="sm"
             className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => setBulkDeleteDialogOpen(true)}
-            disabled={bulkActionLoading}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
             onClick={() => setSelectedUserIds([])}
             disabled={bulkActionLoading}
           >
