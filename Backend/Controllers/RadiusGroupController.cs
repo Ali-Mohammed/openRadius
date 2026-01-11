@@ -30,10 +30,9 @@ public class RadiusGroupController : ControllerBase
         return user?.CurrentWorkspaceId;
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/groups
+    // GET: api/radius/groups
     [HttpGet]
     public async Task<ActionResult<object>> GetGroups(
-        int WorkspaceId, 
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null,
@@ -41,8 +40,14 @@ public class RadiusGroupController : ControllerBase
         [FromQuery] string? sortDirection = "asc",
         [FromQuery] bool includeDeleted = false)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var query = _context.RadiusGroups
-            .Where(g => g.WorkspaceId == WorkspaceId && (includeDeleted || !g.IsDeleted));
+            .Where(g => g.WorkspaceId == workspaceId.Value && (includeDeleted || !g.IsDeleted));
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -168,12 +173,18 @@ public class RadiusGroupController : ControllerBase
         });
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/groups/{id}
+    // GET: api/radius/groups/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusGroupResponse>> GetGroup(int WorkspaceId, int id)
+    public async Task<ActionResult<RadiusGroupResponse>> GetGroup(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == WorkspaceId && !g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && !g.IsDeleted);
 
         if (group == null)
         {
@@ -199,10 +210,16 @@ public class RadiusGroupController : ControllerBase
         return Ok(response);
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/groups
+    // POST: api/radius/groups
     [HttpPost]
-    public async Task<ActionResult<RadiusGroupResponse>> CreateGroup(int WorkspaceId, [FromBody] CreateGroupRequest request)
+    public async Task<ActionResult<RadiusGroupResponse>> CreateGroup([FromBody] CreateGroupRequest request)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var group = new RadiusGroup
         {
             Name = request.Name,
@@ -210,7 +227,7 @@ public class RadiusGroupController : ControllerBase
             IsActive = request.IsActive,
             Color = request.Color ?? "#3b82f6",
             Icon = request.Icon ?? "Users",
-            WorkspaceId = WorkspaceId,
+            WorkspaceId = workspaceId.Value,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -231,15 +248,21 @@ public class RadiusGroupController : ControllerBase
             UpdatedAt = group.UpdatedAt
         };
 
-        return CreatedAtAction(nameof(GetGroup), new { WorkspaceId, id = group.Id }, response);
+        return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, response);
     }
 
-    // PUT: api/workspaces/{WorkspaceId}/radius/groups/{id}
+    // PUT: api/radius/groups/{id}
     [HttpPut("{id}")]
-    public async Task<ActionResult<RadiusGroupResponse>> UpdateGroup(int WorkspaceId, int id, [FromBody] UpdateGroupRequest request)
+    public async Task<ActionResult<RadiusGroupResponse>> UpdateGroup(int id, [FromBody] UpdateGroupRequest request)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == WorkspaceId && !g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && !g.IsDeleted);
 
         if (group == null)
         {
@@ -276,12 +299,18 @@ public class RadiusGroupController : ControllerBase
         return Ok(response);
     }
 
-    // DELETE: api/workspaces/{WorkspaceId}/radius/groups/{id}
+    // DELETE: api/radius/groups/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteGroup(int WorkspaceId, int id)
+    public async Task<IActionResult> DeleteGroup(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == WorkspaceId && !g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && !g.IsDeleted);
 
         if (group == null)
         {
@@ -295,12 +324,18 @@ public class RadiusGroupController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/groups/{id}/restore
+    // POST: api/radius/groups/{id}/restore
     [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreGroup(int WorkspaceId, int id)
+    public async Task<IActionResult> RestoreGroup(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == WorkspaceId && g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && g.IsDeleted);
 
         if (group == null)
         {
@@ -314,15 +349,20 @@ public class RadiusGroupController : ControllerBase
         return NoContent();
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/groups/trash
+    // GET: api/radius/groups/trash
     [HttpGet("trash")]
     public async Task<ActionResult<object>> GetDeletedGroups(
-        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var query = _context.RadiusGroups
-            .Where(g => g.WorkspaceId == WorkspaceId && g.IsDeleted);
+            .Where(g => g.WorkspaceId == workspaceId.Value && g.IsDeleted);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
