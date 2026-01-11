@@ -579,7 +579,7 @@ public class RadiusProfileController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start profile sync for workspace {WorkspaceId}", workspaceId.Value);
+            _logger.LogError(ex, "Failed to start profile sync for workspace {WorkspaceId}", workspaceId?.ToString() ?? "unknown");
             return StatusCode(500, new { error = "Failed to start profile synchronization", details = ex.Message });
         }
     }
