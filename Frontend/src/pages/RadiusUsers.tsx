@@ -63,9 +63,10 @@ export default function RadiusUsers() {
   const [userToDelete, setUserToDelete] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [userToRestore, setUserToRestore] = useState<number | null>(null)
+  const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
   
-  // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState({
+  // Default column settings
+  const DEFAULT_COLUMN_VISIBILITY = {
     username: true,
     name: true,
     email: true,
@@ -86,9 +87,9 @@ export default function RadiusUsers() {
     contractId: false,
     simultaneousSessions: false,
     tags: true,
-  })
+  }
 
-  const [columnWidths, setColumnWidths] = useState({
+  const DEFAULT_COLUMN_WIDTHS = {
     checkbox: 50,
     username: 150,
     name: 180,
@@ -111,9 +112,9 @@ export default function RadiusUsers() {
     simultaneousSessions: 100,
     tags: 200,
     actions: 120,
-  })
+  }
 
-  const [columnOrder, setColumnOrder] = useState<string[]>([
+  const DEFAULT_COLUMN_ORDER = [
     'checkbox',
     'username',
     'name',
@@ -136,7 +137,14 @@ export default function RadiusUsers() {
     'simultaneousSessions',
     'tags',
     'actions',
-  ])
+  ]
+  
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY)
+
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS)
+
+  const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
 
   const [resizing, setResizing] = useState<string | null>(null)
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
