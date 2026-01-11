@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260111201553_UpdateTablePreferencesRemoveWorkspaceId")]
-    partial class UpdateTablePreferencesRemoveWorkspaceId
+    [Migration("20260111202016_UpdateTablePreferencesSchema")]
+    partial class UpdateTablePreferencesSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
