@@ -233,7 +233,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
         </header>
-        <div className={`flex flex-1 flex-col gap-4 p-4 ${layout === 'boxed' ? 'mx-auto max-w-7xl w-full' : ''}`}>
+        <div className={`flex flex-1 flex-col ${location.pathname.includes('/designer') ? 'relative' : 'gap-4 p-4'} ${layout === 'boxed' ? 'mx-auto max-w-7xl w-full' : ''}`}>
           {children}
         </div>
       </SidebarInset>

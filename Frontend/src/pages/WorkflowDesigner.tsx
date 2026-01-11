@@ -1,5 +1,6 @@
-import React, { useCallback, useState, DragEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useState } from 'react';
+import type { DragEvent } from 'react';
+import { useParams } from 'react-router-dom';
 import ReactFlow, {
   Controls,
   Background,
@@ -9,7 +10,6 @@ import ReactFlow, {
   BackgroundVariant,
   MiniMap,
   Panel,
-  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { TriggerNode } from '../components/workflow/TriggerNode';
@@ -18,7 +18,6 @@ import { ConditionNode } from '../components/workflow/ConditionNode';
 import { CommentNode } from '../components/workflow/CommentNode';
 import { Button } from '../components/ui/button';
 import { 
-  ChevronRight, 
   Save, 
   Play,
   UserPlus,
@@ -37,19 +36,14 @@ import {
   Scale,
   CheckCircle,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  History,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAutomationById, updateAutomation } from '../api/automations';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
-import { Label } from '../components/ui/label';
+
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -91,12 +85,20 @@ const COMMENT_TYPES = [
 
 export default function WorkflowDesigner() {
   const { automationId } = useParams<{ automationId: string }>();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<Array<{
+    id: number;
+    timestamp: Date;
+    nodes: any[];
+    edges: any[];
+    nodeCount: number;
+    edgeCount: number;
+  }>>([]);
 
   const { data: automation, isLoading } = useQuery({
     queryKey: ['automation', automationId],
@@ -129,6 +131,27 @@ export default function WorkflowDesigner() {
       }
     }
   }, [automation, reactFlowInstance, setNodes, setEdges]);
+
+  // Auto-save to history when nodes or edges change
+  React.useEffect(() => {
+    if ((nodes.length > 0 || edges.length > 0) && automation) {
+      const timer = setTimeout(() => {
+        setHistory(prev => [
+          {
+            id: Date.now(),
+            timestamp: new Date(),
+            nodes: JSON.parse(JSON.stringify(nodes)),
+            edges: JSON.parse(JSON.stringify(edges)),
+            nodeCount: nodes.length,
+            edgeCount: edges.length,
+          },
+          ...prev.slice(0, 49) // Keep last 50 versions
+        ]);
+      }, 1000); // Debounce 1 second
+      
+      return () => clearTimeout(timer);
+    }
+  }, [nodes, edges, automation]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -170,7 +193,7 @@ export default function WorkflowDesigner() {
     [setEdges]
   );
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: any) => {
     // Don't show configuration panel for comment nodes
     if (node.type !== 'comment') {
       setSelectedNode(node);
@@ -235,6 +258,13 @@ export default function WorkflowDesigner() {
     toast.info('Workflow testing will be implemented');
   };
 
+  const restoreFromHistory = useCallback((historyItem: any) => {
+    setNodes(historyItem.nodes);
+    setEdges(historyItem.edges);
+    setShowHistory(false);
+    toast.success('Workflow restored from history');
+  }, [setNodes, setEdges]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -244,17 +274,17 @@ export default function WorkflowDesigner() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="absolute inset-0 flex flex-col">
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-56 bg-white border-r flex flex-col overflow-hidden">
-          <div className="px-3 py-2 border-b">
+          <div className="px-2 py-1.5 border-b">
             <h2 className="font-semibold text-sm">Nodes Library</h2>
             <p className="text-xs text-muted-foreground">Drag to canvas</p>
           </div>
           
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+          <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2">
             {/* Triggers Section */}
             <div>
               <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
@@ -278,7 +308,7 @@ export default function WorkflowDesigner() {
                     className="border border-blue-200 bg-blue-50 rounded p-2 cursor-move hover:border-blue-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-xs text-blue-900">{trigger.label}</div>
                         <div className="text-xs text-blue-600 line-clamp-1">{trigger.description}</div>
@@ -312,7 +342,7 @@ export default function WorkflowDesigner() {
                     className="border border-green-200 bg-green-50 rounded p-2 cursor-move hover:border-green-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-xs text-green-900">{action.label}</div>
                         <div className="text-xs text-green-600 line-clamp-1">{action.description}</div>
@@ -346,7 +376,7 @@ export default function WorkflowDesigner() {
                     className="border border-yellow-200 bg-yellow-50 rounded p-2 cursor-move hover:border-yellow-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-xs text-yellow-900">{condition.label}</div>
                         <div className="text-xs text-yellow-600 line-clamp-1">{condition.description}</div>
@@ -380,7 +410,7 @@ export default function WorkflowDesigner() {
                     className="border border-gray-300 bg-gray-50 rounded p-2 cursor-move hover:border-gray-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-gray-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-xs text-gray-900">{comment.label}</div>
                         <div className="text-xs text-gray-600 line-clamp-1">{comment.description}</div>
@@ -391,7 +421,7 @@ export default function WorkflowDesigner() {
             </div>
           </div>
 
-          <div className="px-3 py-2 border-t bg-gray-50">
+          <div className="px-2 py-1.5 border-t bg-gray-50">
             <h3 className="font-semibold text-xs mb-1.5">Quick Tips</h3>
             <ul className="text-xs space-y-0.5 text-muted-foreground">
               <li>🎯 Drag nodes to canvas</li>
@@ -449,7 +479,7 @@ export default function WorkflowDesigner() {
           {/* Node Configuration Panel - Right Sidebar */}
           {selectedNode && (
             <div className="absolute right-0 top-0 bottom-0 w-64 bg-white border-l shadow-lg z-40 flex flex-col">
-              <div className="px-3 py-2 border-b flex items-center justify-between">
+              <div className="px-2 py-1.5 border-b flex items-center justify-between">
                 <h3 className="font-semibold text-sm">Node Settings</h3>
                 <button
                   onClick={() => setSelectedNode(null)}
@@ -458,7 +488,7 @@ export default function WorkflowDesigner() {
                   ×
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+              <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 block mb-1.5">Type</label>
                   <div className="text-xs capitalize px-3 py-2 bg-gray-100 rounded font-medium">{selectedNode.type}</div>
@@ -534,6 +564,64 @@ export default function WorkflowDesigner() {
               </div>
             </div>
           )}
+          
+          {/* History Panel */}
+          {showHistory && (
+            <div className="absolute right-0 top-0 bottom-0 w-80 bg-white border-l shadow-xl z-50 flex flex-col">
+              <div className="px-2 py-1.5 border-b flex items-center justify-between">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Version History
+                </h3>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="text-gray-400 hover:text-gray-600 text-lg"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-2 py-2">
+                {history.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 text-sm">
+                    No history yet. Make changes to save versions.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {history.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => restoreFromHistory(item)}
+                        className="w-full text-left p-3 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-gray-700">
+                            {new Date(item.timestamp).toLocaleTimeString()}
+                          </span>
+                          <RotateCcw className="h-3.5 w-3.5 text-gray-400 group-hover:text-blue-600" />
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {new Date(item.timestamp).toLocaleDateString()}
+                        </div>
+                        <div className="flex gap-3 mt-2 text-xs">
+                          <span className="text-blue-600">{item.nodeCount} nodes</span>
+                          <span className="text-green-600">{item.edgeCount} connections</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* History Toggle Button */}
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="absolute top-4 right-4 z-40 bg-white border shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50"
+            title="Version History"
+          >
+            <History className="h-4 w-4 text-gray-700" />
+          </button>
           
           {/* Loading Indicator */}
           {(isLoading || saveMutation.isPending) && (
