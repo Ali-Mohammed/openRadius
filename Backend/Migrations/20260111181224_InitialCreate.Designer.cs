@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Backend.Migrations.WorkspaceDb
+namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260111065153_AddWorkflowJsonToAutomations")]
-    partial class AddWorkflowJsonToAutomations
+    [Migration("20260111181224_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1178,9 +1178,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("WorkspaceId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.ToTable("RadiusGroups");
@@ -1228,10 +1225,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
-
-                    b.Property<int>("WorkspaceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("workspace_id");
 
                     b.HasKey("Id");
 
@@ -1335,9 +1328,6 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<string>("Version")
                         .HasColumnType("text");
 
-                    b.Property<int>("WorkspaceId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Nasname");
@@ -1425,9 +1415,6 @@ namespace Backend.Migrations.WorkspaceDb
                         .HasColumnType("integer");
 
                     b.Property<int>("UsersCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("WorkspaceId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -2220,6 +2207,40 @@ namespace Backend.Migrations.WorkspaceDb
                     b.ToTable("WalletHistories");
                 });
 
+            modelBuilder.Entity("Backend.Models.WorkflowHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AutomationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("EdgeCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NodeCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WorkflowJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AutomationId");
+
+                    b.ToTable("WorkflowHistories");
+                });
+
             modelBuilder.Entity("Backend.Models.Workspace", b =>
                 {
                     b.Property<int>("Id")
@@ -2652,6 +2673,17 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Navigation("CustomWallet");
 
                     b.Navigation("UserWallet");
+                });
+
+            modelBuilder.Entity("Backend.Models.WorkflowHistory", b =>
+                {
+                    b.HasOne("Backend.Models.Automation", "Automation")
+                        .WithMany()
+                        .HasForeignKey("AutomationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Automation");
                 });
 
             modelBuilder.Entity("Backend.Models.BillingGroup", b =>

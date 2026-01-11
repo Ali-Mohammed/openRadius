@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Backend.Migrations.WorkspaceDb
+namespace Backend.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -12,6 +12,32 @@ namespace Backend.Migrations.WorkspaceDb
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Automations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Icon = table.Column<string>(type: "text", nullable: true),
+                    Color = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    WorkflowJson = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Automations", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "BillingGroups",
                 columns: table => new
@@ -219,8 +245,7 @@ namespace Backend.Migrations.WorkspaceDb
                     lease_time = table.Column<int>(type: "integer", nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    workspace_id = table.Column<int>(type: "integer", nullable: false)
+                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -240,7 +265,6 @@ namespace Backend.Migrations.WorkspaceDb
                     Icon = table.Column<string>(type: "text", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -282,8 +306,7 @@ namespace Backend.Migrations.WorkspaceDb
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    WorkspaceId = table.Column<int>(type: "integer", nullable: false)
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -314,7 +337,6 @@ namespace Backend.Migrations.WorkspaceDb
                     UsersCount = table.Column<int>(type: "integer", nullable: false),
                     Color = table.Column<string>(type: "text", nullable: false),
                     Icon = table.Column<string>(type: "text", nullable: false),
-                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -457,6 +479,30 @@ namespace Backend.Migrations.WorkspaceDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Zones", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WorkflowHistories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AutomationId = table.Column<int>(type: "integer", nullable: false),
+                    WorkflowJson = table.Column<string>(type: "text", nullable: false),
+                    NodeCount = table.Column<int>(type: "integer", nullable: false),
+                    EdgeCount = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowHistories", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowHistories_Automations_AutomationId",
+                        column: x => x.AutomationId,
+                        principalTable: "Automations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1446,6 +1492,11 @@ namespace Backend.Migrations.WorkspaceDb
                 column: "WalletType");
 
             migrationBuilder.CreateIndex(
+                name: "IX_WorkflowHistories_AutomationId",
+                table: "WorkflowHistories",
+                column: "AutomationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Zones_Name",
                 table: "Zones",
                 column: "Name");
@@ -1526,6 +1577,9 @@ namespace Backend.Migrations.WorkspaceDb
                 name: "WalletHistories");
 
             migrationBuilder.DropTable(
+                name: "WorkflowHistories");
+
+            migrationBuilder.DropTable(
                 name: "BillingProfiles");
 
             migrationBuilder.DropTable(
@@ -1545,6 +1599,9 @@ namespace Backend.Migrations.WorkspaceDb
 
             migrationBuilder.DropTable(
                 name: "Workspace");
+
+            migrationBuilder.DropTable(
+                name: "Automations");
 
             migrationBuilder.DropTable(
                 name: "BillingGroups");
