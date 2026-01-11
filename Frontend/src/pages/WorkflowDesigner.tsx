@@ -294,8 +294,47 @@ export default function WorkflowDesigner() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div>Loading workflow...</div>
+      <div className="absolute inset-0 flex flex-col">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar Skeleton */}
+          <div className="w-56 bg-white border-r flex flex-col overflow-hidden">
+            <div className="px-2 py-1.5 border-b">
+              <div className="h-4 bg-gray-200 rounded w-24 mb-1 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-20 animate-pulse"></div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 py-2 space-y-3">
+              {/* Skeleton for node types */}
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i}>
+                  <div className="h-3 bg-gray-200 rounded w-16 mb-2 animate-pulse"></div>
+                  <div className="space-y-1.5">
+                    {[1, 2].map((j) => (
+                      <div key={j} className="border border-gray-200 rounded p-2 animate-pulse">
+                        <div className="flex items-start gap-2">
+                          <div className="h-5 w-5 bg-gray-200 rounded flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
+                            <div className="h-2 bg-gray-200 rounded w-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Canvas Skeleton */}
+          <div className="flex-1 bg-gray-50 relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
+                <div className="text-sm text-gray-600 font-medium">Loading workflow...</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
