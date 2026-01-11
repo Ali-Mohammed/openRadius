@@ -177,6 +177,11 @@ export default function WorkflowDesigner() {
     }
   }, []);
 
+  const onPaneClick = useCallback(() => {
+    // Hide configuration panel when clicking on empty canvas
+    setSelectedNode(null);
+  }, []);
+
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -406,6 +411,7 @@ export default function WorkflowDesigner() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
