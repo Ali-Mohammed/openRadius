@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import type { DragEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactFlow, {
@@ -96,6 +96,7 @@ const COMMENT_TYPES = [
 export default function WorkflowDesigner() {
   const { automationId } = useParams<{ automationId: string }>();
   const queryClient = useQueryClient();
+  const isLoadingFromServer = useRef(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -124,6 +125,7 @@ export default function WorkflowDesigner() {
   React.useEffect(() => {
     if (automation?.workflowJson) {
       try {
+        isLoadingFromServer.current = true;
         const workflow = JSON.parse(automation.workflowJson);
         console.log('Loading workflow from backend:', workflow);
         
@@ -140,6 +142,11 @@ export default function WorkflowDesigner() {
             reactFlowInstance.setViewport(workflow.viewport);
           }, 100);
         }
+        
+        // Reset loading flag after a short delay
+        setTimeout(() => {
+          isLoadingFromServer.current = false;
+        }, 200);
       } catch (error) {
         console.error('Error parsing workflow JSON:', error);
       }
@@ -148,7 +155,7 @@ export default function WorkflowDesigner() {
 
   // Auto-save to history when nodes or edges change
   React.useEffect(() => {
-    if ((nodes.length > 0 || edges.length > 0) && automation) {
+    if ((nodes.length > 0 || edges.length > 0) && automation && !isLoadingFromServer.current) {
       const timer = setTimeout(() => {
         setHistory(prev => [
           {
@@ -193,7 +200,6 @@ export default function WorkflowDesigner() {
     },
     onSuccess: (data) => {
       console.log('Workflow saved successfully:', data);
-      queryClient.invalidateQueries({ queryKey: ['automation', automationId] });
       toast.success('Workflow saved successfully');
     },
     onError: (error) => {
