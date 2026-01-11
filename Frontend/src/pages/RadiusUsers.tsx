@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
@@ -108,6 +109,10 @@ export default function RadiusUsers() {
   })
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([])
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+  const [bulkRenewDialogOpen, setBulkRenewDialogOpen] = useState(false)
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -231,6 +236,67 @@ export default function RadiusUsers() {
       toast.error(formatApiError(error) || 'Failed to assign tags')
     },
   })
+
+  // Bulk operations handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds(users.map(u => u.id!))
+    } else {
+      setSelectedUserIds([])
+    }
+  }
+
+  const handleSelectUser = (userId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds(prev => [...prev, userId])
+    } else {
+      setSelectedUserIds(prev => prev.filter(id => id !== userId))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setBulkActionLoading(true)
+    try {
+      await Promise.all(selectedUserIds.map(id => radiusUserApi.delete(id)))
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+      toast.success(`Successfully deleted ${selectedUserIds.length} user(s)`)
+      setSelectedUserIds([])
+      setBulkDeleteDialogOpen(false)
+    } catch (error) {
+      toast.error(formatApiError(error) || 'Failed to delete users')
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkRenew = async () => {
+    setBulkActionLoading(true)
+    try {
+      // Add 30 days to expiration for each selected user
+      const updates = selectedUserIds.map(id => {
+        const user = users.find(u => u.id === id)
+        if (!user) return Promise.resolve()
+        
+        const currentExpiration = user.expiration ? new Date(user.expiration) : new Date()
+        const newExpiration = new Date(currentExpiration)
+        newExpiration.setDate(newExpiration.getDate() + 30)
+        
+        return radiusUserApi.update(id, {
+          expiration: newExpiration.toISOString().substring(0, 10)
+        })
+      })
+      
+      await Promise.all(updates)
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+      toast.success(`Successfully renewed ${selectedUserIds.length} user(s) for 30 days`)
+      setSelectedUserIds([])
+      setBulkRenewDialogOpen(false)
+    } catch (error) {
+      toast.error(formatApiError(error) || 'Failed to renew users')
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
 
   // Handlers
   const handleOpenDialog = (user?: RadiusUser) => {
@@ -799,7 +865,7 @@ export default function RadiusUsers() {
               {t('radiusUsers.noUsersFound')}
             </div>
           ) : (
-            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 340px)' }}>
+            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -814,6 +880,12 @@ export default function RadiusUsers() {
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
+                      <TableHead className="h-12 px-4 w-[50px]">
+                        <Checkbox
+                          checked={selectedUserIds.length === users.length && users.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
                       {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[150px] cursor-pointer select-none" onClick={() => handleSort('username')}>{t('radiusUsers.username')}{getSortIcon('username')}</TableHead>}
                       {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>{t('radiusUsers.name')}{getSortIcon('name')}</TableHead>}
                       {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[200px] cursor-pointer select-none" onClick={() => handleSort('email')}>{t('radiusUsers.email')}{getSortIcon('email')}</TableHead>}
@@ -857,6 +929,12 @@ export default function RadiusUsers() {
                             tableLayout: 'fixed',
                           }}
                         >
+                          <TableCell className="h-12 px-4 w-[50px]">
+                            <Checkbox
+                              checked={selectedUserIds.includes(user.id!)}
+                              onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
+                            />
+                          </TableCell>
                           {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap w-[150px]">{user.username}</TableCell>}
                           {columnVisibility.name && <TableCell className="h-12 px-4 w-[180px]">
                             {user.firstname || user.lastname
@@ -1045,6 +1123,102 @@ export default function RadiusUsers() {
       </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Floating Action Bar */}
+      {selectedUserIds.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+          <span className="font-medium">
+            {selectedUserIds.length} user(s) selected
+          </span>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setBulkRenewDialogOpen(true)}
+            disabled={bulkActionLoading}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Renew
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setBulkDeleteDialogOpen(true)}
+            disabled={bulkActionLoading}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setSelectedUserIds([])}
+            disabled={bulkActionLoading}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedUserIds.length} user(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkActionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkActionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Renew Confirmation Dialog */}
+      <AlertDialog open={bulkRenewDialogOpen} onOpenChange={setBulkRenewDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Renew Multiple Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to renew {selectedUserIds.length} user(s) for 30 days? This will extend their expiration date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRenew}
+              disabled={bulkActionLoading}
+            >
+              {bulkActionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Renewing...
+                </>
+              ) : (
+                'Renew'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* User Dialog */}
       {isDialogOpen && (
