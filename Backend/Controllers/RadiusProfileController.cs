@@ -299,7 +299,6 @@ public class RadiusProfileController : ControllerBase
             {
                 var profileWallet = new RadiusProfileWallet
                 {
-                    WorkspaceId = workspaceId.Value,
                     RadiusProfileId = profile.Id,
                     CustomWalletId = wallet.CustomWalletId,
                     Amount = wallet.Amount,
@@ -398,7 +397,6 @@ public class RadiusProfileController : ControllerBase
             {
                 var profileWallet = new RadiusProfileWallet
                 {
-                    WorkspaceId = workspaceId.Value,
                     RadiusProfileId = profile.Id,
                     CustomWalletId = wallet.CustomWalletId,
                     Amount = wallet.Amount,

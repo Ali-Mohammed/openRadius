@@ -192,7 +192,7 @@ public class RadiusGroupController : ControllerBase
         }
 
         var group = await _context.RadiusGroups
-            .FirstOrDefaultAsync(g => g.Id == id && g.WorkspaceId == workspaceId.Value && !g.IsDeleted);
+            .FirstOrDefaultAsync(g => g.Id == id && !g.IsDeleted);
 
         if (group == null)
         {
