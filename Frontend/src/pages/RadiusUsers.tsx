@@ -87,6 +87,33 @@ export default function RadiusUsers() {
     tags: true,
   })
 
+  const [columnWidths, setColumnWidths] = useState({
+    checkbox: 50,
+    username: 150,
+    name: 180,
+    email: 200,
+    phone: 140,
+    city: 140,
+    profile: 140,
+    status: 100,
+    balance: 120,
+    loanBalance: 120,
+    expiration: 120,
+    lastOnline: 120,
+    onlineStatus: 100,
+    remainingDays: 120,
+    debtDays: 100,
+    staticIp: 140,
+    company: 140,
+    address: 160,
+    contractId: 120,
+    simultaneousSessions: 100,
+    tags: 200,
+    actions: 120,
+  })
+
+  const [resizing, setResizing] = useState<string | null>(null)
+
   const [showTrash, setShowTrash] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [formData, setFormData] = useState({
@@ -427,6 +454,9 @@ export default function RadiusUsers() {
   }
 
   const handleSort = useCallback((field: string) => {
+    // Prevent sorting if we just finished resizing
+    if (resizing) return
+    
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -434,7 +464,7 @@ export default function RadiusUsers() {
       setSortDirection('asc')
     }
     setCurrentPage(1) // Reset to first page when sorting
-  }, [sortField, sortDirection])
+  }, [sortField, sortDirection, resizing])
 
   const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) {
@@ -444,6 +474,30 @@ export default function RadiusUsers() {
       ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
       : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
   }, [sortField, sortDirection])
+
+  // Column resize handler
+  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    setResizing(column)
+    let hasMoved = false
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      hasMoved = true
+      const diff = e.clientX - startX
+      const newWidth = Math.max(60, startWidth + diff) // Minimum width of 60px
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      
+      // Delay clearing resizing state to prevent sort from triggering
+      setTimeout(() => setResizing(null), 100)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
 
   // Generate pagination page numbers
   const getPaginationPages = useCallback((current: number, total: number) => {
@@ -882,33 +936,157 @@ export default function RadiusUsers() {
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
-                      <TableHead className="h-12 px-4 w-[50px]">
+                      <TableHead className="h-12 px-4 relative" style={{ width: `${columnWidths.checkbox}px` }}>
                         <Checkbox
                           checked={selectedUserIds.length === users.length && users.length > 0}
                           onCheckedChange={handleSelectAll}
                         />
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => handleResize('checkbox', e.clientX, columnWidths.checkbox)}
+                        />
                       </TableHead>
-                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[150px] cursor-pointer select-none" onClick={() => handleSort('username')}>{t('radiusUsers.username')}{getSortIcon('username')}</TableHead>}
-                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>{t('radiusUsers.name')}{getSortIcon('name')}</TableHead>}
-                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[200px] cursor-pointer select-none" onClick={() => handleSort('email')}>{t('radiusUsers.email')}{getSortIcon('email')}</TableHead>}
-                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('phone')}>{t('radiusUsers.phone')}{getSortIcon('phone')}</TableHead>}
-                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('city')}>City{getSortIcon('city')}</TableHead>}
-                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('profile')}>{t('radiusUsers.profile')}{getSortIcon('profile')}</TableHead>}
-                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('enabled')}>{t('radiusUsers.status')}{getSortIcon('enabled')}</TableHead>}
-                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('balance')}>{t('radiusUsers.balance')}{getSortIcon('balance')}</TableHead>}
-                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('loanBalance')}>Loan Balance{getSortIcon('loanBalance')}</TableHead>}
-                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('expiration')}>{t('radiusUsers.expiration')}{getSortIcon('expiration')}</TableHead>}
-                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('lastOnline')}>Last Online{getSortIcon('lastOnline')}</TableHead>}
-                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('onlineStatus')}>Online{getSortIcon('onlineStatus')}</TableHead>}
-                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('remainingDays')}>Remaining Days{getSortIcon('remainingDays')}</TableHead>}
-                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('debtDays')}>Debt Days{getSortIcon('debtDays')}</TableHead>}
-                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('staticIp')}>Static IP{getSortIcon('staticIp')}</TableHead>}
-                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('company')}>Company{getSortIcon('company')}</TableHead>}
-                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[160px] cursor-pointer select-none" onClick={() => handleSort('address')}>Address{getSortIcon('address')}</TableHead>}
-                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('contractId')}>Contract ID{getSortIcon('contractId')}</TableHead>}
-                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('simultaneousSessions')}>Sessions{getSortIcon('simultaneousSessions')}</TableHead>}
-                      {columnVisibility.tags && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[200px]">Tags</TableHead>}
-                      <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">{t('radiusUsers.actions')}</TableHead>
+                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.username}px` }} onClick={() => handleSort('username')}>
+                        {t('radiusUsers.username')}{getSortIcon('username')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('username', e.clientX, columnWidths.username) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.name}px` }} onClick={() => handleSort('name')}>
+                        {t('radiusUsers.name')}{getSortIcon('name')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('name', e.clientX, columnWidths.name) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.email}px` }} onClick={() => handleSort('email')}>
+                        {t('radiusUsers.email')}{getSortIcon('email')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('email', e.clientX, columnWidths.email) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.phone}px` }} onClick={() => handleSort('phone')}>
+                        {t('radiusUsers.phone')}{getSortIcon('phone')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('phone', e.clientX, columnWidths.phone) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.city}px` }} onClick={() => handleSort('city')}>
+                        City{getSortIcon('city')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('city', e.clientX, columnWidths.city) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.profile}px` }} onClick={() => handleSort('profile')}>
+                        {t('radiusUsers.profile')}{getSortIcon('profile')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('profile', e.clientX, columnWidths.profile) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.status}px` }} onClick={() => handleSort('enabled')}>
+                        {t('radiusUsers.status')}{getSortIcon('enabled')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('status', e.clientX, columnWidths.status) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.balance}px` }} onClick={() => handleSort('balance')}>
+                        {t('radiusUsers.balance')}{getSortIcon('balance')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('balance', e.clientX, columnWidths.balance) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.loanBalance}px` }} onClick={() => handleSort('loanBalance')}>
+                        Loan Balance{getSortIcon('loanBalance')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('loanBalance', e.clientX, columnWidths.loanBalance) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.expiration}px` }} onClick={() => handleSort('expiration')}>
+                        {t('radiusUsers.expiration')}{getSortIcon('expiration')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('expiration', e.clientX, columnWidths.expiration) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.lastOnline}px` }} onClick={() => handleSort('lastOnline')}>
+                        Last Online{getSortIcon('lastOnline')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('lastOnline', e.clientX, columnWidths.lastOnline) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.onlineStatus}px` }} onClick={() => handleSort('onlineStatus')}>
+                        Online{getSortIcon('onlineStatus')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('onlineStatus', e.clientX, columnWidths.onlineStatus) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.remainingDays}px` }} onClick={() => handleSort('remainingDays')}>
+                        Remaining Days{getSortIcon('remainingDays')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('remainingDays', e.clientX, columnWidths.remainingDays) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.debtDays}px` }} onClick={() => handleSort('debtDays')}>
+                        Debt Days{getSortIcon('debtDays')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('debtDays', e.clientX, columnWidths.debtDays) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.staticIp}px` }} onClick={() => handleSort('staticIp')}>
+                        Static IP{getSortIcon('staticIp')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('staticIp', e.clientX, columnWidths.staticIp) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.company}px` }} onClick={() => handleSort('company')}>
+                        Company{getSortIcon('company')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('company', e.clientX, columnWidths.company) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.address}px` }} onClick={() => handleSort('address')}>
+                        Address{getSortIcon('address')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('address', e.clientX, columnWidths.address) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.contractId}px` }} onClick={() => handleSort('contractId')}>
+                        Contract ID{getSortIcon('contractId')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('contractId', e.clientX, columnWidths.contractId) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.simultaneousSessions}px` }} onClick={() => handleSort('simultaneousSessions')}>
+                        Sessions{getSortIcon('simultaneousSessions')}
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => { e.stopPropagation(); handleResize('simultaneousSessions', e.clientX, columnWidths.simultaneousSessions) }}
+                        />
+                      </TableHead>}
+                      {columnVisibility.tags && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap relative" style={{ width: `${columnWidths.tags}px` }}>
+                        Tags
+                        <div 
+                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-blue-600 transition-colors"
+                          onMouseDown={(e) => handleResize('tags', e.clientX, columnWidths.tags)}
+                        />
+                      </TableHead>}
+                      <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap" style={{ width: `${columnWidths.actions}px` }}>{t('radiusUsers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                 
@@ -931,46 +1109,46 @@ export default function RadiusUsers() {
                             tableLayout: 'fixed',
                           }}
                         >
-                          <TableCell className="h-12 px-4 w-[50px]">
+                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.checkbox}px` }}>
                             <Checkbox
                               checked={selectedUserIds.includes(user.id!)}
                               onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
                             />
                           </TableCell>
-                          {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap w-[150px]">{user.username}</TableCell>}
-                          {columnVisibility.name && <TableCell className="h-12 px-4 w-[180px]">
+                          {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap" style={{ width: `${columnWidths.username}px` }}>{user.username}</TableCell>}
+                          {columnVisibility.name && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.name}px` }}>
                             {user.firstname || user.lastname
                               ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
                               : '-'}
                           </TableCell>}
-                          {columnVisibility.email && <TableCell className="h-12 px-4 w-[200px] truncate" title={user.email || '-'}>
+                          {columnVisibility.email && <TableCell className="h-12 px-4 truncate" title={user.email || '-'} style={{ width: `${columnWidths.email}px` }}>
                             {user.email || '-'}
                           </TableCell>}
-                          {columnVisibility.phone && <TableCell className="h-12 px-4 w-[140px]">{user.phone || '-'}</TableCell>}
-                          {columnVisibility.city && <TableCell className="h-12 px-4 w-[140px]">{user.city || '-'}</TableCell>}
-                          {columnVisibility.profile && <TableCell className="h-12 px-4 w-[140px]">{user.profileName || '-'}</TableCell>}
-                          {columnVisibility.status && <TableCell className="h-12 px-4 w-[100px]">
+                          {columnVisibility.phone && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.phone}px` }}>{user.phone || '-'}</TableCell>}
+                          {columnVisibility.city && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.city}px` }}>{user.city || '-'}</TableCell>}
+                          {columnVisibility.profile && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.profile}px` }}>{user.profileName || '-'}</TableCell>}
+                          {columnVisibility.status && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.status}px` }}>
                             <Badge variant={user.enabled ? 'default' : 'secondary'}>
                               {user.enabled ? t('radiusUsers.enabled') : t('radiusUsers.disabled')}
                             </Badge>
                           </TableCell>}
-                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol} {formatCurrency(user.balance || 0)}</TableCell>}
-                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol} {formatCurrency(user.loanBalance || 0)}</TableCell>}
-                          {columnVisibility.expiration && <TableCell className="h-12 px-4 w-[120px]">{formatDate(user.expiration)}</TableCell>}
-                          {columnVisibility.lastOnline && <TableCell className="h-12 px-4 w-[120px]">{formatDate(user.lastOnline)}</TableCell>}
-                          {columnVisibility.onlineStatus && <TableCell className="h-12 px-4 w-[100px]">
+                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono" style={{ width: `${columnWidths.balance}px` }}>{currencySymbol} {formatCurrency(user.balance || 0)}</TableCell>}
+                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono" style={{ width: `${columnWidths.loanBalance}px` }}>{currencySymbol} {formatCurrency(user.loanBalance || 0)}</TableCell>}
+                          {columnVisibility.expiration && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.expiration}px` }}>{formatDate(user.expiration)}</TableCell>}
+                          {columnVisibility.lastOnline && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.lastOnline}px` }}>{formatDate(user.lastOnline)}</TableCell>}
+                          {columnVisibility.onlineStatus && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.onlineStatus}px` }}>
                             <Badge variant={user.onlineStatus ? 'default' : 'secondary'}>
                               {user.onlineStatus ? 'Online' : 'Offline'}
                             </Badge>
                           </TableCell>}
-                          {columnVisibility.remainingDays && <TableCell className="h-12 px-4 text-right w-[120px]">{user.remainingDays || '0'}</TableCell>}
-                          {columnVisibility.debtDays && <TableCell className="h-12 px-4 text-right w-[100px]">{user.debtDays || '0'}</TableCell>}
-                          {columnVisibility.staticIp && <TableCell className="h-12 px-4 w-[140px]">{user.staticIp || '-'}</TableCell>}
-                          {columnVisibility.company && <TableCell className="h-12 px-4 w-[140px]">{user.company || '-'}</TableCell>}
-                          {columnVisibility.address && <TableCell className="h-12 px-4 w-[160px]">{user.address || '-'}</TableCell>}
-                          {columnVisibility.contractId && <TableCell className="h-12 px-4 w-[120px]">{user.contractId || '-'}</TableCell>}
-                          {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right w-[100px]">{user.simultaneousSessions || '1'}</TableCell>}
-                          {columnVisibility.tags && <TableCell className="h-12 px-4 w-[200px]">
+                          {columnVisibility.remainingDays && <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.remainingDays}px` }}>{user.remainingDays || '0'}</TableCell>}
+                          {columnVisibility.debtDays && <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.debtDays}px` }}>{user.debtDays || '0'}</TableCell>}
+                          {columnVisibility.staticIp && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.staticIp}px` }}>{user.staticIp || '-'}</TableCell>}
+                          {columnVisibility.company && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.company}px` }}>{user.company || '-'}</TableCell>}
+                          {columnVisibility.address && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.address}px` }}>{user.address || '-'}</TableCell>}
+                          {columnVisibility.contractId && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.contractId}px` }}>{user.contractId || '-'}</TableCell>}
+                          {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.simultaneousSessions}px` }}>{user.simultaneousSessions || '1'}</TableCell>}
+                          {columnVisibility.tags && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.tags}px` }}>
                             <div className="flex flex-wrap gap-1">
                               {user.tags && user.tags.length > 0 ? (
                                 user.tags.map((tag) => (
@@ -991,7 +1169,7 @@ export default function RadiusUsers() {
                               )}
                             </div>
                           </TableCell>}
-                          <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
+                          <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right" style={{ width: `${columnWidths.actions}px` }}>
                             <div className="flex justify-end gap-2">
                               {showTrash ? (
                                 <Button
