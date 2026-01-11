@@ -128,8 +128,7 @@ public class RadiusProfileController : ControllerBase
         foreach (var p in profilesList)
         {
             var userCount = await _context.RadiusUsers
-                .CountAsync(u => u.WorkspaceId == workspaceId.Value && 
-                                 !u.IsDeleted && 
+                .CountAsync(u => !u.IsDeleted && 
                                  u.ProfileId == p.Id);
 
             // Get custom wallets for this profile
@@ -496,8 +495,7 @@ public class RadiusProfileController : ControllerBase
         foreach (var p in profilesList)
         {
             var userCount = await _context.RadiusUsers
-                .CountAsync(u => u.WorkspaceId == workspaceId.Value && 
-                                 !u.IsDeleted && 
+                .CountAsync(u => !u.IsDeleted && 
                                  u.ProfileId == p.Id);
 
             profiles.Add(new RadiusProfileResponse
