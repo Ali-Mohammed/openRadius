@@ -97,12 +97,12 @@ export default function BillingProfileForm() {
 
   // Queries
   const { data: radiusProfilesData, isLoading: isLoadingRadiusProfiles } = useQuery({
-    queryKey: ['radius-profiles', workspaceId],
+    queryKey: ['radius-profiles'],
     queryFn: async () => {
       if (!workspaceId || workspaceId === 0) {
         return { data: [], pagination: { currentPage: 1, pageSize: 50, totalRecords: 0, totalPages: 0 } };
       }
-      const result = await radiusProfileApi.getAll(workspaceId, 1, 1000);
+      const result = await radiusProfileApi.getAll(1, 1000);
       return result;
     },
     enabled: workspaceId > 0,
