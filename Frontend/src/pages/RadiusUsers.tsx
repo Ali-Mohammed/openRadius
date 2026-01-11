@@ -1253,6 +1253,34 @@ export default function RadiusUsers() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Restore Dialog */}
+      <AlertDialog open={bulkRestoreDialogOpen} onOpenChange={setBulkRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Multiple Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore {selectedUserIds.length} user(s)? This will move them back to the active users list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRestore}
+              disabled={bulkActionLoading}
+            >
+              {bulkActionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                'Restore'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* User Dialog */}
       {isDialogOpen && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
