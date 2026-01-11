@@ -53,10 +53,10 @@ import { Textarea } from '../components/ui/textarea';
 import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../utils/iconColorHelper';
 
 const STATUS_OPTIONS = [
-  { value: 'draft', label: 'Draft', color: 'bg-gray-500' },
-  { value: 'active', label: 'Active', color: 'bg-green-500' },
-  { value: 'paused', label: 'Paused', color: 'bg-yellow-500' },
-  { value: 'inactive', label: 'Inactive', color: 'bg-red-500' },
+  { value: 'draft', label: 'Draft', variant: 'secondary' as const },
+  { value: 'active', label: 'Active', variant: 'default' as const },
+  { value: 'paused', label: 'Paused', variant: 'outline' as const },
+  { value: 'inactive', label: 'Inactive', variant: 'destructive' as const },
 ];
 
 export default function Automations() {
@@ -272,7 +272,7 @@ export default function Automations() {
                           {automation.description || '-'}
                         </TableCell>
                         <TableCell>
-                          <Badge className={statusOption?.color}>
+                          <Badge variant={statusOption?.variant}>
                             {statusOption?.label}
                           </Badge>
                         </TableCell>
@@ -354,7 +354,7 @@ export default function Automations() {
                           {automation.description || '-'}
                         </TableCell>
                         <TableCell>
-                          <Badge className={statusOption?.color}>
+                          <Badge variant={statusOption?.variant}>
                             {statusOption?.label}
                           </Badge>
                         </TableCell>
