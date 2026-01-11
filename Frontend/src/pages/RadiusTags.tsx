@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Plus, Trash2, Edit, Tag as TagIcon } from 'lucide-react'
+import { Plus, Trash2, Edit, Tag as TagIcon, Users } from 'lucide-react'
 import { radiusTagApi } from '@/api/radiusTagApi'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 
@@ -54,7 +54,10 @@ export default function RadiusTags() {
       toast.success('Tag created successfully')
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create tag')
+      console.error('Create tag error:', error)
+      console.error('Error response:', error.response)
+      const message = error.response?.data?.message || error.message || 'Failed to create tag'
+      toast.error(message)
     },
   })
 

@@ -119,6 +119,12 @@ namespace Backend.Controllers
         {
             try
             {
+                var workspaceId = await GetCurrentWorkspaceIdAsync();
+                if (workspaceId == null)
+                {
+                    return Unauthorized(new { message = "User workspace not found" });
+                }
+
                 // Check if tag with same title exists
                 var exists = await _context.RadiusTags.AnyAsync(t => t.Title == request.Title && t.DeletedAt == null);
                 if (exists)
