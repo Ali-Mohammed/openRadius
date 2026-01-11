@@ -950,12 +950,12 @@ export default function RadiusUsers() {
           
           {/* Pagination Controls - Always visible */}
           {pagination && (
-            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">{t('radiusUsers.perPage')}</span>
+            <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{t('radiusUsers.perPage')}</span>
                   <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                    <SelectTrigger className="w-20">
+                    <SelectTrigger className="h-7 w-16 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -969,27 +969,29 @@ export default function RadiusUsers() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t('radiusUsers.showing')} {formatNumber(users.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} {t('radiusUsers.to')} {formatNumber(((currentPage - 1) * pageSize) + users.length)} {t('radiusUsers.of')} {formatNumber(pagination.totalRecords)} {t('radiusUsers.users')}
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  <ChevronLeft className="h-4 w-4 -ml-2" />
+                  <ChevronLeft className="h-3 w-3" />
+                  <ChevronLeft className="h-3 w-3 -ml-1.5" />
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-3 w-3" />
                 </Button>
                 
                 {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
@@ -997,9 +999,9 @@ export default function RadiusUsers() {
                     <Button
                       key={`ellipsis-${idx}`}
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       disabled
-                      className="w-9 p-0"
+                      className="h-7 w-7 p-0 text-xs"
                     >
                       ...
                     </Button>
@@ -1007,9 +1009,9 @@ export default function RadiusUsers() {
                     <Button
                       key={page}
                       variant={currentPage === page ? 'default' : 'outline'}
-                      size="sm"
+                      size="icon"
                       onClick={() => setCurrentPage(page as number)}
-                      className="w-9 p-0"
+                      className="h-7 w-7 p-0 text-xs"
                     >
                       {page}
                     </Button>
@@ -1018,20 +1020,22 @@ export default function RadiusUsers() {
                 
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={currentPage === pagination.totalPages}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3 w-3" />
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => setCurrentPage(pagination.totalPages)}
                   disabled={currentPage === pagination.totalPages}
                 >
-                  <ChevronRight className="h-4 w-4" />
-                  <ChevronRight className="h-4 w-4 -ml-2" />
+                  <ChevronRight className="h-3 w-3" />
+                  <ChevronRight className="h-3 w-3 -ml-1.5" />
                 </Button>
               </div>
             </div>
