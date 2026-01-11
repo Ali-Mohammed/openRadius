@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
@@ -258,9 +258,9 @@ export default function RadiusUsers() {
   const handleBulkDelete = async () => {
     setBulkActionLoading(true)
     try {
-      await Promise.all(selectedUserIds.map(id => radiusUserApi.delete(id)))
+      const result = await radiusUserApi.bulkDelete(selectedUserIds)
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
-      toast.success(`Successfully deleted ${selectedUserIds.length} user(s)`)
+      toast.success(result.message || `Successfully deleted ${result.count} user(s)`)
       setSelectedUserIds([])
       setBulkDeleteDialogOpen(false)
     } catch (error) {
@@ -273,23 +273,9 @@ export default function RadiusUsers() {
   const handleBulkRenew = async () => {
     setBulkActionLoading(true)
     try {
-      // Add 30 days to expiration for each selected user
-      const updates = selectedUserIds.map(id => {
-        const user = users.find(u => u.id === id)
-        if (!user) return Promise.resolve()
-        
-        const currentExpiration = user.expiration ? new Date(user.expiration) : new Date()
-        const newExpiration = new Date(currentExpiration)
-        newExpiration.setDate(newExpiration.getDate() + 30)
-        
-        return radiusUserApi.update(id, {
-          expiration: newExpiration.toISOString().substring(0, 10)
-        })
-      })
-      
-      await Promise.all(updates)
+      const result = await radiusUserApi.bulkRenew(selectedUserIds)
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
-      toast.success(`Successfully renewed ${selectedUserIds.length} user(s) for 30 days`)
+      toast.success(result.message || `Successfully renewed ${result.count} user(s) for 30 days`)
       setSelectedUserIds([])
       setBulkRenewDialogOpen(false)
     } catch (error) {
@@ -302,9 +288,9 @@ export default function RadiusUsers() {
   const handleBulkRestore = async () => {
     setBulkActionLoading(true)
     try {
-      await Promise.all(selectedUserIds.map(id => radiusUserApi.restore(id)))
+      const result = await radiusUserApi.bulkRestore(selectedUserIds)
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
-      toast.success(`Successfully restored ${selectedUserIds.length} user(s)`)
+      toast.success(result.message || `Successfully restored ${result.count} user(s)`)
       setSelectedUserIds([])
       setBulkRestoreDialogOpen(false)
     } catch (error) {
@@ -1076,8 +1062,7 @@ export default function RadiusUsers() {
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  <ChevronLeft className="h-4 w-4 -ml-2" />
+                  <ChevronsLeft className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
@@ -1129,8 +1114,7 @@ export default function RadiusUsers() {
                   onClick={() => setCurrentPage(pagination.totalPages)}
                   disabled={currentPage === pagination.totalPages}
                 >
-                  <ChevronRight className="h-4 w-4" />
-                  <ChevronRight className="h-4 w-4 -ml-2" />
+                  <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

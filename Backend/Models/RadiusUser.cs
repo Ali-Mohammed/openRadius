@@ -361,6 +361,8 @@ namespace Backend.Models
         public string? ContractId { get; set; }
         public int? SimultaneousSessions { get; set; }
     }
-}
 
-
+    public class BulkOperationRequest
+    {
+        public required List<int> UserIds { get; set; }
+    }

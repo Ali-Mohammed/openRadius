@@ -355,6 +355,100 @@ public class RadiusUserController : ControllerBase
         return NoContent();
     }
 
+    // POST: api/radius/users/bulk-delete
+    [HttpPost("bulk-delete")]
+    public async Task<IActionResult> BulkDeleteUsers([FromBody] BulkOperationRequest request)
+    {
+        if (request.UserIds == null || !request.UserIds.Any())
+        {
+            return BadRequest(new { message = "No user IDs provided" });
+        }
+
+        var users = await _context.RadiusUsers
+            .Where(u => request.UserIds.Contains(u.Id) && !u.IsDeleted)
+            .ToListAsync();
+
+        if (!users.Any())
+        {
+            return NotFound(new { message = "No users found to delete" });
+        }
+
+        foreach (var user in users)
+        {
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = $"{users.Count} user(s) deleted successfully", count = users.Count });
+    }
+
+    // POST: api/radius/users/bulk-restore
+    [HttpPost("bulk-restore")]
+    public async Task<IActionResult> BulkRestoreUsers([FromBody] BulkOperationRequest request)
+    {
+        if (request.UserIds == null || !request.UserIds.Any())
+        {
+            return BadRequest(new { message = "No user IDs provided" });
+        }
+
+        var users = await _context.RadiusUsers
+            .Where(u => request.UserIds.Contains(u.Id) && u.IsDeleted)
+            .ToListAsync();
+
+        if (!users.Any())
+        {
+            return NotFound(new { message = "No deleted users found to restore" });
+        }
+
+        foreach (var user in users)
+        {
+            user.IsDeleted = false;
+            user.DeletedAt = null;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = $"{users.Count} user(s) restored successfully", count = users.Count });
+    }
+
+    // POST: api/radius/users/bulk-renew
+    [HttpPost("bulk-renew")]
+    public async Task<IActionResult> BulkRenewUsers([FromBody] BulkOperationRequest request)
+    {
+        if (request.UserIds == null || !request.UserIds.Any())
+        {
+            return BadRequest(new { message = "No user IDs provided" });
+        }
+
+        var users = await _context.RadiusUsers
+            .Where(u => request.UserIds.Contains(u.Id) && !u.IsDeleted)
+            .ToListAsync();
+
+        if (!users.Any())
+        {
+            return NotFound(new { message = "No users found to renew" });
+        }
+
+        foreach (var user in users)
+        {
+            if (user.Expiration.HasValue)
+            {
+                user.Expiration = user.Expiration.Value.AddDays(30);
+            }
+            else
+            {
+                user.Expiration = DateTime.UtcNow.AddDays(30);
+            }
+            user.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = $"{users.Count} user(s) renewed successfully", count = users.Count });
+    }
+
     // GET: api/radius/users/trash
     [HttpGet("trash")]
     public async Task<ActionResult<object>> GetDeletedUsers(

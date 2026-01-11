@@ -171,5 +171,20 @@ export const radiusUserApi = {
   assignTags: async (userId: number, tagIds: number[]): Promise<void> => {
     await apiClient.post(`/api/radius/users/${userId}/tags`, tagIds)
   },
-}
 
+  // Bulk operations
+  bulkDelete: async (userIds: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post(`/api/radius/users/bulk-delete`, { userIds })
+    return response.data
+  },
+
+  bulkRestore: async (userIds: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post(`/api/radius/users/bulk-restore`, { userIds })
+    return response.data
+  },
+
+  bulkRenew: async (userIds: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post(`/api/radius/users/bulk-renew`, { userIds })
+    return response.data
+  },
+}
