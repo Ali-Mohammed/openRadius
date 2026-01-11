@@ -2,10 +2,10 @@
 
 #nullable disable
 
-namespace Backend.Migrations.WorkspaceDb
+namespace Backend.Migrations.MasterDb
 {
     /// <inheritdoc />
-    public partial class AddTransactionCommentsHistoryTables : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.WorkspaceDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260108104023_AddBillingProfiles")]
-    partial class AddBillingProfiles
+    [Migration("20260111050825_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -188,6 +188,9 @@ namespace Backend.Migrations.WorkspaceDb
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("numeric");
+
                     b.Property<int>("RadiusProfileId")
                         .HasColumnType("integer");
 
@@ -256,6 +259,9 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<int?>("CustomWalletId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Direction")
+                        .HasColumnType("text");
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
@@ -265,6 +271,9 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<decimal>("Percentage")
                         .HasColumnType("numeric");
 
+                    b.Property<int?>("UserWalletId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("WalletType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -272,6 +281,10 @@ namespace Backend.Migrations.WorkspaceDb
                     b.HasKey("Id");
 
                     b.HasIndex("BillingProfileId");
+
+                    b.HasIndex("CustomWalletId");
+
+                    b.HasIndex("UserWalletId");
 
                     b.ToTable("BillingProfileWallets");
                 });
@@ -356,6 +369,163 @@ namespace Backend.Migrations.WorkspaceDb
                     b.HasIndex("Type");
 
                     b.ToTable("CustomWallets");
+                });
+
+            modelBuilder.Entity("Backend.Models.Dashboard", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Dashboards");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardGlobalFilter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DashboardId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Options")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
+
+                    b.ToTable("DashboardGlobalFilters");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Config")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LayoutH")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LayoutW")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LayoutX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LayoutY")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TabId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TabId");
+
+                    b.ToTable("DashboardItems");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardTab", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DashboardId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
+
+                    b.ToTable("DashboardTabs");
                 });
 
             modelBuilder.Entity("Backend.Models.DebeziumConnector", b =>
@@ -465,6 +635,452 @@ namespace Backend.Migrations.WorkspaceDb
                     b.HasKey("Id");
 
                     b.ToTable("DebeziumSettings");
+                });
+
+            modelBuilder.Entity("Backend.Models.Fat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("CoverageRadiusM")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FdtId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Installation")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastInspectionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UsedPorts")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FdtId");
+
+                    b.ToTable("Fats");
+                });
+
+            modelBuilder.Entity("Backend.Models.FatPort", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PortNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("SubscriberId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FatId");
+
+                    b.ToTable("FatPorts");
+                });
+
+            modelBuilder.Entity("Backend.Models.Fdt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Cabinet")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("InstallationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastInspectionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("NextInspectionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PonPortId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SplitRatio")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UsedPorts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Zone")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PonPortId");
+
+                    b.ToTable("Fdts");
+                });
+
+            modelBuilder.Entity("Backend.Models.Olt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApiEndpoint")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int?>("ApiTimeoutMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ApiTokenRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ApiVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("AssetTag")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal?>("CpuUsagePct")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Hostname")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastSnmpPollAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSshLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("LoopbackIp")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ManagementIp")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("ManagementVlan")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("MemoryUsagePct")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("MgmtInterface")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Rack")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("RackUnit")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SiteName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SnmpCommunityRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("SnmpPort")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SnmpRetries")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SnmpTimeoutMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SnmpV3AuthKeyRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SnmpV3AuthProtocol")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SnmpV3PrivKeyRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SnmpV3PrivProtocol")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SnmpV3User")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SnmpVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SshAuthType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("SshEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SshPasswordRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("SshPort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SshPrivateKeyRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SshUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("TemperatureC")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("UptimeSeconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Vendor")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Olts");
+                });
+
+            modelBuilder.Entity("Backend.Models.OltDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OltDevices");
+                });
+
+            modelBuilder.Entity("Backend.Models.PonPort", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CurrentSplitRatio")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MaxSplitRatio")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("OltId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("RxPowerDbm")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Slot")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Technology")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("TxPowerDbm")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OltId");
+
+                    b.ToTable("PonPorts");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusGroup", b =>
@@ -762,6 +1378,41 @@ namespace Backend.Migrations.WorkspaceDb
                     b.ToTable("RadiusProfiles");
                 });
 
+            modelBuilder.Entity("Backend.Models.RadiusProfileWallet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomWalletId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RadiusProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomWalletId");
+
+                    b.HasIndex("RadiusProfileId");
+
+                    b.ToTable("RadiusProfileWallets");
+                });
+
             modelBuilder.Entity("Backend.Models.RadiusTag", b =>
                 {
                     b.Property<int>("Id")
@@ -933,9 +1584,14 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<int>("WorkspaceId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ZoneId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProfileId");
+
+                    b.HasIndex("ZoneId");
 
                     b.ToTable("RadiusUsers");
                 });
@@ -1296,6 +1952,15 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<int?>("DefaultWorkspaceId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DisabledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisabledBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisabledReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1395,6 +2060,37 @@ namespace Backend.Migrations.WorkspaceDb
                         .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("UserWallets");
+                });
+
+            modelBuilder.Entity("Backend.Models.UserZone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ZoneId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ZoneId");
+
+                    b.HasIndex("UserId", "ZoneId")
+                        .IsUnique();
+
+                    b.ToTable("UserZones");
                 });
 
             modelBuilder.Entity("Backend.Models.WalletHistory", b =>
@@ -1536,6 +2232,60 @@ namespace Backend.Migrations.WorkspaceDb
                     b.ToTable("Workspace");
                 });
 
+            modelBuilder.Entity("Backend.Models.Zone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("WorkspaceId");
+
+                    b.ToTable("Zones");
+                });
+
             modelBuilder.Entity("Backend.Models.Addon", b =>
                 {
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
@@ -1594,7 +2344,117 @@ namespace Backend.Migrations.WorkspaceDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
+                        .WithMany()
+                        .HasForeignKey("CustomWalletId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Backend.Models.UserWallet", "UserWallet")
+                        .WithMany()
+                        .HasForeignKey("UserWalletId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("BillingProfile");
+
+                    b.Navigation("CustomWallet");
+
+                    b.Navigation("UserWallet");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardGlobalFilter", b =>
+                {
+                    b.HasOne("Backend.Models.Dashboard", "Dashboard")
+                        .WithMany("GlobalFilters")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardItem", b =>
+                {
+                    b.HasOne("Backend.Models.DashboardTab", "Tab")
+                        .WithMany("Items")
+                        .HasForeignKey("TabId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tab");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardTab", b =>
+                {
+                    b.HasOne("Backend.Models.Dashboard", "Dashboard")
+                        .WithMany("Tabs")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+                });
+
+            modelBuilder.Entity("Backend.Models.Fat", b =>
+                {
+                    b.HasOne("Backend.Models.Fdt", "Fdt")
+                        .WithMany("Fats")
+                        .HasForeignKey("FdtId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Fdt");
+                });
+
+            modelBuilder.Entity("Backend.Models.FatPort", b =>
+                {
+                    b.HasOne("Backend.Models.Fat", "Fat")
+                        .WithMany("FatPorts")
+                        .HasForeignKey("FatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Fat");
+                });
+
+            modelBuilder.Entity("Backend.Models.Fdt", b =>
+                {
+                    b.HasOne("Backend.Models.PonPort", "PonPort")
+                        .WithMany("Fdts")
+                        .HasForeignKey("PonPortId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PonPort");
+                });
+
+            modelBuilder.Entity("Backend.Models.PonPort", b =>
+                {
+                    b.HasOne("Backend.Models.Olt", "Olt")
+                        .WithMany("PonPorts")
+                        .HasForeignKey("OltId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Olt");
+                });
+
+            modelBuilder.Entity("Backend.Models.RadiusProfileWallet", b =>
+                {
+                    b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
+                        .WithMany()
+                        .HasForeignKey("CustomWalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.RadiusProfile", "RadiusProfile")
+                        .WithMany()
+                        .HasForeignKey("RadiusProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomWallet");
+
+                    b.Navigation("RadiusProfile");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>
@@ -1604,7 +2464,13 @@ namespace Backend.Migrations.WorkspaceDb
                         .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Backend.Models.Zone", "Zone")
+                        .WithMany("RadiusUsers")
+                        .HasForeignKey("ZoneId");
+
                     b.Navigation("Profile");
+
+                    b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusUserTag", b =>
@@ -1703,6 +2569,17 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Navigation("CustomWallet");
                 });
 
+            modelBuilder.Entity("Backend.Models.UserZone", b =>
+                {
+                    b.HasOne("Backend.Models.Zone", "Zone")
+                        .WithMany("UserZones")
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Zone");
+                });
+
             modelBuilder.Entity("Backend.Models.WalletHistory", b =>
                 {
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
@@ -1732,6 +2609,38 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Navigation("ProfileWallets");
                 });
 
+            modelBuilder.Entity("Backend.Models.Dashboard", b =>
+                {
+                    b.Navigation("GlobalFilters");
+
+                    b.Navigation("Tabs");
+                });
+
+            modelBuilder.Entity("Backend.Models.DashboardTab", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Backend.Models.Fat", b =>
+                {
+                    b.Navigation("FatPorts");
+                });
+
+            modelBuilder.Entity("Backend.Models.Fdt", b =>
+                {
+                    b.Navigation("Fats");
+                });
+
+            modelBuilder.Entity("Backend.Models.Olt", b =>
+                {
+                    b.Navigation("PonPorts");
+                });
+
+            modelBuilder.Entity("Backend.Models.PonPort", b =>
+                {
+                    b.Navigation("Fdts");
+                });
+
             modelBuilder.Entity("Backend.Models.RadiusTag", b =>
                 {
                     b.Navigation("RadiusUserTags");
@@ -1745,6 +2654,13 @@ namespace Backend.Migrations.WorkspaceDb
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.Navigation("Subordinates");
+                });
+
+            modelBuilder.Entity("Backend.Models.Zone", b =>
+                {
+                    b.Navigation("RadiusUsers");
+
+                    b.Navigation("UserZones");
                 });
 #pragma warning restore 612, 618
         }

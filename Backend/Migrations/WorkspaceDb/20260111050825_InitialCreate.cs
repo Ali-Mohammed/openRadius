@@ -3,29 +3,29 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Backend.Migrations.MasterDb
+namespace Backend.Migrations.WorkspaceDb
 {
     /// <inheritdoc />
-    public partial class AddUserDisableTracking : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<DateTime>(
                 name: "DisabledAt",
-                table: "Users",
+                table: "User",
                 type: "timestamp with time zone",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "DisabledBy",
-                table: "Users",
+                table: "User",
                 type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "DisabledReason",
-                table: "Users",
+                table: "User",
                 type: "text",
                 nullable: true);
         }
@@ -35,15 +35,15 @@ namespace Backend.Migrations.MasterDb
         {
             migrationBuilder.DropColumn(
                 name: "DisabledAt",
-                table: "Users");
+                table: "User");
 
             migrationBuilder.DropColumn(
                 name: "DisabledBy",
-                table: "Users");
+                table: "User");
 
             migrationBuilder.DropColumn(
                 name: "DisabledReason",
-                table: "Users");
+                table: "User");
         }
     }
 }

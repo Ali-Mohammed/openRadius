@@ -1949,6 +1949,15 @@ namespace Backend.Migrations.WorkspaceDb
                     b.Property<int?>("DefaultWorkspaceId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DisabledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisabledBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisabledReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
