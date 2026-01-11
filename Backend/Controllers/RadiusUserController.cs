@@ -11,7 +11,7 @@ using OfficeOpenXml;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/workspaces/{WorkspaceId}/radius/users")]
+[Route("api/radius/users")]
 public class RadiusUserController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -23,10 +23,9 @@ public class RadiusUserController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/users
+    // GET: api/radius/users
     [HttpGet]
     public async Task<ActionResult<object>> GetUsers(
-        int WorkspaceId, 
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null,
@@ -38,7 +37,7 @@ public class RadiusUserController : ControllerBase
             .Include(u => u.Profile)
             .Include(u => u.RadiusUserTags)
                 .ThenInclude(ut => ut.RadiusTag)
-            .Where(u => u.WorkspaceId == WorkspaceId && (includeDeleted || !u.IsDeleted));
+            .Where(u => includeDeleted || !u.IsDeleted);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -151,12 +150,12 @@ public class RadiusUserController : ControllerBase
         });
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/users/{id}
+    // GET: api/radius/users/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusUserResponse>> GetUser(int WorkspaceId, int id)
+    public async Task<ActionResult<RadiusUserResponse>> GetUser(int id)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
@@ -194,9 +193,9 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/users
+    // POST: api/radius/users
     [HttpPost]
-    public async Task<ActionResult<RadiusUserResponse>> CreateUser(int WorkspaceId, [FromBody] CreateUserRequest request)
+    public async Task<ActionResult<RadiusUserResponse>> CreateUser([FromBody] CreateUserRequest request)
     {
         var user = new RadiusUser
         {
@@ -216,7 +215,6 @@ public class RadiusUserController : ControllerBase
             Address = request.Address,
             ContractId = request.ContractId,
             SimultaneousSessions = request.SimultaneousSessions,
-            WorkspaceId = WorkspaceId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -252,15 +250,15 @@ public class RadiusUserController : ControllerBase
             LastSyncedAt = user.LastSyncedAt
         };
 
-        return CreatedAtAction(nameof(GetUser), new { WorkspaceId, id = user.Id }, response);
+        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, response);
     }
 
-    // PUT: api/workspaces/{WorkspaceId}/radius/users/{id}
+    // PUT: api/radius/users/{id}
     [HttpPut("{id}")]
-    public async Task<ActionResult<RadiusUserResponse>> UpdateUser(int WorkspaceId, int id, [FromBody] UpdateUserRequest request)
+    public async Task<ActionResult<RadiusUserResponse>> UpdateUser(int id, [FromBody] UpdateUserRequest request)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
@@ -319,12 +317,12 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // DELETE: api/workspaces/{WorkspaceId}/radius/users/{id}
+    // DELETE: api/radius/users/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(int WorkspaceId, int id)
+    public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
         if (user == null)
         {
@@ -338,12 +336,12 @@ public class RadiusUserController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/users/{id}/restore
+    // POST: api/radius/users/{id}/restore
     [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreUser(int WorkspaceId, int id)
+    public async Task<IActionResult> RestoreUser(int id)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId && u.IsDeleted);
+            .FirstOrDefaultAsync(u => u.Id == id && u.IsDeleted);
 
         if (user == null)
         {
@@ -357,16 +355,15 @@ public class RadiusUserController : ControllerBase
         return NoContent();
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/users/trash
+    // GET: api/radius/users/trash
     [HttpGet("trash")]
     public async Task<ActionResult<object>> GetDeletedUsers(
-        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
-            .Where(u => u.WorkspaceId == WorkspaceId && u.IsDeleted);
+            .Where(u => u.IsDeleted);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
@@ -411,9 +408,9 @@ public class RadiusUserController : ControllerBase
         });
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/users/sync
+    // POST: api/radius/users/sync
     [HttpPost("sync")]
-    public async Task<ActionResult<SyncUsersResponse>> SyncUsers(int WorkspaceId)
+    public async Task<ActionResult<SyncUsersResponse>> SyncUsers()
     {
         var syncStartTime = DateTime.UtcNow;
         var syncId = Guid.NewGuid().ToString();
@@ -439,15 +436,15 @@ public class RadiusUserController : ControllerBase
             };
 
             _logger.LogInformation(
-                "User sync completed for instant {WorkspaceId}. New: {New}, Updated: {Updated}, Failed: {Failed}",
-                WorkspaceId, response.NewUsers, response.UpdatedUsers, response.FailedUsers
+                "User sync completed. New: {New}, Updated: {Updated}, Failed: {Failed}",
+                response.NewUsers, response.UpdatedUsers, response.FailedUsers
             );
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing users for instant {WorkspaceId}", WorkspaceId);
+            _logger.LogError(ex, "Error syncing users");
 
             var response = new SyncUsersResponse
             {
@@ -467,17 +464,16 @@ public class RadiusUserController : ControllerBase
         }
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/users/export/csv
+    // GET: api/radius/users/export/csv
     [HttpGet("export/csv")]
     public async Task<IActionResult> ExportToCsv(
-        int WorkspaceId,
         [FromQuery] string? search = null,
         [FromQuery] string? sortField = null,
         [FromQuery] string? sortDirection = "asc")
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
-            .Where(u => u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+            .Where(u => !u.IsDeleted);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -580,17 +576,16 @@ public class RadiusUserController : ControllerBase
         return File(memoryStream, "text/csv", fileName);
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/users/export/excel
+    // GET: api/radius/users/export/excel
     [HttpGet("export/excel")]
     public async Task<IActionResult> ExportToExcel(
-        int WorkspaceId,
         [FromQuery] string? search = null,
         [FromQuery] string? sortField = null,
         [FromQuery] string? sortDirection = "asc")
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
-            .Where(u => u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+            .Where(u => !u.IsDeleted);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -699,15 +694,15 @@ public class RadiusUserController : ControllerBase
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/users/{id}/tags
+    // POST: api/radius/users/{id}/tags
     [HttpPost("{id}/tags")]
-    public async Task<IActionResult> AssignTags(int WorkspaceId, int id, [FromBody] List<int> tagIds)
+    public async Task<IActionResult> AssignTags(int id, [FromBody] List<int> tagIds)
     {
         try
         {
             var user = await _context.RadiusUsers
                 .Include(u => u.RadiusUserTags)
-                .FirstOrDefaultAsync(u => u.Id == id && u.WorkspaceId == WorkspaceId && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
             if (user == null)
             {
@@ -739,9 +734,9 @@ public class RadiusUserController : ControllerBase
         }
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/users/{id}/tags
+    // GET: api/radius/users/{id}/tags
     [HttpGet("{id}/tags")]
-    public async Task<ActionResult<IEnumerable<object>>> GetUserTags(int WorkspaceId, int id)
+    public async Task<ActionResult<IEnumerable<object>>> GetUserTags(int id)
     {
         try
         {
