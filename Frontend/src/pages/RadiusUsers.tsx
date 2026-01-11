@@ -549,6 +549,27 @@ export default function RadiusUsers() {
     }
   }
 
+  const handleResetColumns = () => {
+    setResetColumnsDialogOpen(true)
+  }
+
+  const confirmResetColumns = async () => {
+    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
+    setColumnOrder(DEFAULT_COLUMN_ORDER)
+    
+    // Delete saved preferences from backend
+    try {
+      await tablePreferenceApi.deletePreference('radius-users')
+      toast.success('Table columns reset to defaults')
+    } catch (error) {
+      console.error('Failed to delete preferences:', error)
+      toast.error('Columns reset but failed to clear saved preferences')
+    }
+    
+    setResetColumnsDialogOpen(false)
+  }
+
   const handleSort = useCallback((field: string) => {
     // Prevent sorting if we just finished resizing
     if (resizing) return
