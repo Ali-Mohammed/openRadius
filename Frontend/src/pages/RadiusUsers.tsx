@@ -145,14 +145,14 @@ export default function RadiusUsers() {
   })
 
   const { data: profilesData } = useQuery({
-    queryKey: ['radius-profiles', currentWorkspaceId],
-    queryFn: () => radiusProfileApi.getAll(currentWorkspaceId!, 1, 999999),
+    queryKey: ['radius-profiles'],
+    queryFn: () => radiusProfileApi.getAll(1, 999999),
     enabled: !!currentWorkspaceId,
   })
 
   const { data: tagsData } = useQuery({
-    queryKey: ['radius-tags', currentWorkspaceId],
-    queryFn: () => radiusTagApi.getAll(currentWorkspaceId!, false),
+    queryKey: ['radius-tags'],
+    queryFn: () => radiusTagApi.getAll(false),
     enabled: !!currentWorkspaceId,
   })
 
