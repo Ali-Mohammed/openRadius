@@ -16,7 +16,7 @@ import { TriggerNode } from '../components/workflow/TriggerNode';
 import { ActionNode } from '../components/workflow/ActionNode';
 import { ConditionNode } from '../components/workflow/ConditionNode';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, Save, Play, Plus } from 'lucide-react';
+import { ChevronRight, Save, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAutomationById, updateAutomation } from '../api/automations';
@@ -168,52 +168,55 @@ export default function WorkflowDesigner() {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-2 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
+      <div className="bg-white border-b px-4 py-1.5 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-1.5 text-sm">
+          <button
             onClick={() => navigate('/billing/automations')}
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold">{automation?.title}</h1>
-            <p className="text-sm text-muted-foreground">Workflow Designer</p>
-          </div>
+            Billing
+          </button>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <button
+            onClick={() => navigate('/billing/automations')}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Automations
+          </button>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium">Workflow Designer</span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleTest}>
-            <Play className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={handleTest} size="sm" className="h-7 text-xs">
+            <Play className="h-3 w-3 mr-1.5" />
             Test
           </Button>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
+          <Button onClick={handleSave} size="sm" className="h-7 text-xs">
+            <Save className="h-3 w-3 mr-1.5" />
             Save
           </Button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-64 bg-white border-r flex flex-col overflow-hidden">
-          <div className="px-3 py-2 border-b">
-            <h2 className="font-bold text-base">Nodes Library</h2>
-            <p className="text-xs text-muted-foreground">Drag to canvas</p>
+        <div className="w-72 bg-white border-r flex flex-col overflow-hidden">
+          <div className="p-4 border-b">
+            <h2 className="font-bold text-lg">Nodes Library</h2>
+            <p className="text-xs text-muted-foreground mt-1">Drag and drop to canvas</p>
           </div>
           
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Triggers Section */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5 uppercase tracking-wide">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                 Triggers
               </h3>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {TRIGGER_TYPES.map((trigger) => (
                   <div
                     key={trigger.value}
@@ -225,10 +228,10 @@ export default function WorkflowDesigner() {
                         triggerType: trigger.value,
                       })
                     }
-                    className="border border-blue-200 bg-blue-50 rounded p-2 cursor-move hover:border-blue-400 hover:shadow-sm transition-all"
+                    className="border-2 border-blue-200 bg-blue-50 rounded-lg p-3 cursor-move hover:border-blue-400 hover:shadow-md transition-all"
                   >
-                    <div className="font-medium text-xs text-blue-900">{trigger.label}</div>
-                    <div className="text-xs text-blue-600 line-clamp-1">{trigger.description}</div>
+                    <div className="font-medium text-sm text-blue-900">{trigger.label}</div>
+                    <div className="text-xs text-blue-600 mt-1">{trigger.description}</div>
                   </div>
                 ))}
               </div>
@@ -236,11 +239,11 @@ export default function WorkflowDesigner() {
 
             {/* Actions Section */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5 uppercase tracking-wide">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 Actions
               </h3>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {ACTION_TYPES.map((action) => (
                   <div
                     key={action.value}
@@ -252,10 +255,10 @@ export default function WorkflowDesigner() {
                         actionType: action.value,
                       })
                     }
-                    className="border border-green-200 bg-green-50 rounded p-2 cursor-move hover:border-green-400 hover:shadow-sm transition-all"
+                    className="border-2 border-green-200 bg-green-50 rounded-lg p-3 cursor-move hover:border-green-400 hover:shadow-md transition-all"
                   >
-                    <div className="font-medium text-xs text-green-900">{action.label}</div>
-                    <div className="text-xs text-green-600 line-clamp-1">{action.description}</div>
+                    <div className="font-medium text-sm text-green-900">{action.label}</div>
+                    <div className="text-xs text-green-600 mt-1">{action.description}</div>
                   </div>
                 ))}
               </div>
@@ -263,11 +266,11 @@ export default function WorkflowDesigner() {
 
             {/* Conditions Section */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5 uppercase tracking-wide">
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                 Conditions
               </h3>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {CONDITION_TYPES.map((condition) => (
                   <div
                     key={condition.value}
@@ -279,14 +282,24 @@ export default function WorkflowDesigner() {
                         conditionType: condition.value,
                       })
                     }
-                    className="border border-yellow-200 bg-yellow-50 rounded p-2 cursor-move hover:border-yellow-400 hover:shadow-sm transition-all"
+                    className="border-2 border-yellow-200 bg-yellow-50 rounded-lg p-3 cursor-move hover:border-yellow-400 hover:shadow-md transition-all"
                   >
-                    <div className="font-medium text-xs text-yellow-900">{condition.label}</div>
-                    <div className="text-xs text-yellow-600 line-clamp-1">{condition.description}</div>
+                    <div className="font-medium text-sm text-yellow-900">{condition.label}</div>
+                    <div className="text-xs text-yellow-600 mt-1">{condition.description}</div>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="p-4 border-t bg-gray-50">
+            <h3 className="font-semibold text-sm mb-2">Quick Tips</h3>
+            <ul className="text-xs space-y-1 text-muted-foreground">
+              <li>🎯 Drag nodes to canvas</li>
+              <li>🔗 Connect nodes via handles</li>
+              <li>⌫ Delete: Select + Delete key</li>
+              <li>💾 Auto-save on changes</li>
+            </ul>
           </div>
         </div>
 
