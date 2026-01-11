@@ -2,26 +2,37 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/workspaces/{WorkspaceId}/radius/ip-pools")]
+[Route("api/radius/ip-pools")]
 public class RadiusIpPoolController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusIpPoolController> _logger;
 
-    public RadiusIpPoolController(ApplicationDbContext context, ILogger<RadiusIpPoolController> logger)
+    public RadiusIpPoolController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusIpPoolController> logger)
     {
         _context = context;
+        _masterContext = masterContext;
         _logger = logger;
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/ip-pools
+    private async Task<int?> GetCurrentWorkspaceIdAsync()
+    {
+        var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+        if (string.IsNullOrEmpty(userEmail)) return null;
+        
+        var user = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+        return user?.CurrentWorkspaceId;
+    }
+
+    // GET: api/radius/ip-pools
     [HttpGet]
     public async Task<ActionResult<object>> GetIpPools(
-        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? search = null,
@@ -29,8 +40,14 @@ public class RadiusIpPoolController : ControllerBase
         [FromQuery] string? sortDirection = "asc",
         [FromQuery] bool includeDeleted = false)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var query = _context.RadiusIpPools
-            .Where(p => p.WorkspaceId == WorkspaceId && (includeDeleted || p.DeletedAt == null));
+            .Where(p => p.WorkspaceId == workspaceId.Value && (includeDeleted || p.DeletedAt == null));
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -85,12 +102,18 @@ public class RadiusIpPoolController : ControllerBase
         return Ok(response);
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/ip-pools/{id}
+    // GET: api/radius/ip-pools/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusIpPool>> GetIpPool(int WorkspaceId, int id)
+    public async Task<ActionResult<RadiusIpPool>> GetIpPool(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var ipPool = await _context.RadiusIpPools
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
 
         if (ipPool == null)
         {
@@ -100,15 +123,21 @@ public class RadiusIpPoolController : ControllerBase
         return Ok(ipPool);
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/ip-pools
+    // POST: api/radius/ip-pools
     [HttpPost]
-    public async Task<ActionResult<RadiusIpPool>> CreateIpPool(int WorkspaceId, [FromBody] CreateRadiusIpPoolRequest request)
+    public async Task<ActionResult<RadiusIpPool>> CreateIpPool([FromBody] CreateRadiusIpPoolRequest request)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         try
         {
             // Check if IP pool with same name already exists
             var existingPool = await _context.RadiusIpPools
-                .FirstOrDefaultAsync(p => p.Name == request.Name && p.WorkspaceId == WorkspaceId && p.DeletedAt == null);
+                .FirstOrDefaultAsync(p => p.Name == request.Name && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
 
             if (existingPool != null)
             {
@@ -121,7 +150,7 @@ public class RadiusIpPoolController : ControllerBase
                 StartIp = request.StartIp,
                 EndIp = request.EndIp,
                 LeaseTime = request.LeaseTime,
-                WorkspaceId = WorkspaceId,
+                WorkspaceId = workspaceId.Value,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 DeletedAt = null
@@ -130,7 +159,7 @@ public class RadiusIpPoolController : ControllerBase
             _context.RadiusIpPools.Add(ipPool);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetIpPool), new { WorkspaceId, id = ipPool.Id }, ipPool);
+            return CreatedAtAction(nameof(GetIpPool), new { id = ipPool.Id }, ipPool);
         }
         catch (Exception ex)
         {
@@ -139,14 +168,20 @@ public class RadiusIpPoolController : ControllerBase
         }
     }
 
-    // PUT: api/workspaces/{WorkspaceId}/radius/ip-pools/{id}
+    // PUT: api/radius/ip-pools/{id}
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateIpPool(int WorkspaceId, int id, [FromBody] UpdateRadiusIpPoolRequest request)
+    public async Task<IActionResult> UpdateIpPool(int id, [FromBody] UpdateRadiusIpPoolRequest request)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         try
         {
             var ipPool = await _context.RadiusIpPools
-                .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && p.DeletedAt == null);
+                .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
 
             if (ipPool == null)
             {
@@ -157,7 +192,7 @@ public class RadiusIpPoolController : ControllerBase
             if (request.Name != null && request.Name != ipPool.Name)
             {
                 var existingPool = await _context.RadiusIpPools
-                    .FirstOrDefaultAsync(p => p.Name == request.Name && p.WorkspaceId == WorkspaceId && p.Id != id && p.DeletedAt == null);
+                    .FirstOrDefaultAsync(p => p.Name == request.Name && p.WorkspaceId == workspaceId.Value && p.Id != id && p.DeletedAt == null);
 
                 if (existingPool != null)
                 {
@@ -184,12 +219,18 @@ public class RadiusIpPoolController : ControllerBase
         }
     }
 
-    // DELETE: api/workspaces/{WorkspaceId}/radius/ip-pools/{id}
+    // DELETE: api/radius/ip-pools/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteIpPool(int WorkspaceId, int id)
+    public async Task<IActionResult> DeleteIpPool(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var ipPool = await _context.RadiusIpPools
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
 
         if (ipPool == null)
         {
@@ -202,12 +243,18 @@ public class RadiusIpPoolController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/workspaces/{WorkspaceId}/radius/ip-pools/{id}/restore
+    // POST: api/radius/ip-pools/{id}/restore
     [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreIpPool(int WorkspaceId, int id)
+    public async Task<IActionResult> RestoreIpPool(int id)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var ipPool = await _context.RadiusIpPools
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == WorkspaceId && p.DeletedAt != null);
+            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt != null);
 
         if (ipPool == null)
         {
@@ -220,15 +267,20 @@ public class RadiusIpPoolController : ControllerBase
         return NoContent();
     }
 
-    // GET: api/workspaces/{WorkspaceId}/radius/ip-pools/trash
+    // GET: api/radius/ip-pools/trash
     [HttpGet("trash")]
     public async Task<ActionResult<object>> GetDeletedIpPools(
-        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var query = _context.RadiusIpPools
-            .Where(p => p.WorkspaceId == WorkspaceId && p.DeletedAt != null);
+            .Where(p => p.WorkspaceId == workspaceId.Value && p.DeletedAt != null);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
