@@ -674,6 +674,8 @@ export default function WorkflowDesigner() {
             <Button 
               onClick={handleSave} 
               size="sm"
+              type="button"
+              disabled={saveMutation.isPending}
               className="shadow-md hover:shadow-lg transition-all rounded-full h-10 w-10 p-0"
               aria-label="Save"
             >
