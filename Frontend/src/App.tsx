@@ -36,6 +36,7 @@ import Transactions from './pages/Transactions'
 import Balances from './pages/Balances'
 import Addons from './pages/Addons'
 import Automations from './pages/Automations'
+import WorkflowDesigner from './pages/WorkflowDesigner'
 import BillingGroups from './pages/BillingGroups'
 import BillingProfiles from './pages/BillingProfiles'
 import BillingProfileForm from './pages/BillingProfileForm'
@@ -103,6 +104,7 @@ function App() {
                           <Route path="/billing/balances" element={<Balances />} />
                           <Route path="/billing/addons" element={<Addons />} />
                           <Route path="/billing/automations" element={<Automations />} />
+                          <Route path="/billing/automations/:automationId/designer" element={<WorkflowDesigner />} />
                           <Route path="/billing/groups" element={<BillingGroups />} />
                           <Route path="/workspace/:id/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/workspace/:id/billing/profiles/new" element={<BillingProfileForm />} />

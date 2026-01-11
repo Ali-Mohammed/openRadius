@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Search, ArchiveRestore } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ArchiveRestore, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getAutomations,
@@ -61,6 +62,7 @@ const STATUS_OPTIONS = [
 
 export default function Automations() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAutomation, setEditingAutomation] = useState<Automation | null>(null);
@@ -283,6 +285,14 @@ export default function Automations() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/billing/automations/${automation.id}/designer`)}
+                              title="Design Workflow"
+                            >
+                              <GitBranch className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

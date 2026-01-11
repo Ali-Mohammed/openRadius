@@ -8,6 +8,7 @@ export interface Automation {
   color?: string;
   status: string; // draft, active, paused, inactive
   isActive: boolean;
+  workflowJson?: string;
   isDeleted: boolean;
   deletedAt?: string;
   deletedBy?: string;
@@ -32,6 +33,7 @@ export interface UpdateAutomationRequest {
   icon?: string;
   color?: string;
   status?: string;
+  workflowJson?: string;
   isActive?: boolean;
 }
 

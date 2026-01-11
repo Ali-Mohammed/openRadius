@@ -11,6 +11,7 @@ public class Automation
     public string? Color { get; set; }
     public string Status { get; set; } = "draft"; // draft, active, paused, inactive
     public bool IsActive { get; set; } = true;
+    public string? WorkflowJson { get; set; } // Stores the workflow definition
     
     // Soft delete
     public bool IsDeleted { get; set; }

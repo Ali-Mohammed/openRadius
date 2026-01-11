@@ -165,6 +165,7 @@ public class AutomationController : ControllerBase
             automation.Color = request.Color;
             automation.Status = request.Status ?? automation.Status;
             automation.IsActive = request.IsActive ?? automation.IsActive;
+            automation.WorkflowJson = request.WorkflowJson ?? automation.WorkflowJson;
             automation.UpdatedAt = DateTime.UtcNow;
             automation.UpdatedBy = userId;
 
@@ -254,5 +255,6 @@ public record UpdateAutomationRequest(
     string? Icon,
     string? Color,
     string? Status,
-    bool? IsActive
+    bool? IsActive,
+    string? WorkflowJson
 );
