@@ -472,12 +472,17 @@ public class RadiusProfileController : ControllerBase
 
     [HttpGet("trash")]
     public async Task<ActionResult<object>> GetDeletedProfiles(
-        int WorkspaceId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
+        var workspaceId = await GetCurrentWorkspaceIdAsync();
+        if (workspaceId == null)
+        {
+            return Unauthorized(new { message = "User workspace not found" });
+        }
+
         var query = _context.RadiusProfiles
-            .Where(p => p.WorkspaceId == WorkspaceId && p.IsDeleted);
+            .Where(p => p.WorkspaceId == workspaceId.Value && p.IsDeleted);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
@@ -538,13 +543,19 @@ public class RadiusProfileController : ControllerBase
     }
 
     [HttpPost("sync")]
-    public async Task<ActionResult<SyncProfileResponse>> SyncProfiles(int WorkspaceId, [FromQuery] bool fullSync = false)
+    public async Task<ActionResult<SyncProfileResponse>> SyncProfiles([FromQuery] bool fullSync = false)
     {
         try
         {
+            var workspaceId = await GetCurrentWorkspaceIdAsync();
+            if (workspaceId == null)
+            {
+                return Unauthorized(new { message = "User workspace not found" });
+            }
+
             // Get the active SAS Radius integration for this workspace
             var integration = await _context.SasRadiusIntegrations
-                .FirstOrDefaultAsync(i => i.WorkspaceId == WorkspaceId && i.IsActive && !i.IsDeleted);
+                .FirstOrDefaultAsync(i => i.WorkspaceId == workspaceId.Value && i.IsActive && !i.IsDeleted);
 
             if (integration == null)
             {
@@ -552,9 +563,9 @@ public class RadiusProfileController : ControllerBase
             }
 
             // Start the sync using the SAS sync service
-            var syncId = await _syncService.SyncAsync(integration.Id, WorkspaceId, fullSync);
+            var syncId = await _syncService.SyncAsync(integration.Id, workspaceId.Value, fullSync);
             
-            _logger.LogInformation("Started profile sync {SyncId} for workspace {WorkspaceId}", syncId, WorkspaceId);
+            _logger.LogInformation("Started profile sync {SyncId} for workspace {WorkspaceId}", syncId, workspaceId.Value);
 
             return Ok(new
             {
@@ -562,7 +573,7 @@ public class RadiusProfileController : ControllerBase
                 message = "Profile sync started successfully. Connect to SignalR hub at /hubs/sassync and join group with syncId to receive real-time updates.",
                 integrationId = integration.Id,
                 integrationName = integration.Name,
-                workspaceId = WorkspaceId
+                workspaceId = workspaceId.Value
             });
         }
         catch (Exception ex)
