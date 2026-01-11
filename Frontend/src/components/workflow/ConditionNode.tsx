@@ -1,8 +1,8 @@
 import React from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 import { GitBranch } from 'lucide-react';
 
-export function ConditionNode({ data }: NodeProps) {
+export function ConditionNode({ data }: { data: any }) {
   return (
     <div className="px-4 py-2 shadow-md rounded-md bg-white border-2 border-yellow-500 min-w-[200px]">
       <Handle

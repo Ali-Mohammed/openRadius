@@ -1,5 +1,5 @@
 import React from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 import { Mail, MessageSquare, DollarSign, Ban, Gift, CreditCard, User } from 'lucide-react';
 
 const actionIcons = {
@@ -12,7 +12,7 @@ const actionIcons = {
   'update-profile': User,
 };
 
-export function ActionNode({ data }: NodeProps) {
+export function ActionNode({ data }: { data: any }) {
   const Icon = actionIcons[data.actionType as keyof typeof actionIcons] || Mail;
 
   return (

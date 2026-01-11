@@ -1,5 +1,5 @@
 import React from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 import { Zap, UserPlus, UserMinus, Clock, TrendingDown, DollarSign } from 'lucide-react';
 
 const triggerIcons = {
@@ -11,7 +11,7 @@ const triggerIcons = {
   'user-deleted': UserMinus,
 };
 
-export function TriggerNode({ data }: NodeProps) {
+export function TriggerNode({ data }: { data: any }) {
   const Icon = triggerIcons[data.triggerType as keyof typeof triggerIcons] || Zap;
 
   return (
