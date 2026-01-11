@@ -53,7 +53,7 @@ public class RadiusProfileController : ControllerBase
         }
 
         var query = _context.RadiusProfiles
-            .Where(p => p.WorkspaceId == workspaceId.Value && (includeDeleted || !p.IsDeleted));
+            .Where(p => includeDeleted || !p.IsDeleted);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -79,7 +79,7 @@ public class RadiusProfileController : ControllerBase
                 .Select(p => new { 
                     Profile = p, 
                     UserCount = _context.RadiusUsers
-                        .Count(u => u.WorkspaceId == workspaceId.Value && !u.IsDeleted && u.ProfileId == p.Id)
+                        .Count(u => !u.IsDeleted && u.ProfileId == p.Id)
                 })
                 .ToListAsync();
             
@@ -135,7 +135,7 @@ public class RadiusProfileController : ControllerBase
             // Get custom wallets for this profile
             var profileWallets = await _context.RadiusProfileWallets
                 .Include(pw => pw.CustomWallet)
-                .Where(pw => pw.RadiusProfileId == p.Id && pw.WorkspaceId == workspaceId.Value)
+                .Where(pw => pw.RadiusProfileId == p.Id)
                 .Select(pw => new ProfileWalletConfig
                 {
                     CustomWalletId = pw.CustomWalletId,
@@ -195,7 +195,7 @@ public class RadiusProfileController : ControllerBase
         }
 
         var profile = await _context.RadiusProfiles
-            .Where(p => p.Id == id && p.WorkspaceId == workspaceId.Value)
+            .Where(p => p.Id == id)
             .FirstOrDefaultAsync();
 
         if (profile == null)
@@ -205,14 +205,13 @@ public class RadiusProfileController : ControllerBase
 
         // Calculate actual user count
         var userCount = await _context.RadiusUsers
-            .CountAsync(u => u.WorkspaceId == workspaceId.Value && 
-                             !u.IsDeleted && 
+            .CountAsync(u => !u.IsDeleted && 
                              u.ProfileId == profile.Id);
 
         // Get custom wallets linked to this profile
         var profileWallets = await _context.RadiusProfileWallets
             .Include(pw => pw.CustomWallet)
-            .Where(pw => pw.RadiusProfileId == profile.Id && pw.WorkspaceId == workspaceId.Value)
+            .Where(pw => pw.RadiusProfileId == profile.Id)
             .Select(pw => new ProfileWalletConfig
             {
                 CustomWalletId = pw.CustomWalletId,
@@ -283,7 +282,6 @@ public class RadiusProfileController : ControllerBase
             SiteId = request.SiteId,
             Color = request.Color,
             Icon = request.Icon,
-            WorkspaceId = workspaceId.Value,
             ExternalId = 0,
             OnlineUsersCount = 0,
             UsersCount = 0,
@@ -363,7 +361,7 @@ public class RadiusProfileController : ControllerBase
         }
 
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value);
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (profile == null)
         {
@@ -392,7 +390,7 @@ public class RadiusProfileController : ControllerBase
         {
             // Remove existing wallet links
             var existingWallets = await _context.RadiusProfileWallets
-                .Where(pw => pw.RadiusProfileId == id && pw.WorkspaceId == workspaceId.Value)
+                .Where(pw => pw.RadiusProfileId == id)
                 .ToListAsync();
             _context.RadiusProfileWallets.RemoveRange(existingWallets);
 
@@ -428,7 +426,7 @@ public class RadiusProfileController : ControllerBase
         }
 
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && !p.IsDeleted);
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
         if (profile == null)
         {
@@ -454,7 +452,7 @@ public class RadiusProfileController : ControllerBase
         }
 
         var profile = await _context.RadiusProfiles
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.IsDeleted);
+            .FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted);
 
         if (profile == null)
         {
@@ -482,7 +480,7 @@ public class RadiusProfileController : ControllerBase
         }
 
         var query = _context.RadiusProfiles
-            .Where(p => p.WorkspaceId == workspaceId.Value && p.IsDeleted);
+            .Where(p => p.IsDeleted);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
@@ -556,7 +554,7 @@ public class RadiusProfileController : ControllerBase
 
             // Get the active SAS Radius integration for this workspace
             var integration = await _context.SasRadiusIntegrations
-                .FirstOrDefaultAsync(i => i.WorkspaceId == workspaceId.Value && i.IsActive && !i.IsDeleted);
+                .FirstOrDefaultAsync(i => i.IsActive && !i.IsDeleted);
 
             if (integration == null)
             {

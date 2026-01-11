@@ -37,7 +37,7 @@ public class SasSyncService : ISasSyncService
             
             // Check for active syncs (status < 8 means not completed/failed/cancelled)
             var activeSync = await context.SyncProgresses
-                .Where(s => s.WorkspaceId == WorkspaceId && s.Status < SyncStatus.Completed)
+                .Where(s => s.Status < SyncStatus.Completed)
                 .OrderByDescending(s => s.StartedAt)
                 .FirstOrDefaultAsync();
 
@@ -51,7 +51,7 @@ public class SasSyncService : ISasSyncService
 
             // Get integration settings
             var integration = await context.SasRadiusIntegrations
-                .FirstOrDefaultAsync(i => i.Id == integrationId && i.WorkspaceId == WorkspaceId);
+                .FirstOrDefaultAsync(i => i.Id == integrationId);
 
             if (integration == null)
             {
@@ -105,7 +105,7 @@ public class SasSyncService : ISasSyncService
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
         var sync = await context.SyncProgresses
-            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(s => s.SyncId == syncId);
         
         if (sync == null)
         {
@@ -296,7 +296,7 @@ public class SasSyncService : ISasSyncService
                         try
                         {
                             var existingProfile = await context.RadiusProfiles
-                                .FirstOrDefaultAsync(p => p.ExternalId == sasProfile.Id && p.WorkspaceId == integration.WorkspaceId, cancellationToken);
+                                .FirstOrDefaultAsync(p => p.ExternalId == sasProfile.Id, cancellationToken);
 
                             if (existingProfile == null)
                             {
@@ -315,7 +315,6 @@ public class SasSyncService : ISasSyncService
                                     BurstEnabled = sasProfile.BurstEnabled == 1,
                                     Monthly = sasProfile.Monthly,
                                     LimitExpiration = sasProfile.LimitExpiration == 1,
-                                    WorkspaceId = integration.WorkspaceId,
                                     CreatedAt = DateTime.UtcNow,
                                     UpdatedAt = DateTime.UtcNow,
                                     LastSyncedAt = DateTime.UtcNow
@@ -443,14 +442,14 @@ public class SasSyncService : ISasSyncService
                         try
                         {
                             var existingUser = await context.RadiusUsers
-                                .FirstOrDefaultAsync(u => u.ExternalId == sasUser.Id && u.WorkspaceId == integration.WorkspaceId, cancellationToken);
+                                .FirstOrDefaultAsync(u => u.ExternalId == sasUser.Id, cancellationToken);
 
                             // Map external ProfileId to database ProfileId
                             int? dbProfileId = null;
                             if (sasUser.ProfileId.HasValue)
                             {
                                 var profile = await context.RadiusProfiles
-                                    .FirstOrDefaultAsync(p => p.ExternalId == sasUser.ProfileId.Value && p.WorkspaceId == integration.WorkspaceId, cancellationToken);
+                                    .FirstOrDefaultAsync(p => p.ExternalId == sasUser.ProfileId.Value, cancellationToken);
                                 dbProfileId = profile?.Id;
                             }
 
@@ -492,7 +491,6 @@ public class SasSyncService : ISasSyncService
                                     AvailableTraffic = sasUser.AvailableTraffic,
                                     ParentUsername = sasUser.ParentUsername,
                                     DebtDays = sasUser.DebtDays,
-                                    WorkspaceId = integration.WorkspaceId,
                                     CreatedAt = DateTime.UtcNow,
                                     UpdatedAt = DateTime.UtcNow,
                                     LastSyncedAt = DateTime.UtcNow

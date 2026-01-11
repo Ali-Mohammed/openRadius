@@ -47,7 +47,7 @@ public class RadiusNasController : ControllerBase
         }
 
         var query = _context.RadiusNasDevices
-            .Where(n => n.WorkspaceId == workspaceId.Value && (includeDeleted || !n.IsDeleted));
+            .Where(n => includeDeleted || !n.IsDeleted);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -142,7 +142,7 @@ public class RadiusNasController : ControllerBase
         {
             // Check if NAS with same name already exists
             var existingNas = await _context.RadiusNasDevices
-                .FirstOrDefaultAsync(n => n.Nasname == request.Nasname && n.WorkspaceId == workspaceId.Value && !n.IsDeleted);
+                .FirstOrDefaultAsync(n => n.Nasname == request.Nasname && !n.IsDeleted);
 
             if (existingNas != null)
             {
@@ -172,7 +172,6 @@ public class RadiusNasController : ControllerBase
                 SshUsername = request.SshUsername,
                 SshPassword = request.SshPassword,
                 SshPort = request.SshPort,
-                WorkspaceId = workspaceId.Value,
                 CreatedBy = 1, // TODO: Get from authenticated user context
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -204,7 +203,7 @@ public class RadiusNasController : ControllerBase
         try
         {
             var nasDevice = await _context.RadiusNasDevices
-                .FirstOrDefaultAsync(n => n.Id == id && n.WorkspaceId == workspaceId.Value && !n.IsDeleted);
+                .FirstOrDefaultAsync(n => n.Id == id && !n.IsDeleted);
 
             if (nasDevice == null)
             {
@@ -215,7 +214,7 @@ public class RadiusNasController : ControllerBase
             if (request.Nasname != null && request.Nasname != nasDevice.Nasname)
             {
                 var existingNas = await _context.RadiusNasDevices
-                    .FirstOrDefaultAsync(n => n.Nasname == request.Nasname && n.WorkspaceId == workspaceId.Value && n.Id != id && !n.IsDeleted);
+                    .FirstOrDefaultAsync(n => n.Nasname == request.Nasname && n.Id != id && !n.IsDeleted);
 
                 if (existingNas != null)
                 {
@@ -295,7 +294,7 @@ public class RadiusNasController : ControllerBase
         }
 
         var nasDevice = await _context.RadiusNasDevices
-            .FirstOrDefaultAsync(n => n.Id == id && n.WorkspaceId == workspaceId.Value && n.IsDeleted);
+            .FirstOrDefaultAsync(n => n.Id == id && n.IsDeleted);
 
         if (nasDevice == null)
         {
@@ -322,7 +321,7 @@ public class RadiusNasController : ControllerBase
         }
 
         var query = _context.RadiusNasDevices
-            .Where(n => n.WorkspaceId == workspaceId.Value && n.IsDeleted);
+            .Where(n => n.IsDeleted);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
@@ -361,16 +360,16 @@ public class RadiusNasController : ControllerBase
         try
         {
             var totalNas = await _context.RadiusNasDevices
-                .CountAsync(n => n.WorkspaceId == workspaceId.Value && !n.IsDeleted);
+                .CountAsync(n => !n.IsDeleted);
 
             var enabledNas = await _context.RadiusNasDevices
-                .CountAsync(n => n.WorkspaceId == workspaceId.Value && !n.IsDeleted && n.Enabled == 1);
+                .CountAsync(n => !n.IsDeleted && n.Enabled == 1);
 
             var monitoredNas = await _context.RadiusNasDevices
-                .CountAsync(n => n.WorkspaceId == workspaceId.Value && !n.IsDeleted && n.Monitor == 1);
+                .CountAsync(n => !n.IsDeleted && n.Monitor == 1);
 
             var deletedNas = await _context.RadiusNasDevices
-                .CountAsync(n => n.WorkspaceId == workspaceId.Value && n.IsDeleted);
+                .CountAsync(n => n.IsDeleted);
 
             return Ok(new
             {

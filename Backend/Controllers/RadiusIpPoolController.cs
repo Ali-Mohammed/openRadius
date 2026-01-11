@@ -47,7 +47,7 @@ public class RadiusIpPoolController : ControllerBase
         }
 
         var query = _context.RadiusIpPools
-            .Where(p => p.WorkspaceId == workspaceId.Value && (includeDeleted || p.DeletedAt == null));
+            .Where(p => includeDeleted || p.DeletedAt == null);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -137,7 +137,7 @@ public class RadiusIpPoolController : ControllerBase
         {
             // Check if IP pool with same name already exists
             var existingPool = await _context.RadiusIpPools
-                .FirstOrDefaultAsync(p => p.Name == request.Name && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
+                .FirstOrDefaultAsync(p => p.Name == request.Name && p.DeletedAt == null);
 
             if (existingPool != null)
             {
@@ -150,7 +150,6 @@ public class RadiusIpPoolController : ControllerBase
                 StartIp = request.StartIp,
                 EndIp = request.EndIp,
                 LeaseTime = request.LeaseTime,
-                WorkspaceId = workspaceId.Value,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 DeletedAt = null
@@ -181,7 +180,7 @@ public class RadiusIpPoolController : ControllerBase
         try
         {
             var ipPool = await _context.RadiusIpPools
-                .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt == null);
+                .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
             if (ipPool == null)
             {
@@ -192,7 +191,7 @@ public class RadiusIpPoolController : ControllerBase
             if (request.Name != null && request.Name != ipPool.Name)
             {
                 var existingPool = await _context.RadiusIpPools
-                    .FirstOrDefaultAsync(p => p.Name == request.Name && p.WorkspaceId == workspaceId.Value && p.Id != id && p.DeletedAt == null);
+                    .FirstOrDefaultAsync(p => p.Name == request.Name && p.Id != id && p.DeletedAt == null);
 
                 if (existingPool != null)
                 {
@@ -254,7 +253,7 @@ public class RadiusIpPoolController : ControllerBase
         }
 
         var ipPool = await _context.RadiusIpPools
-            .FirstOrDefaultAsync(p => p.Id == id && p.WorkspaceId == workspaceId.Value && p.DeletedAt != null);
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt != null);
 
         if (ipPool == null)
         {
@@ -280,7 +279,7 @@ public class RadiusIpPoolController : ControllerBase
         }
 
         var query = _context.RadiusIpPools
-            .Where(p => p.WorkspaceId == workspaceId.Value && p.DeletedAt != null);
+            .Where(p => p.DeletedAt != null);
 
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
