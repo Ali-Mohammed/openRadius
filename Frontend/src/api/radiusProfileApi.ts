@@ -58,7 +58,6 @@ export interface PaginatedProfilesResponse {
 
 export const radiusProfileApi = {
   getAll: async (
-    workspaceId: number,
     page: number = 1,
     pageSize: number = 50,
     search?: string,
@@ -76,34 +75,33 @@ export const radiusProfileApi = {
       params.append('sortField', sortField)
       params.append('sortDirection', sortDirection)
     }
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/profiles?${params.toString()}`)
+    const response = await apiClient.get(`/api/radius/profiles?${params.toString()}`)
     return response.data
   },
 
-  getById: async (workspaceId: number, id: number): Promise<RadiusProfile> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/profiles/${id}`)
+  getById: async (id: number): Promise<RadiusProfile> => {
+    const response = await apiClient.get(`/api/radius/profiles/${id}`)
     return response.data
   },
 
-  create: async (workspaceId: number, data: RadiusProfile): Promise<RadiusProfile> => {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/profiles`, data)
+  create: async (data: RadiusProfile): Promise<RadiusProfile> => {
+    const response = await apiClient.post(`/api/radius/profiles`, data)
     return response.data
   },
 
-  update: async (workspaceId: number, id: number, data: RadiusProfile): Promise<void> => {
-    await apiClient.put(`/api/workspaces/${workspaceId}/radius/profiles/${id}`, { ...data, id })
+  update: async (id: number, data: RadiusProfile): Promise<void> => {
+    await apiClient.put(`/api/radius/profiles/${id}`, { ...data, id })
   },
 
-  delete: async (workspaceId: number, id: number): Promise<void> => {
-    await apiClient.delete(`/api/workspaces/${workspaceId}/radius/profiles/${id}`)
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/radius/profiles/${id}`)
   },
 
-  restore: async (workspaceId: number, id: number): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/radius/profiles/${id}/restore`)
+  restore: async (id: number): Promise<void> => {
+    await apiClient.post(`/api/radius/profiles/${id}/restore`)
   },
 
   getTrash: async (
-    workspaceId: number,
     page: number = 1,
     pageSize: number = 50
   ): Promise<PaginatedProfilesResponse> => {
@@ -111,12 +109,12 @@ export const radiusProfileApi = {
       page: page.toString(),
       pageSize: pageSize.toString(),
     })
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/profiles/trash?${params.toString()}`)
+    const response = await apiClient.get(`/api/radius/profiles/trash?${params.toString()}`)
     return response.data
   },
 
-  sync: async (workspaceId: number): Promise<SyncProfileResponse> => {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/profiles/sync`)
+  sync: async (): Promise<SyncProfileResponse> => {
+    const response = await apiClient.post(`/api/radius/profiles/sync`)
     return response.data
   },
 }

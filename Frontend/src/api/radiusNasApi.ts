@@ -100,7 +100,6 @@ export interface NasStats {
 
 export const radiusNasApi = {
   getAll: async (
-    workspaceId: number,
     page: number = 1,
     pageSize: number = 50,
     search?: string,
@@ -118,35 +117,34 @@ export const radiusNasApi = {
     if (sortField) params.append('sortField', sortField)
     if (sortDirection) params.append('sortDirection', sortDirection)
 
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/nas?${params}`)
+    const response = await apiClient.get(`/api/radius/nas?${params}`)
     return response.data
   },
 
-  getById: async (workspaceId: number, id: number): Promise<RadiusNas> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/nas/${id}`)
+  getById: async (id: number): Promise<RadiusNas> => {
+    const response = await apiClient.get(`/api/radius/nas/${id}`)
     return response.data
   },
 
-  create: async (workspaceId: number, data: CreateRadiusNasRequest): Promise<RadiusNas> => {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/nas`, data)
+  create: async (data: CreateRadiusNasRequest): Promise<RadiusNas> => {
+    const response = await apiClient.post(`/api/radius/nas`, data)
     return response.data
   },
 
-  update: async (workspaceId: number, id: number, data: UpdateRadiusNasRequest): Promise<RadiusNas> => {
-    const response = await apiClient.put(`/api/workspaces/${workspaceId}/radius/nas/${id}`, data)
+  update: async (id: number, data: UpdateRadiusNasRequest): Promise<RadiusNas> => {
+    const response = await apiClient.put(`/api/radius/nas/${id}`, data)
     return response.data
   },
 
-  delete: async (workspaceId: number, id: number): Promise<void> => {
-    await apiClient.delete(`/api/workspaces/${workspaceId}/radius/nas/${id}`)
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/radius/nas/${id}`)
   },
 
-  restore: async (workspaceId: number, id: number): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/radius/nas/${id}/restore`)
+  restore: async (id: number): Promise<void> => {
+    await apiClient.post(`/api/radius/nas/${id}/restore`)
   },
 
   getTrash: async (
-    workspaceId: number,
     page: number = 1,
     pageSize: number = 50
   ): Promise<PaginatedNasResponse> => {
@@ -154,12 +152,12 @@ export const radiusNasApi = {
       page: page.toString(),
       pageSize: pageSize.toString(),
     })
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/nas/trash?${params}`)
+    const response = await apiClient.get(`/api/radius/nas/trash?${params}`)
     return response.data
   },
 
-  getStats: async (workspaceId: number): Promise<NasStats> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/nas/stats`)
+  getStats: async (): Promise<NasStats> => {
+    const response = await apiClient.get(`/api/radius/nas/stats`)
     return response.data
   },
 }
