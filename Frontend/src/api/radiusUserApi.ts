@@ -65,7 +65,6 @@ export interface PaginatedUsersResponse {
 
 export const radiusUserApi = {
   getAll: async (
-    workspaceId: number, 
     page: number = 1, 
     pageSize: number = 50,
     search?: string,
@@ -85,35 +84,34 @@ export const radiusUserApi = {
     if (sortDirection) {
       params.append('sortDirection', sortDirection)
     }
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users?${params.toString()}`)
+    const response = await apiClient.get(`/api/radius/users?${params.toString()}`)
     return response.data
   },
 
-  getById: async (workspaceId: number, id: number): Promise<RadiusUser> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users/${id}`)
+  getById: async (id: number): Promise<RadiusUser> => {
+    const response = await apiClient.get(`/api/radius/users/${id}`)
     return response.data
   },
 
-  create: async (workspaceId: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/users`, data)
+  create: async (data: Partial<RadiusUser>): Promise<RadiusUser> => {
+    const response = await apiClient.post(`/api/radius/users`, data)
     return response.data
   },
 
-  update: async (workspaceId: number, id: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
-    const response = await apiClient.put(`/api/workspaces/${workspaceId}/radius/users/${id}`, data)
+  update: async (id: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
+    const response = await apiClient.put(`/api/radius/users/${id}`, data)
     return response.data
   },
 
-  delete: async (workspaceId: number, id: number): Promise<void> => {
-    await apiClient.delete(`/api/workspaces/${workspaceId}/radius/users/${id}`)
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/radius/users/${id}`)
   },
 
-  restore: async (workspaceId: number, id: number): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/${id}/restore`)
+  restore: async (id: number): Promise<void> => {
+    await apiClient.post(`/api/radius/users/${id}/restore`)
   },
 
   getTrash: async (
-    workspaceId: number,
     page: number = 1,
     pageSize: number = 50
   ): Promise<PaginatedUsersResponse> => {
@@ -121,17 +119,16 @@ export const radiusUserApi = {
       page: page.toString(),
       pageSize: pageSize.toString(),
     })
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users/trash?${params.toString()}`)
+    const response = await apiClient.get(`/api/radius/users/trash?${params.toString()}`)
     return response.data
   },
 
-  sync: async (workspaceId: number): Promise<SyncUsersResponse> => {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/sync`)
+  sync: async (): Promise<SyncUsersResponse> => {
+    const response = await apiClient.post(`/api/radius/users/sync`)
     return response.data
   },
 
   exportToCsv: async (
-    workspaceId: number,
     search?: string,
     sortField?: string,
     sortDirection?: 'asc' | 'desc'
@@ -142,14 +139,13 @@ export const radiusUserApi = {
     if (sortDirection) params.append('sortDirection', sortDirection)
     
     const response = await apiClient.get(
-      `/api/workspaces/${workspaceId}/radius/users/export/csv?${params.toString()}`,
+      `/api/radius/users/export/csv?${params.toString()}`,
       { responseType: 'blob' }
     )
     return response.data
   },
 
   exportToExcel: async (
-    workspaceId: number,
     search?: string,
     sortField?: string,
     sortDirection?: 'asc' | 'desc'
@@ -160,20 +156,20 @@ export const radiusUserApi = {
     if (sortDirection) params.append('sortDirection', sortDirection)
     
     const response = await apiClient.get(
-      `/api/workspaces/${workspaceId}/radius/users/export/excel?${params.toString()}`,
+      `/api/radius/users/export/excel?${params.toString()}`,
       { responseType: 'blob' }
     )
     return response.data
   },
 
   // Tag operations
-  getUserTags: async (workspaceId: number, userId: number): Promise<RadiusTag[]> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/radius/users/${userId}/tags`)
+  getUserTags: async (userId: number): Promise<RadiusTag[]> => {
+    const response = await apiClient.get(`/api/radius/users/${userId}/tags`)
     return response.data
   },
 
-  assignTags: async (workspaceId: number, userId: number, tagIds: number[]): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/radius/users/${userId}/tags`, tagIds)
+  assignTags: async (userId: number, tagIds: number[]): Promise<void> => {
+    await apiClient.post(`/api/radius/users/${userId}/tags`, tagIds)
   },
 }
 
