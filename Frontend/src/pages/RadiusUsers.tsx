@@ -1031,7 +1031,7 @@ export default function RadiusUsers() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Input
               placeholder={t('radiusUsers.searchUsers')}
               value={searchInput}
@@ -1122,6 +1122,7 @@ export default function RadiusUsers() {
                           address: checked,
                           contractId: checked,
                           simultaneousSessions: checked,
+                          tags: checked,
                         })
                       }}
                       onSelect={(e) => e.preventDefault()}
