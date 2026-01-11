@@ -747,8 +747,13 @@ export default function RadiusUsers() {
         {typeof config.label === 'string' ? config.label : config.label}
         {isSortable && getSortIcon(config.sortKey!)}
         <div 
-          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
           onMouseDown={(e) => { 
+            e.preventDefault()
             e.stopPropagation() 
             handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
           }}
