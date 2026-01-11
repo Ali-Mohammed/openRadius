@@ -112,7 +112,34 @@ export default function RadiusUsers() {
     actions: 120,
   })
 
+  const [columnOrder, setColumnOrder] = useState<string[]>([
+    'checkbox',
+    'username',
+    'name',
+    'email',
+    'phone',
+    'city',
+    'profile',
+    'status',
+    'balance',
+    'loanBalance',
+    'expiration',
+    'lastOnline',
+    'onlineStatus',
+    'remainingDays',
+    'debtDays',
+    'staticIp',
+    'company',
+    'address',
+    'contractId',
+    'simultaneousSessions',
+    'tags',
+    'actions',
+  ])
+
   const [resizing, setResizing] = useState<string | null>(null)
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
   const [showTrash, setShowTrash] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -499,6 +526,61 @@ export default function RadiusUsers() {
     document.addEventListener('mouseup', handleMouseUp)
   }, [])
 
+  // Column drag and drop handlers
+  const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
+    if (column === 'checkbox' || column === 'actions') return // Don't allow dragging checkbox or actions columns
+    setDraggingColumn(column)
+    e.dataTransfer.effectAllowed = 'move'
+    // Add a subtle drag image
+    if (e.currentTarget instanceof HTMLElement) {
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
+      dragImage.style.opacity = '0.5'
+      document.body.appendChild(dragImage)
+      e.dataTransfer.setDragImage(dragImage, 0, 0)
+      setTimeout(() => document.body.removeChild(dragImage), 0)
+    }
+  }, [])
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent, column: string) => {
+    if (!draggingColumn || column === 'checkbox' || column === 'actions') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggingColumn !== column) {
+      setDragOverColumn(column)
+    }
+  }, [draggingColumn])
+
+  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumn: string) => {
+    e.preventDefault()
+    
+    if (!draggingColumn || draggingColumn === targetColumn || targetColumn === 'checkbox' || targetColumn === 'actions') {
+      setDraggingColumn(null)
+      setDragOverColumn(null)
+      return
+    }
+
+    setColumnOrder(prev => {
+      const newOrder = [...prev]
+      const dragIndex = newOrder.indexOf(draggingColumn)
+      const dropIndex = newOrder.indexOf(targetColumn)
+      
+      // Remove dragged column
+      newOrder.splice(dragIndex, 1)
+      // Insert at new position
+      newOrder.splice(dropIndex, 0, draggingColumn)
+      
+      return newOrder
+    })
+
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [draggingColumn])
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [])
+
   // Generate pagination page numbers
   const getPaginationPages = useCallback((current: number, total: number) => {
     const pages: (number | string)[] = []
@@ -601,6 +683,233 @@ export default function RadiusUsers() {
 
   const formatNumber = (num: number) => {
     return num.toLocaleString()
+  }
+
+  // Helper function to render column header with drag and drop
+  const renderColumnHeader = (columnKey: string) => {
+    const columnConfig: Record<string, { label: string | JSX.Element, sortKey?: string, align?: string, draggable?: boolean }> = {
+      checkbox: { label: <Checkbox checked={selectedUserIds.length === users.length && users.length > 0} onCheckedChange={handleSelectAll} />, draggable: false },
+      username: { label: t('radiusUsers.username'), sortKey: 'username' },
+      name: { label: t('radiusUsers.name'), sortKey: 'name' },
+      email: { label: t('radiusUsers.email'), sortKey: 'email' },
+      phone: { label: t('radiusUsers.phone'), sortKey: 'phone' },
+      city: { label: 'City', sortKey: 'city' },
+      profile: { label: t('radiusUsers.profile'), sortKey: 'profile' },
+      status: { label: t('radiusUsers.status'), sortKey: 'enabled' },
+      balance: { label: t('radiusUsers.balance'), sortKey: 'balance', align: 'right' },
+      loanBalance: { label: 'Loan Balance', sortKey: 'loanBalance', align: 'right' },
+      expiration: { label: t('radiusUsers.expiration'), sortKey: 'expiration' },
+      lastOnline: { label: 'Last Online', sortKey: 'lastOnline' },
+      onlineStatus: { label: 'Online', sortKey: 'onlineStatus' },
+      remainingDays: { label: 'Remaining Days', sortKey: 'remainingDays', align: 'right' },
+      debtDays: { label: 'Debt Days', sortKey: 'debtDays', align: 'right' },
+      staticIp: { label: 'Static IP' },
+      company: { label: 'Company' },
+      address: { label: 'Address' },
+      contractId: { label: 'Contract ID' },
+      simultaneousSessions: { label: 'Sessions', align: 'center' },
+      tags: { label: 'Tags' },
+      actions: { label: t('common.actions'), draggable: false },
+    }
+
+    const config = columnConfig[columnKey]
+    if (!config) return null
+
+    // Check if column is visible
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const isDraggable = config.draggable !== false && columnKey !== 'checkbox' && columnKey !== 'actions'
+    const isSortable = !!config.sortKey
+    const isDragging = draggingColumn === columnKey
+    const isDragOver = dragOverColumn === columnKey
+
+    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
+    const alignmentClass = config.align === 'right' ? 'text-right' : config.align === 'center' ? 'text-center' : ''
+    const sortableClass = isSortable ? 'cursor-pointer' : ''
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background' : ''
+    
+    return (
+      <TableHead
+        key={columnKey}
+        className={`${baseClasses} ${alignmentClass} ${sortableClass} ${dragClasses} ${stickyClass}`}
+        style={{ width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }}
+        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
+        draggable={isDraggable}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
+      >
+        {typeof config.label === 'string' ? config.label : config.label}
+        {isSortable && getSortIcon(config.sortKey!)}
+        <div 
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onMouseDown={(e) => { 
+            e.stopPropagation() 
+            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
+          }}
+        />
+      </TableHead>
+    )
+  }
+
+  // Helper function to render table cell based on column order
+  const renderTableCell = (columnKey: string, user: RadiusUser) => {
+    // Check if column is visible
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)]' : ''
+    const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
+
+    switch (columnKey) {
+      case 'checkbox':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Checkbox
+              checked={selectedUserIds.includes(user.id!)}
+              onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
+            />
+          </TableCell>
+        )
+      case 'username':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>{user.username}</TableCell>
+        )
+      case 'name':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.firstname} {user.lastname}</TableCell>
+        )
+      case 'email':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.email || '-'}</TableCell>
+        )
+      case 'phone':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.phone || '-'}</TableCell>
+        )
+      case 'city':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.city || '-'}</TableCell>
+        )
+      case 'profile':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.profileName || '-'}</TableCell>
+        )
+      case 'status':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant={user.enabled ? 'success' : 'destructive'}>
+              {user.enabled ? t('radiusUsers.active') : t('radiusUsers.inactive')}
+            </Badge>
+          </TableCell>
+        )
+      case 'balance':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
+            {getCurrencySymbol(workspace?.currency)} {formatNumber(user.balance || 0)}
+          </TableCell>
+        )
+      case 'loanBalance':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
+            {getCurrencySymbol(workspace?.currency)} {formatNumber(user.loanBalance || 0)}
+          </TableCell>
+        )
+      case 'expiration':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.expiration)}</TableCell>
+        )
+      case 'lastOnline':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.lastOnline)}</TableCell>
+        )
+      case 'onlineStatus':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant={user.onlineStatus ? 'success' : 'secondary'}>
+              {user.onlineStatus ? 'Online' : 'Offline'}
+            </Badge>
+          </TableCell>
+        )
+      case 'remainingDays':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
+            {user.remainingDays !== undefined ? user.remainingDays : '-'}
+          </TableCell>
+        )
+      case 'debtDays':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
+            {user.debtDays !== undefined ? user.debtDays : '-'}
+          </TableCell>
+        )
+      case 'staticIp':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.staticIp || '-'}</TableCell>
+        )
+      case 'company':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.company || '-'}</TableCell>
+        )
+      case 'address':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.address || '-'}</TableCell>
+        )
+      case 'contractId':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.contractId || '-'}</TableCell>
+        )
+      case 'simultaneousSessions':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 text-center" style={baseStyle}>
+            {user.simultaneousSessions || 1}
+          </TableCell>
+        )
+      case 'tags':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            {user.tags && user.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {user.tags.map(tag => (
+                  <Badge key={tag.id} variant="outline" className="text-xs">
+                    {tag.tagName}
+                  </Badge>
+                ))}
+              </div>
+            ) : '-'}
+          </TableCell>
+        )
+      case 'actions':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
+            <div className="flex justify-end gap-2">
+              {!showTrash ? (
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id!)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button variant="ghost" size="icon" onClick={() => handleRestore(user.id!)}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </TableCell>
+        )
+      default:
+        return null
+    }
   }
 
   return (
@@ -936,157 +1245,7 @@ export default function RadiusUsers() {
                 {/* Fixed Header */}
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
-                      <TableHead className="h-12 px-4 relative" style={{ width: `${columnWidths.checkbox}px` }}>
-                        <Checkbox
-                          checked={selectedUserIds.length === users.length && users.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => handleResize('checkbox', e.clientX, columnWidths.checkbox)}
-                        />
-                      </TableHead>
-                      {columnVisibility.username && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.username}px` }} onClick={() => handleSort('username')}>
-                        {t('radiusUsers.username')}{getSortIcon('username')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('username', e.clientX, columnWidths.username) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.name}px` }} onClick={() => handleSort('name')}>
-                        {t('radiusUsers.name')}{getSortIcon('name')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('name', e.clientX, columnWidths.name) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.email && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.email}px` }} onClick={() => handleSort('email')}>
-                        {t('radiusUsers.email')}{getSortIcon('email')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('email', e.clientX, columnWidths.email) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.phone && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.phone}px` }} onClick={() => handleSort('phone')}>
-                        {t('radiusUsers.phone')}{getSortIcon('phone')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('phone', e.clientX, columnWidths.phone) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.city && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.city}px` }} onClick={() => handleSort('city')}>
-                        City{getSortIcon('city')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('city', e.clientX, columnWidths.city) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.profile && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.profile}px` }} onClick={() => handleSort('profile')}>
-                        {t('radiusUsers.profile')}{getSortIcon('profile')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('profile', e.clientX, columnWidths.profile) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.status}px` }} onClick={() => handleSort('enabled')}>
-                        {t('radiusUsers.status')}{getSortIcon('enabled')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('status', e.clientX, columnWidths.status) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.balance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.balance}px` }} onClick={() => handleSort('balance')}>
-                        {t('radiusUsers.balance')}{getSortIcon('balance')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('balance', e.clientX, columnWidths.balance) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.loanBalance && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.loanBalance}px` }} onClick={() => handleSort('loanBalance')}>
-                        Loan Balance{getSortIcon('loanBalance')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('loanBalance', e.clientX, columnWidths.loanBalance) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.expiration && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.expiration}px` }} onClick={() => handleSort('expiration')}>
-                        {t('radiusUsers.expiration')}{getSortIcon('expiration')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('expiration', e.clientX, columnWidths.expiration) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.lastOnline && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.lastOnline}px` }} onClick={() => handleSort('lastOnline')}>
-                        Last Online{getSortIcon('lastOnline')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('lastOnline', e.clientX, columnWidths.lastOnline) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.onlineStatus && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.onlineStatus}px` }} onClick={() => handleSort('onlineStatus')}>
-                        Online{getSortIcon('onlineStatus')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('onlineStatus', e.clientX, columnWidths.onlineStatus) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.remainingDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.remainingDays}px` }} onClick={() => handleSort('remainingDays')}>
-                        Remaining Days{getSortIcon('remainingDays')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('remainingDays', e.clientX, columnWidths.remainingDays) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.debtDays && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.debtDays}px` }} onClick={() => handleSort('debtDays')}>
-                        Debt Days{getSortIcon('debtDays')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('debtDays', e.clientX, columnWidths.debtDays) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.staticIp && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.staticIp}px` }} onClick={() => handleSort('staticIp')}>
-                        Static IP{getSortIcon('staticIp')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('staticIp', e.clientX, columnWidths.staticIp) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.company && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.company}px` }} onClick={() => handleSort('company')}>
-                        Company{getSortIcon('company')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('company', e.clientX, columnWidths.company) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.address && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.address}px` }} onClick={() => handleSort('address')}>
-                        Address{getSortIcon('address')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('address', e.clientX, columnWidths.address) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.contractId && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.contractId}px` }} onClick={() => handleSort('contractId')}>
-                        Contract ID{getSortIcon('contractId')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('contractId', e.clientX, columnWidths.contractId) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.simultaneousSessions && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap cursor-pointer select-none relative" style={{ width: `${columnWidths.simultaneousSessions}px` }} onClick={() => handleSort('simultaneousSessions')}>
-                        Sessions{getSortIcon('simultaneousSessions')}
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => { e.stopPropagation(); handleResize('simultaneousSessions', e.clientX, columnWidths.simultaneousSessions) }}
-                        />
-                      </TableHead>}
-                      {columnVisibility.tags && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap relative" style={{ width: `${columnWidths.tags}px` }}>
-                        Tags
-                        <div 
-                          className="absolute top-0 right-0 w-1 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-                          onMouseDown={(e) => handleResize('tags', e.clientX, columnWidths.tags)}
-                        />
-                      </TableHead>}
-                      <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap" style={{ width: `${columnWidths.actions}px` }}>{t('radiusUsers.actions')}</TableHead>
+                      {columnOrder.map(column => renderColumnHeader(column))}
                     </TableRow>
                   </TableHeader>
                 
@@ -1109,95 +1268,7 @@ export default function RadiusUsers() {
                             tableLayout: 'fixed',
                           }}
                         >
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.checkbox}px` }}>
-                            <Checkbox
-                              checked={selectedUserIds.includes(user.id!)}
-                              onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
-                            />
-                          </TableCell>
-                          {columnVisibility.username && <TableCell className="h-12 px-4 font-medium whitespace-nowrap" style={{ width: `${columnWidths.username}px` }}>{user.username}</TableCell>}
-                          {columnVisibility.name && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.name}px` }}>
-                            {user.firstname || user.lastname
-                              ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
-                              : '-'}
-                          </TableCell>}
-                          {columnVisibility.email && <TableCell className="h-12 px-4 truncate" title={user.email || '-'} style={{ width: `${columnWidths.email}px` }}>
-                            {user.email || '-'}
-                          </TableCell>}
-                          {columnVisibility.phone && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.phone}px` }}>{user.phone || '-'}</TableCell>}
-                          {columnVisibility.city && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.city}px` }}>{user.city || '-'}</TableCell>}
-                          {columnVisibility.profile && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.profile}px` }}>{user.profileName || '-'}</TableCell>}
-                          {columnVisibility.status && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.status}px` }}>
-                            <Badge variant={user.enabled ? 'default' : 'secondary'}>
-                              {user.enabled ? t('radiusUsers.enabled') : t('radiusUsers.disabled')}
-                            </Badge>
-                          </TableCell>}
-                          {columnVisibility.balance && <TableCell className="h-12 px-4 text-right font-mono" style={{ width: `${columnWidths.balance}px` }}>{currencySymbol} {formatCurrency(user.balance || 0)}</TableCell>}
-                          {columnVisibility.loanBalance && <TableCell className="h-12 px-4 text-right font-mono" style={{ width: `${columnWidths.loanBalance}px` }}>{currencySymbol} {formatCurrency(user.loanBalance || 0)}</TableCell>}
-                          {columnVisibility.expiration && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.expiration}px` }}>{formatDate(user.expiration)}</TableCell>}
-                          {columnVisibility.lastOnline && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.lastOnline}px` }}>{formatDate(user.lastOnline)}</TableCell>}
-                          {columnVisibility.onlineStatus && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.onlineStatus}px` }}>
-                            <Badge variant={user.onlineStatus ? 'default' : 'secondary'}>
-                              {user.onlineStatus ? 'Online' : 'Offline'}
-                            </Badge>
-                          </TableCell>}
-                          {columnVisibility.remainingDays && <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.remainingDays}px` }}>{user.remainingDays || '0'}</TableCell>}
-                          {columnVisibility.debtDays && <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.debtDays}px` }}>{user.debtDays || '0'}</TableCell>}
-                          {columnVisibility.staticIp && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.staticIp}px` }}>{user.staticIp || '-'}</TableCell>}
-                          {columnVisibility.company && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.company}px` }}>{user.company || '-'}</TableCell>}
-                          {columnVisibility.address && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.address}px` }}>{user.address || '-'}</TableCell>}
-                          {columnVisibility.contractId && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.contractId}px` }}>{user.contractId || '-'}</TableCell>}
-                          {columnVisibility.simultaneousSessions && <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.simultaneousSessions}px` }}>{user.simultaneousSessions || '1'}</TableCell>}
-                          {columnVisibility.tags && <TableCell className="h-12 px-4" style={{ width: `${columnWidths.tags}px` }}>
-                            <div className="flex flex-wrap gap-1">
-                              {user.tags && user.tags.length > 0 ? (
-                                user.tags.map((tag) => (
-                                  <Badge 
-                                    key={tag.id} 
-                                    variant="outline"
-                                    className="text-xs"
-                                    style={{ 
-                                      borderColor: tag.color,
-                                      color: tag.color
-                                    }}
-                                  >
-                                    {tag.title}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground text-sm">-</span>
-                              )}
-                            </div>
-                          </TableCell>}
-                          <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right" style={{ width: `${columnWidths.actions}px` }}>
-                            <div className="flex justify-end gap-2">
-                              {showTrash ? (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRestore(user.id!)}
-                                  disabled={restoreMutation.isPending}
-                                  title="Restore user"
-                                >
-                                  <RotateCcw className="h-4 w-4 text-green-600" />
-                                </Button>
-                              ) : (
-                                <>
-                                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDelete(user.id)}
-                                    disabled={deleteMutation.isPending}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
+                          {columnOrder.map(column => renderTableCell(column, user))}
                         </TableRow>
                       )
                     })}
