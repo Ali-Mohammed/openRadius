@@ -15,6 +15,7 @@ import 'reactflow/dist/style.css';
 import { TriggerNode } from '../components/workflow/TriggerNode';
 import { ActionNode } from '../components/workflow/ActionNode';
 import { ConditionNode } from '../components/workflow/ConditionNode';
+import { CommentNode } from '../components/workflow/CommentNode';
 import { Button } from '../components/ui/button';
 import { 
   ChevronRight, 
@@ -35,7 +36,8 @@ import {
   FileEdit,
   Scale,
   CheckCircle,
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +55,7 @@ const nodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   condition: ConditionNode,
+  comment: CommentNode,
 };
 
 const TRIGGER_TYPES = [
@@ -78,6 +81,12 @@ const CONDITION_TYPES = [
   { value: 'balance-check', label: 'Check Balance', description: 'Check if balance meets condition', icon: Scale },
   { value: 'user-status', label: 'User Status', description: 'Check user status', icon: CheckCircle },
   { value: 'date-check', label: 'Date Check', description: 'Check date conditions', icon: Calendar },
+];
+
+const COMMENT_TYPES = [
+  { value: 'note', label: 'Note', description: 'Add a note or comment', icon: MessageSquare },
+  { value: 'todo', label: 'To-Do', description: 'Add a task reminder', icon: MessageSquare },
+  { value: 'info', label: 'Info', description: 'Add information', icon: MessageSquare },
 ];
 
 export default function WorkflowDesigner() {
@@ -334,6 +343,39 @@ export default function WorkflowDesigner() {
                 )})}
               </div>
             </div>
+
+            {/* Comments Section */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+                Comments
+              </h3>
+              <div className="space-y-1.5">
+                {COMMENT_TYPES.map((comment) => {
+                  const Icon = comment.icon;
+                  return (
+                  <div
+                    key={comment.value}
+                    draggable
+                    onDragStart={(e) =>
+                      onDragStart(e, 'comment', {
+                        label: comment.label,
+                        text: comment.description,
+                        commentType: comment.value,
+                      })
+                    }
+                    className="border border-gray-300 bg-gray-50 rounded p-2 cursor-move hover:border-gray-400 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-start gap-2">
+                      <Icon className="h-5 w-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-xs text-gray-900">{comment.label}</div>
+                        <div className="text-xs text-gray-600 line-clamp-1">{comment.description}</div>
+                      </div>
+                    </div>
+                  </div>
+                )})}              </div>
+            </div>
           </div>
 
           <div className="px-3 py-2 border-t bg-gray-50">
@@ -406,23 +448,23 @@ export default function WorkflowDesigner() {
           )}
           
           {/* Floating Action Buttons */}
-          <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-50">
             <Button 
               variant="outline" 
               onClick={handleTest} 
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all bg-white"
+              size="sm"
+              className="shadow-md hover:shadow-lg transition-all bg-white rounded-full px-4 h-9"
             >
-              <Play className="h-4 w-4 mr-2" />
-              Test
+              <Play className="h-3.5 w-3.5 mr-1.5" />
+              <span className="text-xs font-medium">Test</span>
             </Button>
             <Button 
               onClick={handleSave} 
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all"
+              size="sm"
+              className="shadow-md hover:shadow-lg transition-all rounded-full px-4 h-9"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Save
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              <span className="text-xs font-medium">Save</span>
             </Button>
           </div>
         </div>
