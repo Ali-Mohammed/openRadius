@@ -144,7 +144,8 @@ export default function workspaceView() {
   const createMutation = useMutation({
     mutationFn: workspaceApi.create,
     onSuccess: async (newWorkspace) => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       
       // If this is the first workspace, set it as default
       if (workspaces.length === 0 && deletedworkspaces.length === 0) {
@@ -170,8 +171,9 @@ export default function workspaceView() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<workspaceCreateDto> }) => 
       workspaceApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       toast.success('Workspace updated successfully')
       setOpen(false)
       resetForm()
@@ -183,9 +185,9 @@ export default function workspaceView() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: workspaceApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+    mutationFn:async () => {
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] })
       queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       toast.success('Workspace deleted successfully')
     },
@@ -197,9 +199,9 @@ export default function workspaceView() {
   // Restore mutation
   const restoreMutation = useMutation({
     mutationFn: workspaceApi.restore,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
-      queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       toast.success('Workspace restored successfully')
     },
     onError: () => {
