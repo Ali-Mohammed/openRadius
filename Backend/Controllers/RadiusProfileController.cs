@@ -128,14 +128,14 @@ public class RadiusProfileController : ControllerBase
         foreach (var p in profilesList)
         {
             var userCount = await _context.RadiusUsers
-                .CountAsync(u => u.WorkspaceId == WorkspaceId && 
+                .CountAsync(u => u.WorkspaceId == workspaceId.Value && 
                                  !u.IsDeleted && 
                                  u.ProfileId == p.Id);
 
             // Get custom wallets for this profile
             var profileWallets = await _context.RadiusProfileWallets
                 .Include(pw => pw.CustomWallet)
-                .Where(pw => pw.RadiusProfileId == p.Id && pw.WorkspaceId == WorkspaceId)
+                .Where(pw => pw.RadiusProfileId == p.Id && pw.WorkspaceId == workspaceId.Value)
                 .Select(pw => new ProfileWalletConfig
                 {
                     CustomWalletId = pw.CustomWalletId,
@@ -350,7 +350,7 @@ public class RadiusProfileController : ControllerBase
             CustomWallets = profileWallets
         };
 
-        return CreatedAtAction(nameof(GetProfile), new { WorkspaceId, id = profile.Id }, response);
+        return CreatedAtAction(nameof(GetProfile), new { id = profile.Id }, response);
     }
 
     [HttpPut("{id}")]
@@ -465,7 +465,7 @@ public class RadiusProfileController : ControllerBase
         profile.DeletedAt = null;
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Restored radius profile {Name} for workspace {WorkspaceId}", profile.Name, WorkspaceId);
+        _logger.LogInformation("Restored radius profile {Name} for workspace {WorkspaceId}", profile.Name, workspaceId.Value);
 
         return NoContent();
     }
@@ -578,7 +578,7 @@ public class RadiusProfileController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start profile sync for workspace {WorkspaceId}", WorkspaceId);
+            _logger.LogError(ex, "Failed to start profile sync for workspace {WorkspaceId}", workspaceId.Value);
             return StatusCode(500, new { error = "Failed to start profile synchronization", details = ex.Message });
         }
     }
