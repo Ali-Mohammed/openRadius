@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useTranslation } from 'react-i18next'
@@ -25,10 +25,10 @@ import { workspaceApi } from '@/lib/api'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 export default function RadiusProfiles() {
-  const { id } = useParams<{ id: string }>()
-  const workspaceId = parseInt(id || '0')
+  const { currentWorkspaceId } = useWorkspace()
   const queryClient = useQueryClient()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -99,9 +99,9 @@ export default function RadiusProfiles() {
 
   // Fetch workspace currency
   const { data: workspace } = useQuery({
-    queryKey: ['workspace', workspaceId],
-    queryFn: () => workspaceApi.getById(workspaceId),
-    enabled: workspaceId > 0,
+    queryKey: ['workspace', currentWorkspaceId],
+    queryFn: () => workspaceApi.getById(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
   })
 
   // Helper function to get currency symbol
@@ -119,20 +119,20 @@ export default function RadiusProfiles() {
 
   // Fetch custom wallets
   const { data: customWalletsData } = useQuery({
-    queryKey: ['custom-wallets', workspaceId],
-    queryFn: () => customWalletApi.getAll(workspaceId),
-    enabled: workspaceId > 0,
+    queryKey: ['custom-wallets', currentWorkspaceId],
+    queryFn: () => customWalletApi.getAll(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
   })
 
   const customWallets = useMemo(() => customWalletsData?.data || [], [customWalletsData?.data])
 
   // Profile queries
   const { data: profilesData, isLoading: isLoadingProfiles, isFetching, error: profilesError } = useQuery({
-    queryKey: ['radius-profiles', currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-profiles', currentWorkspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
     queryFn: () => showTrash
       ? radiusProfileApi.getTrash(currentPage, pageSize)
       : radiusProfileApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
-    enabled: workspaceId > 0,
+    enabled: !!currentWorkspaceId,
   })
 
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
