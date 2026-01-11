@@ -96,6 +96,7 @@ export default function WorkflowDesigner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<any>(null);
 
   const { data: automation, isLoading } = useQuery({
     queryKey: ['automation', automationId],
@@ -168,6 +169,10 @@ export default function WorkflowDesigner() {
     (params: any) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
+    setSelectedNode(node);
+  }, []);
 
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
@@ -397,6 +402,7 @@ export default function WorkflowDesigner() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeClick={onNodeClick}
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
@@ -430,6 +436,91 @@ export default function WorkflowDesigner() {
               </div>
             </Panel>
           </ReactFlow>
+          
+          {/* Node Configuration Panel */}
+          {selectedNode && (
+            <div className="absolute top-4 right-4 w-80 bg-white rounded-lg shadow-xl border z-40">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="font-semibold text-sm">Node Configuration</h3>
+                <button
+                  onClick={() => setSelectedNode(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Type</label>
+                  <div className="text-sm capitalize px-3 py-2 bg-gray-50 rounded">{selectedNode.type}</div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Label</label>
+                  <input
+                    type="text"
+                    value={selectedNode.data.label || ''}
+                    onChange={(e) => {
+                      const updatedNodes = nodes.map(node => 
+                        node.id === selectedNode.id 
+                          ? { ...node, data: { ...node.data, label: e.target.value } }
+                          : node
+                      );
+                      setNodes(updatedNodes);
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } });
+                    }}
+                    className="w-full px-3 py-2 border rounded text-sm"
+                  />
+                </div>
+                {selectedNode.type === 'comment' && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 block mb-1">Comment Text</label>
+                    <textarea
+                      value={selectedNode.data.text || ''}
+                      onChange={(e) => {
+                        const updatedNodes = nodes.map(node => 
+                          node.id === selectedNode.id 
+                            ? { ...node, data: { ...node.data, text: e.target.value } }
+                            : node
+                        );
+                        setNodes(updatedNodes);
+                        setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, text: e.target.value } });
+                      }}
+                      rows={4}
+                      className="w-full px-3 py-2 border rounded text-sm"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Description</label>
+                  <textarea
+                    value={selectedNode.data.description || ''}
+                    onChange={(e) => {
+                      const updatedNodes = nodes.map(node => 
+                        node.id === selectedNode.id 
+                          ? { ...node, data: { ...node.data, description: e.target.value } }
+                          : node
+                      );
+                      setNodes(updatedNodes);
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, description: e.target.value } });
+                    }}
+                    rows={3}
+                    className="w-full px-3 py-2 border rounded text-sm"
+                  />
+                </div>
+                <div className="pt-2 border-t">
+                  <button
+                    onClick={() => {
+                      setNodes(nodes.filter(node => node.id !== selectedNode.id));
+                      setSelectedNode(null);
+                    }}
+                    className="w-full px-3 py-2 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 transition-colors"
+                  >
+                    Delete Node
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Loading Indicator */}
           {(isLoading || saveMutation.isPending) && (
