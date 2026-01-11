@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 
@@ -496,25 +497,26 @@ export default function RadiusUsers() {
           <p className="text-muted-foreground">{t('radiusUsers.subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={() => setShowTrash(!showTrash)}
-            variant={showTrash ? 'default' : 'outline'}
-          >
-            <Archive className="mr-2 h-4 w-4" />
-            {showTrash ? 'Show Active' : 'Show Trash'}
-          </Button>
           {!showTrash && (
-            <>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t('radiusUsers.addUser')}
-              </Button>
-            </>
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('radiusUsers.addUser')}
+            </Button>
           )}
         </div>
       </div>
 
-      <Card className="overflow-hidden">
+      <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+        <TabsList>
+          <TabsTrigger value="active">Active Users</TabsTrigger>
+          <TabsTrigger value="trash">
+            <Archive className="h-4 w-4 mr-2" />
+            Trash
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={showTrash ? 'trash' : 'active'} className="mt-0">
+          <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-4">
