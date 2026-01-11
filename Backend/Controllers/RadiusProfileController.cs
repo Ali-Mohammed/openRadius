@@ -545,9 +545,10 @@ public class RadiusProfileController : ControllerBase
     [HttpPost("sync")]
     public async Task<ActionResult<SyncProfileResponse>> SyncProfiles([FromQuery] bool fullSync = false)
     {
+        int? workspaceId = null;
         try
         {
-            var workspaceId = await GetCurrentWorkspaceIdAsync();
+            workspaceId = await GetCurrentWorkspaceIdAsync();
             if (workspaceId == null)
             {
                 return Unauthorized(new { message = "User workspace not found" });
