@@ -366,3 +366,4 @@ namespace Backend.Models
     {
         public required List<int> UserIds { get; set; }
     }
+}
