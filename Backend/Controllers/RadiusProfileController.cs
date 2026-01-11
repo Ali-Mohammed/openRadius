@@ -498,7 +498,7 @@ public class RadiusProfileController : ControllerBase
         foreach (var p in profilesList)
         {
             var userCount = await _context.RadiusUsers
-                .CountAsync(u => u.WorkspaceId == WorkspaceId && 
+                .CountAsync(u => u.WorkspaceId == workspaceId.Value && 
                                  !u.IsDeleted && 
                                  u.ProfileId == p.Id);
 
