@@ -471,22 +471,38 @@ export default function Automations() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Color</Label>
-                  <div className="flex gap-2">
-                    {PREDEFINED_COLORS.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, color })}
-                        className={`w-8 h-8 rounded-md border-2 ${
-                          formData.color === color
-                            ? 'border-primary ring-2 ring-primary ring-offset-2'
-                            : 'border-gray-300'
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
+                  <Label htmlFor="color">Color</Label>
+                  <Select
+                    value={formData.color}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, color: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: formData.color }}
+                        />
+                        <span>
+                          {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Select Color'}
+                        </span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_COLORS.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: color.value }}
+                            />
+                            {color.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
