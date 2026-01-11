@@ -482,7 +482,7 @@ export default function RadiusUsers() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-2 overflow-x-hidden">
       {isExporting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-lg shadow-lg px-4 py-2 flex items-center gap-2">
           <RefreshCw className="h-4 w-4 animate-spin text-primary" />
