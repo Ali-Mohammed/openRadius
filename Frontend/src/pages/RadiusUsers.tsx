@@ -491,8 +491,8 @@ export default function RadiusUsers() {
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('radiusUsers.title')}</h1>
-          <p className="text-muted-foreground">{t('radiusUsers.subtitle')}</p>
+          <h1 className="text-2xl font-bold">{t('radiusUsers.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('radiusUsers.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
