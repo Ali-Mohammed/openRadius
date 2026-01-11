@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
@@ -496,25 +496,25 @@ export default function RadiusUsers() {
           <h1 className="text-3xl font-bold">{t('radiusUsers.title')}</h1>
           <p className="text-muted-foreground">{t('radiusUsers.subtitle')}</p>
         </div>
-        <div className="flex gap-2">
-          {!showTrash && (
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('radiusUsers.addUser')}
-            </Button>
-          )}
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Users className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('radiusUsers.addUser')}
+          </Button>
         </div>
       </div>
 
       <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
-        <TabsList>
-          <TabsTrigger value="active">Active Users</TabsTrigger>
-          <TabsTrigger value="trash">
-            <Archive className="h-4 w-4 mr-2" />
-            Trash
-          </TabsTrigger>
-        </TabsList>
-
         <TabsContent value={showTrash ? 'trash' : 'active'} className="mt-0">
           <Card className="overflow-hidden">
         <CardHeader>
@@ -1044,6 +1044,8 @@ export default function RadiusUsers() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* User Dialog */}
       {isDialogOpen && (
