@@ -88,6 +88,8 @@
     "actions": "الإجراءات",
     "enabled": "مفعل",
     "disabled": "معطل",
+    "active": "نشط",
+    "inactive": "غير نشط",
     "firstName": "الاسم الأول",
     "lastName": "اسم العائلة",
     "city": "المدينة",
@@ -228,6 +230,8 @@
     "search": "بحث",
     "previous": "السابق",
     "next": "التالي",
-    "page": "صفحة"
+    "page": "صفحة",
+    "actions": "الإجراءات",
+    "refresh": "تحديث"
   }
 }

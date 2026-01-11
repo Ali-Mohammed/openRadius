@@ -91,6 +91,8 @@
     "actions": "Actions",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
     "firstName": "First Name",
     "lastName": "Last Name",
     "city": "City",
@@ -231,6 +233,8 @@
     "search": "Search",
     "previous": "Previous",
     "next": "Next",
-    "page": "Page"
+    "page": "Page",
+    "actions": "Actions",
+    "refresh": "Refresh"
   }
 }
