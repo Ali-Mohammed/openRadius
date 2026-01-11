@@ -2,20 +2,32 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/workspaces/{WorkspaceId}/radius/groups")]
+[Route("api/radius/groups")]
 public class RadiusGroupController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusGroupController> _logger;
 
-    public RadiusGroupController(ApplicationDbContext context, ILogger<RadiusGroupController> logger)
+    public RadiusGroupController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusGroupController> logger)
     {
         _context = context;
+        _masterContext = masterContext;
         _logger = logger;
+    }
+
+    private async Task<int?> GetCurrentWorkspaceIdAsync()
+    {
+        var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+        if (string.IsNullOrEmpty(userEmail)) return null;
+        
+        var user = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+        return user?.CurrentWorkspaceId;
     }
 
     // GET: api/workspaces/{WorkspaceId}/radius/groups
