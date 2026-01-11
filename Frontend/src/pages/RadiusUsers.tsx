@@ -746,10 +746,17 @@ export default function RadiusUsers() {
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-            </div>
           </div>
-        </CardHeader>
+          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('radiusUsers.addUser')}
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+        <TabsContent value={showTrash ? 'trash' : 'active'} className="mt-0">
+          <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
           {isLoading ? (
             <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
