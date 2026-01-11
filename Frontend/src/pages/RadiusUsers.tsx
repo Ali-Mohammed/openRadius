@@ -820,7 +820,7 @@ export default function RadiusUsers() {
     const alignmentClass = config.align === 'right' ? 'text-right' : config.align === 'center' ? 'text-center' : ''
     const sortableClass = isSortable ? 'cursor-pointer' : ''
     const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
-    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
     
     return (
       <TableHead
@@ -860,7 +860,7 @@ export default function RadiusUsers() {
       return null
     }
 
-    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-inherit' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
     const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
 
     switch (columnKey) {
