@@ -122,14 +122,14 @@ export default function BillingProfiles() {
   });
 
   const { data: radiusProfilesData, isLoading: isLoadingRadiusProfiles } = useQuery({
-    queryKey: ['radius-profiles', workspaceId],
+    queryKey: ['radius-profiles'],
     queryFn: async () => {
       if (!workspaceId || workspaceId === 0) {
         console.log('No workspace ID available');
         return { data: [], pagination: { currentPage: 1, pageSize: 50, totalRecords: 0, totalPages: 0 } };
       }
       console.log('Fetching radius profiles for workspace:', workspaceId);
-      const result = await radiusProfileApi.getAll(workspaceId, 1, 1000);
+      const result = await radiusProfileApi.getAll(1, 1000);
       console.log('Radius profiles result:', result);
       return result;
     },
