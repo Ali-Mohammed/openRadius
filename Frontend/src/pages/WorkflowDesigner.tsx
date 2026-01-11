@@ -171,7 +171,10 @@ export default function WorkflowDesigner() {
   );
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
-    setSelectedNode(node);
+    // Don't show configuration panel for comment nodes
+    if (node.type !== 'comment') {
+      setSelectedNode(node);
+    }
   }, []);
 
   const onDragOver = useCallback((event: DragEvent) => {
