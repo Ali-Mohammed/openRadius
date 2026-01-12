@@ -181,64 +181,6 @@ export default function RadiusProfiles() {
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const pagination = profilesData?.pagination
 
-  // Track if preferences have been loaded
-  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
-
-  // Load table preferences on mount
-  useEffect(() => {
-    const loadPreferences = async () => {
-      try {
-        const preferences = await tablePreferenceApi.getPreference('radius-profiles')
-        if (preferences) {
-          if (preferences.columnWidths) {
-            setColumnWidths(JSON.parse(preferences.columnWidths))
-          }
-          if (preferences.columnOrder) {
-            setColumnOrder(JSON.parse(preferences.columnOrder))
-          }
-          if (preferences.columnVisibility) {
-            setColumnVisibility(JSON.parse(preferences.columnVisibility))
-          }
-          if (preferences.sortField) {
-            setSortField(preferences.sortField)
-          }
-          if (preferences.sortDirection) {
-            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
-          }
-        }
-      } catch (error) {
-        console.log('No saved preferences found', error)
-      } finally {
-        setPreferencesLoaded(true)
-      }
-    }
-
-    loadPreferences()
-  }, [])
-
-  // Auto-save preferences when they change
-  useEffect(() => {
-    if (!preferencesLoaded) return
-
-    const savePreferences = async () => {
-      try {
-        await tablePreferenceApi.savePreference({
-          tableName: 'radius-profiles',
-          columnWidths: JSON.stringify(columnWidths),
-          columnOrder: JSON.stringify(columnOrder),
-          columnVisibility: JSON.stringify(columnVisibility),
-          sortField: sortField || undefined,
-          sortDirection: sortDirection,
-        })
-      } catch (error) {
-        console.error('Failed to save table preferences:', error)
-      }
-    }
-
-    const timeoutId = setTimeout(savePreferences, 1000)
-    return () => clearTimeout(timeoutId)
-  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId, preferencesLoaded])
-
   // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
     count: profiles.length,
@@ -249,8 +191,6 @@ export default function RadiusProfiles() {
 
   // Sorting handlers
   const handleSort = useCallback((field: string) => {
-    if (resizing) return
-    
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -258,7 +198,7 @@ export default function RadiusProfiles() {
       setSortDirection('asc')
     }
     setCurrentPage(1)
-  }, [sortField, sortDirection, resizing])
+  }, [sortField, sortDirection])
 
   const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) {
@@ -268,138 +208,6 @@ export default function RadiusProfiles() {
       ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
       : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
   }, [sortField, sortDirection])
-
-  // Column resize handler
-  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
-    setResizing(column)
-    let hasMoved = false
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      hasMoved = true
-      const diff = e.clientX - startX
-      const newWidth = Math.max(60, startWidth + diff)
-      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
-    }
-    
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      setTimeout(() => setResizing(null), 100)
-    }
-    
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [])
-
-  // Column drag and drop handlers
-  const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
-    if (column === 'checkbox' || column === 'actions') return
-    setDraggingColumn(column)
-    e.dataTransfer.effectAllowed = 'move'
-    if (e.currentTarget instanceof HTMLElement) {
-      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
-      dragImage.style.opacity = '0.5'
-      document.body.appendChild(dragImage)
-      e.dataTransfer.setDragImage(dragImage, 0, 0)
-      setTimeout(() => document.body.removeChild(dragImage), 0)
-    }
-  }, [])
-
-  const handleColumnDragOver = useCallback((e: React.DragEvent, column: string) => {
-    if (!draggingColumn || column === 'checkbox' || column === 'actions') return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (draggingColumn !== column) {
-      setDragOverColumn(column)
-    }
-  }, [draggingColumn])
-
-  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumn: string) => {
-    e.preventDefault()
-    if (!draggingColumn || draggingColumn === targetColumn || targetColumn === 'checkbox' || targetColumn === 'actions') {
-      setDraggingColumn(null)
-      setDragOverColumn(null)
-      return
-    }
-
-    setColumnOrder(prev => {
-      const newOrder = [...prev]
-      const dragIndex = newOrder.indexOf(draggingColumn)
-      const dropIndex = newOrder.indexOf(targetColumn)
-      newOrder.splice(dragIndex, 1)
-      newOrder.splice(dropIndex, 0, draggingColumn)
-      return newOrder
-    })
-
-    setDraggingColumn(null)
-    setDragOverColumn(null)
-  }, [draggingColumn])
-
-  const handleColumnDragEnd = useCallback(() => {
-    setDraggingColumn(null)
-    setDragOverColumn(null)
-  }, [])
-
-  // Bulk selection handlers
-  const handleSelectProfile = (profileId: number, checked: boolean) => {
-    if (checked) {
-      setSelectedProfileIds([...selectedProfileIds, profileId])
-    } else {
-      setSelectedProfileIds(selectedProfileIds.filter(id => id !== profileId))
-    }
-  }
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedProfileIds(profiles.map(p => p.id!))
-    } else {
-      setSelectedProfileIds([])
-    }
-  }
-
-  // Export functionality
-  const handleExport = useCallback(async (format: 'csv' | 'excel') => {
-    setIsExporting(true)
-    try {
-      const blob = format === 'csv' 
-        ? await radiusProfileApi.exportCsv()
-        : await radiusProfileApi.exportExcel()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `radius-profiles-${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-      toast.success(`Profiles exported as ${format.toUpperCase()}`)
-    } catch (error) {
-      toast.error(`Failed to export profiles: ${formatApiError(error)}`)
-    } finally {
-      setIsExporting(false)
-    }
-  }, [])
-
-  // Reset columns
-  const handleResetColumns = () => {
-    setResetColumnsDialogOpen(true)
-  }
-
-  const confirmResetColumns = async () => {
-    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
-    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
-    setColumnOrder(DEFAULT_COLUMN_ORDER)
-    
-    try {
-      await tablePreferenceApi.deletePreference('radius-profiles')
-      toast.success('Table columns reset to defaults')
-    } catch (error) {
-      console.error('Failed to delete preferences:', error)
-      toast.error('Columns reset but failed to clear saved preferences')
-    }
-    
-    setResetColumnsDialogOpen(false)
-  }
 
   // Pagination pages generator
   const getPaginationPages = useCallback((current: number, total: number) => {
@@ -471,50 +279,6 @@ export default function RadiusProfiles() {
       toast.error(formatApiError(error) || 'Failed to restore profile')
     },
   })
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      await Promise.all(ids.map(id => radiusProfileApi.delete(id)))
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
-      setSelectedProfileIds([])
-      setBulkActionLoading(false)
-      toast.success('Profiles deleted successfully')
-    },
-    onError: (error: any) => {
-      setBulkActionLoading(false)
-      toast.error(formatApiError(error) || 'Failed to delete profiles')
-    },
-  })
-
-  const bulkRestoreMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      await Promise.all(ids.map(id => radiusProfileApi.restore(id)))
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
-      setSelectedProfileIds([])
-      setBulkActionLoading(false)
-      toast.success('Profiles restored successfully')
-    },
-    onError: (error: any) => {
-      setBulkActionLoading(false)
-      toast.error(formatApiError(error) || 'Failed to restore profiles')
-    },
-  })
-
-  const confirmBulkDelete = () => {
-    setBulkActionLoading(true)
-    bulkDeleteMutation.mutate(selectedProfileIds)
-    setBulkDeleteDialogOpen(false)
-  }
-
-  const confirmBulkRestore = () => {
-    setBulkActionLoading(true)
-    bulkRestoreMutation.mutate(selectedProfileIds)
-    setBulkRestoreDialogOpen(false)
-  }
 
   // Handlers
   const handleSearch = () => {
@@ -657,350 +421,153 @@ export default function RadiusProfiles() {
     return `${kbps} Kbps`
   }
 
-  // Helper function to render column header
-  const renderColumnHeader = (columnKey: string) => {
-    const columnConfig: Record<string, { label: string | JSX.Element, sortKey?: string, align?: string, draggable?: boolean }> = {
-      checkbox: { label: <Checkbox checked={selectedProfileIds.length === profiles.length && profiles.length > 0} onCheckedChange={handleSelectAll} />, draggable: false },
-      name: { label: 'Name', sortKey: 'name' },
-      status: { label: 'Status', sortKey: 'enabled' },
-      download: { label: 'Download', sortKey: 'downrate' },
-      upload: { label: 'Upload', sortKey: 'uprate' },
-      price: { label: 'Price', sortKey: 'price', align: 'right' },
-      pool: { label: 'Pool', sortKey: 'pool' },
-      users: { label: 'Users', sortKey: 'usersCount', align: 'right' },
-      actions: { label: 'Actions', draggable: false },
-    }
-
-    const config = columnConfig[columnKey]
-    if (!config) return null
-
-    const visibilityKey = columnKey as keyof typeof columnVisibility
-    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
-      return null
-    }
-
-    const isDraggable = config.draggable !== false && columnKey !== 'checkbox' && columnKey !== 'actions'
-    const isSortable = !!config.sortKey
-    const isDragging = draggingColumn === columnKey
-    const isDragOver = dragOverColumn === columnKey
-
-    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
-    const alignmentClass = config.align === 'right' ? 'text-right' : config.align === 'center' ? 'text-center' : ''
-    const sortableClass = isSortable ? 'cursor-pointer' : ''
-    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
-    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
-    
-    return (
-      <TableHead
-        key={columnKey}
-        className={`${baseClasses} ${alignmentClass} ${sortableClass} ${dragClasses} ${stickyClass}`}
-        style={{ width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }}
-        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
-        draggable={isDraggable}
-        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
-        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
-        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
-        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
-      >
-        {typeof config.label === 'string' ? config.label : config.label}
-        {isSortable && getSortIcon(config.sortKey!)}
-        <div 
-          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-          }}
-          onMouseDown={(e) => { 
-            e.preventDefault()
-            e.stopPropagation() 
-            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
-          }}
-        />
-      </TableHead>
-    )
-  }
-
-  // Helper function to render table cell
-  const renderTableCell = (columnKey: string, profile: RadiusProfile) => {
-    const visibilityKey = columnKey as keyof typeof columnVisibility
-    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
-      return null
-    }
-
-    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
-    const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
-    const ProfileIcon = getIconComponent(profile.icon)
-
-    switch (columnKey) {
-      case 'checkbox':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
-            <Checkbox
-              checked={selectedProfileIds.includes(profile.id!)}
-              onCheckedChange={(checked) => handleSelectProfile(profile.id!, checked as boolean)}
-            />
-          </TableCell>
-        )
-      case 'name':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>
-            <div className="flex items-center gap-2">
-              <div 
-                className="rounded-lg p-1.5 flex items-center justify-center"
-                style={{ backgroundColor: `${profile.color || '#3b82f6'}15`, color: profile.color || '#3b82f6' }}
-              >
-                <ProfileIcon className="h-4 w-4" />
-              </div>
-              <span>{profile.name}</span>
-            </div>
-          </TableCell>
-        )
-      case 'status':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
-            <Badge variant={profile.enabled ? 'default' : 'secondary'}>
-              {profile.enabled ? 'Active' : 'Inactive'}
-            </Badge>
-          </TableCell>
-        )
-      case 'download':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
-            {formatSpeed(profile.downrate)}
-          </TableCell>
-        )
-      case 'upload':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
-            {formatSpeed(profile.uprate)}
-          </TableCell>
-        )
-      case 'price':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4 text-right font-mono" style={baseStyle}>
-            {currencySymbol}{(profile.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-          </TableCell>
-        )
-      case 'pool':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
-            {profile.pool || '-'}
-          </TableCell>
-        )
-      case 'users':
-        return (
-          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
-            {profile.usersCount || 0}
-          </TableCell>
-        )
-      case 'actions':
-        return (
-          <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
-            <div className="flex justify-end gap-2">
-              {!showTrash ? (
-                <>
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenProfileDialog(profile)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProfile(profile.id!)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <Button variant="ghost" size="icon" onClick={() => handleRestoreProfile(profile.id!)}>
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </TableCell>
-        )
-      default:
-        return null
-    }
-  }
-
   return (
-    <div className="space-y-2 overflow-x-hidden">
-      {isExporting && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-lg shadow-lg px-4 py-2 flex items-center gap-2">
-          <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-          <span className="text-sm font-medium">Exporting data...</span>
-        </div>
-      )}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">RADIUS Profiles</h1>
-          <p className="text-sm text-muted-foreground">Manage user profiles and bandwidth configurations</p>
+          <h1 className="text-3xl font-bold tracking-tight">RADIUS Profiles</h1>
+          <p className="text-muted-foreground">Manage user profiles and bandwidth configurations</p>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search profiles..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="max-w-sm"
-          />
-          <Button onClick={handleSearch} variant="outline" size="icon">
-            <Search className="h-4 w-4" />
-          </Button>
-          <Button 
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })} 
-            variant="outline" 
-            size="icon"
-            disabled={isFetching}
+          <Button
+            onClick={() => setShowTrash(!showTrash)}
+            variant={showTrash ? 'default' : 'outline'}
           >
-            <RefreshCw className="h-4 w-4" />
+            <Archive className="mr-2 h-4 w-4" />
+            {showTrash ? 'Show Active' : 'Show Trash'}
           </Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" title="Export">
-                <Download className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-48">
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleExport('csv')}
-                  disabled={isExporting}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export as CSV
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleExport('excel')}
-                  disabled={isExporting}
-                >
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Export as Excel
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title="Toggle columns">
-                <Columns3 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-[500px] overflow-y-auto">
-              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={Object.values(columnVisibility).every(v => v)}
-                onCheckedChange={(checked) => {
-                  setColumnVisibility({
-                    name: checked,
-                    status: checked,
-                    download: checked,
-                    upload: checked,
-                    price: checked,
-                    pool: checked,
-                    users: checked,
-                  })
-                }}
-                onSelect={(e) => e.preventDefault()}
-                className="font-semibold"
-              >
-                {Object.values(columnVisibility).every(v => v) ? 'Hide All' : 'Show All'}
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.name}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Name
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.status}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Status
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.download}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, download: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Download Speed
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.upload}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, upload: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Upload Speed
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.price}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, price: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Price
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.pool}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, pool: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Pool
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={columnVisibility.users}
-                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, users: checked }))}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Users Count
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" title="Settings">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-48">
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={handleResetColumns}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset Columns
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
-            <TabsList>
-              <TabsTrigger value="active">
-                <Package className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="trash">
-                <Archive className="h-4 w-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button onClick={() => handleOpenProfileDialog()} disabled={showTrash}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Profile
-          </Button>
+          {!showTrash && (
+            <Button onClick={() => handleOpenProfileDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Profile
+            </Button>
+          )}
         </div>
       </div>
 
-      <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
-        <TabsContent value={showTrash ? 'trash' : 'active'} className="mt-0">
-          <Card className="overflow-hidden">
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  placeholder="Search profiles..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="max-w-sm"
+                />
+                <Button onClick={handleSearch} variant="outline" size="icon">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button 
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-profiles', workspaceId] })} 
+                  variant="outline" 
+                  size="icon"
+                  title="Refresh"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" title="Toggle columns">
+                      <Columns3 className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={Object.values(columnVisibility).every(v => v)}
+                      onCheckedChange={(checked) => {
+                        setColumnVisibility({
+                          name: checked,
+                          status: checked,
+                          download: checked,
+                          upload: checked,
+                          price: checked,
+                          pool: checked,
+                          users: checked,
+                        })
+                      }}
+                      onSelect={(e) => e.preventDefault()}
+                      className="font-semibold"
+                    >
+                      {Object.values(columnVisibility).every(v => v) ? 'Hide All' : 'Show All'}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.name}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Name
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.status}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Status
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.download}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, download: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Download Speed
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.upload}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, upload: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Upload Speed
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.price}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, price: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Price
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.pool}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, pool: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Pool
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.users}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, users: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Users Count
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Per page:</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="1000">1000</SelectItem>
+                    <SelectItem value="999999">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent className="p-0 overflow-hidden relative">
           {isLoadingProfiles ? (
             <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
@@ -1039,19 +606,11 @@ export default function RadiusProfiles() {
               </Table>
             </div>
           ) : profiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <Package className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No Profiles Yet</h3>
-              <p className="text-sm text-muted-foreground mb-6">Get started by adding your first profile</p>
-              <Button onClick={() => handleOpenProfileDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Profile
-              </Button>
+            <div className="text-center py-8 text-muted-foreground">
+              No profiles found.
             </div>
           ) : (
-            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+            <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 340px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -1065,12 +624,20 @@ export default function RadiusProfiles() {
               <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
-                    {columnOrder.map(column => renderColumnHeader(column))}
+                    {columnVisibility.name && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[180px] cursor-pointer select-none" onClick={() => handleSort('name')}>Name{getSortIcon('name')}</TableHead>}
+                    {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('enabled')}>Status{getSortIcon('enabled')}</TableHead>}
+                    {columnVisibility.download && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('downrate')}>Download{getSortIcon('downrate')}</TableHead>}
+                    {columnVisibility.upload && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('uprate')}>Upload{getSortIcon('uprate')}</TableHead>}
+                    {columnVisibility.price && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px] cursor-pointer select-none" onClick={() => handleSort('price')}>Price{getSortIcon('price')}</TableHead>}
+                    {columnVisibility.pool && <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-[140px] cursor-pointer select-none" onClick={() => handleSort('pool')}>Pool{getSortIcon('pool')}</TableHead>}
+                    {columnVisibility.users && <TableHead className="h-12 px-4 font-semibold text-right whitespace-nowrap w-[100px] cursor-pointer select-none" onClick={() => handleSort('userCount')}>Users{getSortIcon('userCount')}</TableHead>}
+                    <TableHead className="sticky right-0 bg-muted shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 font-semibold text-right whitespace-nowrap w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
                   {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const profile = profiles[virtualRow.index]
+                    const ProfileIcon = getIconComponent(profile.icon)
                     return (
                       <TableRow
                         key={profile.id}
@@ -1086,7 +653,58 @@ export default function RadiusProfiles() {
                           tableLayout: 'fixed',
                         }}
                       >
-                        {columnOrder.map(column => renderTableCell(column, profile))}
+                        {columnVisibility.name && (
+                          <TableCell className="h-12 px-4 font-medium w-[180px]">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="rounded-lg p-1.5 flex items-center justify-center"
+                                style={{ backgroundColor: `${profile.color || '#3b82f6'}15`, color: profile.color || '#3b82f6' }}
+                              >
+                                <ProfileIcon className="h-4 w-4" />
+                              </div>
+                              <span>{profile.name}</span>
+                            </div>
+                          </TableCell>
+                        )}
+                        {columnVisibility.status && <TableCell className="h-12 px-4 w-[100px]">
+                          <Badge variant={profile.enabled ? 'default' : 'secondary'}>
+                            {profile.enabled ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>}
+                        {columnVisibility.download && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.downrate)}</TableCell>}
+                        {columnVisibility.upload && <TableCell className="h-12 px-4 w-[140px]">{formatSpeed(profile.uprate)}</TableCell>}
+                        {columnVisibility.price && <TableCell className="h-12 px-4 text-right font-mono w-[120px]">{currencySymbol}{(profile.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</TableCell>}
+                        {columnVisibility.pool && <TableCell className="h-12 px-4 w-[140px]">{profile.pool || '-'}</TableCell>}
+                        {columnVisibility.users && <TableCell className="h-12 px-4 text-right w-[100px]">{profile.usersCount || 0}</TableCell>}
+                        <TableCell className="sticky right-0 bg-card shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)] h-12 px-4 text-right w-[120px]">
+                          <div className="flex justify-end gap-2">
+                            {showTrash ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRestoreProfile(profile.id!)}
+                                disabled={restoreProfileMutation.isPending}
+                                title="Restore profile"
+                              >
+                                <RotateCcw className="h-4 w-4 text-green-600" />
+                              </Button>
+                            ) : (
+                              <>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenProfileDialog(profile)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteProfile(profile.id)}
+                                  disabled={deleteProfileMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     )
                   })}
@@ -1097,44 +715,23 @@ export default function RadiusProfiles() {
 
           {/* Pagination Controls */}
           {pagination && (
-            <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">Per page:</span>
-                  <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                    <SelectTrigger className="h-8 w-[70px] text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                      <SelectItem value="200">200</SelectItem>
-                      <SelectItem value="500">500</SelectItem>
-                      <SelectItem value="1000">1000</SelectItem>
-                      <SelectItem value="999999">All</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="h-4 w-px bg-border" />
-                <div className="text-sm text-muted-foreground font-medium">
-                  Showing {profiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + profiles.length} of {pagination.totalRecords} profiles
-                </div>
+            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
+              <div className="text-sm text-muted-foreground">
+                Showing {profiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + profiles.length} of {pagination.totalRecords} profiles
               </div>
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
+                  size="sm"
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
                 >
-                  <ChevronsLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 -ml-2" />
                 </Button>
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
+                  size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                 >
@@ -1146,9 +743,9 @@ export default function RadiusProfiles() {
                     <Button
                       key={`ellipsis-${idx}`}
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       disabled
-                      className="h-8 w-8 p-0 text-sm"
+                      className="w-9 p-0"
                     >
                       ...
                     </Button>
@@ -1156,9 +753,9 @@ export default function RadiusProfiles() {
                     <Button
                       key={page}
                       variant={currentPage === page ? 'default' : 'outline'}
-                      size="icon"
+                      size="sm"
                       onClick={() => setCurrentPage(page as number)}
-                      className="h-8 w-8 p-0 text-sm font-medium"
+                      className="w-9 p-0"
                     >
                       {page}
                     </Button>
@@ -1167,8 +764,7 @@ export default function RadiusProfiles() {
                 
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
+                  size="sm"
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={currentPage === pagination.totalPages}
                 >
@@ -1176,64 +772,18 @@ export default function RadiusProfiles() {
                 </Button>
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
+                  size="sm"
                   onClick={() => setCurrentPage(pagination.totalPages)}
                   disabled={currentPage === pagination.totalPages}
                 >
-                  <ChevronsRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 -ml-2" />
                 </Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
-    </TabsContent>
-  </Tabs>
-
-  {/* Bulk Action Bar */}
-  {selectedProfileIds.length > 0 && (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
-      <span className="font-medium">
-        {selectedProfileIds.length} profile(s) selected
-      </span>
-      <div className="h-4 w-px bg-primary-foreground/20" />
-      
-      {showTrash ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-          onClick={() => setBulkRestoreDialogOpen(true)}
-          disabled={bulkActionLoading}
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Restore
-        </Button>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-          onClick={() => setBulkDeleteDialogOpen(true)}
-          disabled={bulkActionLoading}
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete
-        </Button>
-      )}
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-        onClick={() => setSelectedProfileIds([])}
-        disabled={bulkActionLoading}
-      >
-        Clear
-      </Button>
-    </div>
-  )}
 
       {/* Profile Dialog */}
       {isProfileDialogOpen && (
@@ -1547,54 +1097,6 @@ export default function RadiusProfiles() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRestoreProfile}>Restore</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedProfileIds.length} Profile(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will move the selected profiles to trash. You can restore them later from the trash view.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Restore Confirmation Dialog */}
-      <AlertDialog open={bulkRestoreDialogOpen} onOpenChange={setBulkRestoreDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore {selectedProfileIds.length} Profile(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will restore the selected profiles and make them active again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkRestore}>Restore</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reset Columns Confirmation Dialog */}
-      <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset Table Columns?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will reset all column widths, order, and visibility to their default values. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmResetColumns}>Reset</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
