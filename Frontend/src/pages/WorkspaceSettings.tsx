@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -65,6 +65,8 @@ export default function WorkspaceSettings() {
   const [integrationToDelete, setIntegrationToDelete] = useState<number | null>(null)
   const [activeSyncId, setActiveSyncId] = useState<string | null>(null)
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
+  const [syncConfirmOpen, setSyncConfirmOpen] = useState(false)
+  const [integrationToSync, setIntegrationToSync] = useState<SasRadiusIntegration | null>(null)
   const [formData, setFormData] = useState<SasRadiusIntegration>({
     name: '',
     url: '',
@@ -557,11 +559,14 @@ export default function WorkspaceSettings() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => integration.id && syncMutation.mutate(integration.id)}
+                                onClick={() => {
+                                  setIntegrationToSync(integration)
+                                  setSyncConfirmOpen(true)
+                                }}
                                 disabled={syncMutation.isPending || !integration.isActive}
-                                title={integration.isActive ? "Sync Now" : "Activate integration to sync"}
+                                title={integration.isActive ? "Start Sync" : "Activate integration to sync"}
                               >
-                                <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                                <Play className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -790,6 +795,34 @@ export default function WorkspaceSettings() {
           queryClient.invalidateQueries({ queryKey: ['recent-syncs', currentWorkspaceId] })
         }}
       />
+
+      {/* Sync Confirmation Dialog */}
+      <AlertDialog open={syncConfirmOpen} onOpenChange={setSyncConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start Synchronization?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will start synchronizing profiles and users from "{integrationToSync?.name}". 
+              The process may take several minutes depending on the amount of data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (integrationToSync?.id) {
+                  syncMutation.mutate(integrationToSync.id)
+                }
+                setSyncConfirmOpen(false)
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Start Sync
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
