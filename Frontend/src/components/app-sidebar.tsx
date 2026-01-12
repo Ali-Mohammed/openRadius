@@ -222,11 +222,6 @@ const getNavData = (workspaceId: number) => ({
           icon: Eye,
         },
         {
-          titleKey: "navigation.setting",
-          url: "/workspace/setting",
-          icon: Wrench,
-        },
-        {
           titleKey: "navigation.general",
           url: `/workspace/${workspaceId}/settings/general`,
           icon: DollarSign,
