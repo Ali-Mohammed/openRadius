@@ -1501,7 +1501,7 @@ export default function RadiusUsers() {
       {selectedUserIds.length > 0 && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
           <span className="font-medium">
-            {selectedUserIds.length} user(s) selected
+            {selectedUserIds.length.toLocaleString()} user(s) selected
           </span>
           <div className="h-4 w-px bg-primary-foreground/20" />
           

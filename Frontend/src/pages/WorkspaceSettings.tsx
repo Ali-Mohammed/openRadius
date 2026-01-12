@@ -10,6 +10,7 @@ import { Switch } from '../components/ui/switch'
 import { Badge } from '../components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Progress } from '../components/ui/progress'
 import {
   Table,
   TableBody,
@@ -617,20 +618,21 @@ export default function WorkspaceSettings() {
                     setIsSyncDialogOpen(true)
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
-                    <div>
-                      <p className="font-medium">{sync.integrationName}</p>
-                      <p className="text-sm text-muted-foreground">{sync.currentMessage}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                      <div className="flex-1">
+                        <p className="font-medium">{sync.integrationName}</p>
+                        <p className="text-sm text-muted-foreground">{sync.currentMessage}</p>
+                      </div>
+                      <Badge variant="secondary">
+                        {sync.progressPercentage.toFixed(0)}%
+                      </Badge>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="secondary">
-                      {sync.progressPercentage.toFixed(0)}%
-                    </Badge>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
-                    </Button>
+                    <Progress value={sync.progressPercentage} className="h-2" />
                   </div>
                 </div>
               ))}
