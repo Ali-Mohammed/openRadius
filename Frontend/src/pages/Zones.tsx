@@ -19,7 +19,7 @@ import { Checkbox } from '../components/ui/checkbox'
 import { Textarea } from '../components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, RotateCcw, Users, Radio, MapPin, UserPlus } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, RotateCcw, Users, Radio, MapPin, UserPlus, ChevronRight, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import { userManagementApi, type User } from '@/api/userManagementApi'
@@ -38,6 +38,7 @@ export default function Zones() {
   const [open, setOpen] = useState(false)
   const [assignUsersDialogOpen, setAssignUsersDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
+  const [expandedZones, setExpandedZones] = useState<Set<number>>(new Set())
   const [rowSelection, setRowSelection] = useState({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
@@ -55,6 +56,7 @@ export default function Zones() {
     description: '',
     color: '#3b82f6',
     icon: 'MapPin',
+    parentZoneId: undefined,
   })
   const hasSetInitialUsers = useRef(false)
 
@@ -76,6 +78,67 @@ export default function Zones() {
     staleTime: 30 * 1000,
     enabled: !!workspaceIdNum,
   })
+
+  // Function to count total descendants
+  const countDescendants = (zone: Zone): number => {
+    if (!zone.children || zone.children.length === 0) return 0
+    let count = zone.children.length
+    zone.children.forEach(child => {
+      count += countDescendants(child)
+    })
+    return count
+  }
+
+  // Function to flatten zones into a list (respecting expanded state)
+  const flattenZones = (zones: Zone[], level = 0): (Zone & { level: number; descendantCount: number })[] => {
+    const result: (Zone & { level: number; descendantCount: number })[] = []
+    zones.forEach(zone => {
+      const descendantCount = countDescendants(zone)
+      result.push({ ...zone, level, descendantCount })
+      if (zone.children && zone.children.length > 0 && expandedZones.has(zone.id)) {
+        result.push(...flattenZones(zone.children, level + 1))
+      }
+    })
+    return result
+  }
+
+  // Function to get all zones excluding current and descendants (to prevent circular references)
+  const getAvailableParentZones = (allZones: Zone[], currentZoneId?: number): (Zone & { level: number })[] => {
+    if (!currentZoneId) return flattenZones(allZones, 0)
+    
+    const excludeIds = new Set<number>()
+    const collectDescendants = (zone: Zone) => {
+      excludeIds.add(zone.id)
+      zone.children?.forEach(collectDescendants)
+    }
+    
+    const currentZone = findZoneById(allZones, currentZoneId)
+    if (currentZone) {
+      collectDescendants(currentZone)
+    }
+    
+    const filterZones = (zones: Zone[]): Zone[] => {
+      return zones
+        .filter(z => !excludeIds.has(z.id))
+        .map(z => ({ ...z, children: filterZones(z.children || []) }))
+    }
+    
+    return flattenZones(filterZones(allZones), 0)
+  }
+
+  const findZoneById = (zones: Zone[], id: number): Zone | null => {
+    for (const zone of zones) {
+      if (zone.id === id) return zone
+      if (zone.children) {
+        const found = findZoneById(zone.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  // Flatten zones for table display
+  const flatZones = useMemo(() => flattenZones(zones, 0), [zones, expandedZones])
 
   // Fetch all users
   const { data: allUsers = [] } = useQuery({
@@ -184,7 +247,7 @@ export default function Zones() {
   })
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', color: '#3b82f6', icon: 'MapPin' })
+    setFormData({ name: '', description: '', color: '#3b82f6', icon: 'MapPin', parentZoneId: undefined })
     setEditingZone(null)
     setIconPopoverOpen(false)
   }
@@ -196,6 +259,7 @@ export default function Zones() {
       description: zone.description,
       color: zone.color || '#3b82f6',
       icon: zone.icon || 'MapPin',
+      parentZoneId: zone.parentZoneId,
     })
     setOpen(true)
   }
@@ -316,7 +380,7 @@ export default function Zones() {
   )
 
   // Columns for active zones
-  const columns: ColumnDef<Zone>[] = useMemo(() => [
+  const columns: ColumnDef<Zone & { level: number; descendantCount: number }>[] = useMemo(() => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -354,9 +418,37 @@ export default function Zones() {
         const name = row.getValue('name') as string
         const color = row.original.color || '#3b82f6'
         const icon = row.original.icon || 'MapPin'
+        const level = row.original.level || 0
+        const descendantCount = row.original.descendantCount || 0
+        const hasChildren = descendantCount > 0
+        const isExpanded = expandedZones.has(row.original.id)
         const IconComponent = getIconComponent(icon)
+        
         return (
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-2' style={{ paddingLeft: `${level * 24}px` }}>
+            {hasChildren ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const newExpanded = new Set(expandedZones)
+                  if (isExpanded) {
+                    newExpanded.delete(row.original.id)
+                  } else {
+                    newExpanded.add(row.original.id)
+                  }
+                  setExpandedZones(newExpanded)
+                }}
+                className='p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded'
+              >
+                {isExpanded ? (
+                  <ChevronDown className='h-3 w-3 text-muted-foreground' />
+                ) : (
+                  <ChevronRight className='h-3 w-3 text-muted-foreground' />
+                )}
+              </button>
+            ) : (
+              <div className='w-4' />
+            )}
             <div 
               className='rounded-lg p-1.5 flex items-center justify-center'
               style={{ 
@@ -367,6 +459,9 @@ export default function Zones() {
               <IconComponent className='h-4 w-4' />
             </div>
             <span>{name}</span>
+            {hasChildren && (
+              <span className='text-xs text-muted-foreground ml-1'>({descendantCount})</span>
+            )}
           </div>
         )
       },
@@ -388,6 +483,27 @@ export default function Zones() {
           <span className='text-sm'>{row.original.userCount}</span>
         </div>
       ),
+    },
+    {
+      accessorKey: 'users',
+      header: 'User Names',
+      cell: ({ row }) => {
+        const users = row.original.users || []
+        if (users.length === 0) return <span className='text-muted-foreground text-sm'>-</span>
+        return (
+          <div className='flex flex-wrap gap-1'>
+            {users.map((user, idx) => (
+              <span
+                key={user.id}
+                className='inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                title={user.email}
+              >
+                {user.name}
+              </span>
+            ))}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'radiusUserCount',
@@ -432,7 +548,7 @@ export default function Zones() {
         )
       },
     },
-  ], [])
+  ], [expandedZones])
 
   // Columns for deleted zones
   const deletedColumns: ColumnDef<Zone>[] = useMemo(() => [
@@ -510,7 +626,7 @@ export default function Zones() {
   ], [])
 
   const table = useReactTable({
-    data: zones,
+    data: flatZones,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -575,6 +691,30 @@ export default function Zones() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                   />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='parentZone'>Parent Zone</Label>
+                  <Select
+                    value={formData.parentZoneId?.toString() || 'none'}
+                    onValueChange={(value) => 
+                      setFormData({ ...formData, parentZoneId: value === 'none' ? undefined : parseInt(value) })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder='Select parent zone (optional)' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='none'>None (Root Zone)</SelectItem>
+                      {getAvailableParentZones(zones, editingZone?.id).map((zone) => (
+                        <SelectItem key={zone.id} value={zone.id.toString()}>
+                          <span style={{ paddingLeft: `${zone.level * 12}px` }}>
+                            {zone.level > 0 && '↳ '}
+                            {zone.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className='grid grid-cols-2 gap-4'>
                   <div className='space-y-2'>
@@ -680,7 +820,7 @@ export default function Zones() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value='active'>
-                Active ({zones.length})
+                Active ({flatZones.length})
               </TabsTrigger>
               <TabsTrigger value='deleted'>
                 <Trash2 className='mr-2 h-4 w-4' />

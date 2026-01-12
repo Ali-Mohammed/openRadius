@@ -199,6 +199,7 @@ export default function RadiusUsers() {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [bulkRenewDialogOpen, setBulkRenewDialogOpen] = useState(false)
   const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
+  const [zoneSearchQuery, setZoneSearchQuery] = useState('')
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -265,6 +266,32 @@ export default function RadiusUsers() {
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const tags = useMemo(() => tagsData || [], [tagsData])
   const zones = useMemo(() => zonesData || [], [zonesData])
+
+  // Flatten zones for dropdown display
+  const flatZones = useMemo(() => {
+    const flatten = (zones: Zone[], level = 0): (Zone & { level: number })[] => {
+      const result: (Zone & { level: number })[] = []
+      zones.forEach(zone => {
+        result.push({ ...zone, level })
+        if (zone.children && zone.children.length > 0) {
+          result.push(...flatten(zone.children, level + 1))
+        }
+      })
+      return result
+    }
+    return flatten(zones, 0)
+  }, [zones])
+
+  // Filter zones based on search query
+  const filteredFlatZones = useMemo(() => {
+    if (!zoneSearchQuery.trim()) {
+      return flatZones
+    }
+    const query = zoneSearchQuery.toLowerCase().trim()
+    return flatZones.filter(zone => 
+      zone.name.toLowerCase().includes(query)
+    )
+  }, [flatZones, zoneSearchQuery])
 
   // Track if preferences have been loaded
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
@@ -535,7 +562,7 @@ export default function RadiusUsers() {
       gpsLat: formData.gpsLat || undefined,
       gpsLng: formData.gpsLng || undefined,
       simultaneousSessions: parseInt(formData.simultaneousSessions) || 1,
-      zoneId: formData.zoneId ? parseInt(formData.zoneId) : undefined,
+      zoneId: formData.zoneId && formData.zoneId !== '0' ? parseInt(formData.zoneId) : undefined,
     }
 
     try {
@@ -1472,12 +1499,10 @@ export default function RadiusUsers() {
               </PopoverContent>
             </Popover>
           </div>
-          {!showTrash && (
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('radiusUsers.addUser')}
-            </Button>
-          )}
+          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('radiusUsers.addUser')}
+          </Button>
         </div>
       </div>
 
@@ -1922,16 +1947,33 @@ export default function RadiusUsers() {
                 <Label htmlFor="zoneId">{t('radiusUsers.zone')}</Label>
                 <Select
                   value={formData.zoneId}
-                  onValueChange={(value) => setFormData({ ...formData, zoneId: value })}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, zoneId: value })
+                    setZoneSearchQuery('')
+                  }}
                 >
                   <SelectTrigger id="zoneId">
                     <SelectValue placeholder={t('radiusUsers.selectZone')} />
                   </SelectTrigger>
                   <SelectContent>
+                    <div className="px-2 py-1.5 sticky top-0 bg-white dark:bg-slate-950 border-b z-10">
+                      <Input
+                        type="text"
+                        placeholder={t('radiusUsers.searchZone') || 'Search zone...'}
+                        value={zoneSearchQuery}
+                        onChange={(e) => setZoneSearchQuery(e.target.value)}
+                        className="h-8"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
                     <SelectItem value="0">{t('radiusUsers.noZone')}</SelectItem>
-                    {zones.map((zone) => (
+                    {filteredFlatZones.map((zone) => (
                       <SelectItem key={zone.id} value={zone.id.toString()}>
                         <div className="flex items-center gap-2">
+                          <span style={{ marginLeft: `${zone.level * 16}px` }}>
+                            {zone.level > 0 && '↳ '}
+                          </span>
                           <div
                             className="h-3 w-3 rounded-full flex-shrink-0"
                             style={{ backgroundColor: zone.color || '#3b82f6' }}
@@ -1940,6 +1982,11 @@ export default function RadiusUsers() {
                         </div>
                       </SelectItem>
                     ))}
+                    {filteredFlatZones.length === 0 && zoneSearchQuery && (
+                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                        {t('radiusUsers.noZonesFound') || 'No zones found'}
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

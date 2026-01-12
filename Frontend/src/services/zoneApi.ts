@@ -7,6 +7,9 @@ export interface Zone {
   color?: string
   icon?: string
   workspaceId: number
+  parentZoneId?: number
+  parentZoneName?: string
+  children: Zone[]
   createdAt: string
   createdBy?: string
   updatedAt?: string
@@ -15,6 +18,7 @@ export interface Zone {
   deletedBy?: string
   userCount: number
   radiusUserCount: number
+  users?: Array<{ id: string; name: string; email: string }>
 }
 
 export interface ZoneCreateDto {
@@ -22,6 +26,7 @@ export interface ZoneCreateDto {
   description?: string
   color?: string
   icon?: string
+  parentZoneId?: number
 }
 
 export interface ZoneUpdateDto {
@@ -29,6 +34,7 @@ export interface ZoneUpdateDto {
   description?: string
   color?: string
   icon?: string
+  parentZoneId?: number
 }
 
 export interface AssignUsersToZoneDto {

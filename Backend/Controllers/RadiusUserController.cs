@@ -232,6 +232,7 @@ public class RadiusUserController : ControllerBase
             GpsLat = request.GpsLat,
             GpsLng = request.GpsLng,
             SimultaneousSessions = request.SimultaneousSessions,
+            ZoneId = request.ZoneId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -306,6 +307,7 @@ public class RadiusUserController : ControllerBase
         if (request.GpsLat != null) user.GpsLat = request.GpsLat;
         if (request.GpsLng != null) user.GpsLng = request.GpsLng;
         if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;
+        if (request.ZoneId.HasValue) user.ZoneId = request.ZoneId;
 
         user.UpdatedAt = DateTime.UtcNow;
 

@@ -10,6 +10,7 @@ public class Zone
     public string? Color { get; set; }
     public string? Icon { get; set; }
     public int WorkspaceId { get; set; } // Not a foreign key - just stores the workspace ID
+    public int? ParentZoneId { get; set; } // For hierarchical zones
     
     // Soft delete
     public bool IsDeleted { get; set; }
@@ -23,6 +24,10 @@ public class Zone
     public string? UpdatedBy { get; set; }
     
     // Navigation properties (no Workspace navigation - it's in a different database)
+    [JsonIgnore]
+    public virtual Zone? ParentZone { get; set; }
+    [JsonIgnore]
+    public virtual ICollection<Zone> Children { get; set; } = new List<Zone>();
     [JsonIgnore]
     public virtual ICollection<UserZone> UserZones { get; set; } = new List<UserZone>();
     [JsonIgnore]
@@ -50,6 +55,7 @@ public class ZoneCreateDto
     public string? Description { get; set; }
     public string? Color { get; set; }
     public string? Icon { get; set; }
+    public int? ParentZoneId { get; set; }
 }
 
 public class ZoneUpdateDto
@@ -58,6 +64,7 @@ public class ZoneUpdateDto
     public string? Description { get; set; }
     public string? Color { get; set; }
     public string? Icon { get; set; }
+    public int? ParentZoneId { get; set; }
 }
 
 public class ZoneResponse
@@ -68,6 +75,8 @@ public class ZoneResponse
     public string? Color { get; set; }
     public string? Icon { get; set; }
     public int WorkspaceId { get; set; }
+    public int? ParentZoneId { get; set; }
+    public string? ParentZoneName { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -76,6 +85,15 @@ public class ZoneResponse
     public string? DeletedBy { get; set; }
     public int UserCount { get; set; }
     public int RadiusUserCount { get; set; }
+    public List<ZoneResponse> Children { get; set; } = new();
+    public List<UserBasicInfo> Users { get; set; } = new();
+}
+
+public class UserBasicInfo
+{
+    public string Id { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string Email { get; set; } = null!;
 }
 
 public class AssignUsersToZoneDto

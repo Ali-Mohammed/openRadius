@@ -93,7 +93,7 @@ namespace Backend.Models
         public string? Company { get; set; }
 
         [JsonPropertyName("notes")]
-        public string? Notes { get; set; }
+        public string?Notes { get; set; }
 
         [JsonPropertyName("simultaneous_sessions")]
         public int? SimultaneousSessions { get; set; }
@@ -350,6 +350,7 @@ namespace Backend.Models
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public int SimultaneousSessions { get; set; } = 1;
+        public int? ZoneId { get; set; }
     }
 
     public class UpdateUserRequest
@@ -373,6 +374,7 @@ namespace Backend.Models
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public int? SimultaneousSessions { get; set; }
+        public int? ZoneId { get; set; }
     }
 
     public class BulkOperationRequest

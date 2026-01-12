@@ -10,13 +10,16 @@ namespace Backend.Controllers;
 public class ZoneController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ZoneController(
         ApplicationDbContext context,
+        MasterDbContext masterContext,
         IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _masterContext = masterContext;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -29,8 +32,10 @@ public class ZoneController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZones(int workspaceId)
     {
-        var zones = await _context.Zones
+        var allZones = await _context.Zones
             .Where(z => z.WorkspaceId == workspaceId && !z.IsDeleted)
+            .Include(z => z.ParentZone)
+            .Include(z => z.UserZones)
             .Select(z => new ZoneResponse
             {
                 Id = z.Id,
@@ -39,16 +44,100 @@ public class ZoneController : ControllerBase
                 Color = z.Color,
                 Icon = z.Icon,
                 WorkspaceId = z.WorkspaceId,
+                ParentZoneId = z.ParentZoneId,
+                ParentZoneName = z.ParentZone != null ? z.ParentZone.Name : null,
                 CreatedAt = z.CreatedAt,
                 CreatedBy = z.CreatedBy,
                 UpdatedAt = z.UpdatedAt,
                 UpdatedBy = z.UpdatedBy,
                 UserCount = z.UserZones.Count,
-                RadiusUserCount = z.RadiusUsers.Count(ru => !z.IsDeleted)
+                RadiusUserCount = z.RadiusUsers.Count(ru => !ru.IsDeleted)
             })
             .ToListAsync();
 
-        return Ok(zones);
+        // Get all user IDs from zones
+        var userIds = allZones
+            .SelectMany(z => _context.UserZones
+                .Where(uz => uz.ZoneId == z.Id)
+                .Select(uz => uz.UserId))
+            .Distinct()
+            .ToList();
+
+        // Fetch users from master context
+        var users = await _masterContext.Users
+            .Where(u => u.KeycloakUserId != null && userIds.Contains(u.KeycloakUserId))
+            .Select(u => new { u.KeycloakUserId, u.FirstName, u.LastName, u.Email })
+            .ToListAsync();
+
+        var userDict = users.ToDictionary(u => u.KeycloakUserId!);
+
+        // Populate user information for each zone
+        foreach (var zone in allZones)
+        {
+            var zoneUserIds = await _context.UserZones
+                .Where(uz => uz.ZoneId == zone.Id)
+                .Select(uz => uz.UserId)
+                .ToListAsync();
+
+            zone.Users = zoneUserIds
+                .Where(uid => userDict.ContainsKey(uid))
+                .Select(uid => new UserBasicInfo
+                {
+                    Id = uid,
+                    Name = $"{userDict[uid].FirstName} {userDict[uid].LastName}",
+                    Email = userDict[uid].Email
+                })
+                .ToList();
+        }
+
+        // Build hierarchical structure
+        var rootZones = BuildHierarchy(allZones);
+        
+        // Calculate total counts including descendants
+        CalculateTotalCounts(rootZones);
+
+        return Ok(rootZones);
+    }
+
+    private List<ZoneResponse> BuildHierarchy(List<ZoneResponse> zones)
+    {
+        var lookup = zones.ToLookup(z => z.ParentZoneId);
+        
+        foreach (var zone in zones)
+        {
+            zone.Children = lookup[zone.Id].ToList();
+        }
+        
+        return lookup[null].ToList();
+    }
+
+    private void CalculateTotalCounts(List<ZoneResponse> zones)
+    {
+        foreach (var zone in zones)
+        {
+            CalculateZoneTotalCounts(zone);
+        }
+    }
+
+    private (int userCount, int radiusUserCount) CalculateZoneTotalCounts(ZoneResponse zone)
+    {
+        // Start with this zone's direct counts
+        int totalUserCount = zone.UserCount;
+        int totalRadiusUserCount = zone.RadiusUserCount;
+
+        // Add counts from all children recursively
+        foreach (var child in zone.Children)
+        {
+            var childCounts = CalculateZoneTotalCounts(child);
+            totalUserCount += childCounts.userCount;
+            totalRadiusUserCount += childCounts.radiusUserCount;
+        }
+
+        // Update the zone with total counts
+        zone.UserCount = totalUserCount;
+        zone.RadiusUserCount = totalRadiusUserCount;
+
+        return (totalUserCount, totalRadiusUserCount);
     }
 
     // GET: api/workspace/{workspaceId}/zone/deleted
@@ -123,6 +212,7 @@ public class ZoneController : ControllerBase
             Color = dto.Color,
             Icon = dto.Icon,
             WorkspaceId = workspaceId,
+            ParentZoneId = dto.ParentZoneId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
         };
@@ -138,6 +228,7 @@ public class ZoneController : ControllerBase
             Color = zone.Color,
             Icon = zone.Icon,
             WorkspaceId = zone.WorkspaceId,
+            ParentZoneId = zone.ParentZoneId,
             CreatedAt = zone.CreatedAt,
             CreatedBy = zone.CreatedBy,
             UpdatedAt = zone.UpdatedAt,
@@ -167,6 +258,7 @@ public class ZoneController : ControllerBase
         if (dto.Description != null) zone.Description = dto.Description;
         if (dto.Color != null) zone.Color = dto.Color;
         if (dto.Icon != null) zone.Icon = dto.Icon;
+        if (dto.ParentZoneId.HasValue) zone.ParentZoneId = dto.ParentZoneId;
         
         zone.UpdatedAt = DateTime.UtcNow;
         zone.UpdatedBy = userId;
@@ -175,6 +267,7 @@ public class ZoneController : ControllerBase
 
         var response = await _context.Zones
             .Where(z => z.Id == id)
+            .Include(z => z.ParentZone)
             .Select(z => new ZoneResponse
             {
                 Id = z.Id,
@@ -183,6 +276,8 @@ public class ZoneController : ControllerBase
                 Color = z.Color,
                 Icon = z.Icon,
                 WorkspaceId = z.WorkspaceId,
+                ParentZoneId = z.ParentZoneId,
+                ParentZoneName = z.ParentZone != null ? z.ParentZone.Name : null,
                 CreatedAt = z.CreatedAt,
                 CreatedBy = z.CreatedBy,
                 UpdatedAt = z.UpdatedAt,
