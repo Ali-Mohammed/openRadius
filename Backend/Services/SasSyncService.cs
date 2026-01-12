@@ -489,11 +489,11 @@ public class SasSyncService : ISasSyncService
                                     StaticIp = sasUser.StaticIp,
                                     Enabled = sasUser.Enabled == 1,
                                     Company = sasUser.Company,
-                                    Notes = sasUser.Notes,
+                                    Notes = "",
                                     DeviceSerialNumber = deviceSerialNumber,
                                     SimultaneousSessions = sasUser.SimultaneousSessions ?? 1,
                                     Address = sasUser.Address,
-                                    ContractId = sasUser.ContractId,
+                                    ContractId = "",
                                     NationalId = sasUser.NationalId,
                                     MikrotikIpv6Prefix = sasUser.MikrotikIpv6Prefix,
                                     GroupId = sasUser.GroupId,
@@ -548,11 +548,11 @@ public class SasSyncService : ISasSyncService
                                 existingUser.StaticIp = sasUser.StaticIp;
                                 existingUser.Enabled = sasUser.Enabled == 1;
                                 existingUser.Company = sasUser.Company;
-                                existingUser.Notes = sasUser.Notes;
+                                existingUser.Notes = "";
                                 existingUser.DeviceSerialNumber = deviceSerialNumber;
                                 existingUser.SimultaneousSessions = sasUser.SimultaneousSessions ?? 1;
                                 existingUser.Address = sasUser.Address;
-                                existingUser.ContractId = sasUser.ContractId;
+                                existingUser.ContractId = "";
                                 existingUser.NationalId = sasUser.NationalId;
                                 existingUser.MikrotikIpv6Prefix = sasUser.MikrotikIpv6Prefix;
                                 existingUser.GroupId = sasUser.GroupId;
