@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -174,7 +174,10 @@ export default function WorkspaceSettings() {
   const handleOpenDialog = (integration?: SasRadiusIntegration) => {
     if (integration) {
       setEditingIntegration(integration)
-      setFormData(integration)
+      setFormData({
+        ...integration,
+        maxItemInPagePerRequest: integration.maxItemInPagePerRequest || 100,
+      })
     } else {
       setEditingIntegration(null)
       setFormData({
@@ -184,6 +187,7 @@ export default function WorkspaceSettings() {
         password: '',
         useHttps: true,
         isActive: false,
+        maxItemInPagePerRequest: 100,
         action: '',
         description: '',
       })
@@ -300,30 +304,34 @@ export default function WorkspaceSettings() {
         </TabsList>
 
         <TabsContent value="sas-radius" className="space-y-6">
+      <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+        <TabsContent value={showTrash ? 'trash' : 'active'} className="mt-0">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>SAS Radius 4 Integration</CardTitle>
             <CardDescription>
-              Manage external RADIUS servers for this workspace
+              {showTrash ? 'Deleted integrations that can be restored' : 'Manage external RADIUS servers for this workspace'}
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setShowTrash(!showTrash)}
-              variant={showTrash ? 'default' : 'outline'}
-            >
-              <Archive className="mr-2 h-4 w-4" />
-              {showTrash ? 'Show Active' : 'Show Trash'}
-            </Button>
-            {!showTrash && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => handleOpenDialog()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Integration
-                  </Button>
-                </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <TabsList>
+              <TabsTrigger value="active" className="flex items-center gap-2">
+                <Plug className="h-4 w-4" />
+                Active
+              </TabsTrigger>
+              <TabsTrigger value="trash" className="flex items-center gap-2">
+                <Archive className="h-4 w-4" />
+                Trash
+              </TabsTrigger>
+            </TabsList>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Integration
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>
@@ -438,7 +446,6 @@ export default function WorkspaceSettings() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -468,6 +475,7 @@ export default function WorkspaceSettings() {
                     <TableHead>Username</TableHead>
                     <TableHead className="text-center">HTTPS</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Items/Page</TableHead>
                     <TableHead>Action</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -500,6 +508,9 @@ export default function WorkspaceSettings() {
                             Inactive
                           </span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="font-medium">{integration.maxItemInPagePerRequest || 100}</span>
                       </TableCell>
                       <TableCell>{integration.action || '-'}</TableCell>
                       <TableCell className="max-w-xs truncate">
@@ -554,9 +565,11 @@ export default function WorkspaceSettings() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Active Syncs */}
-      {activeSyncs.length > 0 && (
+      {activeSyncs.length > 0 && !showTrash && (
         <Card>
           <CardHeader>
             <CardTitle>Active Synchronizations</CardTitle>
@@ -598,6 +611,7 @@ export default function WorkspaceSettings() {
       )}
 
       {/* Sync History */}
+      {!showTrash && (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -740,12 +754,17 @@ export default function WorkspaceSettings() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <SyncProgressDialog
         open={isSyncDialogOpen}
         onOpenChange={setIsSyncDialogOpen}
         syncId={activeSyncId}
         workspaceId={Number(currentWorkspaceId)}
+        onCancelSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['active-syncs', currentWorkspaceId] })
+          queryClient.invalidateQueries({ queryKey: ['recent-syncs', currentWorkspaceId] })
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

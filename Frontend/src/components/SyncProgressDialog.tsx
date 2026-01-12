@@ -16,6 +16,7 @@ interface SyncProgressDialogProps {
   onOpenChange: (open: boolean) => void
   syncId: string | null
   workspaceId: number
+  onCancelSuccess?: () => void
 }
 
 const getStatusInfo = (status: SyncStatus) => {
@@ -47,7 +48,7 @@ const getStatusInfo = (status: SyncStatus) => {
   }
 }
 
-export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId }: SyncProgressDialogProps) {
+export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, onCancelSuccess }: SyncProgressDialogProps) {
   const { progress, isConnected } = useSyncHub(syncId || undefined)
   const [initialProgress, setInitialProgress] = useState<SyncProgress | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -79,6 +80,7 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId }: 
     },
     onSuccess: () => {
       toast.success('Sync cancelled successfully')
+      onCancelSuccess?.()
     },
     onError: (error: Error) => {
       toast.error('Failed to cancel sync: ' + error.message)
