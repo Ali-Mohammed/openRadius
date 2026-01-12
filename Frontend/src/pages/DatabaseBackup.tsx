@@ -33,16 +33,8 @@ export default function DatabaseBackup() {
   const backupMutation = useMutation({
     mutationFn: ({ databaseName, type }: { databaseName: string; type: string }) =>
       databaseBackupApi.backupDatabase(databaseName, type),
-    onSuccess: (blob, variables) => {
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${variables.databaseName}_${new Date().toISOString().split('T')[0]}.sql`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      toast.success('Database backup created and downloaded successfully')
+    onSuccess: () => {
+      toast.success('Database backup created successfully')
       setIsProcessing(false)
       setBackupDialogOpen(false)
       refetchHistory()
