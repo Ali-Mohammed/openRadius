@@ -455,6 +455,19 @@ public class SasSyncService : ISasSyncService
 
                             if (existingUser == null)
                             {
+                                // Parse GPS coordinates from contract_id if available
+                                string? gpsLat = null;
+                                string? gpsLng = null;
+                                if (!string.IsNullOrEmpty(sasUser.ContractId) && sasUser.ContractId.Contains(","))
+                                {
+                                    var coords = sasUser.ContractId.Split(',', StringSplitOptions.TrimEntries);
+                                    if (coords.Length == 2)
+                                    {
+                                        gpsLat = coords[0];
+                                        gpsLng = coords[1];
+                                    }
+                                }
+
                                 var newUser = new RadiusUser
                                 {
                                     ExternalId = sasUser.Id,
@@ -480,8 +493,8 @@ public class SasSyncService : ISasSyncService
                                     NationalId = sasUser.NationalId,
                                     MikrotikIpv6Prefix = sasUser.MikrotikIpv6Prefix,
                                     GroupId = sasUser.GroupId,
-                                    GpsLat = sasUser.GpsLat,
-                                    GpsLng = sasUser.GpsLng,
+                                    GpsLat = gpsLat ?? sasUser.GpsLat,
+                                    GpsLng = gpsLng ?? sasUser.GpsLng,
                                     Street = sasUser.Street,
                                     SiteId = sasUser.SiteId,
                                     PinTries = sasUser.PinTries,
@@ -491,8 +504,8 @@ public class SasSyncService : ISasSyncService
                                     AvailableTraffic = sasUser.AvailableTraffic,
                                     ParentUsername = sasUser.ParentUsername,
                                     DebtDays = sasUser.DebtDays,
-                                    CreatedAt = DateTime.UtcNow,
-                                    UpdatedAt = DateTime.UtcNow,
+                                    CreatedAt = string.IsNullOrEmpty(sasUser.CreatedAt) ? DateTime.UtcNow : DateTime.SpecifyKind(DateTime.Parse(sasUser.CreatedAt), DateTimeKind.Utc),
+                                    UpdatedAt = string.IsNullOrEmpty(sasUser.CreatedAt) ? DateTime.UtcNow : DateTime.SpecifyKind(DateTime.Parse(sasUser.CreatedAt), DateTimeKind.Utc),
                                     LastSyncedAt = DateTime.UtcNow
                                 };
                                 await context.RadiusUsers.AddAsync(newUser, cancellationToken);
@@ -500,6 +513,19 @@ public class SasSyncService : ISasSyncService
                             }
                             else
                             {
+                                // Parse GPS coordinates from contract_id if available
+                                string? gpsLat = null;
+                                string? gpsLng = null;
+                                if (!string.IsNullOrEmpty(sasUser.ContractId) && sasUser.ContractId.Contains(","))
+                                {
+                                    var coords = sasUser.ContractId.Split(',', StringSplitOptions.TrimEntries);
+                                    if (coords.Length == 2)
+                                    {
+                                        gpsLat = coords[0];
+                                        gpsLng = coords[1];
+                                    }
+                                }
+
                                 existingUser.Username = sasUser.Username ?? string.Empty;
                                 existingUser.Firstname = sasUser.Firstname;
                                 existingUser.Lastname = sasUser.Lastname;
@@ -522,8 +548,8 @@ public class SasSyncService : ISasSyncService
                                 existingUser.NationalId = sasUser.NationalId;
                                 existingUser.MikrotikIpv6Prefix = sasUser.MikrotikIpv6Prefix;
                                 existingUser.GroupId = sasUser.GroupId;
-                                existingUser.GpsLat = sasUser.GpsLat;
-                                existingUser.GpsLng = sasUser.GpsLng;
+                                existingUser.GpsLat = gpsLat ?? sasUser.GpsLat;
+                                existingUser.GpsLng = gpsLng ?? sasUser.GpsLng;
                                 existingUser.Street = sasUser.Street;
                                 existingUser.SiteId = sasUser.SiteId;
                                 existingUser.PinTries = sasUser.PinTries;

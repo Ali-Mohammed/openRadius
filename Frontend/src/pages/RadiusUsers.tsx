@@ -86,7 +86,12 @@ export default function RadiusUsers() {
     company: false,
     address: false,
     contractId: false,
+    notes: false,
+    gpsLat: false,
+    gpsLng: false,
     simultaneousSessions: false,
+    createdAt: false,
+    updatedAt: false,
     tags: true,
   }
 
@@ -110,7 +115,12 @@ export default function RadiusUsers() {
     company: 140,
     address: 160,
     contractId: 120,
+    notes: 200,
+    gpsLat: 120,
+    gpsLng: 120,
     simultaneousSessions: 100,
+    createdAt: 160,
+    updatedAt: 160,
     tags: 200,
     actions: 120,
   }
@@ -135,7 +145,12 @@ export default function RadiusUsers() {
     'company',
     'address',
     'contractId',
+    'notes',
+    'gpsLat',
+    'gpsLng',
     'simultaneousSessions',
+    'createdAt',
+    'updatedAt',
     'tags',
     'actions',
   ]
@@ -161,13 +176,15 @@ export default function RadiusUsers() {
     phone: '',
     city: '',
     profileId: '',
-    balance: '',
     expiration: '',
     enabled: true,
     staticIp: '',
     company: '',
     address: '',
     contractId: '',
+    notes: '',
+    gpsLat: '',
+    gpsLng: '',
     simultaneousSessions: '1',
     zoneId: '',
   })
@@ -255,13 +272,13 @@ export default function RadiusUsers() {
         const preferences = await tablePreferenceApi.getPreference('radius-users')
         if (preferences) {
           if (preferences.columnWidths) {
-            setColumnWidths(JSON.parse(preferences.columnWidths))
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
           }
           if (preferences.columnOrder) {
             setColumnOrder(JSON.parse(preferences.columnOrder))
           }
           if (preferences.columnVisibility) {
-            setColumnVisibility(JSON.parse(preferences.columnVisibility))
+            setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
           }
           if (preferences.sortField) {
             setSortField(preferences.sortField)
@@ -442,13 +459,15 @@ export default function RadiusUsers() {
         phone: user.phone || '',
         city: user.city || '',
         profileId: user.profileId?.toString() || '',
-        balance: user.balance?.toString() || '0',
         expiration: user.expiration ? user.expiration.substring(0, 10) : '',
         enabled: user.enabled,
         staticIp: user.staticIp || '',
         company: user.company || '',
         address: user.address || '',
         contractId: user.contractId || '',
+        notes: user.notes || '',
+        gpsLat: user.gpsLat || '',
+        gpsLng: user.gpsLng || '',
         simultaneousSessions: user.simultaneousSessions?.toString() || '1',
         zoneId: user.zoneId?.toString() || '',
       })
@@ -463,13 +482,15 @@ export default function RadiusUsers() {
         phone: '',
         city: '',
         profileId: '',
-        balance: '0',
         expiration: '',
         enabled: true,
         staticIp: '',
         company: '',
         address: '',
         contractId: '',
+        notes: '',
+        gpsLat: '',
+        gpsLng: '',
         simultaneousSessions: '1',
         zoneId: '',
       })
@@ -497,13 +518,15 @@ export default function RadiusUsers() {
       phone: formData.phone || undefined,
       city: formData.city || undefined,
       profileId: formData.profileId ? parseInt(formData.profileId) : undefined,
-      balance: parseFloat(formData.balance) || 0,
       expiration: formData.expiration ? new Date(formData.expiration).toISOString() : undefined,
       enabled: formData.enabled,
       staticIp: formData.staticIp || undefined,
       company: formData.company || undefined,
       address: formData.address || undefined,
       contractId: formData.contractId || undefined,
+      notes: formData.notes || undefined,
+      gpsLat: formData.gpsLat || undefined,
+      gpsLng: formData.gpsLng || undefined,
       simultaneousSessions: parseInt(formData.simultaneousSessions) || 1,
       zoneId: formData.zoneId ? parseInt(formData.zoneId) : undefined,
     }
@@ -804,7 +827,12 @@ export default function RadiusUsers() {
       company: { label: 'Company' },
       address: { label: 'Address' },
       contractId: { label: 'Contract ID' },
+      notes: { label: 'Notes', sortKey: 'notes' },
+      gpsLat: { label: 'Latitude', sortKey: 'gpsLat' },
+      gpsLng: { label: 'Longitude', sortKey: 'gpsLng' },
       simultaneousSessions: { label: 'Sessions', align: 'center' },
+      createdAt: { label: 'Created At', sortKey: 'createdAt' },
+      updatedAt: { label: 'Updated At', sortKey: 'updatedAt' },
       tags: { label: 'Tags' },
       actions: { label: t('common.actions'), draggable: false },
     }
@@ -995,11 +1023,35 @@ export default function RadiusUsers() {
         return (
           <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.contractId || '-'}</TableCell>
         )
+      case 'notes':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <div className="max-w-xs truncate" title={user.notes || ''}>
+              {user.notes || '-'}
+            </div>
+          </TableCell>
+        )
+      case 'gpsLat':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.gpsLat || '-'}</TableCell>
+        )
+      case 'gpsLng':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.gpsLng || '-'}</TableCell>
+        )
       case 'simultaneousSessions':
         return (
           <TableCell key={columnKey} className="h-12 px-4 text-center" style={baseStyle}>
             {user.simultaneousSessions || 1}
           </TableCell>
+        )
+      case 'createdAt':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.createdAt)}</TableCell>
+        )
+      case 'updatedAt':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.updatedAt)}</TableCell>
         )
       case 'tags':
         return (
@@ -1155,7 +1207,12 @@ export default function RadiusUsers() {
                           company: checked,
                           address: checked,
                           contractId: checked,
+                          notes: checked,
+                          gpsLat: checked,
+                          gpsLng: checked,
                           simultaneousSessions: checked,
+                          createdAt: checked,
+                          updatedAt: checked,
                           tags: checked,
                         })
                       }}
@@ -1292,11 +1349,46 @@ export default function RadiusUsers() {
                       Contract ID
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
+                      checked={columnVisibility.notes}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, notes: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Notes
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.gpsLat}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, gpsLat: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Latitude
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.gpsLng}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, gpsLng: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Longitude
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
                       checked={columnVisibility.simultaneousSessions}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, simultaneousSessions: checked }))}
                       onSelect={(e) => e.preventDefault()}
                     >
                       Simultaneous Sessions
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.createdAt}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, createdAt: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Created At
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.updatedAt}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, updatedAt: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Updated At
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.tags}
@@ -1763,17 +1855,6 @@ export default function RadiusUsers() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="balance">{t('radiusUsers.balance')}</Label>
-                <Input
-                  id="balance"
-                  type="number"
-                  step="0.01"
-                  value={formData.balance}
-                  onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-                  placeholder="e.g., 100.00"
-                />
-              </div>
-              <div className="grid gap-2">
                 <Label htmlFor="simultaneousSessions">{t('radiusUsers.sessions')}</Label>
                 <Input
                   id="simultaneousSessions"
@@ -1859,6 +1940,37 @@ export default function RadiusUsers() {
                 onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
                 placeholder="e.g., CONTRACT-2024-001"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="e.g., Additional notes about the user"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="gpsLat">Latitude</Label>
+                <Input
+                  id="gpsLat"
+                  value={formData.gpsLat}
+                  onChange={(e) => setFormData({ ...formData, gpsLat: e.target.value })}
+                  placeholder="e.g., 32.5202391247401"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="gpsLng">Longitude</Label>
+                <Input
+                  id="gpsLng"
+                  value={formData.gpsLng}
+                  onChange={(e) => setFormData({ ...formData, gpsLng: e.target.value })}
+                  placeholder="e.g., 45.79654097557068"
+                />
+              </div>
             </div>
 
             <div className="grid gap-2">

@@ -76,7 +76,12 @@ public class RadiusUserController : ControllerBase
                 "company" => isDescending ? query.OrderByDescending(u => u.Company) : query.OrderBy(u => u.Company),
                 "address" => isDescending ? query.OrderByDescending(u => u.Address) : query.OrderBy(u => u.Address),
                 "contractid" => isDescending ? query.OrderByDescending(u => u.ContractId) : query.OrderBy(u => u.ContractId),
+                "notes" => isDescending ? query.OrderByDescending(u => u.Notes) : query.OrderBy(u => u.Notes),
+                "gpslat" => isDescending ? query.OrderByDescending(u => u.GpsLat) : query.OrderBy(u => u.GpsLat),
+                "gpslng" => isDescending ? query.OrderByDescending(u => u.GpsLng) : query.OrderBy(u => u.GpsLng),
                 "simultaneoussessions" => isDescending ? query.OrderByDescending(u => u.SimultaneousSessions) : query.OrderBy(u => u.SimultaneousSessions),
+                "createdat" => isDescending ? query.OrderByDescending(u => u.CreatedAt) : query.OrderBy(u => u.CreatedAt),
+                "updatedat" => isDescending ? query.OrderByDescending(u => u.UpdatedAt) : query.OrderBy(u => u.UpdatedAt),
                 _ => query.OrderByDescending(u => u.CreatedAt)
             };
         }
@@ -117,6 +122,9 @@ public class RadiusUserController : ControllerBase
             Company = u.Company,
             Address = u.Address,
             ContractId = u.ContractId,
+            Notes = u.Notes,
+            GpsLat = u.GpsLat,
+            GpsLng = u.GpsLng,
             SimultaneousSessions = u.SimultaneousSessions,
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
@@ -214,6 +222,9 @@ public class RadiusUserController : ControllerBase
             Company = request.Company,
             Address = request.Address,
             ContractId = request.ContractId,
+            Notes = request.Notes,
+            GpsLat = request.GpsLat,
+            GpsLng = request.GpsLng,
             SimultaneousSessions = request.SimultaneousSessions,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -245,6 +256,9 @@ public class RadiusUserController : ControllerBase
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
+            Notes = user.Notes,
+            GpsLat = user.GpsLat,
+            GpsLng = user.GpsLng,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             LastSyncedAt = user.LastSyncedAt
@@ -280,6 +294,9 @@ public class RadiusUserController : ControllerBase
         if (request.Company != null) user.Company = request.Company;
         if (request.Address != null) user.Address = request.Address;
         if (request.ContractId != null) user.ContractId = request.ContractId;
+        if (request.Notes != null) user.Notes = request.Notes;
+        if (request.GpsLat != null) user.GpsLat = request.GpsLat;
+        if (request.GpsLng != null) user.GpsLng = request.GpsLng;
         if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;
 
         user.UpdatedAt = DateTime.UtcNow;
