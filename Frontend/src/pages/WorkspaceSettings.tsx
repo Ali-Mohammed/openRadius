@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -443,11 +443,20 @@ export default function WorkspaceSettings() {
         </CardHeader>
         <CardContent>
           {integrations.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No integrations configured</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <Plug className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No integrations configured</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
                 Add your first SAS Radius 4 integration to get started
               </p>
+              {!showTrash && (
+                <Button onClick={() => handleOpenDialog()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Integration
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-md border">
@@ -627,8 +636,14 @@ export default function WorkspaceSettings() {
         </CardHeader>
         <CardContent>
           {recentSyncs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No synchronizations found
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <History className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No synchronizations found</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                Start a sync from your integrations to see the history here
+              </p>
             </div>
           ) : (
             <>
