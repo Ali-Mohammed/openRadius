@@ -399,6 +399,71 @@ public class DatabaseBackupController : ControllerBase
         }
     }
 
+    [HttpPost("upload")]
+    [RequestSizeLimit(524288000)] // 500 MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    public async Task<IActionResult> UploadBackup([FromForm] IFormFile file, [FromForm] string databaseName, [FromForm] string databaseType)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No file uploaded" });
+            }
+
+            if (!file.FileName.EndsWith(".sql", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Only .sql files are allowed" });
+            }
+
+            // Create backups directory if it doesn't exist
+            var backupsDir = Path.Combine(Directory.GetCurrentDirectory(), "Backups");
+            if (!Directory.Exists(backupsDir))
+            {
+                Directory.CreateDirectory(backupsDir);
+            }
+
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var fileName = $"{Path.GetFileNameWithoutExtension(file.FileName)}_{timestamp}.sql";
+            var filePath = Path.Combine(backupsDir, fileName);
+
+            // Save uploaded file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Get current user email from claims
+            var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "system";
+
+            // Save backup history to database
+            var backupHistory = new Models.BackupHistory
+            {
+                DatabaseName = databaseName,
+                DatabaseType = databaseType,
+                FileName = fileName,
+                FilePath = filePath,
+                SizeBytes = file.Length,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userEmail
+            };
+
+            _masterContext.BackupHistories.Add(backupHistory);
+            await _masterContext.SaveChangesAsync();
+
+            return Ok(new { 
+                message = "Backup uploaded successfully",
+                backupId = backupHistory.Id,
+                fileName = fileName
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading backup");
+            return StatusCode(500, new { message = "Failed to upload backup", error = ex.Message });
+        }
+    }
+
     [HttpDelete("delete/{backupId}")]
     public async Task<IActionResult> DeleteBackup(Guid backupId)
     {

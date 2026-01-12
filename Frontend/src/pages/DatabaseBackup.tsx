@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Database, Download, RefreshCw, HardDrive, RotateCcw, Trash2, History } from 'lucide-react'
+import { Database, Download, RefreshCw, HardDrive, RotateCcw, Trash2, History, Upload } from 'lucide-react'
 import { databaseBackupApi, type DatabaseInfo, type BackupHistoryItem } from '@/services/databaseBackupApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -16,8 +16,10 @@ export default function DatabaseBackup() {
   const [backupDialogOpen, setBackupDialogOpen] = useState(false)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [selectedDatabase, setSelectedDatabase] = useState<DatabaseInfo | null>(null)
   const [selectedBackup, setSelectedBackup] = useState<BackupHistoryItem | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const { data: databases = [], isLoading, refetch } = useQuery({
@@ -91,6 +93,23 @@ export default function DatabaseBackup() {
     },
   })
 
+  const uploadMutation = useMutation({
+    mutationFn: ({ file, databaseName, databaseType }: { file: File; databaseName: string; databaseType: string }) =>
+      databaseBackupApi.uploadBackup(file, databaseName, databaseType),
+    onSuccess: () => {
+      toast.success('Backup uploaded successfully')
+      setIsProcessing(false)
+      setUploadDialogOpen(false)
+      setSelectedFile(null)
+      setSelectedDatabase(null)
+      refetchHistory()
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to upload backup')
+      setIsProcessing(false)
+    },
+  })
+
   const handleBackup = (database: DatabaseInfo) => {
     setSelectedDatabase(database)
     setBackupDialogOpen(true)
@@ -128,6 +147,30 @@ export default function DatabaseBackup() {
   const confirmDelete = () => {
     if (!selectedBackup) return
     deleteMutation.mutate(selectedBackup.id)
+  }
+
+  const handleUpload = (database: DatabaseInfo) => {
+    setSelectedDatabase(database)
+    setUploadDialogOpen(true)
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && file.name.endsWith('.sql')) {
+      setSelectedFile(file)
+    } else if (file) {
+      toast.error('Please select a .sql file')
+    }
+  }
+
+  const confirmUpload = () => {
+    if (!selectedDatabase || !selectedFile) return
+    setIsProcessing(true)
+    uploadMutation.mutate({
+      file: selectedFile,
+      databaseName: selectedDatabase.name,
+      databaseType: selectedDatabase.type,
+    })
   }
 
   const formatBytes = (bytes: number) => {
@@ -220,15 +263,26 @@ export default function DatabaseBackup() {
                       {database.type}
                     </Badge>
                   </div>
-                  <Button
-                    onClick={() => handleBackup(database)}
-                    variant="outline"
-                    size="sm"
-                    disabled={isProcessing}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Create Backup
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => handleBackup(database)}
+                      variant="outline"
+                      size="sm"
+                      disabled={isProcessing}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Create Backup
+                    </Button>
+                    <Button
+                      onClick={() => handleUpload(database)}
+                      variant="outline"
+                      size="sm"
+                      disabled={isProcessing}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Backup
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -423,6 +477,57 @@ export default function DatabaseBackup() {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Backup
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Upload Backup Dialog */}
+      <AlertDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upload Backup</AlertDialogTitle>
+            <AlertDialogDescription>
+              Upload a backup file (.sql) for database:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="font-mono text-sm bg-muted p-2 rounded">
+              {selectedDatabase?.displayName} ({selectedDatabase?.name})
+            </div>
+            <div>
+              <input
+                type="file"
+                accept=".sql"
+                onChange={handleFileChange}
+                className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+                disabled={isProcessing}
+              />
+              {selectedFile && (
+                <div className="text-sm text-muted-foreground mt-2">
+                  Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+              )}
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUpload}
+              disabled={isProcessing || !selectedFile}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Backup
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

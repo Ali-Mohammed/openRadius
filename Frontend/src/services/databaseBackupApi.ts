@@ -54,4 +54,22 @@ export const databaseBackupApi = {
   deleteBackup: async (backupId: string): Promise<void> => {
     await apiClient.delete(`/api/database-backup/delete/${backupId}`);
   },
+
+  uploadBackup: async (file: File, databaseName: string, databaseType: string): Promise<{ backupId: string; fileName: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('databaseName', databaseName);
+    formData.append('databaseType', databaseType);
+    
+    const { data } = await apiClient.post<{ backupId: string; fileName: string }>(
+      '/api/database-backup/upload',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return data;
+  },
 };

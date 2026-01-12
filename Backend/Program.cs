@@ -21,6 +21,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient(); // Add HTTP client for Keycloak API calls
 builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
 builder.Services.AddControllers();
+
+// Configure file upload limits
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 524288000; // 500 MB
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -128,6 +135,12 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials();
     });
+});
+
+// Configure Kestrel server options for large file uploads
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 524288000; // 500 MB
 });
 
 var app = builder.Build();
