@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -26,14 +26,12 @@ export default function GeneralSettings() {
   })
 
   // Update local state when data changes
-  if (settingsData) {
-    if (currency !== settingsData.currency) {
+  useEffect(() => {
+    if (settingsData) {
       setCurrency(settingsData.currency)
-    }
-    if (churnDays !== settingsData.churnDays) {
       setChurnDays(settingsData.churnDays)
     }
-  }
+  }, [settingsData])
 
   const updateMutation = useMutation({
     mutationFn: (settings: { currency: string; churnDays: number }) => 
