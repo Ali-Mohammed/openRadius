@@ -29,7 +29,8 @@ public class WorkspaceSettingsController : ControllerBase
 
         return Ok(new
         {
-            currency = workspace.Currency ?? "USD"
+            currency = workspace.Currency ?? "USD",
+            churnDays = workspace.ChurnDays
         });
     }
 
@@ -44,6 +45,7 @@ public class WorkspaceSettingsController : ControllerBase
         }
 
         workspace.Currency = request.Currency;
+        workspace.ChurnDays = request.ChurnDays;
         workspace.UpdatedAt = DateTime.UtcNow;
         
         await _masterContext.SaveChangesAsync();
@@ -57,4 +59,5 @@ public class WorkspaceSettingsController : ControllerBase
 public class GeneralSettingsRequest
 {
     public required string Currency { get; set; }
+    public int ChurnDays { get; set; } = 20;
 }

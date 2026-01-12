@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
-import { DollarSign, Save } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DollarSign, Save, Users } from 'lucide-react'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -15,6 +17,7 @@ export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
   const queryClient = useQueryClient()
   const [currency, setCurrency] = useState('USD')
+  const [churnDays, setChurnDays] = useState(20)
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['general-settings', currentWorkspaceId],
@@ -23,12 +26,18 @@ export default function GeneralSettings() {
   })
 
   // Update local state when data changes
-  if (settingsData && currency !== settingsData.currency) {
-    setCurrency(settingsData.currency)
+  if (settingsData) {
+    if (currency !== settingsData.currency) {
+      setCurrency(settingsData.currency)
+    }
+    if (churnDays !== settingsData.churnDays) {
+      setChurnDays(settingsData.churnDays)
+    }
   }
 
   const updateMutation = useMutation({
-    mutationFn: (currency: string) => settingsApi.updateGeneralSettings(currentWorkspaceId!, { currency }),
+    mutationFn: (settings: { currency: string; churnDays: number }) => 
+      settingsApi.updateGeneralSettings(currentWorkspaceId!, settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['general-settings', currentWorkspaceId] })
       queryClient.invalidateQueries({ queryKey: ['workspace', currentWorkspaceId] })
@@ -40,7 +49,7 @@ export default function GeneralSettings() {
   })
 
   const handleSave = () => {
-    updateMutation.mutate(currency)
+    updateMutation.mutate({ currency, churnDays })
   }
 
   if (isLoadingWorkspace || isLoading) {
@@ -54,40 +63,84 @@ export default function GeneralSettings() {
         <p className="text-muted-foreground">Configure general workspace preferences</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Currency
-          </CardTitle>
-          <CardDescription>Select the currency for this workspace</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <RadioGroup value={currency} onValueChange={setCurrency}>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="USD" id="usd" />
-              <Label htmlFor="usd" className="flex items-center gap-2 cursor-pointer">
-                <span className="text-lg">$</span>
-                US Dollar (USD)
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="IQD" id="iqd" />
-              <Label htmlFor="iqd" className="flex items-center gap-2 cursor-pointer">
-                <span className="text-lg">د.ع</span>
-                Iraqi Dinar (IQD)
-              </Label>
-            </div>
-          </RadioGroup>
+      <Tabs defaultValue="general" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="radius-user">Radius User</TabsTrigger>
+        </TabsList>
 
-          <div className="pt-4">
-            <Button onClick={handleSave} disabled={updateMutation.isPending}>
-              <Save className="h-4 w-4 mr-2" />
-              {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="general" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Currency
+              </CardTitle>
+              <CardDescription>Select the currency for this workspace</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup value={currency} onValueChange={setCurrency}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="USD" id="usd" />
+                  <Label htmlFor="usd" className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-lg">$</span>
+                    US Dollar (USD)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="IQD" id="iqd" />
+                  <Label htmlFor="iqd" className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-lg">د.ع</span>
+                    Iraqi Dinar (IQD)
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              <div className="pt-4">
+                <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="radius-user" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Churn User Settings
+              </CardTitle>
+              <CardDescription>Configure when a user is considered churned</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="churn-days">Number of days for user to become churn user</Label>
+                <Input
+                  id="churn-days"
+                  type="number"
+                  min="1"
+                  value={churnDays}
+                  onChange={(e) => setChurnDays(parseInt(e.target.value) || 20)}
+                  className="max-w-xs"
+                />
+                <p className="text-sm text-muted-foreground">
+                  A user will be marked as churned after {churnDays} days of inactivity
+                </p>
+              </div>
+
+              <div className="pt-4">
+                <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

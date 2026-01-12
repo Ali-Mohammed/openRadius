@@ -12,6 +12,7 @@ public class Workspace
     public string Color { get; set; } = "#3b82f6";
     public string Icon { get; set; } = "Building2";
     public string Currency { get; set; } = "USD"; // USD or IQD
+    public int ChurnDays { get; set; } = 20; // Number of days for user to become churn user
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public string CreatedBy { get; set; } = string.Empty;
