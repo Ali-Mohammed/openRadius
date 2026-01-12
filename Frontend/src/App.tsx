@@ -77,7 +77,7 @@ function App() {
                           <Route path="/profile" element={<ProfileSettings />} />
                           <Route path="/workspace/view" element={<WorkspaceView />} />
                           <Route path="/workspace/:id/settings" element={<WorkspaceSettings />} />
-                          <Route path="/integration/sas-radius" element={<WorkspaceSettingsRedirect />} />
+                          <Route path="/integrations" element={<WorkspaceSettings />} />
                           <Route path="/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/radius/users" element={<RadiusUsers />} />
                           <Route path="/radius/groups" element={<RadiusGroups />} />

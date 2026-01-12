@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -9,6 +9,7 @@ import { Textarea } from '../components/ui/textarea'
 import { Switch } from '../components/ui/switch'
 import { Badge } from '../components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import {
   Table,
   TableBody,
@@ -286,10 +287,19 @@ export default function WorkspaceSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{workspace.name} Settings</h1>
-        <p className="text-muted-foreground">Configure SAS Radius 4 Integration</p>
+        <h1 className="text-3xl font-bold">Integrations</h1>
+        <p className="text-muted-foreground">Manage external system integrations for {workspace.name}</p>
       </div>
 
+      <Tabs defaultValue="sas-radius" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="sas-radius" className="flex items-center gap-2">
+            <Radio className="h-4 w-4" />
+            SAS Radius
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="sas-radius" className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -758,6 +768,8 @@ export default function WorkspaceSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -242,8 +242,8 @@ const getNavData = (workspaceId: number) => ({
           icon: Database,
         },
         {
-          titleKey: "navigation.sasRadius",
-          url: "/integration/sas-radius",
+          titleKey: "navigation.integrations",
+          url: "/integrations",
           icon: Radio,
         },
       ],

@@ -73,7 +73,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname.startsWith('/workspace/') && location.pathname.endsWith('/settings')) {
       return { parent: { title: 'Workspace View', href: '/workspace/view', icon: Eye }, current: 'Workspace Settings', icon: Wrench }
     }
-    if (location.pathname === '/integration/sas-radius') return { parent: null, current: 'SAS Radius', icon: Radio }
+    if (location.pathname === '/integrations') return { parent: null, current: 'Integrations', icon: Radio }
     if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
     if (location.pathname.includes('/radius/nas')) return { parent: null, current: 'Network Access Servers', icon: Server }

@@ -13,6 +13,7 @@
   "navigation": {
     "dashboards": "Dashboards",
     "integration": "Integration",
+    "integrations": "Integrations",
     "sasRadius": "SAS Radius",
     "radius": "Radius",
     "users": "Users",
