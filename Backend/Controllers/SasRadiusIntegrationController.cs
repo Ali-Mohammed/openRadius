@@ -125,6 +125,7 @@ public class SasRadiusIntegrationController : ControllerBase
         existingIntegration.Password = integration.Password;
         existingIntegration.UseHttps = integration.UseHttps;
         existingIntegration.IsActive = integration.IsActive;
+        existingIntegration.MaxItemInPagePerRequest = integration.MaxItemInPagePerRequest;
         existingIntegration.Action = integration.Action;
         existingIntegration.Description = integration.Description;
         existingIntegration.UpdatedAt = DateTime.UtcNow;

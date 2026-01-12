@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,7 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
   const [initialProgress, setInitialProgress] = useState<SyncProgress | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   // Fetch initial progress state
   useEffect(() => {
@@ -287,24 +289,49 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
 
             {/* Cancel Button at Bottom */}
             {canCancel && (
-              <Button
-                variant="outline"
-                onClick={() => cancelMutation.mutate()}
-                disabled={cancelMutation.isPending}
-                className="w-full"
-              >
-                {cancelMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Cancelling...
-                  </>
-                ) : (
-                  <>
-                    <X className="w-4 h-4 mr-2" />
-                    Cancel Sync
-                  </>
-                )}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelConfirm(true)}
+                  disabled={cancelMutation.isPending}
+                  className="w-full"
+                >
+                  {cancelMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel Sync
+                    </>
+                  )}
+                </Button>
+
+                <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel Synchronization?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to cancel this sync? This action cannot be undone and the sync will be marked as cancelled.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>No, Continue Sync</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          cancelMutation.mutate()
+                          setShowCancelConfirm(false)
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Yes, Cancel Sync
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
         ) : fetchError ? (
