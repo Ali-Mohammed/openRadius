@@ -76,7 +76,6 @@ function App() {
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/profile" element={<ProfileSettings />} />
                           <Route path="/workspace/view" element={<WorkspaceView />} />
-                          <Route path="/workspace/:id/settings" element={<WorkspaceSettings />} />
                           <Route path="/integrations" element={<WorkspaceSettings />} />
                           <Route path="/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/radius/users" element={<RadiusUsers />} />
@@ -88,7 +87,7 @@ function App() {
                           <Route path="/network/olts" element={<Olts />} />
                           <Route path="/network/fdts" element={<Fdts />} />
                           <Route path="/network/fats" element={<Fats />} />
-                          <Route path="/workspace/:id/settings/general" element={<GeneralSettings />} />
+                          <Route path="/settings/general" element={<GeneralSettings />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
                           <Route path="/settings/database-backup" element={<DatabaseBackup />} />
