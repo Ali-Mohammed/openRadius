@@ -347,7 +347,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [searchQuery, t, data.navMain])
 
   return (
-    <Sidebar {...props}>
+    <Sidebar {...props} className="overflow-x-hidden">
       <SidebarHeader>
         <Link to="/dashboard" className="flex items-center gap-3 px-2 py-3 hover:bg-accent rounded-md transition-colors">
           <img 
@@ -417,8 +417,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           <SidebarMenuItem key={subItem.titleKey}>
                             <SidebarMenuButton asChild isActive={location.pathname === subItem.url} className="ml-4">
                               <Link to={subItem.url}>
-                                <subItem.icon className="mr-2 h-4 w-4 text-primary" />
-                                {displayName}
+                                <subItem.icon className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
+                                <span className="truncate">{displayName}</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -435,8 +435,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location.pathname === item.url}>
                     <Link to={item.url}>
-                      <item.icon className="mr-2 h-4 w-4 text-primary" />
-                      {t(item.titleKey)}
+                      <item.icon className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
