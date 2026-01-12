@@ -168,7 +168,8 @@ export default function WorkspaceSettings() {
       toast.success(`Sync started successfully`)
     },
     onError: (error: any) => {
-      toast.error(formatApiError(error) || 'Failed to start sync')
+      const errorMessage = error?.response?.data?.details || formatApiError(error) || 'Failed to start sync'
+      toast.error(errorMessage)
     },
   })
 
