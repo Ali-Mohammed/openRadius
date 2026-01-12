@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
+import { settingsApi } from '@/api/settingsApi'
 
 export default function RadiusUsers() {
   const { t, i18n } = useTranslation()
@@ -201,6 +202,12 @@ export default function RadiusUsers() {
   const { data: workspace } = useQuery({
     queryKey: ['workspace', currentWorkspaceId],
     queryFn: () => workspaceApi.getById(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
+  })
+
+  const { data: generalSettings } = useQuery({
+    queryKey: ['general-settings', currentWorkspaceId],
+    queryFn: () => settingsApi.getGeneralSettings(currentWorkspaceId!),
     enabled: !!currentWorkspaceId,
   })
 
@@ -866,7 +873,13 @@ export default function RadiusUsers() {
     switch (columnKey) {
       case 'checkbox':
         const isExpired = user.expiration ? new Date(user.expiration) < new Date() : false
-        const statusColor = isExpired ? 'bg-yellow-500' : 'bg-green-500'
+        const churnDays = generalSettings?.churnDays || 20
+        const daysSinceLastOnline = user.lastOnline 
+          ? Math.floor((new Date().getTime() - new Date(user.lastOnline).getTime()) / (1000 * 60 * 60 * 24))
+          : null
+        const isChurned = daysSinceLastOnline !== null && daysSinceLastOnline > churnDays
+        
+        const statusColor = isChurned ? 'bg-red-500' : isExpired ? 'bg-yellow-500' : 'bg-green-500'
         return (
           <TableCell key={columnKey} className="h-12 px-4 relative" style={baseStyle}>
             <div className={`absolute left-0 top-3 bottom-3 w-0.5 ${statusColor}`}></div>
