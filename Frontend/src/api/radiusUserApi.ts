@@ -34,6 +34,7 @@ export interface RadiusUser {
   address?: string
   contractId?: string
   notes?: string
+  deviceSerialNumber?: string
   gpsLat?: string
   gpsLng?: string
   simultaneousSessions?: number

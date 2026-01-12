@@ -87,6 +87,7 @@ export default function RadiusUsers() {
     address: false,
     contractId: false,
     notes: false,
+    deviceSerialNumber: false,
     gpsLat: false,
     gpsLng: false,
     simultaneousSessions: false,
@@ -116,6 +117,7 @@ export default function RadiusUsers() {
     address: 160,
     contractId: 120,
     notes: 200,
+    deviceSerialNumber: 180,
     gpsLat: 120,
     gpsLng: 120,
     simultaneousSessions: 100,
@@ -146,6 +148,7 @@ export default function RadiusUsers() {
     'address',
     'contractId',
     'notes',
+    'deviceSerialNumber',
     'gpsLat',
     'gpsLng',
     'simultaneousSessions',
@@ -183,6 +186,7 @@ export default function RadiusUsers() {
     address: '',
     contractId: '',
     notes: '',
+    deviceSerialNumber: '',
     gpsLat: '',
     gpsLng: '',
     simultaneousSessions: '1',
@@ -466,6 +470,7 @@ export default function RadiusUsers() {
         address: user.address || '',
         contractId: user.contractId || '',
         notes: user.notes || '',
+        deviceSerialNumber: user.deviceSerialNumber || '',
         gpsLat: user.gpsLat || '',
         gpsLng: user.gpsLng || '',
         simultaneousSessions: user.simultaneousSessions?.toString() || '1',
@@ -489,6 +494,7 @@ export default function RadiusUsers() {
         address: '',
         contractId: '',
         notes: '',
+        deviceSerialNumber: '',
         gpsLat: '',
         gpsLng: '',
         simultaneousSessions: '1',
@@ -525,6 +531,7 @@ export default function RadiusUsers() {
       address: formData.address || undefined,
       contractId: formData.contractId || undefined,
       notes: formData.notes || undefined,
+      deviceSerialNumber: formData.deviceSerialNumber || undefined,
       gpsLat: formData.gpsLat || undefined,
       gpsLng: formData.gpsLng || undefined,
       simultaneousSessions: parseInt(formData.simultaneousSessions) || 1,
@@ -828,6 +835,7 @@ export default function RadiusUsers() {
       address: { label: 'Address' },
       contractId: { label: 'Contract ID' },
       notes: { label: 'Notes', sortKey: 'notes' },
+      deviceSerialNumber: { label: 'Device Serial #', sortKey: 'deviceSerialNumber' },
       gpsLat: { label: 'Latitude', sortKey: 'gpsLat' },
       gpsLng: { label: 'Longitude', sortKey: 'gpsLng' },
       simultaneousSessions: { label: 'Sessions', align: 'center' },
@@ -1031,6 +1039,10 @@ export default function RadiusUsers() {
             </div>
           </TableCell>
         )
+      case 'deviceSerialNumber':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.deviceSerialNumber || '-'}</TableCell>
+        )
       case 'gpsLat':
         return (
           <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.gpsLat || '-'}</TableCell>
@@ -1208,6 +1220,7 @@ export default function RadiusUsers() {
                           address: checked,
                           contractId: checked,
                           notes: checked,
+                          deviceSerialNumber: checked,
                           gpsLat: checked,
                           gpsLng: checked,
                           simultaneousSessions: checked,
@@ -1354,6 +1367,13 @@ export default function RadiusUsers() {
                       onSelect={(e) => e.preventDefault()}
                     >
                       Notes
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.deviceSerialNumber}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, deviceSerialNumber: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Device Serial #
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.gpsLat}
@@ -1949,6 +1969,16 @@ export default function RadiusUsers() {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="e.g., Additional notes about the user"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="deviceSerialNumber">Device Serial Number</Label>
+              <Input
+                id="deviceSerialNumber"
+                value={formData.deviceSerialNumber}
+                onChange={(e) => setFormData({ ...formData, deviceSerialNumber: e.target.value })}
+                placeholder="e.g., SN123456789"
               />
             </div>
 

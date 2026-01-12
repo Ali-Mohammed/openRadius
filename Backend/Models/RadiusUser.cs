@@ -239,6 +239,7 @@ namespace Backend.Models
         public bool Enabled { get; set; }
         public string? Company { get; set; }
         public string? Notes { get; set; }
+        public string? DeviceSerialNumber { get; set; }
         public int SimultaneousSessions { get; set; }
         public string? Address { get; set; }
         public string? ContractId { get; set; }
@@ -314,6 +315,7 @@ namespace Backend.Models
         public string? Address { get; set; }
         public string? ContractId { get; set; }
         public string? Notes { get; set; }
+        public string? DeviceSerialNumber { get; set; }
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public int? SimultaneousSessions { get; set; }
@@ -344,6 +346,7 @@ namespace Backend.Models
         public string? Address { get; set; }
         public string? ContractId { get; set; }
         public string? Notes { get; set; }
+        public string? DeviceSerialNumber { get; set; }
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public int SimultaneousSessions { get; set; } = 1;
@@ -366,6 +369,7 @@ namespace Backend.Models
         public string? Address { get; set; }
         public string? ContractId { get; set; }
         public string? Notes { get; set; }
+        public string? DeviceSerialNumber { get; set; }
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public int? SimultaneousSessions { get; set; }

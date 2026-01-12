@@ -77,6 +77,7 @@ public class RadiusUserController : ControllerBase
                 "address" => isDescending ? query.OrderByDescending(u => u.Address) : query.OrderBy(u => u.Address),
                 "contractid" => isDescending ? query.OrderByDescending(u => u.ContractId) : query.OrderBy(u => u.ContractId),
                 "notes" => isDescending ? query.OrderByDescending(u => u.Notes) : query.OrderBy(u => u.Notes),
+                "deviceserialnumber" => isDescending ? query.OrderByDescending(u => u.DeviceSerialNumber) : query.OrderBy(u => u.DeviceSerialNumber),
                 "gpslat" => isDescending ? query.OrderByDescending(u => u.GpsLat) : query.OrderBy(u => u.GpsLat),
                 "gpslng" => isDescending ? query.OrderByDescending(u => u.GpsLng) : query.OrderBy(u => u.GpsLng),
                 "simultaneoussessions" => isDescending ? query.OrderByDescending(u => u.SimultaneousSessions) : query.OrderBy(u => u.SimultaneousSessions),
@@ -123,6 +124,7 @@ public class RadiusUserController : ControllerBase
             Address = u.Address,
             ContractId = u.ContractId,
             Notes = u.Notes,
+            DeviceSerialNumber = u.DeviceSerialNumber,
             GpsLat = u.GpsLat,
             GpsLng = u.GpsLng,
             SimultaneousSessions = u.SimultaneousSessions,
@@ -193,6 +195,9 @@ public class RadiusUserController : ControllerBase
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
+            Notes = user.Notes,
+            GpsLat = user.GpsLat,
+            GpsLng = user.GpsLng,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             LastSyncedAt = user.LastSyncedAt
@@ -223,6 +228,7 @@ public class RadiusUserController : ControllerBase
             Address = request.Address,
             ContractId = request.ContractId,
             Notes = request.Notes,
+            DeviceSerialNumber = request.DeviceSerialNumber,
             GpsLat = request.GpsLat,
             GpsLng = request.GpsLng,
             SimultaneousSessions = request.SimultaneousSessions,
@@ -257,6 +263,7 @@ public class RadiusUserController : ControllerBase
             Address = user.Address,
             ContractId = user.ContractId,
             Notes = user.Notes,
+            DeviceSerialNumber = user.DeviceSerialNumber,
             GpsLat = user.GpsLat,
             GpsLng = user.GpsLng,
             CreatedAt = user.CreatedAt,
@@ -295,6 +302,7 @@ public class RadiusUserController : ControllerBase
         if (request.Address != null) user.Address = request.Address;
         if (request.ContractId != null) user.ContractId = request.ContractId;
         if (request.Notes != null) user.Notes = request.Notes;
+        if (request.DeviceSerialNumber != null) user.DeviceSerialNumber = request.DeviceSerialNumber;
         if (request.GpsLat != null) user.GpsLat = request.GpsLat;
         if (request.GpsLng != null) user.GpsLng = request.GpsLng;
         if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;

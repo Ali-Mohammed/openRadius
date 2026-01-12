@@ -468,6 +468,9 @@ public class SasSyncService : ISasSyncService
                                     }
                                 }
 
+                                // Parse device serial number from notes if available
+                                string? deviceSerialNumber = sasUser.Notes;
+
                                 var newUser = new RadiusUser
                                 {
                                     ExternalId = sasUser.Id,
@@ -487,6 +490,7 @@ public class SasSyncService : ISasSyncService
                                     Enabled = sasUser.Enabled == 1,
                                     Company = sasUser.Company,
                                     Notes = sasUser.Notes,
+                                    DeviceSerialNumber = deviceSerialNumber,
                                     SimultaneousSessions = sasUser.SimultaneousSessions ?? 1,
                                     Address = sasUser.Address,
                                     ContractId = sasUser.ContractId,
@@ -526,6 +530,9 @@ public class SasSyncService : ISasSyncService
                                     }
                                 }
 
+                                // Parse device serial number from notes if available
+                                string? deviceSerialNumber = sasUser.Notes;
+
                                 existingUser.Username = sasUser.Username ?? string.Empty;
                                 existingUser.Firstname = sasUser.Firstname;
                                 existingUser.Lastname = sasUser.Lastname;
@@ -542,6 +549,7 @@ public class SasSyncService : ISasSyncService
                                 existingUser.Enabled = sasUser.Enabled == 1;
                                 existingUser.Company = sasUser.Company;
                                 existingUser.Notes = sasUser.Notes;
+                                existingUser.DeviceSerialNumber = deviceSerialNumber;
                                 existingUser.SimultaneousSessions = sasUser.SimultaneousSessions ?? 1;
                                 existingUser.Address = sasUser.Address;
                                 existingUser.ContractId = sasUser.ContractId;
