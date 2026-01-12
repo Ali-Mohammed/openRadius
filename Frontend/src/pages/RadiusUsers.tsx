@@ -805,7 +805,39 @@ export default function RadiusUsers() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString()
+    
+    const date = new Date(dateString)
+    const dateFormat = generalSettings?.dateFormat || 'MM/DD/YYYY'
+    
+    const pad = (num: number) => num.toString().padStart(2, '0')
+    const year = date.getFullYear()
+    const month = pad(date.getMonth() + 1)
+    const day = pad(date.getDate())
+    const hours = pad(date.getHours())
+    const minutes = pad(date.getMinutes())
+    const seconds = pad(date.getSeconds())
+    
+    // Handle different date formats
+    switch (dateFormat) {
+      case 'MM/DD/YYYY':
+        return `${month}/${day}/${year}`
+      case 'DD/MM/YYYY':
+        return `${day}/${month}/${year}`
+      case 'YYYY-MM-DD':
+        return `${year}-${month}-${day}`
+      case 'DD.MM.YYYY':
+        return `${day}.${month}.${year}`
+      case 'MM/DD/YYYY HH:mm:ss':
+        return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`
+      case 'DD/MM/YYYY HH:mm:ss':
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`
+      case 'YYYY-MM-DD HH:mm:ss':
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+      case 'DD.MM.YYYY HH:mm:ss':
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`
+      default:
+        return date.toLocaleDateString()
+    }
   }
 
   const formatNumber = (num: number) => {
