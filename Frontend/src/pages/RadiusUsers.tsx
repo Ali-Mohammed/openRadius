@@ -865,8 +865,11 @@ export default function RadiusUsers() {
 
     switch (columnKey) {
       case 'checkbox':
+        const isExpired = user.expiration ? new Date(user.expiration) < new Date() : false
+        const statusColor = isExpired ? 'bg-yellow-500' : 'bg-green-500'
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+          <TableCell key={columnKey} className="h-12 px-4 relative" style={baseStyle}>
+            <div className={`absolute left-0 top-3 bottom-3 w-0.5 ${statusColor}`}></div>
             <Checkbox
               checked={selectedUserIds.includes(user.id!)}
               onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
