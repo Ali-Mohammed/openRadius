@@ -924,13 +924,13 @@ export default function RadiusUsers() {
       case 'balance':
         return (
           <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
-            {getCurrencySymbol(workspace?.currency)} {formatNumber(user.balance || 0)}
+            {currencySymbol} {formatNumber(user.balance || 0)}
           </TableCell>
         )
       case 'loanBalance':
         return (
           <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
-            {getCurrencySymbol(workspace?.currency)} {formatNumber(user.loanBalance || 0)}
+            {currencySymbol} {formatNumber(user.loanBalance || 0)}
           </TableCell>
         )
       case 'expiration':
@@ -1357,7 +1357,7 @@ export default function RadiusUsers() {
                 </TableBody>
               </Table>
             </div>
-          ) : users.length === 0 ? (
+          ) : !isLoading && usersData && users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="rounded-full bg-muted p-6 mb-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
@@ -1369,7 +1369,7 @@ export default function RadiusUsers() {
                 {t('radiusUsers.addUser')}
               </Button>
             </div>
-          ) : (
+          ) : users.length > 0 ? (
             <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
@@ -1415,7 +1415,7 @@ export default function RadiusUsers() {
                   </TableBody>
               </Table>
             </div>
-          )}
+          ) : null}
           
           {/* Pagination Controls - Always visible */}
           {pagination && (
