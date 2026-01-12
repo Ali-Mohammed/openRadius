@@ -101,37 +101,70 @@ export default function GeneralSettings() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                Date Format
+                Date & Time Format
               </CardTitle>
-              <CardDescription>Select the date format for this workspace</CardDescription>
+              <CardDescription>Select the date and time format for this workspace</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <RadioGroup value={dateFormat} onValueChange={setDateFormat}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="MM/DD/YYYY" id="mm-dd-yyyy" />
-                  <Label htmlFor="mm-dd-yyyy" className="flex items-center gap-2 cursor-pointer">
-                    MM/DD/YYYY <span className="text-sm text-muted-foreground">(e.g., 01/12/2026)</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="DD/MM/YYYY" id="dd-mm-yyyy" />
-                  <Label htmlFor="dd-mm-yyyy" className="flex items-center gap-2 cursor-pointer">
-                    DD/MM/YYYY <span className="text-sm text-muted-foreground">(e.g., 12/01/2026)</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="YYYY-MM-DD" id="yyyy-mm-dd" />
-                  <Label htmlFor="yyyy-mm-dd" className="flex items-center gap-2 cursor-pointer">
-                    YYYY-MM-DD <span className="text-sm text-muted-foreground">(e.g., 2026-01-12)</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="DD.MM.YYYY" id="dd-dot-mm-yyyy" />
-                  <Label htmlFor="dd-dot-mm-yyyy" className="flex items-center gap-2 cursor-pointer">
-                    DD.MM.YYYY <span className="text-sm text-muted-foreground">(e.g., 12.01.2026)</span>
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Date Only</div>
+                <RadioGroup value={dateFormat} onValueChange={setDateFormat}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="MM/DD/YYYY" id="mm-dd-yyyy" />
+                    <Label htmlFor="mm-dd-yyyy" className="flex items-center gap-2 cursor-pointer">
+                      MM/DD/YYYY <span className="text-sm text-muted-foreground">(e.g., 01/12/2026)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="DD/MM/YYYY" id="dd-mm-yyyy" />
+                    <Label htmlFor="dd-mm-yyyy" className="flex items-center gap-2 cursor-pointer">
+                      DD/MM/YYYY <span className="text-sm text-muted-foreground">(e.g., 12/01/2026)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="YYYY-MM-DD" id="yyyy-mm-dd" />
+                    <Label htmlFor="yyyy-mm-dd" className="flex items-center gap-2 cursor-pointer">
+                      YYYY-MM-DD <span className="text-sm text-muted-foreground">(e.g., 2026-01-12)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="DD.MM.YYYY" id="dd-dot-mm-yyyy" />
+                    <Label htmlFor="dd-dot-mm-yyyy" className="flex items-center gap-2 cursor-pointer">
+                      DD.MM.YYYY <span className="text-sm text-muted-foreground">(e.g., 12.01.2026)</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t">
+                <div className="text-sm font-medium">Date with Time</div>
+                <RadioGroup value={dateFormat} onValueChange={setDateFormat}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="MM/DD/YYYY HH:mm:ss" id="mm-dd-yyyy-time" />
+                    <Label htmlFor="mm-dd-yyyy-time" className="flex items-center gap-2 cursor-pointer">
+                      MM/DD/YYYY HH:mm:ss <span className="text-sm text-muted-foreground">(e.g., 01/12/2026 14:30:45)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="DD/MM/YYYY HH:mm:ss" id="dd-mm-yyyy-time" />
+                    <Label htmlFor="dd-mm-yyyy-time" className="flex items-center gap-2 cursor-pointer">
+                      DD/MM/YYYY HH:mm:ss <span className="text-sm text-muted-foreground">(e.g., 12/01/2026 14:30:45)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="YYYY-MM-DD HH:mm:ss" id="yyyy-mm-dd-time" />
+                    <Label htmlFor="yyyy-mm-dd-time" className="flex items-center gap-2 cursor-pointer">
+                      YYYY-MM-DD HH:mm:ss <span className="text-sm text-muted-foreground">(e.g., 2026-01-12 14:30:45)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="DD.MM.YYYY HH:mm:ss" id="dd-dot-mm-yyyy-time" />
+                    <Label htmlFor="dd-dot-mm-yyyy-time" className="flex items-center gap-2 cursor-pointer">
+                      DD.MM.YYYY HH:mm:ss <span className="text-sm text-muted-foreground">(e.g., 12.01.2026 14:30:45)</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               <div className="pt-4">
                 <Button onClick={handleSave} disabled={updateMutation.isPending}>
