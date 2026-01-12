@@ -1472,10 +1472,12 @@ export default function RadiusUsers() {
               </PopoverContent>
             </Popover>
           </div>
-          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('radiusUsers.addUser')}
-          </Button>
+          {!showTrash && (
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('radiusUsers.addUser')}
+            </Button>
+          )}
         </div>
       </div>
 
