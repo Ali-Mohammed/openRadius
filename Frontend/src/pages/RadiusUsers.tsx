@@ -872,14 +872,32 @@ export default function RadiusUsers() {
 
     switch (columnKey) {
       case 'checkbox':
-        const isExpired = user.expiration ? new Date(user.expiration) < new Date() : false
         const churnDays = generalSettings?.churnDays || 20
-        const daysSinceLastOnline = user.lastOnline 
-          ? Math.floor((new Date().getTime() - new Date(user.lastOnline).getTime()) / (1000 * 60 * 60 * 24))
-          : null
-        const isChurned = daysSinceLastOnline !== null && daysSinceLastOnline > churnDays
+        let statusColor = 'bg-green-500' // Default: active
         
-        const statusColor = isChurned ? 'bg-red-500' : isExpired ? 'bg-yellow-500' : 'bg-green-500'
+        if (user.expiration) {
+          const expirationDate = new Date(user.expiration)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0) // Normalize to start of day
+          expirationDate.setHours(0, 0, 0, 0)
+          
+          if (expirationDate >= today) {
+            // Expiration is today or future - GREEN (active)
+            statusColor = 'bg-green-500'
+          } else {
+            // Expired - calculate days since expiration
+            const daysSinceExpiration = Math.floor((today.getTime() - expirationDate.getTime()) / (1000 * 60 * 60 * 24))
+            
+            if (daysSinceExpiration > churnDays) {
+              // Expired more than churnDays ago - RED (churned)
+              statusColor = 'bg-red-500'
+            } else {
+              // Expired but less than churnDays - YELLOW (recently expired)
+              statusColor = 'bg-yellow-500'
+            }
+          }
+        }
+        
         return (
           <TableCell key={columnKey} className="h-12 px-4 relative" style={baseStyle}>
             <div className={`absolute left-0 top-3 bottom-3 w-0.5 ${statusColor}`}></div>
