@@ -475,6 +475,7 @@ export default function WorkspaceSettings() {
                     <TableHead>Username</TableHead>
                     <TableHead className="text-center">HTTPS</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Sync Status</TableHead>
                     <TableHead className="text-center">Items/Page</TableHead>
                     <TableHead>Action</TableHead>
                     <TableHead>Description</TableHead>
@@ -510,6 +511,27 @@ export default function WorkspaceSettings() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
+                        {integration.latestSyncStatus !== undefined ? (
+                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            integration.latestSyncStatus === 8 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                            integration.latestSyncStatus === 9 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                            integration.latestSyncStatus === 10 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
+                            integration.latestSyncStatus < 8 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                          }`}>
+                            {integration.latestSyncStatus === 8 ? 'Completed' :
+                             integration.latestSyncStatus === 9 ? 'Failed' :
+                             integration.latestSyncStatus === 10 ? 'Cancelled' :
+                             integration.latestSyncStatus < 8 ? 'Syncing' :
+                             'Unknown'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                            Not Started
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
                         <span className="font-medium">{integration.maxItemInPagePerRequest || 100}</span>
                       </TableCell>
                       <TableCell>{integration.action || '-'}</TableCell>
@@ -534,8 +556,8 @@ export default function WorkspaceSettings() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => integration.id && syncMutation.mutate(integration.id)}
-                                disabled={syncMutation.isPending}
-                                title="Sync Now"
+                                disabled={syncMutation.isPending || !integration.isActive}
+                                title={integration.isActive ? "Sync Now" : "Activate integration to sync"}
                               >
                                 <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
                               </Button>

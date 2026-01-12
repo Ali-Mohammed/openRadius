@@ -14,6 +14,8 @@ export interface SasRadiusIntegration {
   workspaceId?: number
   createdAt?: string
   updatedAt?: string
+  latestSyncStatus?: number
+  latestSyncDate?: string
 }
 
 export interface SyncProgress {

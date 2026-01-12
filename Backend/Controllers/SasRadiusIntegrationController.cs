@@ -28,7 +28,7 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetIntegrations(int WorkspaceId, [FromQuery] bool includeDeleted = false)
+    public async Task<ActionResult<IEnumerable<object>>> GetIntegrations(int WorkspaceId, [FromQuery] bool includeDeleted = false)
     {
         var integrations = await _context.SasRadiusIntegrations
             .Where(i => i.WorkspaceId == WorkspaceId && (includeDeleted || !i.IsDeleted))
@@ -36,7 +36,35 @@ public class SasRadiusIntegrationController : ControllerBase
             .ThenBy(i => i.Name)
             .ToListAsync();
 
-        return Ok(integrations);
+        // Get latest sync status for each integration
+        var integrationIds = integrations.Select(i => i.Id).ToList();
+        var latestSyncs = await _context.SyncProgresses
+            .Where(s => integrationIds.Contains(s.IntegrationId))
+            .GroupBy(s => s.IntegrationId)
+            .Select(g => g.OrderByDescending(s => s.StartedAt).FirstOrDefault())
+            .ToListAsync();
+
+        var result = integrations.Select(integration => new
+        {
+            integration.Id,
+            integration.Name,
+            integration.Url,
+            integration.Username,
+            integration.Password,
+            integration.UseHttps,
+            integration.IsActive,
+            integration.MaxItemInPagePerRequest,
+            integration.Action,
+            integration.Description,
+            integration.WorkspaceId,
+            integration.CreatedAt,
+            integration.UpdatedAt,
+            integration.IsDeleted,
+            LatestSyncStatus = latestSyncs.FirstOrDefault(s => s?.IntegrationId == integration.Id)?.Status,
+            LatestSyncDate = latestSyncs.FirstOrDefault(s => s?.IntegrationId == integration.Id)?.StartedAt
+        });
+
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -197,6 +225,11 @@ public class SasRadiusIntegrationController : ControllerBase
         if (integration == null)
         {
             return NotFound();
+        }
+
+        if (!integration.IsActive)
+        {
+            return BadRequest(new { error = "Cannot sync inactive integration. Please activate the integration first." });
         }
 
         try
