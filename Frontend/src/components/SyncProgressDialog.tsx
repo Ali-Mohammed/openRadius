@@ -82,6 +82,16 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
     },
     onSuccess: () => {
       toast.success('Sync cancelled successfully')
+      // Refetch progress to update the UI with cancelled status
+      if (syncId) {
+        sasRadiusApi.getSyncProgress(workspaceId, syncId)
+          .then((data) => {
+            setInitialProgress(data)
+          })
+          .catch((error) => {
+            console.error('Failed to refetch sync progress after cancel:', error)
+          })
+      }
       onCancelSuccess?.()
     },
     onError: (error: Error) => {

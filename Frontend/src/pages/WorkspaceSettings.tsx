@@ -164,6 +164,7 @@ export default function WorkspaceSettings() {
       await new Promise(resolve => setTimeout(resolve, 100))
       queryClient.invalidateQueries({ queryKey: ['active-syncs', currentWorkspaceId] })
       queryClient.invalidateQueries({ queryKey: ['recent-syncs', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
       toast.success(`Sync started successfully`)
     },
     onError: (error: any) => {
