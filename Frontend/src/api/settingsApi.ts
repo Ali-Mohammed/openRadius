@@ -3,6 +3,7 @@ import { apiClient } from '../lib/api'
 export interface GeneralSettings {
   currency: string
   churnDays: number
+  dateFormat: string
 }
 
 export const settingsApi = {

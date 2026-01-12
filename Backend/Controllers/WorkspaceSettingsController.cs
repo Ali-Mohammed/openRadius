@@ -30,7 +30,8 @@ public class WorkspaceSettingsController : ControllerBase
         return Ok(new
         {
             currency = workspace.Currency ?? "USD",
-            churnDays = workspace.ChurnDays
+            churnDays = workspace.ChurnDays,
+            dateFormat = workspace.DateFormat ?? "MM/DD/YYYY"
         });
     }
 
@@ -46,6 +47,7 @@ public class WorkspaceSettingsController : ControllerBase
 
         workspace.Currency = request.Currency;
         workspace.ChurnDays = request.ChurnDays;
+        workspace.DateFormat = request.DateFormat;
         workspace.UpdatedAt = DateTime.UtcNow;
         
         await _masterContext.SaveChangesAsync();
@@ -60,4 +62,5 @@ public class GeneralSettingsRequest
 {
     public required string Currency { get; set; }
     public int ChurnDays { get; set; } = 20;
+    public string DateFormat { get; set; } = "MM/DD/YYYY";
 }

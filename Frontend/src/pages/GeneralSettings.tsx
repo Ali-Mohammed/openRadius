@@ -18,6 +18,7 @@ export default function GeneralSettings() {
   const queryClient = useQueryClient()
   const [currency, setCurrency] = useState('USD')
   const [churnDays, setChurnDays] = useState(20)
+  const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['general-settings', currentWorkspaceId],
@@ -30,11 +31,12 @@ export default function GeneralSettings() {
     if (settingsData) {
       setCurrency(settingsData.currency)
       setChurnDays(settingsData.churnDays)
+      setDateFormat(settingsData.dateFormat)
     }
   }, [settingsData])
 
   const updateMutation = useMutation({
-    mutationFn: (settings: { currency: string; churnDays: number }) => 
+    mutationFn: (settings: { currency: string; churnDays: number; dateFormat: string }) => 
       settingsApi.updateGeneralSettings(currentWorkspaceId!, settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['general-settings', currentWorkspaceId] })
@@ -47,7 +49,7 @@ export default function GeneralSettings() {
   })
 
   const handleSave = () => {
-    updateMutation.mutate({ currency, churnDays })
+    updateMutation.mutate({ currency, churnDays, dateFormat })
   }
 
   if (isLoadingWorkspace || isLoading) {
@@ -90,6 +92,43 @@ export default function GeneralSettings() {
                   <Label htmlFor="iqd" className="flex items-center gap-2 cursor-pointer">
                     <span className="text-lg">د.ع</span>
                     Iraqi Dinar (IQD)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Date Format
+              </CardTitle>
+              <CardDescription>Select the date format for this workspace</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup value={dateFormat} onValueChange={setDateFormat}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="MM/DD/YYYY" id="mm-dd-yyyy" />
+                  <Label htmlFor="mm-dd-yyyy" className="flex items-center gap-2 cursor-pointer">
+                    MM/DD/YYYY <span className="text-sm text-muted-foreground">(e.g., 01/12/2026)</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="DD/MM/YYYY" id="dd-mm-yyyy" />
+                  <Label htmlFor="dd-mm-yyyy" className="flex items-center gap-2 cursor-pointer">
+                    DD/MM/YYYY <span className="text-sm text-muted-foreground">(e.g., 12/01/2026)</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="YYYY-MM-DD" id="yyyy-mm-dd" />
+                  <Label htmlFor="yyyy-mm-dd" className="flex items-center gap-2 cursor-pointer">
+                    YYYY-MM-DD <span className="text-sm text-muted-foreground">(e.g., 2026-01-12)</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="DD.MM.YYYY" id="dd-dot-mm-yyyy" />
+                  <Label htmlFor="dd-dot-mm-yyyy" className="flex items-center gap-2 cursor-pointer">
+                    DD.MM.YYYY <span className="text-sm text-muted-foreground">(e.g., 12.01.2026)</span>
                   </Label>
                 </div>
               </RadioGroup>
