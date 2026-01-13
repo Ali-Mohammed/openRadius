@@ -78,6 +78,11 @@ public class ApplicationDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.ProfileId)
                   .OnDelete(DeleteBehavior.SetNull);
+            
+            entity.HasOne(e => e.RadiusGroup)
+                  .WithMany()
+                  .HasForeignKey(e => e.GroupId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<RadiusTag>(entity =>
