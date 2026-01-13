@@ -150,8 +150,12 @@ public class SasSyncService : ISasSyncService
             await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Profiles, 15, "Starting profile synchronization...", cancellationToken);
             await SyncProfilesAsync(syncId, integration, token, cancellationToken);
 
+            // Sync Groups
+            await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Groups, 35, "Starting group synchronization...", cancellationToken);
+            await SyncGroupsAsync(syncId, integration, token, cancellationToken);
+
             // Sync Zones from Manager Tree
-            await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Users, 50, "Starting zone synchronization...", cancellationToken);
+            await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Zones, 50, "Starting zone synchronization...", cancellationToken);
             var sasIdToZoneId = await SyncZonesAsync(syncId, integration, token, cancellationToken);
 
             // Then Sync Users
@@ -795,5 +799,63 @@ internal record SasTreeNode
     
     [System.Text.Json.Serialization.JsonPropertyName("username")]
     public string Username { get; init; } = string.Empty;
+}
+
+// Helper class for SAS group API response
+internal record SasGroupApiResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("current_page")]
+    public int CurrentPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
+    public List<SasGroup> Data { get; init; } = new();
+    
+    [System.Text.Json.Serialization.JsonPropertyName("first_page_url")]
+    public string? FirstPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("from")]
+    public int From { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page")]
+    public int LastPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page_url")]
+    public string? LastPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("next_page_url")]
+    public string? NextPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("path")]
+    public string? Path { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("per_page")]
+    public int PerPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("prev_page_url")]
+    public string? PrevPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("to")]
+    public int To { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("total")]
+    public int Total { get; init; }
+}
+
+internal record SasGroup
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public int Id { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("name")]
+    public string Name { get; init; } = string.Empty;
+    
+    [System.Text.Json.Serialization.JsonPropertyName("description")]
+    public string? Description { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("users_count")]
+    public int UsersCount { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("managers_count")]
+    public int ManagersCount { get; init; }
 }
 

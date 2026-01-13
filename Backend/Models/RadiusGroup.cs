@@ -6,7 +6,9 @@ namespace Backend.Models;
 public class RadiusGroup
 {
     public int Id { get; set; }
+    public int? ExternalId { get; set; } // SAS Reference ID for syncing
     public required string Name { get; set; }
+    public string? Description { get; set; }
     public string? Subscription { get; set; }
     public bool IsActive { get; set; } = true;
     public string Color { get; set; } = "#3b82f6"; // Default blue color
@@ -20,6 +22,7 @@ public class RadiusGroup
     // Timestamps
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public DateTime? LastSyncedAt { get; set; } // Last time synced from SAS
 }
 
 // Response Models for API

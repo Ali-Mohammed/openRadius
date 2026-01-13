@@ -22,9 +22,10 @@ public enum SyncPhase
 {
     NotStarted = 0,
     Profiles = 1,
-    Zones = 2,
-    Users = 3,
-    Completed = 4
+    Groups = 2,
+    Zones = 3,
+    Users = 4,
+    Completed = 5
 }
 
 public class SyncProgress
@@ -48,6 +49,15 @@ public class SyncProgress
     public int ProfileNewRecords { get; set; }
     public int ProfileUpdatedRecords { get; set; }
     public int ProfileFailedRecords { get; set; }
+    
+    // Group sync tracking
+    public int GroupCurrentPage { get; set; }
+    public int GroupTotalPages { get; set; }
+    public int GroupTotalRecords { get; set; }
+    public int GroupProcessedRecords { get; set; }
+    public int GroupNewRecords { get; set; }
+    public int GroupUpdatedRecords { get; set; }
+    public int GroupFailedRecords { get; set; }
     
     // Zone sync tracking
     public int ZoneTotalRecords { get; set; }
@@ -91,6 +101,14 @@ public class SyncProgressUpdate
     public int ProfileNewRecords { get; set; }
     public int ProfileUpdatedRecords { get; set; }
     public int ProfileFailedRecords { get; set; }
+    
+    public int GroupCurrentPage { get; set; }
+    public int GroupTotalPages { get; set; }
+    public int GroupTotalRecords { get; set; }
+    public int GroupProcessedRecords { get; set; }
+    public int GroupNewRecords { get; set; }
+    public int GroupUpdatedRecords { get; set; }
+    public int GroupFailedRecords { get; set; }
     
     public int ZoneTotalRecords { get; set; }
     public int ZoneProcessedRecords { get; set; }
