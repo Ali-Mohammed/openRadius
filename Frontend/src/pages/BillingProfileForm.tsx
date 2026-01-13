@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, ArrowLeft, Wallet, Package, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import {
   getProfiles,
   createProfile,
@@ -37,7 +38,7 @@ export default function BillingProfileForm() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const workspaceId = parseInt(id || '0');
+  const { currentWorkspaceId } = useWorkspace();
   const profileId = searchParams.get('profileId');
   const queryClient = useQueryClient();
   const { layout } = useTheme();
@@ -97,15 +98,12 @@ export default function BillingProfileForm() {
 
   // Queries
   const { data: radiusProfilesData, isLoading: isLoadingRadiusProfiles } = useQuery({
-    queryKey: ['radius-profiles'],
+    queryKey: ['radius-profiles', currentWorkspaceId],
     queryFn: async () => {
-      if (!workspaceId || workspaceId === 0) {
-        return { data: [], pagination: { currentPage: 1, pageSize: 50, totalRecords: 0, totalPages: 0 } };
-      }
       const result = await radiusProfileApi.getAll(1, 1000);
       return result;
     },
-    enabled: workspaceId > 0,
+    enabled: !!currentWorkspaceId,
   });
 
   const { data: billingGroupsData, isLoading: isLoadingBillingGroups } = useQuery({
