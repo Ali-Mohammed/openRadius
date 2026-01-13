@@ -38,6 +38,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<DebeziumConnector> DebeziumConnectors { get; set; }
     public DbSet<CustomWallet> CustomWallets { get; set; }
     public DbSet<UserWallet> UserWallets { get; set; }
+    public DbSet<CashbackGroup> CashbackGroups { get; set; }
+    public DbSet<CashbackGroupUser> CashbackGroupUsers { get; set; }
     public DbSet<WalletHistory> WalletHistories { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<TransactionComment> TransactionComments { get; set; }
@@ -385,6 +387,33 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.UserId).IsRequired();
             entity.Property(e => e.TableName).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => new { e.UserId, e.TableName }).IsUnique();
+        });
+
+        modelBuilder.Entity<CashbackGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Disabled);
+            entity.HasIndex(e => e.DeletedAt);
+            
+            // Add query filter to exclude soft-deleted groups by default
+            entity.HasQueryFilter(e => e.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<CashbackGroupUser>(entity =>
+        {
+            entity.HasKey(e => new { e.CashbackGroupId, e.UserId });
+            entity.HasIndex(e => e.UserId);
+            
+            entity.HasOne(e => e.CashbackGroup)
+                  .WithMany(g => g.CashbackGroupUsers)
+                  .HasForeignKey(e => e.CashbackGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
