@@ -32,7 +32,9 @@ namespace Backend.Controllers
 
         // GET: api/radius/tags
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetTags([FromQuery] bool includeDeleted = false)
+        public async Task<ActionResult<IEnumerable<object>>> GetTags(
+            [FromQuery] bool includeDeleted = false,
+            [FromQuery] bool onlyDeleted = false)
         {
             try
             {
@@ -44,7 +46,11 @@ namespace Backend.Controllers
 
                 var query = _context.RadiusTags.AsQueryable();
 
-                if (!includeDeleted)
+                if (onlyDeleted)
+                {
+                    query = query.Where(t => t.DeletedAt != null);
+                }
+                else if (!includeDeleted)
                 {
                     query = query.Where(t => t.DeletedAt == null);
                 }

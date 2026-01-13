@@ -11,10 +11,10 @@ export interface RadiusTag {
 }
 
 export const radiusTagApi = {
-  getAll: async (includeDeleted: boolean = false): Promise<RadiusTag[]> => {
+  getAll: async (onlyDeleted: boolean = false): Promise<RadiusTag[]> => {
     const params = new URLSearchParams()
-    if (includeDeleted) {
-      params.append('includeDeleted', 'true')
+    if (onlyDeleted) {
+      params.append('onlyDeleted', 'true')
     }
     const response = await apiClient.get(`/api/radius/tags?${params.toString()}`)
     return response.data
