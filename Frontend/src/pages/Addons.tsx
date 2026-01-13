@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, type LucideIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, RefreshCw, Package, type LucideIcon } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { addonApi, type Addon } from '@/api/addons'
 import { customWalletApi } from '@/api/customWallets'
@@ -247,62 +247,48 @@ export default function Addons() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Addons</h1>
-          <p className="text-muted-foreground">
-            Manage billing addons and attach them to profiles
-          </p>
+          <h1 className="text-2xl font-bold">Addons</h1>
+          <p className="text-sm text-muted-foreground">Manage billing addons and attach them to profiles</p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Addon
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 flex gap-2">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search addons..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-8"
-                />
-              </div>
-              <Button onClick={handleSearch} variant="secondary">
-                Search
-              </Button>
-            </div>
-
-            <Button
-              variant={showTrash ? 'default' : 'outline'}
-              onClick={() => {
-                setShowTrash(!showTrash)
-                setCurrentPage(1)
-              }}
-            >
-              {showTrash ? (
-                <>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Show Active
-                </>
-              ) : (
-                <>
-                  <Archive className="h-4 w-4 mr-2" />
-                  Show Trash
-                </>
-              )}
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Package className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search addons..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['addons'] })} variant="outline" size="icon" title="Refresh">
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
-        </CardHeader>
+          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Addon
+          </Button>
+        </div>
+      </div>
 
-        <CardContent>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
           <Table>
             <TableHeader>
               <TableRow>
