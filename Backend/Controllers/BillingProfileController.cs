@@ -300,7 +300,7 @@ public class BillingProfileController : ControllerBase
             existingProfile.Description = request.Description;
             existingProfile.Price = request.Price;
             existingProfile.RadiusProfileId = request.RadiusProfileId;
-            existingProfile.BillingGroupId = request.BillingGroupId;
+            existingProfile.BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId; // null means all groups
             existingProfile.UpdatedAt = DateTime.UtcNow;
             existingProfile.UpdatedBy = userEmail;
 
