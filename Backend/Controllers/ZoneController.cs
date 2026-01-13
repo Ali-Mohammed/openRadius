@@ -145,6 +145,7 @@ public class ZoneController : ControllerBase
     public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetDeletedZones(int workspaceId)
     {
         var zones = await _context.Zones
+            .IgnoreQueryFilters()
             .Where(z => z.WorkspaceId == workspaceId && z.IsDeleted)
             .Select(z => new ZoneResponse
             {
