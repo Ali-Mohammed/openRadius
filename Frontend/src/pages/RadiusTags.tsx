@@ -178,6 +178,16 @@ export default function RadiusTags() {
           <p className="text-muted-foreground mt-1">Organize and manage your RADIUS users with custom tags</p>
         </div>
         <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
+            <TabsList className="grid w-fit grid-cols-2">
+              <TabsTrigger value="active">
+                <TagIcon className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Button
             variant="outline"
             size="sm"
@@ -195,21 +205,8 @@ export default function RadiusTags() {
         </div>
       </div>
 
-      <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')} className="w-full">
-        <TabsList className="grid w-fit grid-cols-2">
-          <TabsTrigger value="active" className="gap-2">
-            <TagIcon className="h-4 w-4" />
-            Active
-          </TabsTrigger>
-          <TabsTrigger value="trash" className="gap-2">
-            <Archive className="h-4 w-4" />
-            Trash
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="mt-4">
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
 
               {tags.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
@@ -229,6 +226,58 @@ export default function RadiusTags() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-6">
                   {tags.map((tag: RadiusTag) => {
                     const IconComponent = getIconComponent(tag.icon)
+                    if (showTrash) {
+                      return (
+                        <Card 
+                          key={tag.id} 
+                          className="transition-all hover:shadow-lg opacity-75"
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div 
+                                  className="rounded-lg p-2.5 flex-shrink-0"
+                                  style={{ 
+                                    backgroundColor: `${tag.color}15`,
+                                    color: tag.color 
+                                  }}
+                                >
+                                  <IconComponent className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-lg mb-1 truncate">{tag.title}</CardTitle>
+                                  {tag.description && (
+                                    <CardDescription className="line-clamp-2">{tag.description}</CardDescription>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-primary/10 hover:text-primary flex-shrink-0"
+                                onClick={() => restoreTagMutation.mutate(tag.id)}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="flex items-center justify-between">
+                              <Badge 
+                                variant="secondary"
+                                className="font-medium"
+                              >
+                                {tag.status}
+                              </Badge>
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <Users className="h-3.5 w-3.5" />
+                                <span className="font-medium">{tag.usersCount ?? 0}</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    }
                     return (
                       <Card 
                         key={tag.id} 
