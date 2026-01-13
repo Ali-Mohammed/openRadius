@@ -98,14 +98,17 @@ public class RadiusGroupController : ControllerBase
                 response.Add(new RadiusGroupResponse
                 {
                     Id = item.Group.Id,
+                    ExternalId = item.Group.ExternalId,
                     Name = item.Group.Name,
+                    Description = item.Group.Description,
                     Subscription = item.Group.Subscription,
                     IsActive = item.Group.IsActive,
                     Color = item.Group.Color,
                     Icon = item.Group.Icon,
                     UsersCount = item.UserCount,
                     CreatedAt = item.Group.CreatedAt,
-                    UpdatedAt = item.Group.UpdatedAt
+                    UpdatedAt = item.Group.UpdatedAt,
+                    LastSyncedAt = item.Group.LastSyncedAt
                 });
             }
 
@@ -157,14 +160,17 @@ public class RadiusGroupController : ControllerBase
             responseData.Add(new RadiusGroupResponse
             {
                 Id = group.Id,
+                ExternalId = group.ExternalId,
                 Name = group.Name,
+                Description = group.Description,
                 Subscription = group.Subscription,
                 IsActive = group.IsActive,
                 Color = group.Color,
                 Icon = group.Icon,
                 UsersCount = userCount,
                 CreatedAt = group.CreatedAt,
-                UpdatedAt = group.UpdatedAt
+                UpdatedAt = group.UpdatedAt,
+                LastSyncedAt = group.LastSyncedAt
             });
         }
 
