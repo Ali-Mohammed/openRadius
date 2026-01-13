@@ -19,6 +19,9 @@ import { getGroups } from '../api/groups';
 import { addonApi, type Addon } from '../api/addons';
 import { customWalletApi } from '../api/customWallets';
 import userWalletApi from '../api/userWallets';
+import { workspaceApi } from '../api/workspaceApi';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { i18n } from '../i18n';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -82,12 +85,33 @@ export default function BillingProfiles() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const workspaceId = parseInt(id || '0');
+  const { currentWorkspaceId } = useWorkspace();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<BillingProfile | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('active');
+
+  // Fetch workspace for currency
+  const { data: workspace } = useQuery({
+    queryKey: ['workspace', currentWorkspaceId],
+    queryFn: () => workspaceApi.getById(currentWorkspaceId!),
+    enabled: !!currentWorkspaceId,
+  });
+
+  // Helper function to get currency symbol
+  const getCurrencySymbol = (currency?: string) => {
+    switch (currency) {
+      case 'IQD':
+        return i18n.language === 'ar' ? 'د.ع ' : 'IQD ';
+      case 'USD':
+      default:
+        return '$';
+    }
+  };
+
+  const currencySymbol = getCurrencySymbol(workspace?.currency);
 
   const [formData, setFormData] = useState<CreateBillingProfileRequest>({
     name: '',
@@ -228,8 +252,12 @@ export default function BillingProfiles() {
       });
       setWallets(profile.wallets || []);
       setSelectedRadiusProfiles([{profileId: profile.radiusProfileId, number: 1}]);
-      setSelectedBillingGroups([profile.billingGroupId]);
-      setSelectAllGroups(false);
+      
+      // Check if "All Groups" is selected (billingGroupId === 0 or null)
+      const isAllGroups = profile.billingGroupId === 0 || profile.billingGroupId === null;
+      setSelectAllGroups(isAllGroups);
+      setSelectedBillingGroups(isAllGroups ? [] : [profile.billingGroupId]);
+      
       setSelectedAddons(
         profile.addons?.map(a => ({ addonId: a.id!, price: a.price, number: 1 })) || []
       );
@@ -414,38 +442,77 @@ export default function BillingProfiles() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Radius Profile</TableHead>
+                  <TableHead>Billing Group</TableHead>
                   <TableHead>Wallets</TableHead>
                   <TableHead>Addons</TableHead>
+                  <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingActive ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={9} className="text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : activeProfilesData?.data?.filter((p) => !p.isDeleted).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={9} className="text-center">
                       No profiles found
                     </TableCell>
                   </TableRow>
                 ) : (
                   activeProfilesData?.data
                     ?.filter((p) => !p.isDeleted)
-                    .map((profile) => (
+                    .map((profile) => {
+                      const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId);
+                      const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId);
+                      
+                      return (
                       <TableRow key={profile.id}>
                         <TableCell className="font-medium">{profile.name}</TableCell>
                         <TableCell className="max-w-md truncate">
                           {profile.description || '-'}
                         </TableCell>
                         <TableCell>
+                          {profile.price ? (
+                            <span className="font-medium">{currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {radiusProfile ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">{radiusProfile.name}</span>
+                              {radiusProfile.downrate && radiusProfile.uprate && (
+                                <span className="text-xs text-muted-foreground">
+                                  {radiusProfile.downrate}/{radiusProfile.uprate} Mbps
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {profile.billingGroupId === 0 || !billingGroup ? (
+                            <Badge variant="outline">All Groups</Badge>
+                          ) : (
+                            <Badge variant="secondary">{billingGroup.name}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="secondary">{profile.wallets?.length || 0} wallets</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{profile.addons?.length || 0} addons</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(profile.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -466,7 +533,8 @@ export default function BillingProfiles() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                    );
+                    })
                 )}
               </TableBody>
             </Table>
@@ -478,8 +546,11 @@ export default function BillingProfiles() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Radius Profile</TableHead>
+                  <TableHead>Billing Group</TableHead>
                   <TableHead>Wallets</TableHead>
-                  <TableHead>Created By</TableHead>
+                  <TableHead>Addons</TableHead>
                   <TableHead>Deleted At</TableHead>
                   <TableHead>Deleted By</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -488,30 +559,62 @@ export default function BillingProfiles() {
               <TableBody>
                 {isLoadingDeleted ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={10} className="text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : deletedProfilesData?.data?.filter((p) => p.isDeleted).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={10} className="text-center">
                       No deleted profiles found
                     </TableCell>
                   </TableRow>
                 ) : (
                   deletedProfilesData?.data
                     ?.filter((p) => p.isDeleted)
-                    .map((profile) => (
+                    .map((profile) => {
+                      const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId);
+                      const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId);
+                      
+                      return (
                       <TableRow key={profile.id}>
                         <TableCell className="font-medium opacity-60">{profile.name}</TableCell>
                         <TableCell className="max-w-md truncate opacity-60">
                           {profile.description || '-'}
                         </TableCell>
+                        <TableCell className="opacity-60">
+                          {profile.price ? (
+                            <span className="font-medium">{currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="opacity-60">
+                          {radiusProfile ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">{radiusProfile.name}</span>
+                              {radiusProfile.downrate && radiusProfile.uprate && (
+                                <span className="text-xs text-muted-foreground">
+                                  {radiusProfile.downrate}/{radiusProfile.uprate} Mbps
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="opacity-60">
+                          {profile.billingGroupId === 0 || !billingGroup ? (
+                            <Badge variant="outline">All Groups</Badge>
+                          ) : (
+                            <Badge variant="secondary">{billingGroup.name}</Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{profile.wallets?.length || 0} wallets</Badge>
                         </TableCell>
-                        <TableCell className="opacity-60">
-                          {profile.createdBy || '-'}
+                        <TableCell>
+                          <Badge variant="secondary">{profile.addons?.length || 0} addons</Badge>
                         </TableCell>
                         <TableCell className="opacity-60">
                           {profile.deletedAt
@@ -532,7 +635,8 @@ export default function BillingProfiles() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
+                    );
+                    })
                 )}
               </TableBody>
             </Table>

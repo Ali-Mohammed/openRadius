@@ -88,8 +88,12 @@ export default function BillingProfileForm() {
       });
       setWallets(existingProfile.wallets || []);
       setSelectedRadiusProfiles([{profileId: existingProfile.radiusProfileId, number: 1}]);
-      setSelectedBillingGroups([existingProfile.billingGroupId]);
-      setSelectAllGroups(false);
+      
+      // Check if "All Groups" is selected (billingGroupId === 0 or null)
+      const isAllGroups = existingProfile.billingGroupId === 0 || existingProfile.billingGroupId === null;
+      setSelectAllGroups(isAllGroups);
+      setSelectedBillingGroups(isAllGroups ? [] : [existingProfile.billingGroupId]);
+      
       setSelectedAddons(
         existingProfile.addons?.map(a => ({ addonId: a.id!, price: a.price, number: 1 })) || []
       );
