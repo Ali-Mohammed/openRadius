@@ -2184,11 +2184,7 @@ export default function RadiusUsers() {
                                 htmlFor={`tag-${tag.id}`}
                                 className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2 flex-1"
                               >
-                                <IconComponent className="h-3.5 w-3.5" style={{ color: tag.color }} />
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full"
-                                  style={{ backgroundColor: tag.color }}
-                                />
+                                <IconComponent className="h-4 w-4" style={{ color: tag.color }} />
                                 {tag.title}
                               </label>
                             </div>
