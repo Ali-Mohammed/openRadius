@@ -243,7 +243,7 @@ public class RadiusUserController : ControllerBase
             Balance = request.Balance,
             Expiration = request.Expiration,
             Enabled = request.Enabled,
-            StaticIp = request.StaticIp,
+            // StaticIp is managed via IP Reservations, not set here
             Company = request.Company,
             Address = request.Address,
             ContractId = request.ContractId,
@@ -320,7 +320,7 @@ public class RadiusUserController : ControllerBase
         if (request.Balance.HasValue) user.Balance = request.Balance.Value;
         if (request.Expiration.HasValue) user.Expiration = request.Expiration;
         if (request.Enabled.HasValue) user.Enabled = request.Enabled.Value;
-        if (request.StaticIp != null) user.StaticIp = request.StaticIp;
+        // StaticIp is managed via IP Reservations, not updated here
         if (request.Company != null) user.Company = request.Company;
         if (request.Address != null) user.Address = request.Address;
         if (request.ContractId != null) user.ContractId = request.ContractId;
