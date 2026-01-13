@@ -250,7 +250,10 @@ export default function CashbackGroups() {
 
   const selectAllFilteredUsers = () => {
     const filteredUserIds = users
-      .filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()))
+      .filter(u => {
+        const fullName = `${u.firstName || ''} ${u.lastName || ''} ${u.email || ''}`.toLowerCase()
+        return fullName.includes(userSearch.toLowerCase())
+      })
       .map(u => u.id)
     setSelectedUserIds(filteredUserIds)
   }
@@ -702,7 +705,10 @@ export default function CashbackGroups() {
                         </div>
                         <div className="max-h-[300px] overflow-y-auto space-y-2">
                           {users
-                            .filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()))
+                            .filter(u => {
+                              const fullName = `${u.firstName || ''} ${u.lastName || ''} ${u.email || ''}`.toLowerCase()
+                              return fullName.includes(userSearch.toLowerCase())
+                            })
                             .map(user => (
                               <div key={user.id} className="flex items-center space-x-2">
                                 <Checkbox
@@ -711,7 +717,7 @@ export default function CashbackGroups() {
                                   onCheckedChange={() => toggleUserSelection(user.id)}
                                 />
                                 <Label htmlFor={`user-${user.id}`} className="cursor-pointer flex-1">
-                                  {user.name} ({user.email})
+                                  {user.firstName} {user.lastName} ({user.email})
                                 </Label>
                               </div>
                             ))}
