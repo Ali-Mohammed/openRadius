@@ -398,7 +398,7 @@ export default function Fdts() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-2 overflow-x-hidden">
       {isExporting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-lg shadow-lg px-4 py-2 flex items-center gap-2">
           <RefreshCw className="h-4 w-4 animate-spin text-primary" />
@@ -407,93 +407,83 @@ export default function Fdts() {
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">FDTs</h1>
-          <p className="text-muted-foreground">Manage Fiber Distribution Terminals</p>
+          <h1 className="text-2xl font-bold">FDTs</h1>
+          <p className="text-sm text-muted-foreground">Manage Fiber Distribution Terminals</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowTrash(!showTrash)}
-            variant={showTrash ? 'default' : 'outline'}
-          >
-            <Archive className="mr-2 h-4 w-4" />
-            {showTrash ? 'Show Active' : 'Show Trash'}
-          </Button>
-          {!showTrash && (
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add FDT
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Network className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search FDTs..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
             </Button>
-          )}
-        </div>
-      </div>
-
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 flex-1">
-                <Input
-                  placeholder="Search FDTs..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="max-w-sm"
-                />
-                <Button onClick={handleSearch} variant="outline" size="icon">
-                  <Search className="h-4 w-4" />
-                </Button>
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['fdts', currentWorkspaceId] })} 
+              variant="outline" 
+              size="icon"
+              title={t('common.refresh')}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
                 <Button 
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['fdts', currentWorkspaceId] })} 
                   variant="outline" 
                   size="icon"
-                  title={t('common.refresh')}
+                  disabled={isExporting}
+                  title="Export data"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  {isExporting ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
                 </Button>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      disabled={isExporting}
-                      title="Export data"
-                    >
-                      {isExporting ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2" align="end">
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start"
-                        onClick={handleExportCsv}
-                        disabled={isExporting}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Export as CSV
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start"
-                        onClick={handleExportExcel}
-                        disabled={isExporting}
-                      >
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        Export as Excel
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" title="Toggle columns">
-                      <Columns3 className="h-4 w-4" />
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="end">
+                <div className="flex flex-col gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={handleExportCsv}
+                    disabled={isExporting}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export as CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={handleExportExcel}
+                    disabled={isExporting}
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Export as Excel
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Toggle columns">
+                  <Columns3 className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 max-h-[500px] overflow-y-auto">
