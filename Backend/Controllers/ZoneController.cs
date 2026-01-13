@@ -329,6 +329,7 @@ public class ZoneController : ControllerBase
     public async Task<IActionResult> RestoreZone(int workspaceId, int id)
     {
         var zone = await _context.Zones
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && z.IsDeleted);
 
         if (zone == null)
