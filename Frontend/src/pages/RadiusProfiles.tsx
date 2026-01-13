@@ -790,7 +790,7 @@ export default function RadiusProfiles() {
       case 'users':
         return (
           <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
-            {profile.usersCount || 0}
+            {(profile.usersCount || 0).toLocaleString()}
           </TableCell>
         )
       case 'actions':
