@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +22,7 @@ import { radiusNasApi, type RadiusNas } from '@/api/radiusNasApi'
 import { radiusIpPoolApi, type RadiusIpPool } from '@/api/radiusIpPoolApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 // NAS Type mapping
 const NAS_TYPES: Record<number, string> = {
@@ -43,8 +44,7 @@ const getNasTypeName = (type: number): string => {
 }
 
 export default function RadiusNasPage() {
-  const { id } = useParams<{ id: string }>()
-  const workspaceId = parseInt(id || '0')
+  const { currentWorkspaceId } = useWorkspace()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -108,7 +108,7 @@ export default function RadiusNasPage() {
     queryFn: () => showTrash
       ? radiusNasApi.getTrash(currentPage, pageSize)
       : radiusNasApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
-    enabled: workspaceId > 0,
+    enabled: currentWorkspaceId > 0,
   })
 
   const nasDevices = nasData?.data || []
@@ -118,7 +118,7 @@ export default function RadiusNasPage() {
   const { data: ipPoolsData } = useQuery({
     queryKey: ['radius-ip-pools-all'],
     queryFn: () => radiusIpPoolApi.getAll(1, 200, '', '', 'asc', false),
-    enabled: workspaceId > 0,
+    enabled: currentWorkspaceId > 0,
   })
 
   const ipPools = ipPoolsData?.data || []
