@@ -825,8 +825,7 @@ export default function Olts() {
                 </Select>
               </div>
             </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="p-0 overflow-hidden relative">
           {isLoading ? (
             <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 452px)' }}>
