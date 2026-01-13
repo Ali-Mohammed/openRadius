@@ -41,6 +41,7 @@ import WorkflowDesigner from './pages/WorkflowDesigner'
 import BillingGroups from './pages/BillingGroups'
 import BillingProfiles from './pages/BillingProfiles'
 import BillingProfileForm from './pages/BillingProfileForm'
+import CashbackGroups from './pages/CashbackGroups'
 import Dashboards from './pages/Dashboards'
 import DashboardView from './pages/DashboardView'
 import NetworkSettings from './pages/NetworkSettings'
@@ -108,6 +109,7 @@ function App() {
                           <Route path="/billing/automations" element={<Automations />} />
                           <Route path="/billing/automations/:automationId/designer" element={<WorkflowDesigner />} />
                           <Route path="/billing/groups" element={<BillingGroups />} />
+                          <Route path="/billing/cashback-groups" element={<CashbackGroups />} />
                           <Route path="/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/billing/profiles/new" element={<BillingProfileForm />} />
                           <Route path="/billing/profiles/edit" element={<BillingProfileForm />} />
