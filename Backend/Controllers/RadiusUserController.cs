@@ -35,6 +35,7 @@ public class RadiusUserController : ControllerBase
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
+            .Include(u => u.RadiusGroup)
             .Include(u => u.RadiusUserTags)
                 .ThenInclude(ut => ut.RadiusTag)
             .Where(u => includeDeleted || !u.IsDeleted);
@@ -134,6 +135,8 @@ public class RadiusUserController : ControllerBase
             ZoneId = u.ZoneId,
             ZoneName = u.Zone != null ? u.Zone.Name : null,
             ZoneColor = u.Zone != null ? u.Zone.Color : null,
+            GroupId = u.GroupId,
+            GroupName = u.RadiusGroup != null ? u.RadiusGroup.Name : null,
             Tags = u.RadiusUserTags.Select(ut => new RadiusTagResponse
             {
                 Id = ut.RadiusTag.Id,
@@ -165,6 +168,7 @@ public class RadiusUserController : ControllerBase
     public async Task<ActionResult<RadiusUserResponse>> GetUser(int id)
     {
         var user = await _context.RadiusUsers
+            .Include(u => u.RadiusGroup)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
@@ -198,6 +202,8 @@ public class RadiusUserController : ControllerBase
             Notes = user.Notes,
             GpsLat = user.GpsLat,
             GpsLng = user.GpsLng,
+            GroupId = user.GroupId,
+            GroupName = user.RadiusGroup != null ? user.RadiusGroup.Name : null,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             LastSyncedAt = user.LastSyncedAt
@@ -233,6 +239,7 @@ public class RadiusUserController : ControllerBase
             GpsLng = request.GpsLng,
             SimultaneousSessions = request.SimultaneousSessions,
             ZoneId = request.ZoneId,
+            GroupId = request.GroupId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -267,6 +274,7 @@ public class RadiusUserController : ControllerBase
             DeviceSerialNumber = user.DeviceSerialNumber,
             GpsLat = user.GpsLat,
             GpsLng = user.GpsLng,
+            GroupId = user.GroupId,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             LastSyncedAt = user.LastSyncedAt
@@ -308,6 +316,7 @@ public class RadiusUserController : ControllerBase
         if (request.GpsLng != null) user.GpsLng = request.GpsLng;
         if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;
         if (request.ZoneId.HasValue) user.ZoneId = request.ZoneId;
+        if (request.GroupId.HasValue) user.GroupId = request.GroupId;
 
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -336,6 +345,7 @@ public class RadiusUserController : ControllerBase
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
+            GroupId = user.GroupId,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             LastSyncedAt = user.LastSyncedAt
@@ -484,6 +494,7 @@ public class RadiusUserController : ControllerBase
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
+            .Include(u => u.RadiusGroup)
             .Where(u => u.IsDeleted);
 
         var totalRecords = await query.CountAsync();
@@ -513,7 +524,9 @@ public class RadiusUserController : ControllerBase
             UpdatedAt = u.UpdatedAt,
             ZoneId = u.ZoneId,
             ZoneName = u.Zone != null ? u.Zone.Name : null,
-            ZoneColor = u.Zone != null ? u.Zone.Color : null
+            ZoneColor = u.Zone != null ? u.Zone.Color : null,
+            GroupId = u.GroupId,
+            GroupName = u.RadiusGroup != null ? u.RadiusGroup.Name : null
         });
 
         return Ok(new

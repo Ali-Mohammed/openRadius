@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings } from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
+import { radiusGroupApi } from '@/api/radiusGroupApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -191,6 +192,7 @@ export default function RadiusUsers() {
     gpsLng: '',
     simultaneousSessions: '1',
     zoneId: '',
+    groupId: '',
   })
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
@@ -252,6 +254,12 @@ export default function RadiusUsers() {
   const { data: tagsData } = useQuery({
     queryKey: ['radius-tags'],
     queryFn: () => radiusTagApi.getAll(false),
+    enabled: !!currentWorkspaceId,
+  })
+
+  const { data: groupsData } = useQuery({
+    queryKey: ['radius-groups'],
+    queryFn: () => radiusGroupApi.getAll(1, 999999),
     enabled: !!currentWorkspaceId,
   })
 
@@ -502,6 +510,7 @@ export default function RadiusUsers() {
         gpsLng: user.gpsLng || '',
         simultaneousSessions: user.simultaneousSessions?.toString() || '1',
         zoneId: user.zoneId?.toString() || '',
+        groupId: user.groupId?.toString() || '',
       })
       setSelectedTagIds(user.tags?.map(t => t.id) || [])
     } else {
@@ -526,6 +535,7 @@ export default function RadiusUsers() {
         gpsLng: '',
         simultaneousSessions: '1',
         zoneId: '',
+        groupId: '',
       })
       setSelectedTagIds([])
     }
@@ -563,6 +573,7 @@ export default function RadiusUsers() {
       gpsLng: formData.gpsLng || undefined,
       simultaneousSessions: parseInt(formData.simultaneousSessions) || 1,
       zoneId: formData.zoneId && formData.zoneId !== '0' ? parseInt(formData.zoneId) : undefined,
+      groupId: formData.groupId && formData.groupId !== '0' ? parseInt(formData.groupId) : undefined,
     }
 
     try {

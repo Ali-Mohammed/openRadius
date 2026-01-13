@@ -38,6 +38,11 @@ export interface RadiusUser {
   gpsLat?: string
   gpsLng?: string
   simultaneousSessions?: number
+  zoneId?: number
+  zoneName?: string
+  zoneColor?: string
+  groupId?: number
+  groupName?: string
   createdAt?: string
   updatedAt?: string
   lastSyncedAt?: string
