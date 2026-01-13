@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSyncHub, SyncStatus, SyncPhase } from '@/hooks/useSyncHub'
-import { CheckCircle2, XCircle, Loader2, ArrowRight, Users, Layers, X, MapPin } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, ArrowRight, Users, Layers, X, MapPin, FolderKanban } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { sasRadiusApi, type SyncProgress } from '@/api/sasRadiusApi'
 import { useMutation } from '@tanstack/react-query'
@@ -115,7 +115,8 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
   const statusInfo = currentProgress ? getStatusInfo(currentProgress.status) : null
   const StatusIcon = statusInfo?.icon
 
-  const profilesComplete = currentProgress?.currentPhase >= SyncPhase.Zones
+  const profilesComplete = currentProgress?.currentPhase >= SyncPhase.Groups
+  const groupsComplete = currentProgress?.currentPhase >= SyncPhase.Zones
   const zonesComplete = currentProgress?.currentPhase >= SyncPhase.Users
   const usersComplete = currentProgress?.currentPhase >= SyncPhase.Completed
   const isSyncing = currentProgress && currentProgress.status < SyncStatus.Completed
@@ -228,6 +229,67 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
 
               {/* Arrow */}
               {currentProgress.profileTotalRecords > 0 && (
+                <div className="flex justify-center">
+                  <ArrowRight className={`w-6 h-6 ${groupsComplete ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`} />
+                </div>
+              )}
+
+              {/* Group Sync Phase */}
+              <div className={`rounded-lg border p-4 ${groupsComplete ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800' : 'bg-background'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FolderKanban className={`w-5 h-5 ${groupsComplete ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`} />
+                    <h3 className="font-semibold">Group Synchronization</h3>
+                  </div>
+                  {groupsComplete ? (
+                    <CheckCircle2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  ) : currentProgress.currentPhase === SyncPhase.Groups ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-indigo-600 dark:text-indigo-400" />
+                  ) : null}
+                </div>
+
+                {currentProgress.groupTotalRecords > 0 && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Page Progress:</span>
+                      <span className="font-medium">
+                        {currentProgress.groupCurrentPage} / {currentProgress.groupTotalPages}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Records:</span>
+                      <span className="font-medium">{formatNumber(currentProgress.groupTotalRecords)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Processed:</span>
+                      <span className="font-medium">{formatNumber(currentProgress.groupProcessedRecords)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-950 rounded">
+                        <span className="text-xs text-muted-foreground">New</span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          {formatNumber(currentProgress.groupNewRecords)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-950 rounded">
+                        <span className="text-xs text-muted-foreground">Updated</span>
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          {formatNumber(currentProgress.groupUpdatedRecords)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-950 rounded">
+                        <span className="text-xs text-muted-foreground">Failed</span>
+                        <span className="font-semibold text-red-600 dark:text-red-400">
+                          {formatNumber(currentProgress.groupFailedRecords)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Arrow */}
+              {currentProgress.groupTotalRecords > 0 && (
                 <div className="flex justify-center">
                   <ArrowRight className={`w-6 h-6 ${zonesComplete ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
                 </div>

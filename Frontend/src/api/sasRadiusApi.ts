@@ -32,6 +32,13 @@ export interface SyncProgress {
   profileNewRecords: number
   profileUpdatedRecords: number
   profileFailedRecords: number
+  groupCurrentPage: number
+  groupTotalPages: number
+  groupTotalRecords: number
+  groupProcessedRecords: number
+  groupNewRecords: number
+  groupUpdatedRecords: number
+  groupFailedRecords: number
   zoneTotalRecords: number
   zoneProcessedRecords: number
   zoneNewRecords: number
