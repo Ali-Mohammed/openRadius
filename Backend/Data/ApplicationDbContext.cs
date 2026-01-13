@@ -301,7 +301,8 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.BillingGroup)
                   .WithMany()
                   .HasForeignKey(e => e.BillingGroupId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
             
             // Add query filter to exclude soft-deleted profiles by default
             entity.HasQueryFilter(e => !e.IsDeleted);

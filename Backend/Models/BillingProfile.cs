@@ -11,7 +11,7 @@ public class BillingProfile
     
     // Foreign keys
     public int RadiusProfileId { get; set; }
-    public int BillingGroupId { get; set; } // 0 means all groups
+    public int? BillingGroupId { get; set; } // null means all groups
     
     // Soft delete
     public bool IsDeleted { get; set; }
