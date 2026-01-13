@@ -115,7 +115,8 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
   const statusInfo = currentProgress ? getStatusInfo(currentProgress.status) : null
   const StatusIcon = statusInfo?.icon
 
-  const profilesComplete = currentProgress?.currentPhase >= SyncPhase.Users
+  const profilesComplete = currentProgress?.currentPhase >= SyncPhase.Zones
+  const zonesComplete = currentProgress?.currentPhase >= SyncPhase.Users
   const usersComplete = currentProgress?.currentPhase >= SyncPhase.Completed
   const isSyncing = currentProgress && currentProgress.status < SyncStatus.Completed
   const canCancel = isSyncing && currentProgress.status !== SyncStatus.Cancelled
