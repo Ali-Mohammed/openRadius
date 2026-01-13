@@ -904,7 +904,7 @@ export default function RadiusUsers() {
       onlineStatus: { label: 'Online', sortKey: 'onlineStatus' },
       remainingDays: { label: 'Remaining Days', sortKey: 'remainingDays', align: 'right' },
       debtDays: { label: 'Debt Days', sortKey: 'debtDays', align: 'right' },
-      staticIp: { label: 'Static IP' },
+      staticIp: { label: 'Static IP', sortKey: 'staticIp' },
       company: { label: 'Company' },
       address: { label: 'Address' },
       contractId: { label: 'Contract ID' },
