@@ -152,11 +152,11 @@ public class SasSyncService : ISasSyncService
 
             // Sync Zones from Manager Tree
             await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Users, 50, "Starting zone synchronization...", cancellationToken);
-            await SyncZonesAsync(syncId, integration, token, cancellationToken);
+            var sasIdToZoneId = await SyncZonesAsync(syncId, integration, token, cancellationToken);
 
             // Then Sync Users
             await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Users, 55, "Starting user synchronization...", cancellationToken);
-            await SyncUsersAsync(syncId, integration, token, cancellationToken);
+            await SyncUsersAsync(syncId, integration, token, sasIdToZoneId, cancellationToken);
 
             // Complete
             await UpdateProgress(syncId, SyncStatus.Completed, SyncPhase.Completed, 100, "Synchronization completed successfully", cancellationToken);
@@ -364,7 +364,7 @@ public class SasSyncService : ISasSyncService
         }
     }
 
-    private async Task SyncUsersAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
+    private async Task SyncUsersAsync(Guid syncId, SasRadiusIntegration integration, string token, Dictionary<int, int> sasIdToZoneId, CancellationToken cancellationToken)
     {
         const string AES_KEY = "abcdefghijuklmno0123456789012345";
         var client = _httpClientFactory.CreateClient();
@@ -457,6 +457,13 @@ public class SasSyncService : ISasSyncService
                                 dbProfileId = profile?.Id;
                             }
 
+                            // Map ParentId to ZoneId
+                            int? zoneId = null;
+                            if (sasUser.ParentId.HasValue && sasIdToZoneId.ContainsKey(sasUser.ParentId.Value))
+                            {
+                                zoneId = sasIdToZoneId[sasUser.ParentId.Value];
+                            }
+
                             if (existingUser == null)
                             {
                                 // Parse GPS coordinates from contract_id if available
@@ -484,6 +491,7 @@ public class SasSyncService : ISasSyncService
                                     City = sasUser.City,
                                     Phone = sasUser.Phone,
                                     ProfileId = dbProfileId,
+                                    ZoneId = zoneId,
                                     Balance = string.IsNullOrEmpty(sasUser.Balance) ? 0 : decimal.Parse(sasUser.Balance),
                                     LoanBalance = string.IsNullOrEmpty(sasUser.LoanBalance) ? 0 : decimal.Parse(sasUser.LoanBalance),
                                     Expiration = string.IsNullOrEmpty(sasUser.Expiration) ? null : DateTime.SpecifyKind(DateTime.Parse(sasUser.Expiration), DateTimeKind.Utc),
@@ -543,6 +551,7 @@ public class SasSyncService : ISasSyncService
                                 existingUser.City = sasUser.City;
                                 existingUser.Phone = sasUser.Phone;
                                 existingUser.ProfileId = dbProfileId;
+                                existingUser.ZoneId = zoneId;
                                 existingUser.Balance = string.IsNullOrEmpty(sasUser.Balance) ? 0 : decimal.Parse(sasUser.Balance);
                                 existingUser.LoanBalance = string.IsNullOrEmpty(sasUser.LoanBalance) ? 0 : decimal.Parse(sasUser.LoanBalance);
                                 existingUser.Expiration = string.IsNullOrEmpty(sasUser.Expiration) ? null : DateTime.SpecifyKind(DateTime.Parse(sasUser.Expiration), DateTimeKind.Utc);
@@ -595,7 +604,7 @@ public class SasSyncService : ISasSyncService
         }
     }
 
-    private async Task SyncZonesAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
+    private async Task<Dictionary<int, int>> SyncZonesAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
@@ -613,14 +622,14 @@ public class SasSyncService : ISasSyncService
         if (treeNodes == null || treeNodes.Count == 0)
         {
             _logger.LogWarning("No tree nodes received from SAS API");
-            return;
+            return new Dictionary<int, int>();
         }
 
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var zoneProgress = await context.SyncProgresses.FindAsync(syncId);
         
-        if (zoneProgress == null) return;
+        if (zoneProgress == null) return new Dictionary<int, int>();
 
         // Initialize zone tracking
         zoneProgress.ZoneTotalRecords = treeNodes.Count;
@@ -712,6 +721,8 @@ public class SasSyncService : ISasSyncService
             $"Zone synchronization complete: {zoneProgress.ZoneProcessedRecords} processed, " +
             $"{zoneProgress.ZoneNewRecords} new, {zoneProgress.ZoneUpdatedRecords} updated, " +
             $"{zoneProgress.ZoneFailedRecords} failed", cancellationToken);
+        
+        return sasIdToZoneId;
     }
 
     private async Task UpdateProgress(Guid syncId, SyncStatus status, SyncPhase phase, double percentage, string message, CancellationToken cancellationToken, string? errorMessage = null)

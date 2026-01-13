@@ -630,7 +630,6 @@ export default function Zones() {
     data: flatZones,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     state: {
@@ -644,7 +643,6 @@ export default function Zones() {
     data: deletedZones,
     columns: deletedColumns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     state: {
@@ -864,9 +862,9 @@ export default function Zones() {
         </div>
 
         <Card className="overflow-hidden">
-          <CardContent className="p-0 overflow-hidden relative">
+          <CardContent className="p-0">
             {activeTab === 'active' ? (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+              <div className="overflow-auto max-h-[calc(100vh-150px)]">
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted z-10">
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -907,7 +905,7 @@ export default function Zones() {
                 </Table>
               </div>
             ) : (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+              <div className="overflow-auto max-h-[calc(100vh-260px)]">
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted z-10">
                     {deletedTable.getHeaderGroups().map((headerGroup) => (
