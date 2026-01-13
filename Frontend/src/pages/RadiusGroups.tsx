@@ -72,7 +72,6 @@ export default function RadiusGroups() {
     subscription: true,
     status: true,
     users: true,
-    lastSynced: true,
   })
 
   const [groupFormData, setGroupFormData] = useState({
@@ -411,12 +410,6 @@ export default function RadiusGroups() {
                 >
                   Users
                 </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={columnVisibility.lastSynced}
-                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, lastSynced: checked }))}
-                >
-                  Last Synced
-                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -462,9 +455,6 @@ export default function RadiusGroups() {
                         Users{getSortIcon('userCount')}
                       </TableHead>
                     )}
-                    {columnVisibility.lastSynced && (
-                      <TableHead>Last Synced</TableHead>
-                    )}
                     <TableHead className="text-right sticky right-0 bg-muted">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -477,7 +467,6 @@ export default function RadiusGroups() {
                         {columnVisibility.subscription && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
                         {columnVisibility.status && <TableCell><Skeleton className="h-6 w-16" /></TableCell>}
                         {columnVisibility.users && <TableCell><Skeleton className="h-4 w-12" /></TableCell>}
-                        {columnVisibility.lastSynced && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
                         <TableCell className="text-right sticky right-0 bg-card">
                           <Skeleton className="h-8 w-20 ml-auto" />
                         </TableCell>
@@ -485,7 +474,7 @@ export default function RadiusGroups() {
                     ))
                   ) : groups.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="p-0">
+                      <TableCell colSpan={7} className="p-0">
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                           <div className="rounded-full bg-muted p-6 mb-4">
                             <Users className="h-12 w-12 text-muted-foreground" />
@@ -521,11 +510,6 @@ export default function RadiusGroups() {
                                   <GroupIcon className="h-4 w-4" />
                                 </div>
                                 {group.name}
-                                {group.externalId && (
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    SAS ID: {group.externalId}
-                                  </Badge>
-                                )}
                               </div>
                             </TableCell>
                           )}
@@ -543,17 +527,6 @@ export default function RadiusGroups() {
                             </TableCell>
                           )}
                           {columnVisibility.users && <TableCell>{group.usersCount || 0}</TableCell>}
-                          {columnVisibility.lastSynced && (
-                            <TableCell>
-                              {group.lastSyncedAt ? (
-                                <span className="text-sm text-muted-foreground">
-                                  {new Date(group.lastSyncedAt).toLocaleString()}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                          )}
                           <TableCell className="text-right sticky right-0 bg-card">
                             {showTrash ? (
                               <Button
