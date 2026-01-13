@@ -463,8 +463,24 @@ export default function RadiusGroups() {
                     ))
                   ) : groups.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        {showTrash ? 'No deleted groups found' : 'No groups found'}
+                      <TableCell colSpan={5} className="p-0">
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                          <div className="rounded-full bg-muted p-6 mb-4">
+                            <Users className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                          <h3 className="text-lg font-semibold mb-2">
+                            {showTrash ? 'No deleted groups' : 'No groups yet'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-6">
+                            {showTrash ? 'Deleted groups will appear here' : 'Get started by adding your first group'}
+                          </p>
+                          {!showTrash && (
+                            <Button onClick={handleCreateGroup}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Group
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

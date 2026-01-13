@@ -354,8 +354,24 @@ export default function RadiusIpPoolsPage() {
                   ))
                 ) : ipPools.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {showTrash ? 'No deleted IP pools found' : 'No IP pools found'}
+                    <TableCell colSpan={6} className="p-0">
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="rounded-full bg-muted p-6 mb-4">
+                          <Network className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">
+                          {showTrash ? 'No deleted IP pools' : 'No IP pools yet'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          {showTrash ? 'Deleted IP pools will appear here' : 'Get started by adding your first IP pool'}
+                        </p>
+                        {!showTrash && (
+                          <Button onClick={() => handleOpenDialog()}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add IP Pool
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

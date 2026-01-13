@@ -466,8 +466,24 @@ export default function RadiusNasPage() {
                   ))
                 ) : nasDevices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      {showTrash ? 'No deleted NAS devices found' : 'No NAS devices found'}
+                    <TableCell colSpan={8} className="p-0">
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="rounded-full bg-muted p-6 mb-4">
+                          <Server className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">
+                          {showTrash ? 'No deleted NAS devices' : 'No NAS devices yet'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          {showTrash ? 'Deleted NAS devices will appear here' : 'Get started by adding your first NAS device'}
+                        </p>
+                        {!showTrash && (
+                          <Button onClick={() => handleOpenNasDialog()}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add NAS Device
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
