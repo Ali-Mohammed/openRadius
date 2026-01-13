@@ -19,7 +19,7 @@ import { getGroups } from '../api/groups';
 import { addonApi, type Addon } from '../api/addons';
 import { customWalletApi } from '../api/customWallets';
 import userWalletApi from '../api/userWallets';
-import { workspaceApi } from '../api/workspaceApi';
+import { workspaceApi } from '../lib/api';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { i18n } from '../i18n';
 import { Button } from '../components/ui/button';
