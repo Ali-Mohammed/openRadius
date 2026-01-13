@@ -1,0 +1,621 @@
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Settings, List, Network } from 'lucide-react'
+import { radiusIpReservationApi, type RadiusIpReservation } from '@/api/radiusIpReservationApi'
+import { radiusUserApi } from '@/api/radiusUserApi'
+import { formatApiError } from '@/utils/errorHandler'
+import { useSearchParams } from 'react-router-dom'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+
+export default function RadiusIpReservations() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const parentRef = useRef<HTMLDivElement>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { currentWorkspaceId } = useWorkspace()
+
+  const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'))
+  const [pageSize, setPageSize] = useState(() => parseInt(searchParams.get('pageSize') || '50'))
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '')
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
+  const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc')
+  const [showTrash, setShowTrash] = useState(false)
+  
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingReservation, setEditingReservation] = useState<RadiusIpReservation | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [reservationToDelete, setReservationToDelete] = useState<number | null>(null)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [reservationToRestore, setReservationToRestore] = useState<number | null>(null)
+  
+  const [formData, setFormData] = useState({
+    ipAddress: '',
+    description: '',
+    radiusUserId: ''
+  })
+
+  const [selectedReservationIds, setSelectedReservationIds] = useState<number[]>([])
+  const [userSearch, setUserSearch] = useState('')
+
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (currentPage !== 1) params.page = currentPage.toString()
+    if (pageSize !== 50) params.pageSize = pageSize.toString()
+    if (searchQuery) params.search = searchQuery
+    if (sortField) params.sortField = sortField
+    if (sortDirection !== 'asc') params.sortDirection = sortDirection
+    setSearchParams(params, { replace: true })
+  }, [currentPage, pageSize, searchQuery, sortField, sortDirection])
+
+  const { data: reservationsData, isLoading, isFetching } = useQuery({
+    queryKey: ['radius-ip-reservations', currentWorkspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection, showTrash],
+    queryFn: () => radiusIpReservationApi.getAll({
+      page: currentPage,
+      pageSize,
+      search: searchQuery,
+      sortField,
+      sortDirection,
+      onlyDeleted: showTrash
+    }),
+    enabled: !!currentWorkspaceId,
+  })
+
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['radius-users-search', currentWorkspaceId, userSearch],
+    queryFn: () => radiusUserApi.getAll(1, 100, userSearch || undefined),
+    enabled: !!currentWorkspaceId,
+  })
+
+  const reservations = useMemo(() => reservationsData?.data || [], [reservationsData])
+  const pagination = reservationsData?.pagination
+  const users = useMemo(() => usersData?.data || [], [usersData])
+
+  const rowVirtualizer = useVirtualizer({
+    count: reservations.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 50,
+    overscan: 10
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => radiusIpReservationApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })
+      toast.success('IP reservation created successfully')
+      handleCloseDialog()
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => radiusIpReservationApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })
+      toast.success('IP reservation updated successfully')
+      handleCloseDialog()
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => radiusIpReservationApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })
+      toast.success('IP reservation moved to trash')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => radiusIpReservationApi.restore(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })
+      toast.success('IP reservation restored successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const handleOpenDialog = (reservation?: RadiusIpReservation) => {
+    if (reservation) {
+      setEditingReservation(reservation)
+      setFormData({
+        ipAddress: reservation.ipAddress,
+        description: reservation.description || '',
+        radiusUserId: reservation.radiusUserId?.toString() || ''
+      })
+    } else {
+      setEditingReservation(null)
+      setFormData({
+        ipAddress: '',
+        description: '',
+        radiusUserId: ''
+      })
+    }
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setEditingReservation(null)
+  }
+
+  const handleSave = async () => {
+    const data = {
+      ipAddress: formData.ipAddress,
+      description: formData.description || null,
+      radiusUserId: formData.radiusUserId ? parseInt(formData.radiusUserId) : null
+    }
+
+    if (editingReservation) {
+      updateMutation.mutate({ id: editingReservation.id, data })
+    } else {
+      createMutation.mutate(data)
+    }
+  }
+
+  const handleDelete = (id: number) => {
+    setReservationToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (reservationToDelete) {
+      deleteMutation.mutate(reservationToDelete)
+      setDeleteDialogOpen(false)
+      setReservationToDelete(null)
+    }
+  }
+
+  const handleRestore = (id: number) => {
+    setReservationToRestore(id)
+    setRestoreDialogOpen(true)
+  }
+
+  const confirmRestore = () => {
+    if (reservationToRestore) {
+      restoreMutation.mutate(reservationToRestore)
+      setRestoreDialogOpen(false)
+      setReservationToRestore(null)
+    }
+  }
+
+  const handleSort = useCallback((field: string) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }, [sortField, sortDirection])
+
+  const handleSearch = () => {
+    setSearchQuery(searchInput)
+    setCurrentPage(1)
+  }
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value))
+    setCurrentPage(1)
+  }
+
+  const getPaginationPages = useCallback((current: number, total: number) => {
+    const pages: (number | string)[] = []
+    const maxVisible = 7
+    
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i)
+        pages.push('...')
+        pages.push(total)
+      } else if (current >= total - 3) {
+        pages.push(1)
+        pages.push('...')
+        for (let i = total - 4; i <= total; i++) pages.push(i)
+      } else {
+        pages.push(1)
+        pages.push('...')
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+        pages.push('...')
+        pages.push(total)
+      }
+    }
+    
+    return pages
+  }, [])
+
+  return (
+    <div className="space-y-2 overflow-x-hidden">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">IP Reservations</h1>
+          <p className="text-sm text-muted-foreground">Manage RADIUS IP address reservations</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Network className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search IP reservations..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })} 
+              variant="outline" 
+              size="icon"
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Reservation
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+        <TabsContent value={showTrash ? 'trash' : 'active'} className="mt-0">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0 overflow-hidden relative">
+              {isLoading ? (
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      <TableRow>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                        <TableHead className="sticky right-0 bg-background h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="sticky right-0 bg-background h-12 px-4">
+                            <div className="flex justify-end gap-2">
+                              <Skeleton className="h-8 w-8 rounded" />
+                              <Skeleton className="h-8 w-8 rounded" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : reservations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-full bg-muted p-6 mb-4">
+                    <Network className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No IP Reservations Yet</h3>
+                  <p className="text-sm text-muted-foreground mb-6">Get started by adding your first IP reservation</p>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Reservation
+                  </Button>
+                </div>
+              ) : (
+                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+                  {isFetching && (
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                      <div className="bg-background p-4 rounded-lg shadow-lg">
+                        <div className="flex items-center gap-3">
+                          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                          <span className="text-sm font-medium">Refreshing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      <TableRow className="hover:bg-muted">
+                        <TableHead className="h-12 px-4 cursor-pointer" onClick={() => handleSort('ipaddress')}>
+                          IP Address
+                        </TableHead>
+                        <TableHead className="h-12 px-4 cursor-pointer" onClick={() => handleSort('description')}>
+                          Description
+                        </TableHead>
+                        <TableHead className="h-12 px-4 cursor-pointer" onClick={() => handleSort('username')}>
+                          Username
+                        </TableHead>
+                        <TableHead className="h-12 px-4">
+                          Name
+                        </TableHead>
+                        <TableHead className="h-12 px-4">
+                          Profile
+                        </TableHead>
+                        <TableHead className="h-12 px-4">
+                          Zone
+                        </TableHead>
+                        <TableHead className="h-12 px-4">
+                          Group
+                        </TableHead>
+                        <TableHead className="sticky right-0 bg-muted z-10 h-12 px-4">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    
+                    <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const reservation = reservations[virtualRow.index]
+                        return (
+                          <TableRow 
+                            key={reservation.id}
+                            className="border-b"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: `${virtualRow.size}px`,
+                              transform: `translateY(${virtualRow.start}px)`,
+                              display: 'table',
+                              tableLayout: 'fixed',
+                            }}
+                          >
+                            <TableCell className="px-4 font-mono">{reservation.ipAddress}</TableCell>
+                            <TableCell className="px-4">{reservation.description || '-'}</TableCell>
+                            <TableCell className="px-4">{reservation.username || '-'}</TableCell>
+                            <TableCell className="px-4">
+                              {[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}
+                            </TableCell>
+                            <TableCell className="px-4">{reservation.profileName || '-'}</TableCell>
+                            <TableCell className="px-4">{reservation.zoneName || '-'}</TableCell>
+                            <TableCell className="px-4">{reservation.groupName || '-'}</TableCell>
+                            <TableCell className="sticky right-0 bg-background z-10 px-4">
+                              <div className="flex justify-end gap-2">
+                                {showTrash ? (
+                                  <Button variant="outline" size="sm" onClick={() => handleRestore(reservation.id)}>
+                                    <RotateCcw className="h-4 w-4 mr-1" />
+                                    Restore
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Button variant="outline" size="sm" onClick={() => handleOpenDialog(reservation)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDelete(reservation.id)}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              
+              {pagination && (
+                <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">Per page:</span>
+                      <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                        <SelectTrigger className="h-8 w-[70px] text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="text-sm text-muted-foreground font-medium">
+                      Showing {reservations.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + reservations.length} of {pagination.totalRecords}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                      page === '...' ? (
+                        <Button key={`ellipsis-${idx}`} variant="ghost" size="icon" disabled className="h-8 w-8 p-0 text-sm">
+                          ...
+                        </Button>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? 'default' : 'outline'}
+                          size="icon"
+                          onClick={() => setCurrentPage(page as number)}
+                          className="h-8 w-8 p-0 text-sm font-medium"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    ))}
+                    
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))} disabled={currentPage === pagination.totalPages}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(pagination.totalPages)} disabled={currentPage === pagination.totalPages}>
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog */}
+      {isDialogOpen && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{editingReservation ? 'Edit IP Reservation' : 'Add IP Reservation'}</DialogTitle>
+              <DialogDescription>
+                {editingReservation ? 'Update the IP reservation details below' : 'Fill in the details to create a new IP reservation'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 px-1">
+              <div className="space-y-6 py-4">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <Network className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm">Reservation Details</h3>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="radiusUserId">RADIUS User</Label>
+                    <Combobox
+                      options={users.map((user) => {
+                        const nameParts = []
+                        if (user.firstname) nameParts.push(user.firstname)
+                        if (user.lastname) nameParts.push(user.lastname)
+                        const fullName = nameParts.length > 0 ? ` (${nameParts.join(' ')})` : ''
+                        
+                        const details = []
+                        if (user.profileName) details.push(user.profileName)
+                        if (user.zoneName) details.push(user.zoneName)
+                        if (user.groupName) details.push(user.groupName)
+                        const detailsStr = details.length > 0 ? ` - ${details.join(' | ')}` : ''
+                        
+                        return {
+                          value: user.id?.toString() || '',
+                          label: `${user.username}${fullName}${detailsStr}`,
+                          searchKey: user.username
+                        }
+                      })}
+                      value={formData.radiusUserId}
+                      onValueChange={(value) => setFormData({ ...formData, radiusUserId: value })}
+                      placeholder="Select user (optional)"
+                      searchPlaceholder="Search username..."
+                      emptyText={isLoadingUsers ? "Loading..." : "No users found"}
+                      modal={true}
+                      onSearchChange={setUserSearch}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="ipAddress">IP Address <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="ipAddress"
+                      value={formData.ipAddress}
+                      onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
+                      placeholder="e.g., 192.168.1.100"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="e.g., Office router"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="pt-4 border-t">
+              <Button variant="outline" onClick={handleCloseDialog}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={!formData.ipAddress || createMutation.isPending || updateMutation.isPending}
+              >
+                {editingReservation ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move the IP reservation to trash. You can restore it later from the trash view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Dialog */}
+      <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore IP Reservation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore the IP reservation and make it available again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestore}>
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}

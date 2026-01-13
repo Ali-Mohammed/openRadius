@@ -79,6 +79,11 @@ const getNavData = (workspaceId: number) => ({
           icon: Network,
         },
         {
+          titleKey: "navigation.ipReservations",
+          url: `/radius/ip-reservations`,
+          icon: Network,
+        },
+        {
           titleKey: "navigation.zones",
           url: `/radius/zones`,
           icon: MapPin,

@@ -21,6 +21,7 @@ import RadiusGroups from './pages/RadiusGroups'
 import RadiusTags from './pages/RadiusTags'
 import RadiusNas from './pages/RadiusNas'
 import RadiusIpPools from './pages/RadiusIpPools'
+import RadiusIpReservations from './pages/RadiusIpReservations'
 import UserManagement from './pages/UserManagement'
 import RolesPage from './pages/RolesPage'
 import PermissionsPage from './pages/PermissionsPage'
@@ -83,6 +84,7 @@ function App() {
                           <Route path="/radius/tags" element={<RadiusTags />} />
                           <Route path="/radius/nas" element={<RadiusNas />} />
                           <Route path="/radius/ip-pools" element={<RadiusIpPools />} />
+                          <Route path="/radius/ip-reservations" element={<RadiusIpReservations />} />
                           <Route path="/radius/zones" element={<Zones />} />
                           <Route path="/network/settings" element={<NetworkSettings />} />
                           <Route path="/network/olts" element={<Olts />} />

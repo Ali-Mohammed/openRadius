@@ -19,6 +19,7 @@
     "profiles": "الملفات الشخصية",    "groups": "المجموعات",    "tags": "الوسوم",
     "nas": "خوادم الوصول",
     "ipPools": "مجموعات IP",
+    "ipReservations": "حجوزات IP",
     "billing": "الفوترة",
     "billingProfiles": "الملفات الشخصية",
     "addons": "الإضافات",

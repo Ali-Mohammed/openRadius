@@ -22,6 +22,7 @@
     "tags": "Tags",
     "nas": "NAS",
     "ipPools": "IP Pools",
+    "ipReservations": "IP Reservations",
     "billing": "Billing",
     "billingProfiles": "Profiles",
     "addons": "Addons",

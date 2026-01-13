@@ -1,10 +1,12 @@
 import * as React from "react"
+import * as ReactDOM from "react-dom"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface ComboboxOption {
   value: string
   label: string
+  searchKey?: string
 }
 
 export interface ComboboxProps {
@@ -16,6 +18,8 @@ export interface ComboboxProps {
   emptyText?: string
   className?: string
   disabled?: boolean
+  onSearchChange?: (search: string) => void
+  modal?: boolean
 }
 
 export function Combobox({
@@ -27,20 +31,49 @@ export function Combobox({
   emptyText = "No results found.",
   className,
   disabled = false,
+  onSearchChange,
+  modal = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
   const containerRef = React.useRef<HTMLDivElement>(null)
   const searchInputRef = React.useRef<HTMLInputElement>(null)
+  const buttonRef = React.useRef<HTMLButtonElement>(null)
+  const [dropdownPosition, setDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 })
 
   const selectedOption = options.find((option) => option.value === value)
 
+  // Update dropdown position when opening
+  React.useEffect(() => {
+    if (open && buttonRef.current && modal) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+  }, [open, modal])
+
+  // Debounce server-side search
+  React.useEffect(() => {
+    if (onSearchChange) {
+      const timer = setTimeout(() => {
+        onSearchChange(search)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [search, onSearchChange])
+
   const filteredOptions = React.useMemo(() => {
+    // If using server-side search, don't filter client-side
+    if (onSearchChange) return options
     if (!search) return options
-    return options.filter((option) =>
-      option.label.toLowerCase().includes(search.toLowerCase())
-    )
-  }, [options, search])
+    return options.filter((option) => {
+      const searchText = option.searchKey || option.label
+      return searchText.toLowerCase().includes(search.toLowerCase())
+    })
+  }, [options, search, onSearchChange])
 
   React.useEffect(() => {
     if (open && searchInputRef.current) {

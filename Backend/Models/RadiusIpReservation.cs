@@ -20,6 +20,11 @@ namespace Backend.Models
         public string? Description { get; set; }
         public int? RadiusUserId { get; set; }
         public string? Username { get; set; }
+        public string? Firstname { get; set; }
+        public string? Lastname { get; set; }
+        public string? ProfileName { get; set; }
+        public string? ZoneName { get; set; }
+        public string? GroupName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
