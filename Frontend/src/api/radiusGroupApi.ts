@@ -2,7 +2,9 @@ import { apiClient } from '../lib/api'
 
 export interface RadiusGroup {
   id?: number
+  externalId?: number
   name: string
+  description?: string
   subscription?: string
   isActive: boolean
   color?: string
@@ -10,6 +12,7 @@ export interface RadiusGroup {
   usersCount?: number
   createdAt?: string
   updatedAt?: string
+  lastSyncedAt?: string
 }
 
 export interface PaginatedGroupsResponse {
