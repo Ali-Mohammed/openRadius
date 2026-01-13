@@ -433,6 +433,7 @@ export default function Addons() {
               </div>
             </div>
           )}
+          </div>
         </CardContent>
       </Card>
 
