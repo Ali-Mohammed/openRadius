@@ -874,12 +874,11 @@ export default function BillingProfiles() {
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="font-medium">{profile.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {profile.downrate && profile.uprate && (
-                                <>Download: {profile.downrate}Mbps / Upload: {profile.uprate}Mbps</>
-                              )}
-                              {profile.price && <> • Price: {currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>}
-                            </div>
+                            {profile.price && (
+                              <div className="text-sm text-muted-foreground">
+                                Price: {currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="flex flex-col">
