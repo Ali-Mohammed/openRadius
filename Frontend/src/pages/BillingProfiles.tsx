@@ -878,7 +878,7 @@ export default function BillingProfiles() {
                               {profile.downrate && profile.uprate && (
                                 <>Download: {profile.downrate}Mbps / Upload: {profile.uprate}Mbps</>
                               )}
-                              {profile.price && <> • Price: ${profile.price}</>}
+                              {profile.price && <> • Price: {currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
