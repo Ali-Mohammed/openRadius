@@ -365,7 +365,7 @@ public class RadiusUserController : ControllerBase
             OnlineStatus = user.OnlineStatus,
             RemainingDays = user.RemainingDays,
             DebtDays = user.DebtDays,
-            StaticIp = newUserIpReservation?.IpAddress,
+            StaticIp = updateUserIpReservation?.IpAddress,
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
