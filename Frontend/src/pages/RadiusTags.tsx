@@ -43,6 +43,8 @@ export default function RadiusTags() {
   const [showTrash, setShowTrash] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deletingTag, setDeletingTag] = useState<RadiusTag | null>(null)
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
+  const [restoringTag, setRestoringTag] = useState<RadiusTag | null>(null)
 
   const { data: tags = [], isLoading, isFetching } = useQuery({
     queryKey: ['radiusTags', showTrash],
@@ -271,7 +273,10 @@ export default function RadiusTags() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 hover:bg-primary/10 hover:text-primary flex-shrink-0"
-                            onClick={() => restoreTagMutation.mutate(tag.id)}
+                            onClick={() => {
+                              setRestoringTag(tag)
+                              setShowRestoreDialog(true)
+                            }}
                           >
                             <RotateCcw className="h-4 w-4" />
                           </Button>
@@ -349,6 +354,37 @@ export default function RadiusTags() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore "{restoringTag?.title}"? This will move the tag back to active tags.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowRestoreDialog(false)
+              setRestoringTag(null)
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (restoringTag) {
+                  restoreTagMutation.mutate(restoringTag.id)
+                  setShowRestoreDialog(false)
+                  setRestoringTag(null)
+                }
+              }}
+            >
+              Restore
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

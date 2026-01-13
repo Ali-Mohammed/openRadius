@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import { Button } from '../components/ui/button'
+import { Card, CardContent } from '../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog'
@@ -19,7 +20,7 @@ import { Checkbox } from '../components/ui/checkbox'
 import { Textarea } from '../components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, RotateCcw, Users, Radio, MapPin, UserPlus, ChevronRight, ChevronDown } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, RotateCcw, Users, Radio, MapPin, UserPlus, ChevronRight, ChevronDown, Archive } from 'lucide-react'
 import { toast } from 'sonner'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import { userManagementApi, type User } from '@/api/userManagementApi'
@@ -653,14 +654,10 @@ export default function Zones() {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold'>Zones</h1>
-          <p className='text-muted-foreground'>Manage billing zones</p>
-        </div>
+      <div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setOpen(true) }}>
+            <Button onClick={() => { resetForm(); setOpen(true) }} className="hidden">
               <Plus className='mr-2 h-4 w-4' />
               Add New
             </Button>
@@ -815,133 +812,139 @@ export default function Zones() {
         </Dialog>
       </div>
 
-      <div className='flex items-center justify-between gap-4'>
-        <div className='flex items-center gap-4'>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value='active'>
-                Active ({flatZones.length})
-              </TabsTrigger>
-              <TabsTrigger value='deleted'>
-                <Trash2 className='mr-2 h-4 w-4' />
-                Deleted ({deletedZones.length})
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className='flex flex-1 items-center gap-2'>
-            <div className='relative max-w-sm'>
-              <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Zones</h1>
+            <p className="text-sm text-muted-foreground">Manage geographical zones and locations</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="active">
+                  <MapPin className="h-4 w-4" />
+                </TabsTrigger>
+                <TabsTrigger value="deleted">
+                  <Archive className="h-4 w-4" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="flex items-center gap-1">
               <Input
-                placeholder='Search zones...'
+                placeholder="Search zones..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className='pl-9'
+                className="w-64"
               />
+              <Button onClick={handleSearch} variant="outline" size="icon">
+                <Search className="h-4 w-4" />
+              </Button>
+              <Button onClick={handleRefresh} variant="outline" size="icon" title="Refresh">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             </div>
-            <Button onClick={handleSearch} variant='secondary'>
-              Search
+            {activeTab === 'active' && table.getFilteredSelectedRowModel().rows.length > 0 && (
+              <Button onClick={handleBulkDelete} variant="destructive" size="sm">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete ({table.getFilteredSelectedRowModel().rows.length})
+              </Button>
+            )}
+            {activeTab === 'deleted' && deletedTable.getFilteredSelectedRowModel().rows.length > 0 && (
+              <Button onClick={handleBulkRestore} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Restore ({deletedTable.getFilteredSelectedRowModel().rows.length})
+              </Button>
+            )}
+            <Button onClick={() => { setEditingZone(null); setOpen(true); }} disabled={activeTab === 'deleted'}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Zone
             </Button>
           </div>
         </div>
 
-        <div className='flex items-center gap-2'>
-          {activeTab === 'active' && table.getFilteredSelectedRowModel().rows.length > 0 && (
-            <Button onClick={handleBulkDelete} variant='destructive' size='sm'>
-              <Trash2 className='mr-2 h-4 w-4' />
-              Delete ({table.getFilteredSelectedRowModel().rows.length})
-            </Button>
-          )}
-          {activeTab === 'deleted' && deletedTable.getFilteredSelectedRowModel().rows.length > 0 && (
-            <Button onClick={handleBulkRestore} variant='default' size='sm' className='bg-green-600 hover:bg-green-700'>
-              <RotateCcw className='mr-2 h-4 w-4' />
-              Restore ({deletedTable.getFilteredSelectedRowModel().rows.length})
-            </Button>
-          )}
-          <Button onClick={handleRefresh} variant='default' size='icon'>
-            <RefreshCw className='h-4 w-4' />
-          </Button>
-        </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0 overflow-hidden relative">
+            {activeTab === 'active' ? (
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={columns.length} className='h-24 text-center'>
+                          Loading...
+                        </TableCell>
+                      </TableRow>
+                    ) : table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id}>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={columns.length} className='h-24 text-center'>
+                          No results.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <Table>
+                  <TableHeader>
+                    {deletedTable.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {deletedTable.getRowModel().rows?.length ? (
+                      deletedTable.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id}>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={deletedColumns.length} className='h-24 text-center'>
+                          No deleted zones.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {activeTab === 'active' ? (
-        <div className='rounded-md border'>
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className='h-24 text-center'>
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className='h-24 text-center'>
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <div className='rounded-md border'>
-          <Table>
-            <TableHeader>
-              {deletedTable.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {deletedTable.getRowModel().rows?.length ? (
-                deletedTable.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={deletedColumns.length} className='h-24 text-center'>
-                    No deleted zones.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
 
       {/* Assign Users Dialog */}
       <Dialog open={assignUsersDialogOpen} onOpenChange={setAssignUsersDialogOpen}>
