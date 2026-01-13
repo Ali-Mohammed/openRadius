@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -40,10 +41,15 @@ export default function RadiusTags() {
   const [newTagIcon, setNewTagIcon] = useState('Tag')
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deletingTag, setDeletingTag] = useState<RadiusTag | null>(null)
 
   const { data: tags = [], isLoading, isFetching } = useQuery({
     queryKey: ['radiusTags', showTrash],
-    queryFn: () => radiusTagApi.getAll(showTrash),
+    queryFn: () => {
+      console.log('Fetching tags with showTrash=', showTrash)
+      return radiusTagApi.getAll(showTrash)
+    },
   })
 
   const createTagMutation = useMutation({
@@ -283,7 +289,10 @@ export default function RadiusTags() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => deleteTagMutation.mutate(tag.id)}
+                              onClick={() => {
+                                setDeletingTag(tag)
+                                setShowDeleteDialog(true)
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -312,6 +321,38 @@ export default function RadiusTags() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingTag?.title}"? This will move the tag to trash.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteDialog(false)
+              setDeletingTag(null)
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingTag) {
+                  deleteTagMutation.mutate(deletingTag.id)
+                  setShowDeleteDialog(false)
+                  setDeletingTag(null)
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create Tag Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
