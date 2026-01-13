@@ -120,6 +120,34 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.Name);
         });
 
+        modelBuilder.Entity<RadiusIpReservation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            // Index for IP address lookups and uniqueness checks
+            entity.HasIndex(e => e.IpAddress);
+            
+            // Index for user lookups
+            entity.HasIndex(e => e.RadiusUserId);
+            
+            // Index for soft delete filtering
+            entity.HasIndex(e => e.DeletedAt);
+            
+            // Composite index for active IP uniqueness (IP + DeletedAt)
+            entity.HasIndex(e => new { e.IpAddress, e.DeletedAt })
+                  .HasFilter("\"DeletedAt\" IS NULL");
+            
+            // Composite index for active user reservations (User + DeletedAt)
+            entity.HasIndex(e => new { e.RadiusUserId, e.DeletedAt })
+                  .HasFilter("\"DeletedAt\" IS NULL");
+            
+            // Foreign key relationship
+            entity.HasOne(e => e.RadiusUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.RadiusUserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<CustomWallet>(entity =>
         {
             entity.HasKey(e => e.Id);
