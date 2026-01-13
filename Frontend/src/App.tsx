@@ -83,6 +83,7 @@ function App() {
                           <Route path="/radius/tags" element={<RadiusTags />} />
                           <Route path="/radius/nas" element={<RadiusNas />} />
                           <Route path="/radius/ip-pools" element={<RadiusIpPools />} />
+                          <Route path="/radius/zones" element={<Zones />} />
                           <Route path="/network/settings" element={<NetworkSettings />} />
                           <Route path="/network/olts" element={<Olts />} />
                           <Route path="/network/fdts" element={<Fdts />} />
@@ -108,7 +109,6 @@ function App() {
                           <Route path="/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/billing/profiles/new" element={<BillingProfileForm />} />
                           <Route path="/billing/profiles/edit" element={<BillingProfileForm />} />
-                          <Route path="/billing/zones" element={<Zones />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
                           <Route path="/billing/transactions" element={<Transactions />} />

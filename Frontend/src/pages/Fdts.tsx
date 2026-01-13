@@ -752,9 +752,29 @@ export default function Fdts() {
           )}
           
           {pagination && (
-            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-              <div className="text-sm text-muted-foreground">
-                Showing {formatNumber(fdts.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + fdts.length)} of {formatNumber(pagination.totalRecords)} FDTs
+            <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Per Page</span>
+                  <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                    <SelectTrigger className="h-8 w-[70px] text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="1000">1000</SelectItem>
+                      <SelectItem value="999999">All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="h-4 w-px bg-border" />
+                <div className="text-sm text-muted-foreground font-medium">
+                  Showing {formatNumber(fdts.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + fdts.length)} of {formatNumber(pagination.totalRecords)} FDTs
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <Button

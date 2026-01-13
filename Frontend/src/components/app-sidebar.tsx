@@ -78,6 +78,11 @@ const getNavData = (workspaceId: number) => ({
           url: `/radius/ip-pools`,
           icon: Network,
         },
+        {
+          titleKey: "navigation.zones",
+          url: `/radius/zones`,
+          icon: MapPin,
+        },
       ],
     },
     {
@@ -134,11 +139,6 @@ const getNavData = (workspaceId: number) => ({
           titleKey: "navigation.balances",
           url: "/billing/balances",
           icon: Coins,
-        },
-        {
-          titleKey: "navigation.zones",
-          url: `/billing/zones`,
-          icon: MapPin,
         },
         {
           titleKey: "navigation.automations",

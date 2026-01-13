@@ -653,7 +653,7 @@ export default function Zones() {
   })
 
   return (
-    <div className='space-y-2'>
+    <div className='space-y-2 -mt-4'>
       <div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
