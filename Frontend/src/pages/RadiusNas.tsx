@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { 
   Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, 
-  ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Circle
+  ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Circle, Server
 } from 'lucide-react'
 import { radiusNasApi, type RadiusNas } from '@/api/radiusNasApi'
 import { radiusIpPoolApi, type RadiusIpPool } from '@/api/radiusIpPoolApi'
@@ -378,67 +378,53 @@ export default function RadiusNasPage() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
-      {/* Header */}
+    <div className="space-y-2 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Network Access Servers</h1>
-          <p className="text-muted-foreground">
-            Manage RADIUS NAS devices for network authentication
-          </p>
+          <h1 className="text-2xl font-bold">Network Access Servers</h1>
+          <p className="text-sm text-muted-foreground">Manage RADIUS NAS devices for network authentication</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={showTrash ? 'default' : 'outline'}
-            onClick={() => {
-              setShowTrash(!showTrash)
-              setCurrentPage(1)
-            }}
-          >
-            <Archive className="mr-2 h-4 w-4" />
-            {showTrash ? 'Show Active' : 'Show Trash'}
-          </Button>
-          {!showTrash && (
-            <Button onClick={() => handleOpenNasDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add NAS Device
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Server className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search NAS devices..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
             </Button>
-          )}
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-nas'] })} 
+              variant="outline" 
+              size="icon"
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => handleOpenNasDialog()} disabled={showTrash}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add NAS Device
+          </Button>
         </div>
       </div>
 
-      {/* Main Card */}
       <Card className="overflow-hidden">
-        <CardContent className="pt-6">
-          {/* Search and Filters */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 flex gap-2">
-              <Input
-                placeholder="Search NAS devices..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="max-w-sm"
-              />
-              <Button onClick={handleSearch} variant="secondary">
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-                <SelectItem value="100">100 / page</SelectItem>
-                <SelectItem value="200">200 / page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Table */}
-          <div className="border rounded-md">
+        <CardContent className="p-0 overflow-hidden relative">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             <Table>
               <TableHeader>
                 <TableRow>

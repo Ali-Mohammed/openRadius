@@ -17,12 +17,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { 
-  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Archive
+  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Archive, Users
 } from 'lucide-react'
 import { radiusGroupApi, type RadiusGroup } from '@/api/radiusGroupApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function RadiusGroups() {
   const { t } = useTranslation()
@@ -319,105 +320,102 @@ export default function RadiusGroups() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-2 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">RADIUS Groups</h1>
-          <p className="text-muted-foreground">Manage user groups and subscriptions</p>
+          <h1 className="text-2xl font-bold">RADIUS Groups</h1>
+          <p className="text-sm text-muted-foreground">Manage user groups and subscriptions</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowTrash(!showTrash)}
-            variant={showTrash ? 'default' : 'outline'}
-          >
-            <Archive className="mr-2 h-4 w-4" />
-            {showTrash ? 'Show Active' : 'Show Trash'}
-          </Button>
-          {!showTrash && (
-            <Button onClick={handleCreateGroup}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Group
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Users className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search groups..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <SearchIcon className="h-4 w-4" />
             </Button>
-          )}
+            <Button 
+              onClick={handleRefresh} 
+              variant="outline" 
+              size="icon"
+              disabled={isFetching}
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Toggle columns">
+                  <Columns3 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={Object.values(columnVisibility).every(Boolean)}
+                  onCheckedChange={toggleAllColumns}
+                >
+                  Show All
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={!Object.values(columnVisibility).some(Boolean)}
+                  onCheckedChange={() => toggleAllColumns(false)}
+                >
+                  Hide All
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.name}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
+                >
+                  Name
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.subscription}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, subscription: checked }))}
+                >
+                  Subscription
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.status}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+                >
+                  Status
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.users}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, users: checked }))}
+                >
+                  Users
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <Button onClick={handleCreateGroup} disabled={showTrash}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Group
+          </Button>
         </div>
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                placeholder="Search groups..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="max-w-sm"
-              />
-              <Button onClick={handleSearch} variant="outline" size="icon">
-                <SearchIcon className="h-4 w-4" />
-              </Button>
-              <Button 
-                onClick={handleRefresh} 
-                variant="outline" 
-                size="icon"
-                disabled={isFetching}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" title="Toggle columns">
-                    <Columns3 className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={Object.values(columnVisibility).every(Boolean)}
-                    onCheckedChange={toggleAllColumns}
-                  >
-                    Show All
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={!Object.values(columnVisibility).some(Boolean)}
-                    onCheckedChange={() => toggleAllColumns(false)}
-                  >
-                    Hide All
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.name}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
-                  >
-                    Name
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.subscription}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, subscription: checked }))}
-                  >
-                    Subscription
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.status}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
-                  >
-                    Status
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={columnVisibility.users}
-                    onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, users: checked }))}
-                  >
-                    Users
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {/* Table */}
-          <div className="relative">
+        <CardContent className="p-0 overflow-hidden relative">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             {isFetching && (
               <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                 <RefreshCw className="h-6 w-6 animate-spin text-primary" />

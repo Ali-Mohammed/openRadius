@@ -14,10 +14,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, 
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, Network
 } from 'lucide-react'
 import { radiusIpPoolApi, type RadiusIpPool } from '@/api/radiusIpPoolApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function RadiusIpPoolsPage() {
   const { id } = useParams<{ id: string }>()
@@ -271,74 +272,53 @@ export default function RadiusIpPoolsPage() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
-      {/* Header */}
+    <div className="space-y-2 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">RADIUS IP Pools</h1>
-          <p className="text-muted-foreground">
-            Manage IP address pools for RADIUS authentication
-          </p>
+          <h1 className="text-2xl font-bold">IP Pools</h1>
+          <p className="text-sm text-muted-foreground">Manage IP address pools for RADIUS authentication</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={showTrash ? 'default' : 'outline'}
-            onClick={() => {
-              setShowTrash(!showTrash)
-              setCurrentPage(1)
-            }}
-          >
-            <Archive className="mr-2 h-4 w-4" />
-            {showTrash ? 'Show Active' : 'Show Trash'}
-          </Button>
-          {!showTrash && (
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add IP Pool
+        <div className="flex items-center gap-2">
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(value) => setShowTrash(value === 'trash')}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Network className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search IP pools..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
             </Button>
-          )}
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-ip-pools'] })} 
+              variant="outline" 
+              size="icon"
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add IP Pool
+          </Button>
         </div>
       </div>
 
-      {/* Main Card */}
       <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                placeholder="Search IP pools..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="max-w-sm"
-              />
-              <Button onClick={handleSearch} variant="outline" size="icon">
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button 
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-ip-pools', workspaceId] })} 
-                variant="outline" 
-                size="icon"
-                title="Refresh"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-                <SelectItem value="100">100 / page</SelectItem>
-                <SelectItem value="200">200 / page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-md">
+        <CardContent className="p-0 overflow-hidden relative">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             <Table>
               <TableHeader>
                 <TableRow>
