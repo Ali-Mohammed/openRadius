@@ -215,7 +215,7 @@ public class BillingProfileController : ControllerBase
                 Description = request.Description,
                 Price = request.Price,
                 RadiusProfileId = request.RadiusProfileId,
-                BillingGroupId = request.BillingGroupId,
+                BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId, // null means all groups
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = userEmail,
                 IsDeleted = false
