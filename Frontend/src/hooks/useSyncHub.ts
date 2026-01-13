@@ -19,8 +19,9 @@ export enum SyncStatus {
 export enum SyncPhase {
   NotStarted = 0,
   Profiles = 1,
-  Users = 2,
-  Completed = 3
+  Zones = 2,
+  Users = 3,
+  Completed = 4
 }
 
 export interface SyncProgressUpdate {
@@ -37,6 +38,11 @@ export interface SyncProgressUpdate {
   profileNewRecords: number;
   profileUpdatedRecords: number;
   profileFailedRecords: number;
+  zoneTotalRecords: number;
+  zoneProcessedRecords: number;
+  zoneNewRecords: number;
+  zoneUpdatedRecords: number;
+  zoneFailedRecords: number;
   userCurrentPage: number;
   userTotalPages: number;
   userTotalRecords: number;
