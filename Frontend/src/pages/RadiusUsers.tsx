@@ -895,6 +895,7 @@ export default function RadiusUsers() {
       phone: { label: t('radiusUsers.phone'), sortKey: 'phone' },
       city: { label: 'City', sortKey: 'city' },
       profile: { label: t('radiusUsers.profile'), sortKey: 'profile' },
+      group: { label: t('radiusUsers.group') || 'Group', sortKey: 'group' },
       status: { label: t('radiusUsers.status'), sortKey: 'enabled' },
       balance: { label: t('radiusUsers.balance'), sortKey: 'balance', align: 'right' },
       loanBalance: { label: 'Loan Balance', sortKey: 'loanBalance', align: 'right' },
@@ -1039,6 +1040,10 @@ export default function RadiusUsers() {
       case 'profile':
         return (
           <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.profileName || '-'}</TableCell>
+        )
+      case 'group':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.groupName || '-'}</TableCell>
         )
       case 'status':
         return (

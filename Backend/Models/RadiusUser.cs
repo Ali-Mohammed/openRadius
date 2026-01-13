@@ -246,6 +246,7 @@ namespace Backend.Models
         public string? NationalId { get; set; }
         public string? MikrotikIpv6Prefix { get; set; }
         public int? GroupId { get; set; }
+        public RadiusGroup? RadiusGroup { get; set; }
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public string? Street { get; set; }
