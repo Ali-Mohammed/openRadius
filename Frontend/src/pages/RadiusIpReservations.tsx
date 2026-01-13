@@ -52,6 +52,13 @@ export default function RadiusIpReservations() {
 
   const [selectedReservationIds, setSelectedReservationIds] = useState<number[]>([])
   const [userSearch, setUserSearch] = useState('')
+  const [formErrors, setFormErrors] = useState<{ ipAddress?: string; radiusUserId?: string }>({})
+
+  // IP address validation function
+  const isValidIPAddress = (ip: string): boolean => {
+    const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+    return ipPattern.test(ip)
+  }
 
   useEffect(() => {
     const params: Record<string, string> = {}
@@ -155,6 +162,7 @@ export default function RadiusIpReservations() {
         radiusUserId: ''
       })
     }
+    setFormErrors({})
     setIsDialogOpen(true)
   }
 
@@ -164,9 +172,45 @@ export default function RadiusIpReservations() {
   }
 
   const handleSave = async () => {
+    const errors: { ipAddress?: string; radiusUserId?: string } = {}
+
+    // Validate IP address
+    if (!formData.ipAddress.trim()) {
+      errors.ipAddress = 'IP address is required'
+    } else if (!isValidIPAddress(formData.ipAddress.trim())) {
+      errors.ipAddress = 'Invalid IP address format (e.g., 192.168.1.100)'
+    } else {
+      // Check for duplicate IP in current data
+      const duplicateIp = reservations.find(
+        r => r.ipAddress === formData.ipAddress.trim() && 
+        r.id !== editingReservation?.id &&
+        !r.deletedAt
+      )
+      if (duplicateIp) {
+        errors.ipAddress = 'This IP address is already reserved'
+      }
+    }
+
+    // Check for duplicate user
+    if (formData.radiusUserId) {
+      const duplicateUser = reservations.find(
+        r => r.radiusUserId?.toString() === formData.radiusUserId && 
+        r.id !== editingReservation?.id &&
+        !r.deletedAt
+      )
+      if (duplicateUser) {
+        errors.radiusUserId = 'This user already has an IP reservation'
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+
     const data = {
-      ipAddress: formData.ipAddress,
-      description: formData.description || null,
+      ipAddress: formData.ipAddress.trim(),
+      description: formData.description.trim() || null,
       radiusUserId: formData.radiusUserId ? parseInt(formData.radiusUserId) : null
     }
 
@@ -352,31 +396,31 @@ export default function RadiusIpReservations() {
                       </div>
                     </div>
                   )}
-                  <Table>
+                  <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                     <TableHeader className="sticky top-0 bg-muted z-10">
                       <TableRow className="hover:bg-muted">
-                        <TableHead className="h-12 px-4 cursor-pointer" onClick={() => handleSort('ipaddress')}>
+                        <TableHead className="h-12 px-4 cursor-pointer w-[180px]" onClick={() => handleSort('ipaddress')}>
                           IP Address
                         </TableHead>
-                        <TableHead className="h-12 px-4 cursor-pointer" onClick={() => handleSort('description')}>
+                        <TableHead className="h-12 px-4 cursor-pointer w-[250px]" onClick={() => handleSort('description')}>
                           Description
                         </TableHead>
-                        <TableHead className="h-12 px-4 cursor-pointer" onClick={() => handleSort('username')}>
+                        <TableHead className="h-12 px-4 cursor-pointer w-[200px]" onClick={() => handleSort('username')}>
                           Username
                         </TableHead>
-                        <TableHead className="h-12 px-4">
+                        <TableHead className="h-12 px-4 w-[180px]">
                           Name
                         </TableHead>
-                        <TableHead className="h-12 px-4">
+                        <TableHead className="h-12 px-4 w-[150px]">
                           Profile
                         </TableHead>
-                        <TableHead className="h-12 px-4">
+                        <TableHead className="h-12 px-4 w-[150px]">
                           Zone
                         </TableHead>
-                        <TableHead className="h-12 px-4">
+                        <TableHead className="h-12 px-4 w-[150px]">
                           Group
                         </TableHead>
-                        <TableHead className="sticky right-0 bg-muted z-10 h-12 px-4">Actions</TableHead>
+                        <TableHead className="sticky right-0 bg-muted z-10 h-12 px-4 w-[140px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     
@@ -398,16 +442,26 @@ export default function RadiusIpReservations() {
                               tableLayout: 'fixed',
                             }}
                           >
-                            <TableCell className="px-4 font-mono">{reservation.ipAddress}</TableCell>
-                            <TableCell className="px-4">{reservation.description || '-'}</TableCell>
-                            <TableCell className="px-4">{reservation.username || '-'}</TableCell>
-                            <TableCell className="px-4">
+                            <TableCell className="px-4 font-mono w-[180px]">{reservation.ipAddress}</TableCell>
+                            <TableCell className="px-4 w-[250px] truncate" title={reservation.description || '-'}>
+                              {reservation.description || '-'}
+                            </TableCell>
+                            <TableCell className="px-4 w-[200px] truncate" title={reservation.username || '-'}>
+                              {reservation.username || '-'}
+                            </TableCell>
+                            <TableCell className="px-4 w-[180px] truncate" title={[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}>
                               {[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}
                             </TableCell>
-                            <TableCell className="px-4">{reservation.profileName || '-'}</TableCell>
-                            <TableCell className="px-4">{reservation.zoneName || '-'}</TableCell>
-                            <TableCell className="px-4">{reservation.groupName || '-'}</TableCell>
-                            <TableCell className="sticky right-0 bg-background z-10 px-4">
+                            <TableCell className="px-4 w-[150px] truncate" title={reservation.profileName || '-'}>
+                              {reservation.profileName || '-'}
+                            </TableCell>
+                            <TableCell className="px-4 w-[150px] truncate" title={reservation.zoneName || '-'}>
+                              {reservation.zoneName || '-'}
+                            </TableCell>
+                            <TableCell className="px-4 w-[150px] truncate" title={reservation.groupName || '-'}>
+                              {reservation.groupName || '-'}
+                            </TableCell>
+                            <TableCell className="sticky right-0 bg-background z-10 px-4 w-[140px]">
                               <div className="flex justify-end gap-2">
                                 {showTrash ? (
                                   <Button variant="outline" size="sm" onClick={() => handleRestore(reservation.id)}>
@@ -535,13 +589,21 @@ export default function RadiusIpReservations() {
                         }
                       })}
                       value={formData.radiusUserId}
-                      onValueChange={(value) => setFormData({ ...formData, radiusUserId: value })}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, radiusUserId: value })
+                        if (formErrors.radiusUserId) {
+                          setFormErrors({ ...formErrors, radiusUserId: undefined })
+                        }
+                      }}
                       placeholder="Select user (optional)"
                       searchPlaceholder="Search username..."
                       emptyText={isLoadingUsers ? "Loading..." : "No users found"}
                       modal={true}
                       onSearchChange={setUserSearch}
                     />
+                    {formErrors.radiusUserId && (
+                      <p className="text-sm text-destructive">{formErrors.radiusUserId}</p>
+                    )}
                   </div>
 
                   <div className="grid gap-2">
@@ -549,9 +611,18 @@ export default function RadiusIpReservations() {
                     <Input
                       id="ipAddress"
                       value={formData.ipAddress}
-                      onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, ipAddress: e.target.value })
+                        if (formErrors.ipAddress) {
+                          setFormErrors({ ...formErrors, ipAddress: undefined })
+                        }
+                      }}
                       placeholder="e.g., 192.168.1.100"
+                      className={formErrors.ipAddress ? 'border-destructive' : ''}
                     />
+                    {formErrors.ipAddress && (
+                      <p className="text-sm text-destructive">{formErrors.ipAddress}</p>
+                    )}
                   </div>
 
                   <div className="grid gap-2">

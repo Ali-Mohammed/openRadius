@@ -1,5 +1,4 @@
 import * as React from "react"
-import * as ReactDOM from "react-dom"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -39,21 +38,9 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const searchInputRef = React.useRef<HTMLInputElement>(null)
   const buttonRef = React.useRef<HTMLButtonElement>(null)
-  const [dropdownPosition, setDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 })
+  const dropdownRef = React.useRef<HTMLDivElement>(null)
 
   const selectedOption = options.find((option) => option.value === value)
-
-  // Update dropdown position when opening
-  React.useEffect(() => {
-    if (open && buttonRef.current && modal) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      })
-    }
-  }, [open, modal])
 
   // Debounce server-side search
   React.useEffect(() => {
@@ -77,19 +64,32 @@ export function Combobox({
 
   React.useEffect(() => {
     if (open && searchInputRef.current) {
-      // Focus the search input when dropdown opens
-      setTimeout(() => {
+      // Focus the search input when dropdown opens with a longer delay
+      const timer = setTimeout(() => {
         searchInputRef.current?.focus()
-      }, 0)
+        searchInputRef.current?.click()
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false)
-        setSearch("")
+      const target = event.target as Node
+      
+      // Check if click is inside button
+      if (containerRef.current && containerRef.current.contains(target)) {
+        return
       }
+      
+      // Check if click is inside dropdown
+      if (dropdownRef.current && dropdownRef.current.contains(target)) {
+        return
+      }
+      
+      // Click is outside both, close the dropdown
+      setOpen(false)
+      setSearch("")
     }
 
     if (open) {
@@ -107,9 +107,65 @@ export function Combobox({
     setSearch("")
   }
 
+  const dropdownContent = open ? (
+    <div 
+      ref={dropdownRef}
+      className="absolute z-[99999] mt-1 w-full rounded-md border bg-popover shadow-lg"
+    >
+      <div className="flex items-center border-b px-3" onClick={(e) => e.stopPropagation()}>
+        <input
+          ref={searchInputRef}
+          type="text"
+          className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          placeholder={searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation()
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              setOpen(false)
+              setSearch("")
+            }
+          }}
+        />
+      </div>
+      <div 
+        className="max-h-[300px] overflow-y-auto p-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {filteredOptions.length === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            {emptyText}
+          </div>
+        ) : (
+          filteredOptions.map((option) => (
+            <div
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              onMouseDown={(e) => e.preventDefault()}
+              className={cn(
+                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                value === option.value && "bg-accent"
+              )}
+            >
+              <span className="flex-1 truncate">{option.label}</span>
+              {value === option.value && (
+                <Check className="ml-2 h-4 w-4 shrink-0" />
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  ) : null
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
         disabled={disabled}
@@ -122,48 +178,7 @@ export function Combobox({
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </button>
 
-      {open && (
-        <div className="absolute z-[100] mt-1 w-full rounded-md border bg-popover shadow-md">
-          <div className="flex items-center border-b px-3">
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder={searchPlaceholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-              autoFocus
-            />
-          </div>
-          <div className="max-h-[300px] overflow-y-auto p-1">
-            {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                {emptyText}
-              </div>
-            ) : (
-              filteredOptions.map((option) => (
-                <div
-                  key={option.value}
-                  onClick={() => handleSelect(option.value)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  className={cn(
-                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                    value === option.value && "bg-accent"
-                  )}
-                >
-                  <span className="flex-1">{option.label}</span>
-                  {value === option.value && (
-                    <Check className="ml-2 h-4 w-4" />
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+      {dropdownContent}
     </div>
   )
 }

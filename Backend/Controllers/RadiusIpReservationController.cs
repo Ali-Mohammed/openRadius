@@ -145,6 +145,12 @@ public class RadiusIpReservationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RadiusIpReservationResponse>> CreateIpReservation(RadiusIpReservation reservation)
     {
+        // Validate IP address format
+        if (!System.Net.IPAddress.TryParse(reservation.IpAddress, out _))
+        {
+            return BadRequest(new { message = "Invalid IP address format" });
+        }
+
         // Check if IP already exists and not deleted
         var existingIp = await _context.RadiusIpReservations
             .Where(r => r.IpAddress == reservation.IpAddress && r.DeletedAt == null)
@@ -153,6 +159,19 @@ public class RadiusIpReservationController : ControllerBase
         if (existingIp != null)
         {
             return BadRequest(new { message = "IP address already reserved" });
+        }
+
+        // Check if user already has an IP reservation
+        if (reservation.RadiusUserId.HasValue)
+        {
+            var existingUserReservation = await _context.RadiusIpReservations
+                .Where(r => r.RadiusUserId == reservation.RadiusUserId && r.DeletedAt == null)
+                .FirstOrDefaultAsync();
+
+            if (existingUserReservation != null)
+            {
+                return BadRequest(new { message = "This user already has an IP reservation" });
+            }
         }
 
         reservation.CreatedAt = DateTime.UtcNow;
@@ -194,6 +213,12 @@ public class RadiusIpReservationController : ControllerBase
             return NotFound();
         }
 
+        // Validate IP address format
+        if (!System.Net.IPAddress.TryParse(reservation.IpAddress, out _))
+        {
+            return BadRequest(new { message = "Invalid IP address format" });
+        }
+
         // Check if IP already exists for another reservation
         var duplicateIp = await _context.RadiusIpReservations
             .Where(r => r.IpAddress == reservation.IpAddress && r.Id != id && r.DeletedAt == null)
@@ -202,6 +227,19 @@ public class RadiusIpReservationController : ControllerBase
         if (duplicateIp != null)
         {
             return BadRequest(new { message = "IP address already reserved by another entry" });
+        }
+
+        // Check if user already has an IP reservation (excluding current reservation)
+        if (reservation.RadiusUserId.HasValue)
+        {
+            var duplicateUser = await _context.RadiusIpReservations
+                .Where(r => r.RadiusUserId == reservation.RadiusUserId && r.Id != id && r.DeletedAt == null)
+                .FirstOrDefaultAsync();
+
+            if (duplicateUser != null)
+            {
+                return BadRequest(new { message = "This user already has an IP reservation" });
+            }
         }
 
         existingReservation.IpAddress = reservation.IpAddress;
