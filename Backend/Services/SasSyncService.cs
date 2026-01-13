@@ -608,6 +608,119 @@ public class SasSyncService : ISasSyncService
         }
     }
 
+    private async Task SyncGroupsAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
+    {
+        const string AES_KEY = "abcdefghijuklmno0123456789012345";
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        
+        var uri = new Uri(integration.Url.TrimEnd('/'));
+        var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/group";
+
+        int currentPage = 1;
+        int pageSize = integration.MaxItemInPagePerRequest > 0 ? integration.MaxItemInPagePerRequest : 100;
+        bool hasMorePages = true;
+        int totalPagesFromApi = 1;
+
+        while (hasMorePages)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            double progress = totalPagesFromApi > 1 ? (currentPage / (double)totalPagesFromApi) * 15 : 0;
+            await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Groups, 
+                35 + (int)progress, 
+                $"Fetching group page {currentPage} of {totalPagesFromApi}...", cancellationToken);
+
+            var requestData = new
+            {
+                page = currentPage,
+                count = pageSize,
+                sortBy = "name",
+                direction = "asc",
+                search = ""
+            };
+            
+            var requestJson = System.Text.Json.JsonSerializer.Serialize(requestData);
+            var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
+            var requestBody = new { payload = encryptedPayload };
+            
+            var response = await client.PostAsJsonAsync(url, requestBody, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var apiResponse = await response.Content.ReadFromJsonAsync<SasGroupApiResponse>(cancellationToken: cancellationToken);
+            
+            if (apiResponse == null || apiResponse.Data == null)
+                break;
+
+            totalPagesFromApi = apiResponse.LastPage;
+
+            double processProgress = totalPagesFromApi > 1 ? (currentPage / (double)totalPagesFromApi) * 15 : 0;
+            await UpdateProgress(syncId, SyncStatus.ProcessingProfiles, SyncPhase.Groups, 
+                35 + (int)processProgress, 
+                $"Processing {apiResponse.Data.Count} groups from page {currentPage} of {totalPagesFromApi}...", cancellationToken);
+
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                
+                var groupProgress = await context.SyncProgresses.FindAsync(syncId);
+                if (groupProgress != null)
+                {
+                    groupProgress.GroupTotalPages = apiResponse.LastPage;
+                    groupProgress.GroupCurrentPage = currentPage;
+                    groupProgress.GroupTotalRecords = apiResponse.Total;
+
+                    foreach (var sasGroup in apiResponse.Data)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        
+                        try
+                        {
+                            var existingGroup = await context.RadiusGroups
+                                .FirstOrDefaultAsync(g => g.ExternalId == sasGroup.Id, cancellationToken);
+
+                            if (existingGroup == null)
+                            {
+                                var newGroup = new RadiusGroup
+                                {
+                                    ExternalId = sasGroup.Id,
+                                    Name = sasGroup.Name,
+                                    Description = sasGroup.Description,
+                                    CreatedAt = DateTime.UtcNow,
+                                    UpdatedAt = DateTime.UtcNow,
+                                    LastSyncedAt = DateTime.UtcNow
+                                };
+                                await context.RadiusGroups.AddAsync(newGroup, cancellationToken);
+                                groupProgress.GroupNewRecords++;
+                            }
+                            else
+                            {
+                                existingGroup.Name = sasGroup.Name;
+                                existingGroup.Description = sasGroup.Description;
+                                existingGroup.UpdatedAt = DateTime.UtcNow;
+                                existingGroup.LastSyncedAt = DateTime.UtcNow;
+                                groupProgress.GroupUpdatedRecords++;
+                            }
+
+                            groupProgress.GroupProcessedRecords++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to process group {GroupId}", sasGroup.Id);
+                            groupProgress.GroupFailedRecords++;
+                        }
+                    }
+
+                    await context.SaveChangesAsync(cancellationToken);
+                    await SendProgressUpdateToClients(groupProgress);
+                }
+            }
+
+            hasMorePages = currentPage < apiResponse.LastPage;
+            currentPage++;
+        }
+    }
+
     private async Task<Dictionary<int, int>> SyncZonesAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient();
@@ -766,6 +879,13 @@ public class SasSyncService : ISasSyncService
             ProfileNewRecords = progress.ProfileNewRecords,
             ProfileUpdatedRecords = progress.ProfileUpdatedRecords,
             ProfileFailedRecords = progress.ProfileFailedRecords,
+            GroupCurrentPage = progress.GroupCurrentPage,
+            GroupTotalPages = progress.GroupTotalPages,
+            GroupTotalRecords = progress.GroupTotalRecords,
+            GroupProcessedRecords = progress.GroupProcessedRecords,
+            GroupNewRecords = progress.GroupNewRecords,
+            GroupUpdatedRecords = progress.GroupUpdatedRecords,
+            GroupFailedRecords = progress.GroupFailedRecords,
             ZoneTotalRecords = progress.ZoneTotalRecords,
             ZoneProcessedRecords = progress.ZoneProcessedRecords,
             ZoneNewRecords = progress.ZoneNewRecords,
