@@ -21,8 +21,8 @@ namespace Backend.Models
         public int CashbackGroupId { get; set; }
         public CashbackGroup CashbackGroup { get; set; } = null!;
         
+        // UserId references the master database User table (no FK constraint needed)
         public int UserId { get; set; }
-        public User User { get; set; } = null!;
         
         public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
     }

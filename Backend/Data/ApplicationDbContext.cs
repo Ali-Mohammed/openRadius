@@ -410,10 +410,7 @@ public class ApplicationDbContext : DbContext
                   .HasForeignKey(e => e.CashbackGroupId)
                   .OnDelete(DeleteBehavior.Cascade);
             
-            entity.HasOne(e => e.User)
-                  .WithMany()
-                  .HasForeignKey(e => e.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
+            // UserId is stored but not a foreign key (references master database User table)
         });
     }
 }
