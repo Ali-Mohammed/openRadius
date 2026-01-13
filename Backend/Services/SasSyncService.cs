@@ -776,8 +776,13 @@ public class SasSyncService : ISasSyncService
 // Helper class for SAS manager tree API response
 internal record SasTreeNode
 {
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
     public int Id { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("parent_id")]
     public int? ParentId { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("username")]
     public string Username { get; init; } = string.Empty;
 }
 

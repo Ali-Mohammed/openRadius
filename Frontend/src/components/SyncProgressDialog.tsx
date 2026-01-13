@@ -123,7 +123,7 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span>Sync Progress</span>
@@ -143,7 +143,7 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
         </DialogHeader>
 
         {currentProgress ? (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-y-auto pr-2">
             {/* Overall Progress */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
