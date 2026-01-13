@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models
 {
@@ -246,7 +247,10 @@ namespace Backend.Models
         public string? NationalId { get; set; }
         public string? MikrotikIpv6Prefix { get; set; }
         public int? GroupId { get; set; }
+        
+        [ForeignKey("GroupId")]
         public RadiusGroup? RadiusGroup { get; set; }
+        
         public string? GpsLat { get; set; }
         public string? GpsLng { get; set; }
         public string? Street { get; set; }
