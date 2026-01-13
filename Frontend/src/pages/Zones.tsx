@@ -481,7 +481,7 @@ export default function Zones() {
       cell: ({ row }) => (
         <div className='flex items-center gap-1'>
           <Users className='h-3 w-3 text-muted-foreground' />
-          <span className='text-sm'>{row.original.userCount}</span>
+          <span className='text-sm'>{row.original.userCount.toLocaleString()}</span>
         </div>
       ),
     },
@@ -512,7 +512,7 @@ export default function Zones() {
       cell: ({ row }) => (
         <div className='flex items-center gap-1'>
           <Radio className='h-3 w-3 text-muted-foreground' />
-          <span className='text-sm'>{row.original.radiusUserCount}</span>
+          <span className='text-sm'>{row.original.radiusUserCount.toLocaleString()}</span>
         </div>
       ),
     },
