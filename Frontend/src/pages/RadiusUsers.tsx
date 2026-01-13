@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusGroupApi } from '@/api/radiusGroupApi'
@@ -1865,313 +1866,354 @@ export default function RadiusUsers() {
       {/* User Dialog */}
       {isDialogOpen && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingUser ? t('radiusUsers.editUser') : t('radiusUsers.addUser')}</DialogTitle>
             <DialogDescription>
               {editingUser ? t('radiusUsers.updateDetails') : t('radiusUsers.fillDetails')}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="username">{t('radiusUsers.username')} *</Label>
-                <Input
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="e.g., john.doe"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">{t('radiusUsers.email')}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="e.g., john@example.com"
-                />
-              </div>
-            </div>
+          <div className="overflow-y-auto flex-1 px-1">
+            <div className="space-y-6 py-4">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <Users className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Basic Information</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="username">{t('radiusUsers.username')} <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      placeholder="e.g., john.doe"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">{t('radiusUsers.email')}</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="e.g., john@example.com"
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="firstname">{t('radiusUsers.firstName')}</Label>
-                <Input
-                  id="firstname"
-                  value={formData.firstname}
-                  onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
-                  placeholder="e.g., John"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="lastname">{t('radiusUsers.lastName')}</Label>
-                <Input
-                  id="lastname"
-                  value={formData.lastname}
-                  onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
-                  placeholder="e.g., Doe"
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="firstname">{t('radiusUsers.firstName')}</Label>
+                    <Input
+                      id="firstname"
+                      value={formData.firstname}
+                      onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
+                      placeholder="e.g., John"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="lastname">{t('radiusUsers.lastName')}</Label>
+                    <Input
+                      id="lastname"
+                      value={formData.lastname}
+                      onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
+                      placeholder="e.g., Doe"
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="phone">{t('radiusUsers.phone')}</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="e.g., +1234567890"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">{t('radiusUsers.phone')}</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="e.g., +1234567890"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">{t('radiusUsers.city')}</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="e.g., New York"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="city">{t('radiusUsers.city')}</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="e.g., New York"
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="profileId">{t('radiusUsers.profileId')}</Label>
-                <Combobox
-                  options={profiles.map((profile) => ({
-                    value: profile.id?.toString() || '',
-                    label: profile.name || ''
-                  }))}
-                  value={formData.profileId}
-                  onValueChange={(value) => setFormData({ ...formData, profileId: value })}
-                  placeholder={t('radiusUsers.selectProfile')}
-                  searchPlaceholder={t('radiusUsers.searchProfile') || "Search profile..."}
-                  emptyText={t('radiusUsers.noProfilesFound') || "No profiles found."}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="simultaneousSessions">{t('radiusUsers.sessions')}</Label>
-                <Input
-                  id="simultaneousSessions"
-                  type="number"
-                  value={formData.simultaneousSessions}
-                  onChange={(e) => setFormData({ ...formData, simultaneousSessions: e.target.value })}
-                  placeholder="e.g., 1"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="zoneId">{t('radiusUsers.zone')}</Label>
-                <Select
-                  value={formData.zoneId}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, zoneId: value })
-                    setZoneSearchQuery('')
-                  }}
-                >
-                  <SelectTrigger id="zoneId">
-                    <SelectValue placeholder={t('radiusUsers.selectZone')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div className="px-2 py-1.5 sticky top-0 bg-white dark:bg-slate-950 border-b z-10">
-                      <Input
-                        type="text"
-                        placeholder={t('radiusUsers.searchZone') || 'Search zone...'}
-                        value={zoneSearchQuery}
-                        onChange={(e) => setZoneSearchQuery(e.target.value)}
-                        className="h-8"
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                    <SelectItem value="0">{t('radiusUsers.noZone')}</SelectItem>
-                    {filteredFlatZones.map((zone) => (
-                      <SelectItem key={zone.id} value={zone.id.toString()}>
-                        <div className="flex items-center gap-2">
-                          <span style={{ marginLeft: `${zone.level * 16}px` }}>
-                            {zone.level > 0 && '↳ '}
-                          </span>
-                          <div
-                            className="h-3 w-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: zone.color || '#3b82f6' }}
+              {/* Service Configuration */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <Settings className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Service Configuration</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="profileId">{t('radiusUsers.profileId')}</Label>
+                    <Combobox
+                      options={profiles.map((profile) => ({
+                        value: profile.id?.toString() || '',
+                        label: profile.name || ''
+                      }))}
+                      value={formData.profileId}
+                      onValueChange={(value) => setFormData({ ...formData, profileId: value })}
+                      placeholder={t('radiusUsers.selectProfile')}
+                      searchPlaceholder={t('radiusUsers.searchProfile') || "Search profile..."}
+                      emptyText={t('radiusUsers.noProfilesFound') || "No profiles found."}
+                      modal={true}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="simultaneousSessions">{t('radiusUsers.sessions')}</Label>
+                    <Input
+                      id="simultaneousSessions"
+                      type="number"
+                      value={formData.simultaneousSessions}
+                      onChange={(e) => setFormData({ ...formData, simultaneousSessions: e.target.value })}
+                      placeholder="e.g., 1"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="zoneId">{t('radiusUsers.zone')}</Label>
+                    <Select
+                      value={formData.zoneId}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, zoneId: value })
+                        setZoneSearchQuery('')
+                      }}
+                    >
+                      <SelectTrigger id="zoneId">
+                        <SelectValue placeholder={t('radiusUsers.selectZone')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="px-2 py-1.5 sticky top-0 bg-white dark:bg-slate-950 border-b z-10">
+                          <Input
+                            type="text"
+                            placeholder={t('radiusUsers.searchZone') || 'Search zone...'}
+                            value={zoneSearchQuery}
+                            onChange={(e) => setZoneSearchQuery(e.target.value)}
+                            className="h-8"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
                           />
-                          <span>{zone.name}</span>
                         </div>
-                      </SelectItem>
-                    ))}
-                    {filteredFlatZones.length === 0 && zoneSearchQuery && (
-                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                        {t('radiusUsers.noZonesFound') || 'No zones found'}
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
+                        <SelectItem value="0">{t('radiusUsers.noZone')}</SelectItem>
+                        {filteredFlatZones.map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <span style={{ marginLeft: `${zone.level * 16}px` }}>
+                                {zone.level > 0 && '↳ '}
+                              </span>
+                              <div
+                                className="h-3 w-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: zone.color || '#3b82f6' }}
+                              />
+                              <span>{zone.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {filteredFlatZones.length === 0 && zoneSearchQuery && (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            {t('radiusUsers.noZonesFound') || 'No zones found'}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="groupId">{t('radiusUsers.group')}</Label>
+                    <Select
+                      value={formData.groupId}
+                      onValueChange={(value) => setFormData({ ...formData, groupId: value })}
+                    >
+                      <SelectTrigger id="groupId">
+                        <SelectValue placeholder={t('radiusUsers.selectGroup') || 'Select Group'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">{t('radiusUsers.noGroup') || 'No Group'}</SelectItem>
+                        {groupsData?.data?.map((group) => (
+                          <SelectItem key={group.id} value={group.id.toString()}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="expiration">{t('radiusUsers.expirationDate')}</Label>
+                    <Input
+                      id="expiration"
+                      type="date"
+                      value={formData.expiration}
+                      onChange={(e) => setFormData({ ...formData, expiration: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="staticIp">{t('radiusUsers.staticIp')}</Label>
+                  <Input
+                    id="staticIp"
+                    value={formData.staticIp}
+                    onChange={(e) => setFormData({ ...formData, staticIp: e.target.value })}
+                    placeholder="e.g., 192.168.1.100"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="groupId">{t('radiusUsers.group')}</Label>
-                <Select
-                  value={formData.groupId}
-                  onValueChange={(value) => setFormData({ ...formData, groupId: value })}
-                >
-                  <SelectTrigger id="groupId">
-                    <SelectValue placeholder={t('radiusUsers.selectGroup') || 'Select Group'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">{t('radiusUsers.noGroup') || 'No Group'}</SelectItem>
-                    {groupsData?.data?.map((group) => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+              {/* Additional Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <List className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Additional Information</h3>
+                </div>
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="company">{t('radiusUsers.company')}</Label>
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      placeholder="e.g., Acme Corp"
+                    />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="expiration">{t('radiusUsers.expirationDate')}</Label>
-                <Input
-                  id="expiration"
-                  type="date"
-                  value={formData.expiration}
-                  onChange={(e) => setFormData({ ...formData, expiration: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="staticIp">{t('radiusUsers.staticIp')}</Label>
-                <Input
-                  id="staticIp"
-                  value={formData.staticIp}
-                  onChange={(e) => setFormData({ ...formData, staticIp: e.target.value })}
-                  placeholder="e.g., 192.168.1.100"
-                />
-              </div>
-            </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="address">{t('radiusUsers.address')}</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="e.g., 123 Main St"
+                    />
+                  </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="company">{t('radiusUsers.company')}</Label>
-              <Input
-                id="company"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                placeholder="e.g., Acme Corp"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="address">{t('radiusUsers.address')}</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="e.g., 123 Main St"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="contractId">{t('radiusUsers.contractId')}</Label>
-              <Input
-                id="contractId"
-                value={formData.contractId}
-                onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
-                placeholder="e.g., CONTRACT-2024-001"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Input
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="e.g., Additional notes about the user"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="deviceSerialNumber">Device Serial Number</Label>
-              <Input
-                id="deviceSerialNumber"
-                value={formData.deviceSerialNumber}
-                onChange={(e) => setFormData({ ...formData, deviceSerialNumber: e.target.value })}
-                placeholder="e.g., SN123456789"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="gpsLat">Latitude</Label>
-                <Input
-                  id="gpsLat"
-                  value={formData.gpsLat}
-                  onChange={(e) => setFormData({ ...formData, gpsLat: e.target.value })}
-                  placeholder="e.g., 32.5202391247401"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="gpsLng">Longitude</Label>
-                <Input
-                  id="gpsLng"
-                  value={formData.gpsLng}
-                  onChange={(e) => setFormData({ ...formData, gpsLng: e.target.value })}
-                  placeholder="e.g., 45.79654097557068"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="tags">Tags</Label>
-              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                {tags.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No tags available</p>
-                ) : (
-                  tags.filter(tag => tag.status === 'active').map((tag) => (
-                    <div key={tag.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`tag-${tag.id}`}
-                        checked={selectedTagIds.includes(tag.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTagIds([...selectedTagIds, tag.id])
-                          } else {
-                            setSelectedTagIds(selectedTagIds.filter(id => id !== tag.id))
-                          }
-                        }}
-                        className="rounded border-gray-300"
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="contractId">{t('radiusUsers.contractId')}</Label>
+                      <Input
+                        id="contractId"
+                        value={formData.contractId}
+                        onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
+                        placeholder="e.g., CONTRACT-2024-001"
                       />
-                      <label
-                        htmlFor={`tag-${tag.id}`}
-                        className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                      >
-                        <span
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                        {tag.title}
-                      </label>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="deviceSerialNumber">Device Serial Number</Label>
+                      <Input
+                        id="deviceSerialNumber"
+                        value={formData.deviceSerialNumber}
+                        onChange={(e) => setFormData({ ...formData, deviceSerialNumber: e.target.value })}
+                        placeholder="e.g., SN123456789"
+                      />
+                    </div>
+                  </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="enabled">{t('radiusUsers.enabled')}</Label>
-              <Switch
-                id="enabled"
-                checked={formData.enabled}
-                onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })}
-              />
+                  <div className="grid gap-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Input
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="e.g., Additional notes about the user"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="gpsLat">Latitude</Label>
+                      <Input
+                        id="gpsLat"
+                        value={formData.gpsLat}
+                        onChange={(e) => setFormData({ ...formData, gpsLat: e.target.value })}
+                        placeholder="e.g., 32.5202391247401"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="gpsLng">Longitude</Label>
+                      <Input
+                        id="gpsLng"
+                        value={formData.gpsLng}
+                        onChange={(e) => setFormData({ ...formData, gpsLng: e.target.value })}
+                        placeholder="e.g., 45.79654097557068"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags & Status */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Tags & Status</h3>
+                </div>
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="tags">Tags</Label>
+                    <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto bg-muted/30">
+                      {tags.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No tags available</p>
+                      ) : (
+                        tags.filter(tag => tag.status === 'active').map((tag) => {
+                          const IconComponent = (LucideIcons as any)[tag.icon] || Tag
+                          return (
+                            <div key={tag.id} className="flex items-center space-x-2 hover:bg-muted/50 p-1.5 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                id={`tag-${tag.id}`}
+                                checked={selectedTagIds.includes(tag.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedTagIds([...selectedTagIds, tag.id])
+                                  } else {
+                                    setSelectedTagIds(selectedTagIds.filter(id => id !== tag.id))
+                                  }
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              <label
+                                htmlFor={`tag-${tag.id}`}
+                                className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2 flex-1"
+                              >
+                                <IconComponent className="h-3.5 w-3.5" style={{ color: tag.color }} />
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                {tag.title}
+                              </label>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="enabled" className="text-sm font-medium">{t('radiusUsers.enabled')}</Label>
+                      <p className="text-xs text-muted-foreground">Enable or disable user access</p>
+                    </div>
+                    <Switch
+                      id="enabled"
+                      checked={formData.enabled}
+                      onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button variant="outline" onClick={handleCloseDialog}>
               {t('radiusUsers.cancel')}
             </Button>

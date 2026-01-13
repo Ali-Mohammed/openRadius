@@ -6,6 +6,7 @@ export interface RadiusTag {
   description?: string
   status: string
   color: string
+  icon: string
   createdAt?: string
   updatedAt?: string
 }
