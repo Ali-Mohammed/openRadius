@@ -25,6 +25,8 @@ public class Dashboard
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 
     // Navigation properties
     public virtual ICollection<DashboardTab> Tabs { get; set; } = new List<DashboardTab>();
@@ -81,6 +83,8 @@ public class DashboardItem
     public string Config { get; set; } = "{}";
 
     public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 
     // Navigation properties
     [ForeignKey("TabId")]
@@ -112,6 +116,8 @@ public class DashboardGlobalFilter
     public int OrderIndex { get; set; }
 
     public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 
     // Navigation properties
     [ForeignKey("DashboardId")]
