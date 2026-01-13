@@ -596,9 +596,10 @@ export default function CashbackGroups() {
                     <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="justify-start">
-                          {getIconComponent(formData.icon) && 
-                            React.createElement(getIconComponent(formData.icon)!, { className: "h-4 w-4 mr-2" })
-                          }
+                          {(() => {
+                            const IconComp = getIconComponent(formData.icon)
+                            return IconComp ? <IconComp className="h-4 w-4 mr-2" /> : null
+                          })()}
                           {formData.icon}
                         </Button>
                       </PopoverTrigger>
