@@ -526,7 +526,7 @@ export default function RadiusGroups() {
                               </Badge>
                             </TableCell>
                           )}
-                          {columnVisibility.users && <TableCell>{group.usersCount || 0}</TableCell>}
+                          {columnVisibility.users && <TableCell>{(group.usersCount || 0).toLocaleString()}</TableCell>}
                           <TableCell className="text-right sticky right-0 bg-card">
                             {showTrash ? (
                               <Button
