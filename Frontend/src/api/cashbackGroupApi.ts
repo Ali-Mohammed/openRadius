@@ -1,4 +1,4 @@
-import apiClient from './apiClient'
+import { apiClient } from '../lib/api'
 
 export interface CashbackGroup {
   id: number
@@ -50,35 +50,35 @@ export const cashbackGroupApi = {
     sortDirection?: string
     onlyDeleted?: boolean
   }): Promise<CashbackGroupPaginatedResponse> => {
-    const response = await apiClient.get('/billing/cashback-groups', { params })
+    const response = await apiClient.get('/api/billing/cashback-groups', { params })
     return response.data
   },
 
   getById: async (id: number): Promise<CashbackGroup> => {
-    const response = await apiClient.get(`/billing/cashback-groups/${id}`)
+    const response = await apiClient.get(`/api/billing/cashback-groups/${id}`)
     return response.data
   },
 
   getGroupUsers: async (id: number): Promise<number[]> => {
-    const response = await apiClient.get(`/billing/cashback-groups/${id}/users`)
+    const response = await apiClient.get(`/api/billing/cashback-groups/${id}/users`)
     return response.data
   },
 
   create: async (data: CreateCashbackGroupData): Promise<CashbackGroup> => {
-    const response = await apiClient.post('/billing/cashback-groups', data)
+    const response = await apiClient.post('/api/billing/cashback-groups', data)
     return response.data
   },
 
   update: async (id: number, data: UpdateCashbackGroupData): Promise<CashbackGroup> => {
-    const response = await apiClient.put(`/billing/cashback-groups/${id}`, data)
+    const response = await apiClient.put(`/api/billing/cashback-groups/${id}`, data)
     return response.data
   },
 
   delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/billing/cashback-groups/${id}`)
+    await apiClient.delete(`/api/billing/cashback-groups/${id}`)
   },
 
   restore: async (id: number): Promise<void> => {
-    await apiClient.post(`/billing/cashback-groups/${id}/restore`)
+    await apiClient.post(`/api/billing/cashback-groups/${id}/restore`)
   },
 }
