@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getProfiles,
@@ -367,39 +367,47 @@ export default function BillingProfiles() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Billing Profiles</h1>
-          <p className="text-muted-foreground mt-1">
-            Configure billing profiles with radius profiles, billing groups, wallets, and addons
-          </p>
+          <h1 className="text-2xl font-bold">Billing Profiles</h1>
+          <p className="text-sm text-muted-foreground">Configure billing profiles with radius profiles, billing groups, wallets, and addons</p>
         </div>
-        <Button onClick={() => navigate(`/workspace/${id}/billing/profiles/new`)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Profile
-        </Button>
+        <div className="flex items-center gap-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Receipt className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="deleted">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search profiles..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64"
+            />
+            <Button onClick={() => setSearch(search)} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['billing-profiles'] })} variant="outline" size="icon" title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => navigate(`/workspace/${id}/billing/profiles/new`)} disabled={activeTab === 'deleted'}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Profile
+          </Button>
+        </div>
       </div>
 
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search profiles..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="active">Active Profiles</TabsTrigger>
-          <TabsTrigger value="deleted">Deleted Profiles</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="space-y-4">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
+          {activeTab === 'active' ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -463,10 +471,8 @@ export default function BillingProfiles() {
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-
-        <TabsContent value="deleted" className="space-y-4">
-          <div className="rounded-md border">
+          ) : (
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -523,8 +529,9 @@ export default function BillingProfiles() {
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-      </Tabs>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
