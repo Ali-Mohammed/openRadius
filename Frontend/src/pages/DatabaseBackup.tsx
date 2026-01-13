@@ -321,17 +321,17 @@ export default function DatabaseBackup() {
               <p className="text-sm">Create your first backup to see it here</p>
             </div>
           ) : (
-            <div className="border rounded-lg">
+            <div className="border rounded-lg overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Database</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>File Name</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-[200px]">Database</TableHead>
+                    <TableHead className="w-[100px]">Type</TableHead>
+                    <TableHead className="w-[300px]">File Name</TableHead>
+                    <TableHead className="w-[100px]">Size</TableHead>
+                    <TableHead className="w-[150px]">Created By</TableHead>
+                    <TableHead className="w-[180px]">Created At</TableHead>
+                    <TableHead className="w-[140px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,10 +343,14 @@ export default function DatabaseBackup() {
                           {backup.databaseType}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{backup.fileName}</TableCell>
-                      <TableCell>{formatBytes(backup.sizeBytes)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{backup.createdBy}</TableCell>
-                      <TableCell className="text-sm">{formatDate(backup.createdAt)}</TableCell>
+                      <TableCell className="font-mono text-xs truncate max-w-[300px]" title={backup.fileName}>
+                        {backup.fileName}
+                      </TableCell>
+                      <TableCell className="text-sm">{formatBytes(backup.sizeBytes)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]" title={backup.createdBy}>
+                        {backup.createdBy}
+                      </TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{formatDate(backup.createdAt)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
