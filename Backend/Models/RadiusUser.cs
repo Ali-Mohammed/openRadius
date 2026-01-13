@@ -326,6 +326,8 @@ namespace Backend.Models
         public int? ZoneId { get; set; }
         public string? ZoneName { get; set; }
         public string? ZoneColor { get; set; }
+        public int? GroupId { get; set; }
+        public string? GroupName { get; set; }
         public List<RadiusTagResponse> Tags { get; set; } = new();
     }
 
@@ -351,6 +353,7 @@ namespace Backend.Models
         public string? GpsLng { get; set; }
         public int SimultaneousSessions { get; set; } = 1;
         public int? ZoneId { get; set; }
+        public int? GroupId { get; set; }
     }
 
     public class UpdateUserRequest
@@ -375,6 +378,7 @@ namespace Backend.Models
         public string? GpsLng { get; set; }
         public int? SimultaneousSessions { get; set; }
         public int? ZoneId { get; set; }
+        public int? GroupId { get; set; }
     }
 
     public class BulkOperationRequest
