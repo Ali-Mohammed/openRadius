@@ -116,6 +116,8 @@
     "noProfilesFound": "No profiles found",
     "zone": "Zone",
     "selectZone": "Select zone (optional)",
+    "searchZone": "Search zone...",
+    "noZonesFound": "No zones found",
     "noZone": "No Zone",
     "group": "Group",
     "selectGroup": "Select group (optional)",
