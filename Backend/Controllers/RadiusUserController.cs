@@ -261,6 +261,11 @@ public class RadiusUserController : ControllerBase
         _context.RadiusUsers.Add(user);
         await _context.SaveChangesAsync();
 
+        // Get IP reservation for this user
+        var ipReservation = await _context.RadiusIpReservations
+            .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
+            .FirstOrDefaultAsync();
+
         var response = new RadiusUserResponse
         {
             Id = user.Id,
@@ -280,7 +285,7 @@ public class RadiusUserController : ControllerBase
             OnlineStatus = user.OnlineStatus,
             RemainingDays = user.RemainingDays,
             DebtDays = user.DebtDays,
-            StaticIp = user.StaticIp,
+            StaticIp = ipReservation?.IpAddress,
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
@@ -336,6 +341,11 @@ public class RadiusUserController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        // Get IP reservation for this user
+        var updateUserIpReservation = await _context.RadiusIpReservations
+            .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
+            .FirstOrDefaultAsync();
+
         var response = new RadiusUserResponse
         {
             Id = user.Id,
@@ -355,7 +365,7 @@ public class RadiusUserController : ControllerBase
             OnlineStatus = user.OnlineStatus,
             RemainingDays = user.RemainingDays,
             DebtDays = user.DebtDays,
-            StaticIp = user.StaticIp,
+            StaticIp = newUserIpReservation?.IpAddress,
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
