@@ -461,6 +461,15 @@ public class SasSyncService : ISasSyncService
                                 dbProfileId = profile?.Id;
                             }
 
+                            // Map external GroupId to database GroupId
+                            int? dbGroupId = null;
+                            if (sasUser.GroupId.HasValue)
+                            {
+                                var group = await context.RadiusGroups
+                                    .FirstOrDefaultAsync(g => g.ExternalId == sasUser.GroupId.Value, cancellationToken);
+                                dbGroupId = group?.Id;
+                            }
+
                             // Map ParentId to ZoneId
                             int? zoneId = null;
                             if (sasUser.ParentId.HasValue && sasIdToZoneId.ContainsKey(sasUser.ParentId.Value))
@@ -512,7 +521,7 @@ public class SasSyncService : ISasSyncService
                                     ContractId = "",
                                     NationalId = sasUser.NationalId,
                                     MikrotikIpv6Prefix = sasUser.MikrotikIpv6Prefix,
-                                    GroupId = sasUser.GroupId,
+                                    GroupId = dbGroupId,
                                     GpsLat = gpsLat ?? sasUser.GpsLat,
                                     GpsLng = gpsLng ?? sasUser.GpsLng,
                                     Street = sasUser.Street,
@@ -572,7 +581,7 @@ public class SasSyncService : ISasSyncService
                                 existingUser.ContractId = "";
                                 existingUser.NationalId = sasUser.NationalId;
                                 existingUser.MikrotikIpv6Prefix = sasUser.MikrotikIpv6Prefix;
-                                existingUser.GroupId = sasUser.GroupId;
+                                existingUser.GroupId = dbGroupId;
                                 existingUser.GpsLat = gpsLat ?? sasUser.GpsLat;
                                 existingUser.GpsLng = gpsLng ?? sasUser.GpsLng;
                                 existingUser.Street = sasUser.Street;
