@@ -211,14 +211,17 @@ public class RadiusGroupController : ControllerBase
         var response = new RadiusGroupResponse
         {
             Id = group.Id,
+            ExternalId = group.ExternalId,
             Name = group.Name,
+            Description = group.Description,
             Subscription = group.Subscription,
             IsActive = group.IsActive,
             Color = group.Color,
             Icon = group.Icon,
             UsersCount = userCount,
             CreatedAt = group.CreatedAt,
-            UpdatedAt = group.UpdatedAt
+            UpdatedAt = group.UpdatedAt,
+            LastSyncedAt = group.LastSyncedAt
         };
 
         return Ok(response);
@@ -259,14 +262,17 @@ public class RadiusGroupController : ControllerBase
             var response = new RadiusGroupResponse
             {
                 Id = group.Id,
+                ExternalId = group.ExternalId,
                 Name = group.Name,
+                Description = group.Description,
                 Subscription = group.Subscription,
                 IsActive = group.IsActive,
                 Color = group.Color,
                 Icon = group.Icon,
                 UsersCount = 0,
                 CreatedAt = group.CreatedAt,
-                UpdatedAt = group.UpdatedAt
+                UpdatedAt = group.UpdatedAt,
+                LastSyncedAt = group.LastSyncedAt
             };
 
             return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, response);
@@ -313,14 +319,17 @@ public class RadiusGroupController : ControllerBase
         var response = new RadiusGroupResponse
         {
             Id = group.Id,
+            ExternalId = group.ExternalId,
             Name = group.Name,
+            Description = group.Description,
             Subscription = group.Subscription,
             IsActive = group.IsActive,
             Color = group.Color,
             Icon = group.Icon,
             UsersCount = userCount,
             CreatedAt = group.CreatedAt,
-            UpdatedAt = group.UpdatedAt
+            UpdatedAt = group.UpdatedAt,
+            LastSyncedAt = group.LastSyncedAt
         };
 
         return Ok(response);
@@ -403,12 +412,15 @@ public class RadiusGroupController : ControllerBase
         var response = groups.Select(g => new RadiusGroupResponse
         {
             Id = g.Id,
+            ExternalId = g.ExternalId,
             Name = g.Name,
+            Description = g.Description,
             Subscription = g.Subscription,
             IsActive = g.IsActive,
             UsersCount = 0,
             CreatedAt = g.CreatedAt,
-            UpdatedAt = g.UpdatedAt
+            UpdatedAt = g.UpdatedAt,
+            LastSyncedAt = g.LastSyncedAt
         });
 
         return Ok(new
