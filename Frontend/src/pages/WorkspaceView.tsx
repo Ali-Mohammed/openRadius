@@ -437,6 +437,14 @@ export default function WorkspaceView() {
       header: 'Name',
     },
     {
+      accessorKey: 'createdBy',
+      header: 'Created By',
+      cell: ({ row }) => {
+        const createdBy = row.getValue('createdBy') as string
+        return createdBy || '-'
+      },
+    },
+    {
       accessorKey: 'deletedBy',
       header: 'Deleted By',
       cell: ({ row }) => {

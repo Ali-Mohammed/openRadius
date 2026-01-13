@@ -479,20 +479,22 @@ export default function BillingProfiles() {
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Wallets</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead>Deleted At</TableHead>
+                  <TableHead>Deleted By</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingDeleted ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={7} className="text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : deletedProfilesData?.data?.filter((p) => p.isDeleted).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={7} className="text-center">
                       No deleted profiles found
                     </TableCell>
                   </TableRow>
@@ -509,9 +511,15 @@ export default function BillingProfiles() {
                           <Badge variant="secondary">{profile.wallets?.length || 0} wallets</Badge>
                         </TableCell>
                         <TableCell className="opacity-60">
+                          {profile.createdBy || '-'}
+                        </TableCell>
+                        <TableCell className="opacity-60">
                           {profile.deletedAt
                             ? new Date(profile.deletedAt).toLocaleDateString()
                             : '-'}
+                        </TableCell>
+                        <TableCell className="opacity-60">
+                          {profile.deletedBy || '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
