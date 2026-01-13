@@ -580,6 +580,59 @@ export default function CashbackGroups() {
               <div className="space-y-6 py-4">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b">
+                    <Users className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm">Assigned Users ({selectedUserIds.length})</h3>
+                  </div>
+
+                  <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Users className="h-4 w-4 mr-2" />
+                        {selectedUserIds.length} user(s) selected
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px]" align="start">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="Search users..."
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button size="sm" variant="outline" onClick={selectAllFilteredUsers}>
+                            Select All
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={clearUserSelection}>
+                            Clear
+                          </Button>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto space-y-2">
+                          {users
+                            .filter(u => {
+                              const fullName = `${u.firstName || ''} ${u.lastName || ''} ${u.email || ''}`.toLowerCase()
+                              return fullName.includes(userSearch.toLowerCase())
+                            })
+                            .map(user => (
+                              <div key={user.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`user-${user.id}`}
+                                  checked={selectedUserIds.includes(user.id)}
+                                  onCheckedChange={() => toggleUserSelection(user.id)}
+                                />
+                                <Label htmlFor={`user-${user.id}`} className="cursor-pointer flex-1">
+                                  {user.firstName} {user.lastName} ({user.email})
+                                </Label>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
                     <UsersRound className="h-4 w-4 text-primary" />
                     <h3 className="font-semibold text-sm">Group Details</h3>
                   </div>
@@ -672,59 +725,6 @@ export default function CashbackGroups() {
                       Disabled
                     </Label>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b">
-                    <Users className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-sm">Assigned Users ({selectedUserIds.length})</h3>
-                  </div>
-
-                  <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Users className="h-4 w-4 mr-2" />
-                        {selectedUserIds.length} user(s) selected
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[400px]" align="start">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            placeholder="Search users..."
-                            value={userSearch}
-                            onChange={(e) => setUserSearch(e.target.value)}
-                            className="flex-1"
-                          />
-                          <Button size="sm" variant="outline" onClick={selectAllFilteredUsers}>
-                            Select All
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={clearUserSelection}>
-                            Clear
-                          </Button>
-                        </div>
-                        <div className="max-h-[300px] overflow-y-auto space-y-2">
-                          {users
-                            .filter(u => {
-                              const fullName = `${u.firstName || ''} ${u.lastName || ''} ${u.email || ''}`.toLowerCase()
-                              return fullName.includes(userSearch.toLowerCase())
-                            })
-                            .map(user => (
-                              <div key={user.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`user-${user.id}`}
-                                  checked={selectedUserIds.includes(user.id)}
-                                  onCheckedChange={() => toggleUserSelection(user.id)}
-                                />
-                                <Label htmlFor={`user-${user.id}`} className="cursor-pointer flex-1">
-                                  {user.firstName} {user.lastName} ({user.email})
-                                </Label>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
                 </div>
               </div>
             </div>
