@@ -87,7 +87,7 @@ const getNavData = (workspaceId: number) => ({
       items: [
         {
           titleKey: "navigation.billingProfiles",
-          url: `/workspace/${workspaceId}/billing/profiles`,
+          url: '/billing/profiles',
           icon: FileText,
         },
         {

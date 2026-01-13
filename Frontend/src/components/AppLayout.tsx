@@ -79,15 +79,15 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname.includes('/radius/nas')) return { parent: null, current: 'Network Access Servers', icon: Server }
     if (location.pathname.includes('/radius/ip-pools')) return { parent: null, current: 'RADIUS IP Pools', icon: Network }
     if (location.pathname.includes('/billing/profiles/new')) {
-      return { 
-        parent: { title: 'Billing Profiles', href: `/workspace/${location.pathname.split('/')[2]}/billing/profiles`, icon: Settings }, 
+      return {
+        parent: { title: 'Billing Profiles', href: '/billing/profiles', icon: Settings },
         current: 'Create Billing Profile', 
         icon: Settings 
       }
     }
     if (location.pathname.includes('/billing/profiles/edit')) {
-      return { 
-        parent: { title: 'Billing Profiles', href: `/workspace/${location.pathname.split('/')[2]}/billing/profiles`, icon: Settings }, 
+      return {
+        parent: { title: 'Billing Profiles', href: '/billing/profiles', icon: Settings },
         current: 'Edit Billing Profile', 
         icon: Settings 
       }

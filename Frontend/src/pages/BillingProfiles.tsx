@@ -398,7 +398,7 @@ export default function BillingProfiles() {
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => navigate(`/workspace/${id}/billing/profiles/new`)} disabled={activeTab === 'deleted'}>
+          <Button onClick={() => navigate('/billing/profiles/new')} disabled={activeTab === 'deleted'}>
             <Plus className="h-4 w-4 mr-2" />
             Add Profile
           </Button>
@@ -452,7 +452,7 @@ export default function BillingProfiles() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/workspace/${id}/billing/profiles/edit?profileId=${profile.id}`)}
+                              onClick={() => navigate(`/billing/profiles/edit?profileId=${profile.id}`)}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>

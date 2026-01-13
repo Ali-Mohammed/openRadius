@@ -137,7 +137,7 @@ export default function BillingProfileForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-profiles'] });
       toast.success('Billing profile created successfully');
-      navigate(`/workspace/${id}/billing/profiles`);
+      navigate('/billing/profiles');
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.error || 'Failed to create billing profile';
@@ -151,7 +151,7 @@ export default function BillingProfileForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-profiles'] });
       toast.success('Billing profile updated successfully');
-      navigate(`/workspace/${id}/billing/profiles`);
+      navigate('/billing/profiles');
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.error || 'Failed to update billing profile';
@@ -752,7 +752,7 @@ export default function BillingProfileForm() {
           <Button 
             type="button" 
             variant="outline" 
-            onClick={() => navigate(`/workspace/${id}/billing/profiles`)}
+            onClick={() => navigate('/billing/profiles')}
           >
             Cancel
           </Button>

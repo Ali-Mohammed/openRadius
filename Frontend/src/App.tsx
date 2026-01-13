@@ -105,9 +105,9 @@ function App() {
                           <Route path="/billing/automations" element={<Automations />} />
                           <Route path="/billing/automations/:automationId/designer" element={<WorkflowDesigner />} />
                           <Route path="/billing/groups" element={<BillingGroups />} />
-                          <Route path="/workspace/:id/billing/profiles" element={<BillingProfiles />} />
-                          <Route path="/workspace/:id/billing/profiles/new" element={<BillingProfileForm />} />
-                          <Route path="/workspace/:id/billing/profiles/edit" element={<BillingProfileForm />} />
+                          <Route path="/billing/profiles" element={<BillingProfiles />} />
+                          <Route path="/billing/profiles/new" element={<BillingProfileForm />} />
+                          <Route path="/billing/profiles/edit" element={<BillingProfileForm />} />
                           <Route path="/billing/zones" element={<Zones />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
