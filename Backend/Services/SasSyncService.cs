@@ -538,6 +538,35 @@ public class SasSyncService : ISasSyncService
                                     LastSyncedAt = DateTime.UtcNow
                                 };
                                 await context.RadiusUsers.AddAsync(newUser, cancellationToken);
+                                await context.SaveChangesAsync(cancellationToken); // Save to get the user ID
+                                
+                                // Create IP reservation if user has static IP
+                                if (!string.IsNullOrWhiteSpace(sasUser.StaticIp))
+                                {
+                                    // Check if IP reservation already exists for this IP
+                                    var existingIpReservation = await context.RadiusIpReservations
+                                        .FirstOrDefaultAsync(r => r.IpAddress == sasUser.StaticIp && r.DeletedAt == null, cancellationToken);
+                                    
+                                    if (existingIpReservation == null)
+                                    {
+                                        var ipReservation = new RadiusIpReservation
+                                        {
+                                            IpAddress = sasUser.StaticIp,
+                                            Description = $"Auto-imported for user {sasUser.Username}",
+                                            RadiusUserId = newUser.Id,
+                                            CreatedAt = DateTime.UtcNow,
+                                            UpdatedAt = DateTime.UtcNow
+                                        };
+                                        await context.RadiusIpReservations.AddAsync(ipReservation, cancellationToken);
+                                    }
+                                    else if (existingIpReservation.RadiusUserId != newUser.Id)
+                                    {
+                                        // IP already reserved for another user, log warning
+                                        _logger.LogWarning("IP {IpAddress} already reserved for user ID {UserId}, cannot assign to user {Username}", 
+                                            sasUser.StaticIp, existingIpReservation.RadiusUserId, sasUser.Username);
+                                    }
+                                }
+                                
                                 userProgress.UserNewRecords++;
                             }
                             else
@@ -595,6 +624,73 @@ public class SasSyncService : ISasSyncService
                                 existingUser.DebtDays = sasUser.DebtDays;
                                 existingUser.UpdatedAt = DateTime.UtcNow;
                                 existingUser.LastSyncedAt = DateTime.UtcNow;
+                                
+                                // Sync IP reservation for existing user
+                                if (!string.IsNullOrWhiteSpace(sasUser.StaticIp))
+                                {
+                                    // Check if this user already has an IP reservation
+                                    var existingUserIpReservation = await context.RadiusIpReservations
+                                        .FirstOrDefaultAsync(r => r.RadiusUserId == existingUser.Id && r.DeletedAt == null, cancellationToken);
+                                    
+                                    if (existingUserIpReservation != null)
+                                    {
+                                        // Update existing reservation if IP changed
+                                        if (existingUserIpReservation.IpAddress != sasUser.StaticIp)
+                                        {
+                                            // Check if new IP is already reserved by another user
+                                            var ipConflict = await context.RadiusIpReservations
+                                                .FirstOrDefaultAsync(r => r.IpAddress == sasUser.StaticIp && r.DeletedAt == null && r.Id != existingUserIpReservation.Id, cancellationToken);
+                                            
+                                            if (ipConflict == null)
+                                            {
+                                                existingUserIpReservation.IpAddress = sasUser.StaticIp;
+                                                existingUserIpReservation.UpdatedAt = DateTime.UtcNow;
+                                            }
+                                            else
+                                            {
+                                                _logger.LogWarning("Cannot update IP to {IpAddress} for user {Username} - already reserved by user ID {UserId}", 
+                                                    sasUser.StaticIp, sasUser.Username, ipConflict.RadiusUserId);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Create new IP reservation
+                                        var existingIpReservation = await context.RadiusIpReservations
+                                            .FirstOrDefaultAsync(r => r.IpAddress == sasUser.StaticIp && r.DeletedAt == null, cancellationToken);
+                                        
+                                        if (existingIpReservation == null)
+                                        {
+                                            var ipReservation = new RadiusIpReservation
+                                            {
+                                                IpAddress = sasUser.StaticIp,
+                                                Description = $"Auto-imported for user {sasUser.Username}",
+                                                RadiusUserId = existingUser.Id,
+                                                CreatedAt = DateTime.UtcNow,
+                                                UpdatedAt = DateTime.UtcNow
+                                            };
+                                            await context.RadiusIpReservations.AddAsync(ipReservation, cancellationToken);
+                                        }
+                                        else if (existingIpReservation.RadiusUserId != existingUser.Id)
+                                        {
+                                            _logger.LogWarning("IP {IpAddress} already reserved for user ID {UserId}, cannot assign to user {Username}", 
+                                                sasUser.StaticIp, existingIpReservation.RadiusUserId, sasUser.Username);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // User no longer has static IP, remove reservation if exists
+                                    var existingUserIpReservation = await context.RadiusIpReservations
+                                        .FirstOrDefaultAsync(r => r.RadiusUserId == existingUser.Id && r.DeletedAt == null, cancellationToken);
+                                    
+                                    if (existingUserIpReservation != null)
+                                    {
+                                        existingUserIpReservation.DeletedAt = DateTime.UtcNow;
+                                        existingUserIpReservation.DeletedBy = "System (Sync)";
+                                    }
+                                }
+                                
                                 userProgress.UserUpdatedRecords++;
                             }
 
@@ -713,7 +809,8 @@ public class SasSyncService : ISasSyncService
 
                             groupProgress.GroupProcessedRecords++;
                         }
-                        catch (Exception ex)
+             
+                       catch (Exception ex)
                         {
                             _logger.LogError(ex, "Failed to process group {GroupId}", sasGroup.Id);
                             groupProgress.GroupFailedRecords++;
