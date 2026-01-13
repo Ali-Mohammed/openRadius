@@ -56,6 +56,7 @@ export default function CashbackGroups() {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([])
   const [isUserPopoverOpen, setIsUserPopoverOpen] = useState(false)
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
+  const [assignedUserIds, setAssignedUserIds] = useState<Record<number, number>>({})
 
   useEffect(() => {
     const params: Record<string, string> = {}
@@ -85,9 +86,56 @@ export default function CashbackGroups() {
     queryFn: () => userManagementApi.getAll(),
   })
 
+  // Fetch all active groups to track user assignments
+  const { data: allGroupsData } = useQuery({
+    queryKey: ['cashback-groups-all', currentWorkspaceId],
+    queryFn: async () => {
+      const result = await cashbackGroupApi.getAll({
+        page: 1,
+        pageSize: 1000,
+        onlyDeleted: false
+      })
+      return result.data
+    },
+    enabled: !!currentWorkspaceId,
+  })
+
+  // Build a map of userId -> groupId for users already assigned
+  useEffect(() => {
+    if (!allGroupsData) return
+    
+    const fetchAllAssignments = async () => {
+      const assignments: Record<number, number> = {}
+      
+      for (const group of allGroupsData) {
+        try {
+          const userIds = await cashbackGroupApi.getGroupUsers(group.id)
+          userIds.forEach(userId => {
+            assignments[userId] = group.id
+          })
+        } catch (error) {
+          console.error(`Error fetching users for group ${group.id}:`, error)
+        }
+      }
+      
+      setAssignedUserIds(assignments)
+    }
+    
+    fetchAllAssignments()
+  }, [allGroupsData])
+
   const groups = useMemo(() => groupsData?.data || [], [groupsData])
   const pagination = groupsData?.pagination
   const users = useMemo(() => usersData || [], [usersData])
+  
+  // Filter users to only show unassigned users or users in current editing group
+  const availableUsers = useMemo(() => {
+    return users.filter(user => {
+      const assignedGroupId = assignedUserIds[user.id]
+      // Include if not assigned to any group, or assigned to the group being edited
+      return !assignedGroupId || (editingGroup && assignedGroupId === editingGroup.id)
+    })
+  }, [users, assignedUserIds, editingGroup])
 
   const rowVirtualizer = useVirtualizer({
     count: groups.length,
@@ -249,7 +297,7 @@ export default function CashbackGroups() {
   }
 
   const selectAllFilteredUsers = () => {
-    const filteredUserIds = users
+    const filteredUserIds = availableUsers
       .filter(u => {
         const fullName = `${u.firstName || ''} ${u.lastName || ''} ${u.email || ''}`.toLowerCase()
         return fullName.includes(userSearch.toLowerCase())
@@ -584,11 +632,33 @@ export default function CashbackGroups() {
                     <h3 className="font-semibold text-sm">Assigned Users ({selectedUserIds.length})</h3>
                   </div>
 
+                  {selectedUserIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {selectedUserIds.map(userId => {
+                        const user = users.find(u => u.id === userId)
+                        if (!user) return null
+                        return (
+                          <div key={userId} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
+                            <span>{user.firstName} {user.lastName}</span>
+                            <button
+                              onClick={() => toggleUserSelection(userId)}
+                              className="hover:bg-primary/20 rounded-full p-0.5"
+                            >
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
                   <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start">
                         <Users className="h-4 w-4 mr-2" />
-                        {selectedUserIds.length} user(s) selected
+                        {selectedUserIds.length === 0 ? 'Select users' : `${selectedUserIds.length} user(s) selected - Click to modify`}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px]" align="start">
@@ -608,7 +678,7 @@ export default function CashbackGroups() {
                           </Button>
                         </div>
                         <div className="max-h-[300px] overflow-y-auto space-y-2">
-                          {users
+                          {availableUsers
                             .filter(u => {
                               const fullName = `${u.firstName || ''} ${u.lastName || ''} ${u.email || ''}`.toLowerCase()
                               return fullName.includes(userSearch.toLowerCase())
