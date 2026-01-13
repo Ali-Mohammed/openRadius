@@ -29,7 +29,9 @@ public class RadiusGroup
 public class RadiusGroupResponse
 {
     public int Id { get; set; }
+    public int? ExternalId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public string? Subscription { get; set; }
     public bool IsActive { get; set; }
     public string Color { get; set; } = string.Empty;
@@ -37,6 +39,7 @@ public class RadiusGroupResponse
     public int UsersCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public DateTime? LastSyncedAt { get; set; }
 }
 
 // Request Models for API
