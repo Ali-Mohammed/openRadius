@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -21,7 +22,6 @@ import { customWalletApi } from '../api/customWallets';
 import userWalletApi from '../api/userWallets';
 import { workspaceApi } from '../lib/api';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { i18n } from '../i18n';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -87,6 +87,7 @@ export default function BillingProfiles() {
   const workspaceId = parseInt(id || '0');
   const { currentWorkspaceId } = useWorkspace();
   const queryClient = useQueryClient();
+  const { i18n } = useTranslation();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<BillingProfile | null>(null);
@@ -146,18 +147,18 @@ export default function BillingProfiles() {
   });
 
   const { data: radiusProfilesData, isLoading: isLoadingRadiusProfiles } = useQuery({
-    queryKey: ['radius-profiles'],
+    queryKey: ['radius-profiles', currentWorkspaceId],
     queryFn: async () => {
-      if (!workspaceId || workspaceId === 0) {
+      if (!currentWorkspaceId) {
         console.log('No workspace ID available');
         return { data: [], pagination: { currentPage: 1, pageSize: 50, totalRecords: 0, totalPages: 0 } };
       }
-      console.log('Fetching radius profiles for workspace:', workspaceId);
+      console.log('Fetching radius profiles for workspace:', currentWorkspaceId);
       const result = await radiusProfileApi.getAll(1, 1000);
       console.log('Radius profiles result:', result);
       return result;
     },
-    enabled: workspaceId > 0,
+    enabled: !!currentWorkspaceId,
   });
 
   const { data: billingGroupsData, isLoading: isLoadingBillingGroups } = useQuery({
