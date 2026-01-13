@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Search, ArchiveRestore, GitBranch } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ArchiveRestore, GitBranch, Archive, RefreshCw, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getAutomations,
@@ -13,6 +13,7 @@ import {
   type CreateAutomationRequest,
 } from '../api/automations';
 import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import {
   Select,
@@ -196,40 +197,48 @@ export default function Automations() {
   const deletedAutomations = deletedAutomationsData?.data?.filter((a: Automation) => a.isDeleted) || [];
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">Automations</h1>
-            <p className="text-muted-foreground">
-              Manage billing automations and workflows
-            </p>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Automations</h1>
+          <p className="text-sm text-muted-foreground">Manage billing automations and workflows</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Zap className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="deleted">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search automations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64"
+            />
+            <Button onClick={() => setSearch(search)} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['automations'] })} variant="outline" size="icon" title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={() => handleOpenDialog()} disabled={activeTab === 'deleted'}>
+            <Plus className="h-4 w-4 mr-2" />
             Add Automation
           </Button>
         </div>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search automations..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="deleted">Deleted</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active">
-          <div className="border rounded-lg">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
+          {activeTab === 'active' ? (
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -315,11 +324,9 @@ export default function Automations() {
                 )}
               </TableBody>
             </Table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="deleted">
-          <div className="border rounded-lg">
+            </div>
+          ) : (
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -389,9 +396,10 @@ export default function Automations() {
                 )}
               </TableBody>
             </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
