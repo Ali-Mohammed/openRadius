@@ -40,6 +40,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserWallet> UserWallets { get; set; }
     public DbSet<CashbackGroup> CashbackGroups { get; set; }
     public DbSet<CashbackGroupUser> CashbackGroupUsers { get; set; }
+    public DbSet<CashbackProfileAmount> CashbackProfileAmounts { get; set; }
     public DbSet<WalletHistory> WalletHistories { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<TransactionComment> TransactionComments { get; set; }
@@ -412,6 +413,28 @@ public class ApplicationDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
             
             // UserId is stored but not a foreign key (references master database User table)
+        });
+
+        modelBuilder.Entity<CashbackProfileAmount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.CashbackGroupId, e.BillingProfileId });
+            
+            entity.HasOne(e => e.CashbackGroup)
+                  .WithMany()
+                  .HasForeignKey(e => e.CashbackGroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.Property(e => e.Amount)
+                  .HasColumnType("decimal(18,2)");
+            
+            // Add query filter to exclude soft-deleted amounts by default
+            entity.HasQueryFilter(e => e.DeletedAt == null);
         });
     }
 }
