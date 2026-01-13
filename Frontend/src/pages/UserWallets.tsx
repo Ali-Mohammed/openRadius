@@ -9,6 +9,8 @@ import {
   Check,
   X,
   ChevronsUpDown,
+  Archive,
+  RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -391,35 +393,30 @@ export default function UserWallets() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Wallets</h1>
-          <p className="text-muted-foreground">
-            Manage user-specific wallet instances and balances
-          </p>
+          <h1 className="text-2xl font-bold">User Wallets</h1>
+          <p className="text-sm text-muted-foreground">Manage user-specific wallet instances and balances</p>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Assign Wallet to User
-        </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by user or wallet..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="w-[200px] flex gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search by user or wallet..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64"
+            />
+            <Button onClick={() => setSearchTerm(searchTerm)} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['user-wallets'] })} variant="outline" size="icon" title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger>
+            <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -430,22 +427,17 @@ export default function UserWallets() {
               ))}
             </SelectContent>
           </Select>
-          {filterStatus && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setFilterStatus('')}
-              className="h-10 w-10"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Assign Wallet
+          </Button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
@@ -557,7 +549,9 @@ export default function UserWallets() {
             )}
           </TableBody>
         </Table>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Pagination */}
       {totalPages > 1 && (
