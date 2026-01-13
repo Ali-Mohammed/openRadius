@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import { Button } from '../components/ui/button'
+import { Card, CardContent } from '../components/ui/card'
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ import {
   SelectValue,
 } from '../components/ui/select'
 import { Badge } from '../components/ui/badge'
+import { Skeleton } from '../components/ui/skeleton'
 import {
   Tabs,
   TabsContent,
@@ -56,7 +58,7 @@ import {
   TabsTrigger,
 } from '../components/ui/tabs'
 import { 
-  Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, Archive
 } from 'lucide-react'
 import { workspaceApi, usersApi } from '../lib/api'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -64,7 +66,7 @@ import type { Workspace, WorkspaceCreateDto } from '../lib/api'
 import { toast } from 'sonner'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent, getColorLabel } from '../utils/iconColorHelper'
 
-export default function workspaceView() {
+export default function WorkspaceView() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -659,26 +661,55 @@ export default function workspaceView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Workspace</h1>
-          <p className="text-muted-foreground">Manage your Workspace entries</p>
+          <h1 className="text-2xl font-bold">Workspaces</h1>
+          <p className="text-sm text-muted-foreground">Manage your workspace entries</p>
         </div>
-        <Dialog open={open} onOpenChange={(isOpen) => {
-          // Prevent closing if this is the first workspace prompt
-          if (!isOpen && workspaces.length === 0 && deletedworkspaces.length === 0 && !editingworkspace) {
-            return
-          }
-          setOpen(isOpen)
-          if (!isOpen) resetForm()
-        }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add New
+        <div className="flex items-center gap-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <Building2 className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="deleted">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search workspaces..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-64"
+            />
+            <Button onClick={handleSearch} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
             </Button>
-          </DialogTrigger>
+            <Button onClick={handleRefresh} variant="outline" size="icon" title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button onClick={handleExport} variant="outline" size="icon" title="Export data">
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            // Prevent closing if this is the first workspace prompt
+            if (!isOpen && workspaces.length === 0 && deletedworkspaces.length === 0 && !editingworkspace) {
+              return
+            }
+            setOpen(isOpen)
+            if (!isOpen) resetForm()
+          }}>
+            <DialogTrigger asChild>
+              <Button disabled={activeTab === 'deleted'}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Workspace
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
@@ -880,277 +911,332 @@ export default function workspaceView() {
         </Dialog>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="active">
-                Active ({workspaces.length})
-              </TabsTrigger>
-              <TabsTrigger value="deleted">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Deleted ({deletedworkspaces.length})
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="flex flex-1 items-center gap-2">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search Workspace entries..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-9"
-              />
-            </div>
-            <Button onClick={handleSearch} variant="secondary">
-              Search
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {activeTab === 'active' && table.getFilteredSelectedRowModel().rows.length > 0 && (
-            <Button onClick={handleBulkDelete} variant="destructive" size="sm">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete ({table.getFilteredSelectedRowModel().rows.length})
-            </Button>
-          )}
-          {activeTab === 'deleted' && deletedTable.getFilteredSelectedRowModel().rows.length > 0 && (
-            <Button onClick={handleBulkRestore} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Restore ({deletedTable.getFilteredSelectedRowModel().rows.length})
-            </Button>
-          )}
-          <Button onClick={handleRefresh} variant="default" size="icon">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button onClick={handleExport} variant="default" size="icon">
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {activeTab === 'active' ? (
-        <div className="space-y-4">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount()} ({workspaces.length} total entries)
-          </p>
-          <Select
-            value={table.getState().pagination.pageSize.toString()}
-            onValueChange={(value) => table.setPageSize(Number(value))}
-          >
-            <SelectTrigger className="w-[110px] h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10 / page</SelectItem>
-              <SelectItem value="20">20 / page</SelectItem>
-              <SelectItem value="50">50 / page</SelectItem>
-              <SelectItem value="100">100 / page</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center space-x-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {deletedTable.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {deletedworkspaces.length ? (
-                  deletedTable.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsContent value="active" className="mt-0">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0 overflow-hidden relative">
+              {isLoading ? (
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      <TableRow>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                        <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                        <TableHead className="sticky right-0 bg-background h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                          <TableCell className="sticky right-0 bg-background h-12 px-4">
+                            <div className="flex justify-end gap-2">
+                              <Skeleton className="h-8 w-8 rounded" />
+                              <Skeleton className="h-8 w-8 rounded" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={deletedColumns.length}
-                      className="h-24 text-center"
-                    >
-                      No deleted items.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : !isLoading && workspaces.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-full bg-muted p-6 mb-4">
+                    <Building2 className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No workspaces yet</h3>
+                  <p className="text-sm text-muted-foreground mb-6">Get started by creating your first workspace</p>
+                  <Button onClick={() => setOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Workspace
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id} className="hover:bg-muted">
+                          {headerGroup.headers.map((header) => (
+                            <TableHead key={header.id} className="h-12 px-4">
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id} className="border-b">
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="h-12 px-4">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                Page {deletedTable.getState().pagination.pageIndex + 1} of{' '}
-                {deletedTable.getPageCount()} ({deletedworkspaces.length} total entries)
-              </p>
-              <Select
-                value={deletedTable.getState().pagination.pageSize.toString()}
-                onValueChange={(value) => deletedTable.setPageSize(Number(value))}
-              >
-                <SelectTrigger className="w-[110px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 / page</SelectItem>
-                  <SelectItem value="20">20 / page</SelectItem>
-                  <SelectItem value="50">50 / page</SelectItem>
-                  <SelectItem value="100">100 / page</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deletedTable.setPageIndex(0)}
-                disabled={!deletedTable.getCanPreviousPage()}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deletedTable.previousPage()}
-                disabled={!deletedTable.getCanPreviousPage()}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deletedTable.nextPage()}
-                disabled={!deletedTable.getCanNextPage()}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deletedTable.setPageIndex(deletedTable.getPageCount() - 1)}
-                disabled={!deletedTable.getCanNextPage()}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+              {/* Pagination Controls */}
+              {workspaces.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                      <Select
+                        value={table.getState().pagination.pageSize.toString()}
+                        onValueChange={(value) => table.setPageSize(Number(value))}
+                      >
+                        <SelectTrigger className="h-8 w-[70px] text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="text-sm text-muted-foreground font-medium">
+                      Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, workspaces.length)} of {workspaces.length} workspaces
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => table.setPageIndex(0)}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="deleted" className="mt-0">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0 overflow-hidden relative">
+              {deletedworkspaces.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-full bg-muted p-6 mb-4">
+                    <Archive className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No deleted workspaces</h3>
+                  <p className="text-sm text-muted-foreground">Deleted workspaces will appear here</p>
+                </div>
+              ) : (
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      {deletedTable.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id} className="hover:bg-muted">
+                          {headerGroup.headers.map((header) => (
+                            <TableHead key={header.id} className="h-12 px-4">
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {deletedTable.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id} className="border-b">
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="h-12 px-4">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {deletedworkspaces.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                      <Select
+                        value={deletedTable.getState().pagination.pageSize.toString()}
+                        onValueChange={(value) => deletedTable.setPageSize(Number(value))}
+                      >
+                        <SelectTrigger className="h-8 w-[70px] text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="text-sm text-muted-foreground font-medium">
+                      Showing {deletedTable.getState().pagination.pageIndex * deletedTable.getState().pagination.pageSize + 1} to {Math.min((deletedTable.getState().pagination.pageIndex + 1) * deletedTable.getState().pagination.pageSize, deletedworkspaces.length)} of {deletedworkspaces.length} deleted workspaces
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => deletedTable.setPageIndex(0)}
+                      disabled={!deletedTable.getCanPreviousPage()}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => deletedTable.previousPage()}
+                      disabled={!deletedTable.getCanPreviousPage()}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => deletedTable.nextPage()}
+                      disabled={!deletedTable.getCanNextPage()}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => deletedTable.setPageIndex(deletedTable.getPageCount() - 1)}
+                      disabled={!deletedTable.getCanNextPage()}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Floating Action Bar for Bulk Operations */}
+      {activeTab === 'active' && table.getFilteredSelectedRowModel().rows.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+          <span className="font-medium">
+            {table.getFilteredSelectedRowModel().rows.length} workspace(s) selected
+          </span>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={handleBulkDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setRowSelection({})}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {activeTab === 'deleted' && deletedTable.getFilteredSelectedRowModel().rows.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+          <span className="font-medium">
+            {deletedTable.getFilteredSelectedRowModel().rows.length} workspace(s) selected
+          </span>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={handleBulkRestore}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restore
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setRowSelection({})}
+          >
+            Clear
+          </Button>
         </div>
       )}
 
@@ -1298,4 +1384,6 @@ export default function workspaceView() {
     </div>
   )
 }
+
+export default WorkspaceView
 

@@ -466,6 +466,8 @@ namespace Backend.Migrations
                     Color = table.Column<string>(type: "text", nullable: false),
                     Icon = table.Column<string>(type: "text", nullable: false),
                     Currency = table.Column<string>(type: "text", nullable: false),
+                    ChurnDays = table.Column<int>(type: "integer", nullable: false),
+                    DateFormat = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: false),
@@ -489,6 +491,7 @@ namespace Backend.Migrations
                     Color = table.Column<string>(type: "text", nullable: true),
                     Icon = table.Column<string>(type: "text", nullable: true),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    ParentZoneId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
@@ -500,6 +503,11 @@ namespace Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Zones", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Zones_Zones_ParentZoneId",
+                        column: x => x.ParentZoneId,
+                        principalTable: "Zones",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -812,6 +820,7 @@ namespace Backend.Migrations
                     Enabled = table.Column<bool>(type: "boolean", nullable: false),
                     Company = table.Column<string>(type: "text", nullable: true),
                     Notes = table.Column<string>(type: "text", nullable: true),
+                    DeviceSerialNumber = table.Column<string>(type: "text", nullable: true),
                     SimultaneousSessions = table.Column<int>(type: "integer", nullable: false),
                     Address = table.Column<string>(type: "text", nullable: true),
                     ContractId = table.Column<string>(type: "text", nullable: true),
@@ -1527,6 +1536,11 @@ namespace Backend.Migrations
                 name: "IX_Zones_Name",
                 table: "Zones",
                 column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Zones_ParentZoneId",
+                table: "Zones",
+                column: "ParentZoneId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Zones_WorkspaceId",

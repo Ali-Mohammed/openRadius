@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260112082329_AddChurnDaysToWorkspace")]
-    partial class AddChurnDaysToWorkspace
+    [Migration("20260113045950_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1535,6 +1535,9 @@ namespace Backend.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DeviceSerialNumber")
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
@@ -2316,6 +2319,10 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("DateFormat")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2394,6 +2401,9 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("ParentZoneId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2406,6 +2416,8 @@ namespace Backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("ParentZoneId");
 
                     b.HasIndex("WorkspaceId");
 
@@ -2734,6 +2746,15 @@ namespace Backend.Migrations
                     b.Navigation("Automation");
                 });
 
+            modelBuilder.Entity("Backend.Models.Zone", b =>
+                {
+                    b.HasOne("Backend.Models.Zone", "ParentZone")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentZoneId");
+
+                    b.Navigation("ParentZone");
+                });
+
             modelBuilder.Entity("Backend.Models.BillingGroup", b =>
                 {
                     b.Navigation("GroupUsers");
@@ -2795,6 +2816,8 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Zone", b =>
                 {
+                    b.Navigation("Children");
+
                     b.Navigation("RadiusUsers");
 
                     b.Navigation("UserZones");
