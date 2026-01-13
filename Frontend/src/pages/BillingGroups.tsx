@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Search, ArchiveRestore, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ArchiveRestore, Users, Archive, RefreshCw, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getGroups,
@@ -235,39 +235,47 @@ export default function BillingGroups() {
   ) || [];
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Billing Groups</h1>
-          <p className="text-muted-foreground mt-1">
-            Organize users into billing groups
-          </p>
+          <h1 className="text-2xl font-bold">Billing Groups</h1>
+          <p className="text-sm text-muted-foreground">Organize users into billing groups</p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Group
-        </Button>
+        <div className="flex items-center gap-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="active">
+                <UserCog className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="deleted">
+                <Archive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Search groups..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64"
+            />
+            <Button onClick={() => setSearch(search)} variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['billing-groups'] })} variant="outline" size="icon" title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => handleOpenDialog()} disabled={activeTab === 'deleted'}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Group
+          </Button>
+        </div>
       </div>
 
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search groups..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="active">Active Groups</TabsTrigger>
-          <TabsTrigger value="deleted">Deleted Groups</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="space-y-4">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
+          {activeTab === 'active' ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
