@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, Users as UsersIcon, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin, Layers, WalletCards, TrendingUp, PiggyBank, Globe, FileStack, HardDrive, Cog, SquareStack } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useTranslation } from "react-i18next"
@@ -81,7 +81,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.ipReservations",
           url: `/radius/ip-reservations`,
-          icon: Network,
+          icon: Layers,
         },
         {
           titleKey: "navigation.zones",
@@ -108,7 +108,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.groups",
           url: "/billing/groups",
-          icon: UsersIcon,
+          icon: TrendingUp,
         },
         {
           titleKey: "navigation.cashbacks",
@@ -118,7 +118,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.cashbackGroups",
           url: "/billing/cashback-groups",
-          icon: UsersRound,
+          icon: PiggyBank,
         },
         {
           titleKey: "navigation.customWallets",
@@ -128,7 +128,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.userWallets",
           url: "/billing/user-wallets",
-          icon: Users,
+          icon: WalletCards,
         },
         {
           titleKey: "navigation.topUp",
@@ -175,12 +175,12 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.fats",
           url: "/network/fats",
-          icon: Box,
+          icon: SquareStack,
         },
         {
           titleKey: "navigation.provisioning",
           url: "/network/provisioning",
-          icon: Zap,
+          icon: Globe,
         },
         {
           titleKey: "navigation.monitoring",
@@ -195,7 +195,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.networkSettings",
           url: "/network/settings",
-          icon: Settings,
+          icon: Cog,
         },
       ],
     },
@@ -207,7 +207,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.connectorList",
           url: "/connectors",
-          icon: Database,
+          icon: FileStack,
         },
         {
           titleKey: "navigation.cdcMonitor",
@@ -217,7 +217,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.connectorSettings",
           url: "/connectors/settings",
-          icon: Settings,
+          icon: Wrench,
         },
       ],
     },
@@ -244,7 +244,7 @@ const getNavData = (workspaceId: number) => ({
         {
           titleKey: "navigation.databaseBackup",
           url: "/settings/database-backup",
-          icon: Database,
+          icon: HardDrive,
         },
         {
           titleKey: "navigation.integrations",
