@@ -567,7 +567,7 @@ export default function RadiusUsers() {
       profileId: formData.profileId ? parseInt(formData.profileId) : undefined,
       expiration: formData.expiration ? new Date(formData.expiration).toISOString() : undefined,
       enabled: formData.enabled,
-      staticIp: formData.staticIp || undefined,
+      // staticIp is managed from IP Reservations page, not sent here
       company: formData.company || undefined,
       address: formData.address || undefined,
       contractId: formData.contractId || undefined,
@@ -2063,9 +2063,13 @@ export default function RadiusUsers() {
                   <Input
                     id="staticIp"
                     value={formData.staticIp}
-                    onChange={(e) => setFormData({ ...formData, staticIp: e.target.value })}
-                    placeholder="e.g., 192.168.1.100"
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                    placeholder="Managed from IP Reservations"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Static IP is managed from the IP Reservations page
+                  </p>
                 </div>
               </div>
 

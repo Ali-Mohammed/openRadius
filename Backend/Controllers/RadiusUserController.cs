@@ -40,6 +40,15 @@ public class RadiusUserController : ControllerBase
                 .ThenInclude(ut => ut.RadiusTag)
             .Where(u => includeDeleted || !u.IsDeleted);
 
+        // Get IP reservations for users
+        var ipReservations = await _context.RadiusIpReservations
+            .Where(r => r.DeletedAt == null)
+            .ToListAsync();
+        var userIpMap = ipReservations
+            .Where(r => r.RadiusUserId.HasValue)
+            .GroupBy(r => r.RadiusUserId!.Value)
+            .ToDictionary(g => g.Key, g => g.First().IpAddress);
+
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -120,7 +129,7 @@ public class RadiusUserController : ControllerBase
             OnlineStatus = u.OnlineStatus,
             RemainingDays = u.RemainingDays,
             DebtDays = u.DebtDays,
-            StaticIp = u.StaticIp,
+            StaticIp = userIpMap.ContainsKey(u.Id) ? userIpMap[u.Id] : null,
             Company = u.Company,
             Address = u.Address,
             ContractId = u.ContractId,
@@ -176,6 +185,11 @@ public class RadiusUserController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
+        // Get IP reservation for this user
+        var ipReservation = await _context.RadiusIpReservations
+            .Where(r => r.RadiusUserId == id && r.DeletedAt == null)
+            .FirstOrDefaultAsync();
+
         var response = new RadiusUserResponse
         {
             Id = user.Id,
@@ -195,7 +209,7 @@ public class RadiusUserController : ControllerBase
             OnlineStatus = user.OnlineStatus,
             RemainingDays = user.RemainingDays,
             DebtDays = user.DebtDays,
-            StaticIp = user.StaticIp,
+            StaticIp = ipReservation?.IpAddress,
             Company = user.Company,
             Address = user.Address,
             ContractId = user.ContractId,
@@ -506,6 +520,15 @@ public class RadiusUserController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
 
+        // Get IP reservations for users
+        var userIds = users.Select(u => u.Id).ToList();
+        var ipReservations = await _context.RadiusIpReservations
+            .Where(r => r.RadiusUserId.HasValue && userIds.Contains(r.RadiusUserId.Value) && r.DeletedAt == null)
+            .ToListAsync();
+        var userIpMap = ipReservations
+            .GroupBy(r => r.RadiusUserId!.Value)
+            .ToDictionary(g => g.Key, g => g.First().IpAddress);
+
         var response = users.Select(u => new RadiusUserResponse
         {
             Id = u.Id,
@@ -519,6 +542,7 @@ public class RadiusUserController : ControllerBase
             ProfileName = u.Profile?.Name,
             Balance = u.Balance,
             Enabled = u.Enabled,
+            StaticIp = userIpMap.ContainsKey(u.Id) ? userIpMap[u.Id] : null,
             DeletedAt = u.DeletedAt,
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
