@@ -333,20 +333,22 @@ export default function Automations() {
                   <TableHead>Automation</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead>Deleted At</TableHead>
+                  <TableHead>Deleted By</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingDeleted ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={7} className="text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : deletedAutomations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={7} className="text-center">
                       No deleted automations found.
                     </TableCell>
                   </TableRow>
@@ -376,9 +378,15 @@ export default function Automations() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {automation.createdBy || '-'}
+                        </TableCell>
+                        <TableCell>
                           {automation.deletedAt
                             ? new Date(automation.deletedAt).toLocaleString()
                             : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {automation.deletedBy || '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button

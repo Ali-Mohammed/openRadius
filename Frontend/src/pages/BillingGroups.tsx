@@ -363,20 +363,22 @@ export default function BillingGroups() {
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Users</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead>Deleted At</TableHead>
+              <TableHead>Deleted By</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoadingDeleted ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : deletedGroupsData?.data?.filter(g => g.isDeleted).length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   No deleted groups found
                 </TableCell>
               </TableRow>
@@ -405,7 +407,13 @@ export default function BillingGroups() {
                       </Badge>
                     </TableCell>
                     <TableCell className="opacity-60">
+                      {group.createdBy || '-'}
+                    </TableCell>
+                    <TableCell className="opacity-60">
                       {group.deletedAt ? new Date(group.deletedAt).toLocaleDateString() : '-'}
+                    </TableCell>
+                    <TableCell className="opacity-60">
+                      {group.deletedBy || '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

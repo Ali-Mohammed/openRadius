@@ -601,12 +601,22 @@ export default function Zones() {
       header: 'Description',
     },
     {
+      accessorKey: 'createdBy',
+      header: 'Created By',
+      cell: ({ row }) => row.original.createdBy || '-',
+    },
+    {
       accessorKey: 'deletedAt',
       header: 'Deleted At',
       cell: ({ row }) => {
         const date = row.original.deletedAt ? new Date(row.original.deletedAt) : null
         return date ? `${date.toLocaleDateString()} ${date.toLocaleTimeString()}` : '-'
       },
+    },
+    {
+      accessorKey: 'deletedBy',
+      header: 'Deleted By',
+      cell: ({ row }) => row.original.deletedBy || '-',
     },
     {
       id: 'actions',
