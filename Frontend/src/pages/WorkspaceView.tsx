@@ -1385,5 +1385,3 @@ export default function WorkspaceView() {
   )
 }
 
-export default WorkspaceView
-
