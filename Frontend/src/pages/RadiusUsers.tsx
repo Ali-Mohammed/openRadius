@@ -75,6 +75,7 @@ export default function RadiusUsers() {
     phone: true,
     city: false,
     profile: true,
+    group: true,
     status: true,
     balance: true,
     loanBalance: false,
@@ -105,6 +106,7 @@ export default function RadiusUsers() {
     phone: 140,
     city: 140,
     profile: 140,
+    group: 140,
     status: 100,
     balance: 120,
     loanBalance: 120,
@@ -136,6 +138,7 @@ export default function RadiusUsers() {
     'phone',
     'city',
     'profile',
+    'group',
     'status',
     'balance',
     'loanBalance',
@@ -1998,6 +2001,28 @@ export default function RadiusUsers() {
                         {t('radiusUsers.noZonesFound') || 'No zones found'}
                       </div>
                     )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="groupId">{t('radiusUsers.group')}</Label>
+                <Select
+                  value={formData.groupId}
+                  onValueChange={(value) => setFormData({ ...formData, groupId: value })}
+                >
+                  <SelectTrigger id="groupId">
+                    <SelectValue placeholder={t('radiusUsers.selectGroup') || 'Select Group'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">{t('radiusUsers.noGroup') || 'No Group'}</SelectItem>
+                    {groupsData?.data?.map((group) => (
+                      <SelectItem key={group.id} value={group.id.toString()}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
