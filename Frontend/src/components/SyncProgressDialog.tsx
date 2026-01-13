@@ -229,6 +229,61 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
               {/* Arrow */}
               {currentProgress.profileTotalRecords > 0 && (
                 <div className="flex justify-center">
+                  <ArrowRight className={`w-6 h-6 ${zonesComplete ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+                </div>
+              )}
+
+              {/* Zone Sync Phase */}
+              <div className={`rounded-lg border p-4 ${zonesComplete ? 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800' : 'bg-background'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className={`w-5 h-5 ${zonesComplete ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+                    <h3 className="font-semibold">Zone Synchronization</h3>
+                  </div>
+                  {zonesComplete ? (
+                    <CheckCircle2 className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  ) : currentProgress.currentPhase === SyncPhase.Zones ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-orange-600 dark:text-orange-400" />
+                  ) : null}
+                </div>
+
+                {currentProgress.zoneTotalRecords > 0 && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Total Records:</span>
+                      <span className="font-medium">{formatNumber(currentProgress.zoneTotalRecords)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Processed:</span>
+                      <span className="font-medium">{formatNumber(currentProgress.zoneProcessedRecords)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-950 rounded">
+                        <span className="text-xs text-muted-foreground">New</span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          {formatNumber(currentProgress.zoneNewRecords)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-950 rounded">
+                        <span className="text-xs text-muted-foreground">Updated</span>
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          {formatNumber(currentProgress.zoneUpdatedRecords)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-950 rounded">
+                        <span className="text-xs text-muted-foreground">Failed</span>
+                        <span className="font-semibold text-red-600 dark:text-red-400">
+                          {formatNumber(currentProgress.zoneFailedRecords)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Arrow */}
+              {currentProgress.zoneTotalRecords > 0 && (
+                <div className="flex justify-center">
                   <ArrowRight className={`w-6 h-6 ${usersComplete ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                 </div>
               )}
