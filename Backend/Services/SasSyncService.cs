@@ -150,6 +150,10 @@ public class SasSyncService : ISasSyncService
             await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Profiles, 15, "Starting profile synchronization...", cancellationToken);
             await SyncProfilesAsync(syncId, integration, token, cancellationToken);
 
+            // Sync Zones from Manager Tree
+            await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Users, 50, "Starting zone synchronization...", cancellationToken);
+            await SyncZonesAsync(syncId, integration, token, cancellationToken);
+
             // Then Sync Users
             await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Users, 55, "Starting user synchronization...", cancellationToken);
             await SyncUsersAsync(syncId, integration, token, cancellationToken);
@@ -591,6 +595,125 @@ public class SasSyncService : ISasSyncService
         }
     }
 
+    private async Task SyncZonesAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        
+        var uri = new Uri(integration.Url.TrimEnd('/'));
+        var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/manager/tree";
+
+        await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Zones, 50, "Fetching manager tree for zones...", cancellationToken);
+
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var treeNodes = await response.Content.ReadFromJsonAsync<List<SasTreeNode>>(cancellationToken);
+        
+        if (treeNodes == null || treeNodes.Count == 0)
+        {
+            _logger.LogWarning("No tree nodes received from SAS API");
+            return;
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var zoneProgress = await context.SyncProgresses.FindAsync(syncId);
+        
+        if (zoneProgress == null) return;
+
+        // Initialize zone tracking
+        zoneProgress.ZoneTotalRecords = treeNodes.Count;
+        zoneProgress.ZoneProcessedRecords = 0;
+        zoneProgress.ZoneNewRecords = 0;
+        zoneProgress.ZoneUpdatedRecords = 0;
+        zoneProgress.ZoneFailedRecords = 0;
+        await context.SaveChangesAsync(cancellationToken);
+
+        await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Zones, 51, $"Processing {treeNodes.Count} zones...", cancellationToken);
+
+        // Build a lookup dictionary for parent resolution
+        var sasIdToZoneId = new Dictionary<int, int>();
+        
+        // First pass: Create or update all zones without parent relationships
+        foreach (var node in treeNodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            try
+            {
+                var existingZone = await context.Zones
+                    .FirstOrDefaultAsync(z => z.SasUserId == node.Id && z.WorkspaceId == integration.WorkspaceId, cancellationToken);
+
+                if (existingZone != null)
+                {
+                    // Update existing zone
+                    existingZone.Name = node.Username;
+                    existingZone.UpdatedAt = DateTime.UtcNow;
+                    sasIdToZoneId[node.Id] = existingZone.Id;
+                    zoneProgress.ZoneUpdatedRecords++;
+                }
+                else
+                {
+                    // Create new zone
+                    var newZone = new Zone
+                    {
+                        Name = node.Username,
+                        WorkspaceId = integration.WorkspaceId,
+                        SasUserId = node.Id,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    
+                    context.Zones.Add(newZone);
+                    await context.SaveChangesAsync(cancellationToken);
+                    sasIdToZoneId[node.Id] = newZone.Id;
+                    zoneProgress.ZoneNewRecords++;
+                }
+                
+                zoneProgress.ZoneProcessedRecords++;
+                if (zoneProgress.ZoneProcessedRecords % 10 == 0)
+                {
+                    double progress = (zoneProgress.ZoneProcessedRecords / (double)treeNodes.Count) * 2; // 2% progress for first pass
+                    await context.SaveChangesAsync(cancellationToken);
+                    await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Zones, 51 + (int)progress, 
+                        $"Processed {zoneProgress.ZoneProcessedRecords}/{treeNodes.Count} zones...", cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create/update zone for SAS User ID {SasUserId}", node.Id);
+                zoneProgress.ZoneFailedRecords++;
+            }
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Second pass: Update parent relationships
+        await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Zones, 53, "Updating zone hierarchy...", cancellationToken);
+        
+        foreach (var node in treeNodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            if (node.ParentId.HasValue && sasIdToZoneId.ContainsKey(node.Id))
+            {
+                var zoneId = sasIdToZoneId[node.Id];
+                var zone = await context.Zones.FindAsync(zoneId);
+                
+                if (zone != null && sasIdToZoneId.ContainsKey(node.ParentId.Value))
+                {
+                    zone.ParentZoneId = sasIdToZoneId[node.ParentId.Value];
+                }
+            }
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Zones, 54, 
+            $"Zone synchronization complete: {zoneProgress.ZoneProcessedRecords} processed, " +
+            $"{zoneProgress.ZoneNewRecords} new, {zoneProgress.ZoneUpdatedRecords} updated, " +
+            $"{zoneProgress.ZoneFailedRecords} failed", cancellationToken);
+    }
+
     private async Task UpdateProgress(Guid syncId, SyncStatus status, SyncPhase phase, double percentage, string message, CancellationToken cancellationToken, string? errorMessage = null)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -628,6 +751,11 @@ public class SasSyncService : ISasSyncService
             ProfileNewRecords = progress.ProfileNewRecords,
             ProfileUpdatedRecords = progress.ProfileUpdatedRecords,
             ProfileFailedRecords = progress.ProfileFailedRecords,
+            ZoneTotalRecords = progress.ZoneTotalRecords,
+            ZoneProcessedRecords = progress.ZoneProcessedRecords,
+            ZoneNewRecords = progress.ZoneNewRecords,
+            ZoneUpdatedRecords = progress.ZoneUpdatedRecords,
+            ZoneFailedRecords = progress.ZoneFailedRecords,
             UserCurrentPage = progress.UserCurrentPage,
             UserTotalPages = progress.UserTotalPages,
             UserTotalRecords = progress.UserTotalRecords,
@@ -645,4 +773,11 @@ public class SasSyncService : ISasSyncService
     }
 }
 
+// Helper class for SAS manager tree API response
+internal record SasTreeNode
+{
+    public int Id { get; init; }
+    public int? ParentId { get; init; }
+    public string Username { get; init; } = string.Empty;
+}
 

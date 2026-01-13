@@ -3,6 +3,7 @@ using System;
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260113085318_AddSasUserIdToZone")]
+    partial class AddSasUserIdToZone
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1797,21 +1800,6 @@ namespace Backend.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("WorkspaceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ZoneFailedRecords")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ZoneNewRecords")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ZoneProcessedRecords")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ZoneTotalRecords")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ZoneUpdatedRecords")
                         .HasColumnType("integer");
 
                     b.HasKey("SyncId");
