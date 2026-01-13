@@ -866,9 +866,9 @@ export default function Zones() {
         <Card className="overflow-hidden">
           <CardContent className="p-0 overflow-hidden relative">
             {activeTab === 'active' ? (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-muted z-10">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
@@ -907,9 +907,9 @@ export default function Zones() {
                 </Table>
               </div>
             ) : (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-muted z-10">
                     {deletedTable.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
