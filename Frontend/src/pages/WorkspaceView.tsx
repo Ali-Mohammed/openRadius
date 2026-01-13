@@ -909,6 +909,7 @@ export default function WorkspaceView() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
