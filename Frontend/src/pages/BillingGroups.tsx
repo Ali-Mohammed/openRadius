@@ -276,7 +276,7 @@ export default function BillingGroups() {
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
           {activeTab === 'active' ? (
-          <div className="rounded-md border">
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -354,10 +354,8 @@ export default function BillingGroups() {
           </TableBody>
         </Table>
       </div>
-    </TabsContent>
-
-    <TabsContent value="deleted" className="space-y-4">
-      <div className="rounded-md border">
+    ) : (
+      <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -425,8 +423,9 @@ export default function BillingGroups() {
           </TableBody>
         </Table>
       </div>
-    </TabsContent>
-  </Tabs>
+    )}
+        </CardContent>
+      </Card>
 
       <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent>
