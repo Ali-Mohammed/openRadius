@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Save, RefreshCw } from 'lucide-react';
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cashbackGroupApi, type CashbackGroup } from '@/api/cashbackGroupApi';
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
+import { cashbackProfileAmountApi } from '@/api/cashbackProfileAmounts';
 import { workspaceApi } from '@/lib/api';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getIconComponent } from '@/utils/iconColorHelper';
@@ -62,6 +63,49 @@ export default function CashbackProfiles() {
     queryFn: () => getProfiles({ includeDeleted: false }),
   });
 
+  // Fetch existing cashback amounts for selected group
+  const { data: existingAmounts, isLoading: isLoadingAmounts } = useQuery({
+    queryKey: ['cashback-amounts', selectedGroupId],
+    queryFn: () => cashbackProfileAmountApi.getAmounts(selectedGroupId!),
+    enabled: !!selectedGroupId,
+  });
+
+  // Load existing amounts into state when data is fetched
+  useEffect(() => {
+    if (existingAmounts && existingAmounts.length > 0) {
+      const amountsMap: Record<number, number> = {};
+      existingAmounts.forEach(item => {
+        amountsMap[item.billingProfileId] = item.amount;
+      });
+      // Use a functional update to avoid cascading renders
+      setCashbackAmounts(prev => {
+        // Only update if different to prevent infinite loops
+        if (JSON.stringify(prev) !== JSON.stringify(amountsMap)) {
+          return amountsMap;
+        }
+        return prev;
+      });
+    } else if (selectedGroupId) {
+      // Reset amounts when changing groups
+      setCashbackAmounts({});
+    }
+  }, [existingAmounts, selectedGroupId]);
+
+  // Mutation to save cashback amounts
+  const saveMutation = useMutation({
+    mutationFn: cashbackProfileAmountApi.saveAmounts,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashback-amounts', selectedGroupId] });
+      toast.success('Cashback amounts saved successfully');
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error.response as any)?.data?.message || 'Failed to save cashback amounts'
+        : 'Failed to save cashback amounts';
+      toast.error(errorMessage);
+    }
+  });
+
   const handleCashbackChange = (profileId: number, amount: string) => {
     const numAmount = parseFloat(amount) || 0;
     setCashbackAmounts(prev => ({
@@ -71,16 +115,28 @@ export default function CashbackProfiles() {
   };
 
   const handleSave = () => {
-    // TODO: Implement API call to save cashback amounts
-    console.log('Saving cashback amounts:', {
-      groupId: selectedGroupId,
-      amounts: cashbackAmounts
+    if (!selectedGroupId) {
+      toast.error('Please select a cashback group');
+      return;
+    }
+
+    // Convert cashbackAmounts to the format expected by the API
+    const amounts = Object.entries(cashbackAmounts)
+      .map(([billingProfileId, amount]) => ({
+        billingProfileId: parseInt(billingProfileId),
+        amount: amount
+      }))
+      .filter(item => item.amount > 0); // Only include non-zero amounts
+
+    saveMutation.mutate({
+      cashbackGroupId: selectedGroupId,
+      amounts: amounts
     });
-    toast.success('Cashback amounts saved successfully');
   };
 
   const selectedGroup = groupsData?.find((g: CashbackGroup) => g.id === selectedGroupId);
-  const IconComponent = selectedGroup ? getIconComponent(selectedGroup.icon) : null;
+  const selectedGroupIcon = selectedGroup?.icon;
+  const IconComponent = selectedGroupIcon ? getIconComponent(selectedGroupIcon) : null;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -153,8 +209,12 @@ export default function CashbackProfiles() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Billing Profiles</h3>
-                <Button onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
+                <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
                   Save Cashback Amounts
                 </Button>
               </div>
@@ -170,7 +230,7 @@ export default function CashbackProfiles() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoadingProfiles ? (
+                    {isLoadingProfiles || isLoadingAmounts ? (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center">
                           <RefreshCw className="h-4 w-4 animate-spin mx-auto" />
