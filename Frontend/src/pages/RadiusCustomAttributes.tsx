@@ -700,23 +700,6 @@ export default function RadiusCustomAttributes() {
         </div>
       </div>
 
-      {selectedAttributeIds.length > 0 && (
-        <div className="bg-muted/50 border rounded-lg px-4 py-2 flex items-center justify-between">
-          <span className="text-sm font-medium">
-            {selectedAttributeIds.length} attribute{selectedAttributeIds.length > 1 ? 's' : ''} selected
-          </span>
-          <div className="flex gap-2">
-            <Button onClick={() => setBulkDeleteDialogOpen(true)} variant="destructive" size="sm">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Selected
-            </Button>
-            <Button onClick={() => setSelectedAttributeIds([])} variant="outline" size="sm">
-              Clear Selection
-            </Button>
-          </div>
-        </div>
-      )}
-
       <Card>
         <CardContent className="p-0">
           <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
