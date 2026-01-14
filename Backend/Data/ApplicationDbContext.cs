@@ -32,6 +32,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusNas> RadiusNasDevices { get; set; }
     public DbSet<RadiusIpPool> RadiusIpPools { get; set; }
     public DbSet<RadiusIpReservation> RadiusIpReservations { get; set; }
+    public DbSet<RadiusCustomAttribute> RadiusCustomAttributes { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<SyncProgress> SyncProgresses { get; set; }
     public DbSet<DebeziumSettings> DebeziumSettings { get; set; }
