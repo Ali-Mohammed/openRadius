@@ -15,16 +15,6 @@ public class RadiusCustomAttribute
     public required string AttributeValue { get; set; }
     
     /// <summary>
-    /// Type of attribute (0 for reply, 1 for check, etc.)
-    /// </summary>
-    public int AttributeType { get; set; }
-    
-    /// <summary>
-    /// Operator for the attribute (e.g., "=", ":=", "==")
-    /// </summary>
-    public string Operator { get; set; } = ":=";
-    
-    /// <summary>
     /// Link type: "user" or "profile"
     /// </summary>
     public required string LinkType { get; set; }
@@ -40,11 +30,6 @@ public class RadiusCustomAttribute
     /// </summary>
     public int? RadiusProfileId { get; set; }
     public RadiusProfile? RadiusProfile { get; set; }
-    
-    /// <summary>
-    /// Order/priority for this attribute
-    /// </summary>
-    public int Priority { get; set; } = 0;
     
     /// <summary>
     /// Whether this attribute is enabled
@@ -68,14 +53,11 @@ public class RadiusCustomAttributeResponse
     public int Id { get; set; }
     public string AttributeName { get; set; } = string.Empty;
     public string AttributeValue { get; set; } = string.Empty;
-    public int AttributeType { get; set; }
-    public string Operator { get; set; } = ":=";
     public string LinkType { get; set; } = string.Empty;
     public int? RadiusUserId { get; set; }
-    public string? RadiusUsername { get; set; }
+    public string? RadiusUsername { get; set; };
     public int? RadiusProfileId { get; set; }
     public string? RadiusProfileName { get; set; }
-    public int Priority { get; set; }
     public bool Enabled { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -85,12 +67,9 @@ public class CreateRadiusCustomAttributeRequest
 {
     public required string AttributeName { get; set; }
     public required string AttributeValue { get; set; }
-    public int AttributeType { get; set; } = 0;
-    public string Operator { get; set; } = ":=";
     public required string LinkType { get; set; } // "user" or "profile"
     public int? RadiusUserId { get; set; }
     public int? RadiusProfileId { get; set; }
-    public int Priority { get; set; } = 0;
     public bool Enabled { get; set; } = true;
 }
 
@@ -98,11 +77,8 @@ public class UpdateRadiusCustomAttributeRequest
 {
     public string? AttributeName { get; set; }
     public string? AttributeValue { get; set; }
-    public int? AttributeType { get; set; }
-    public string? Operator { get; set; }
     public string? LinkType { get; set; }
     public int? RadiusUserId { get; set; }
     public int? RadiusProfileId { get; set; }
-    public int? Priority { get; set; }
     public bool? Enabled { get; set; }
 }
