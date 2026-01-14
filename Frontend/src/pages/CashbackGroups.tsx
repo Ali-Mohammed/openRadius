@@ -721,20 +721,20 @@ export default function CashbackGroups() {
                       </PopoverTrigger>
                       <PopoverContent className="w-[400px]">
                         <div className="grid grid-cols-6 gap-2">
-                          {AVAILABLE_ICONS.map((iconName) => {
-                            const IconComp = getIconComponent(iconName)
+                          {AVAILABLE_ICONS.map((iconData) => {
+                            const IconComp = iconData.icon
                             return (
                               <Button
-                                key={iconName}
-                                variant={formData.icon === iconName ? 'default' : 'outline'}
+                                key={iconData.name}
+                                variant={formData.icon === iconData.name ? 'default' : 'outline'}
                                 size="sm"
                                 className="h-10 w-10 p-0"
                                 onClick={() => {
-                                  setFormData({ ...formData, icon: iconName })
+                                  setFormData({ ...formData, icon: iconData.name })
                                   setIconPopoverOpen(false)
                                 }}
                               >
-                                {IconComp && <IconComp className="h-4 w-4" />}
+                                <IconComp className="h-4 w-4" />
                               </Button>
                             )
                           })}
