@@ -164,6 +164,16 @@ public class WorkspaceController : ControllerBase
                 .Options;
                 
             using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
+            
+            // Ensure the database is dropped if it exists (to prevent dirty state from previous failed attempts)
+            var canConnect = await tenantContext.Database.CanConnectAsync();
+            if (canConnect)
+            {
+                _logger.LogWarning($"⚠ Tenant database already exists for workspace {workspace.Title}, dropping it to ensure clean state");
+                await tenantContext.Database.EnsureDeletedAsync();
+            }
+            
+            // Create fresh database with migrations
             await tenantContext.Database.MigrateAsync();
             
             _logger.LogInformation($"✓ Created tenant database for workspace: {workspace.Title} (ID: {workspace.Id})");
@@ -172,7 +182,7 @@ public class WorkspaceController : ControllerBase
         {
             _logger.LogError($"✗ Failed to create tenant database for workspace {workspace.Title}: {ex.Message}");
             
-            // Optionally rollback the workspace creation
+            // Rollback the workspace creation
             _masterContext.Workspaces.Remove(workspace);
             await _masterContext.SaveChangesAsync();
             
