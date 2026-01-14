@@ -984,6 +984,50 @@ export default function RadiusCustomAttributes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floating Action Bar */}
+      {selectedAttributeIds.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+          <span className="font-medium">
+            {selectedAttributeIds.length.toLocaleString()} attribute{selectedAttributeIds.length > 1 ? 's' : ''} selected
+          </span>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          
+          {showTrash ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => {
+                // Bulk restore - to be implemented if needed
+                toast.info('Bulk restore not yet implemented')
+              }}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restore
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setSelectedAttributeIds([])}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
