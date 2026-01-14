@@ -443,14 +443,8 @@ export default function CashbackGroups() {
                   <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                     <TableHeader className="sticky top-0 bg-muted z-10">
                       <TableRow className="hover:bg-muted">
-                        <TableHead className="h-12 px-4 cursor-pointer w-[300px]" onClick={() => handleSort('name')}>
+                        <TableHead className="h-12 px-4 cursor-pointer w-[400px]" onClick={() => handleSort('name')}>
                           Name
-                        </TableHead>
-                        <TableHead className="h-12 px-4 w-[120px]">
-                          Icon
-                        </TableHead>
-                        <TableHead className="h-12 px-4 w-[120px]">
-                          Color
                         </TableHead>
                         <TableHead className="h-12 px-4 cursor-pointer w-[120px]" onClick={() => handleSort('disabled')}>
                           Status
@@ -481,17 +475,12 @@ export default function CashbackGroups() {
                               tableLayout: 'fixed',
                             }}
                           >
-                            <TableCell className="px-4 w-[300px]">{group.name}</TableCell>
-                            <TableCell className="px-4 w-[120px]">
-                              {IconComponent && <IconComponent className="h-5 w-5" />}
-                            </TableCell>
-                            <TableCell className="px-4 w-[120px]">
+                            <TableCell className="px-4 w-[400px]">
                               <div className="flex items-center gap-2">
-                                <div
-                                  className="w-6 h-6 rounded border"
-                                  style={{ backgroundColor: group.color || '#3b82f6' }}
-                                />
-                                <span className="text-xs text-muted-foreground">{group.color}</span>
+                                {IconComponent && (
+                                  <IconComponent className="h-5 w-5" style={{ color: group.color || '#3b82f6' }} />
+                                )}
+                                <span>{group.name}</span>
                               </div>
                             </TableCell>
                             <TableCell className="px-4 w-[120px]">
