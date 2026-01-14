@@ -12,6 +12,9 @@ export interface RadiusCustomAttribute {
   enabled: boolean
   createdAt: string
   updatedAt: string
+  isDeleted: boolean
+  deletedAt?: string
+  deletedBy?: string
 }
 
 export interface CreateRadiusCustomAttributeRequest {
