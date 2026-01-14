@@ -400,6 +400,7 @@ public class DatabaseBackupController : ControllerBase
     }
 
     [HttpPost("upload")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(524288000)] // 500 MB
     [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
     public async Task<IActionResult> UploadBackup([FromForm] IFormFile file, [FromForm] string databaseName, [FromForm] string databaseType)

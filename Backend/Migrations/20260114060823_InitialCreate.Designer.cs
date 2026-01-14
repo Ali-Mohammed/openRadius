@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260113045950_InitialCreate")]
+    [Migration("20260114060823_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace Backend.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -220,7 +220,7 @@ namespace Backend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BillingGroupId")
+                    b.Property<int?>("BillingGroupId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
@@ -346,6 +346,112 @@ namespace Backend.Migrations
                     b.ToTable("BillingProfileWallets");
                 });
 
+            modelBuilder.Entity("Backend.Models.CashbackGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeletedAt");
+
+                    b.HasIndex("Disabled");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("CashbackGroups");
+                });
+
+            modelBuilder.Entity("Backend.Models.CashbackGroupUser", b =>
+                {
+                    b.Property<int>("CashbackGroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CashbackGroupId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CashbackGroupUsers");
+                });
+
+            modelBuilder.Entity("Backend.Models.CashbackProfileAmount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BillingProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CashbackGroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BillingProfileId");
+
+                    b.HasIndex("CashbackGroupId", "BillingProfileId");
+
+                    b.ToTable("CashbackProfileAmounts");
+                });
+
             modelBuilder.Entity("Backend.Models.CustomWallet", b =>
                 {
                     b.Property<int>("Id")
@@ -444,6 +550,12 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -479,6 +591,12 @@ namespace Backend.Migrations
 
                     b.Property<int>("DashboardId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -520,6 +638,12 @@ namespace Backend.Migrations
                     b.Property<string>("Config")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -717,6 +841,12 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("FdtId")
                         .HasColumnType("uuid");
 
@@ -769,6 +899,12 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("FatId")
                         .HasColumnType("uuid");
@@ -902,6 +1038,12 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
 
                     b.Property<string>("Environment")
                         .IsRequired()
@@ -1069,6 +1211,12 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -1158,6 +1306,15 @@ namespace Backend.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ExternalId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Icon")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1167,6 +1324,9 @@ namespace Backend.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1231,6 +1391,53 @@ namespace Backend.Migrations
                     b.HasIndex("Name");
 
                     b.ToTable("radius_ip_pools");
+                });
+
+            modelBuilder.Entity("Backend.Models.RadiusIpReservation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("RadiusUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeletedAt");
+
+                    b.HasIndex("IpAddress");
+
+                    b.HasIndex("RadiusUserId");
+
+                    b.HasIndex("IpAddress", "DeletedAt")
+                        .HasFilter("\"DeletedAt\" IS NULL");
+
+                    b.HasIndex("RadiusUserId", "DeletedAt")
+                        .HasFilter("\"DeletedAt\" IS NULL");
+
+                    b.ToTable("RadiusIpReservations");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusNas", b =>
@@ -1636,6 +1843,8 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GroupId");
+
                     b.HasIndex("ProfileId");
 
                     b.HasIndex("ZoneId");
@@ -1738,6 +1947,27 @@ namespace Backend.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
+                    b.Property<int>("GroupCurrentPage")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupFailedRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupNewRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupProcessedRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupTotalPages")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupTotalRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GroupUpdatedRecords")
+                        .HasColumnType("integer");
+
                     b.Property<int>("IntegrationId")
                         .HasColumnType("integer");
 
@@ -1800,6 +2030,21 @@ namespace Backend.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ZoneFailedRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ZoneNewRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ZoneProcessedRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ZoneTotalRecords")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ZoneUpdatedRecords")
                         .HasColumnType("integer");
 
                     b.HasKey("SyncId");
@@ -2404,6 +2649,9 @@ namespace Backend.Migrations
                     b.Property<int?>("ParentZoneId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SasUserId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2449,8 +2697,7 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.BillingGroup", "BillingGroup")
                         .WithMany()
                         .HasForeignKey("BillingGroupId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Backend.Models.RadiusProfile", "RadiusProfile")
                         .WithMany()
@@ -2497,6 +2744,36 @@ namespace Backend.Migrations
                     b.Navigation("CustomWallet");
 
                     b.Navigation("UserWallet");
+                });
+
+            modelBuilder.Entity("Backend.Models.CashbackGroupUser", b =>
+                {
+                    b.HasOne("Backend.Models.CashbackGroup", "CashbackGroup")
+                        .WithMany("CashbackGroupUsers")
+                        .HasForeignKey("CashbackGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashbackGroup");
+                });
+
+            modelBuilder.Entity("Backend.Models.CashbackProfileAmount", b =>
+                {
+                    b.HasOne("Backend.Models.BillingProfile", "BillingProfile")
+                        .WithMany()
+                        .HasForeignKey("BillingProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.CashbackGroup", "CashbackGroup")
+                        .WithMany()
+                        .HasForeignKey("CashbackGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BillingProfile");
+
+                    b.Navigation("CashbackGroup");
                 });
 
             modelBuilder.Entity("Backend.Models.DashboardGlobalFilter", b =>
@@ -2576,6 +2853,16 @@ namespace Backend.Migrations
                     b.Navigation("Olt");
                 });
 
+            modelBuilder.Entity("Backend.Models.RadiusIpReservation", b =>
+                {
+                    b.HasOne("Backend.Models.RadiusUser", "RadiusUser")
+                        .WithMany()
+                        .HasForeignKey("RadiusUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("RadiusUser");
+                });
+
             modelBuilder.Entity("Backend.Models.RadiusProfileWallet", b =>
                 {
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
@@ -2597,6 +2884,11 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>
                 {
+                    b.HasOne("Backend.Models.RadiusGroup", "RadiusGroup")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Backend.Models.RadiusProfile", "Profile")
                         .WithMany()
                         .HasForeignKey("ProfileId")
@@ -2607,6 +2899,8 @@ namespace Backend.Migrations
                         .HasForeignKey("ZoneId");
 
                     b.Navigation("Profile");
+
+                    b.Navigation("RadiusGroup");
 
                     b.Navigation("Zone");
                 });
@@ -2765,6 +3059,11 @@ namespace Backend.Migrations
                     b.Navigation("ProfileAddons");
 
                     b.Navigation("ProfileWallets");
+                });
+
+            modelBuilder.Entity("Backend.Models.CashbackGroup", b =>
+                {
+                    b.Navigation("CashbackGroupUsers");
                 });
 
             modelBuilder.Entity("Backend.Models.Dashboard", b =>

@@ -63,6 +63,26 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CashbackGroups",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Icon = table.Column<string>(type: "text", nullable: true),
+                    Color = table.Column<string>(type: "text", nullable: true),
+                    Disabled = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CashbackGroups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CustomWallets",
                 columns: table => new
                 {
@@ -104,7 +124,9 @@ namespace Backend.Migrations
                     Color = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -168,7 +190,9 @@ namespace Backend.Migrations
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -226,7 +250,9 @@ namespace Backend.Migrations
                     Longitude = table.Column<decimal>(type: "numeric", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -258,15 +284,19 @@ namespace Backend.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ExternalId = table.Column<int>(type: "integer", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
                     Subscription = table.Column<string>(type: "text", nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     Color = table.Column<string>(type: "text", nullable: false),
                     Icon = table.Column<string>(type: "text", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastSyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -411,6 +441,18 @@ namespace Backend.Migrations
                     ProfileNewRecords = table.Column<int>(type: "integer", nullable: false),
                     ProfileUpdatedRecords = table.Column<int>(type: "integer", nullable: false),
                     ProfileFailedRecords = table.Column<int>(type: "integer", nullable: false),
+                    GroupCurrentPage = table.Column<int>(type: "integer", nullable: false),
+                    GroupTotalPages = table.Column<int>(type: "integer", nullable: false),
+                    GroupTotalRecords = table.Column<int>(type: "integer", nullable: false),
+                    GroupProcessedRecords = table.Column<int>(type: "integer", nullable: false),
+                    GroupNewRecords = table.Column<int>(type: "integer", nullable: false),
+                    GroupUpdatedRecords = table.Column<int>(type: "integer", nullable: false),
+                    GroupFailedRecords = table.Column<int>(type: "integer", nullable: false),
+                    ZoneTotalRecords = table.Column<int>(type: "integer", nullable: false),
+                    ZoneProcessedRecords = table.Column<int>(type: "integer", nullable: false),
+                    ZoneNewRecords = table.Column<int>(type: "integer", nullable: false),
+                    ZoneUpdatedRecords = table.Column<int>(type: "integer", nullable: false),
+                    ZoneFailedRecords = table.Column<int>(type: "integer", nullable: false),
                     UserCurrentPage = table.Column<int>(type: "integer", nullable: false),
                     UserTotalPages = table.Column<int>(type: "integer", nullable: false),
                     UserTotalRecords = table.Column<int>(type: "integer", nullable: false),
@@ -492,6 +534,7 @@ namespace Backend.Migrations
                     Icon = table.Column<string>(type: "text", nullable: true),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     ParentZoneId = table.Column<int>(type: "integer", nullable: true),
+                    SasUserId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
@@ -550,6 +593,25 @@ namespace Backend.Migrations
                         name: "FK_BillingGroupUser_BillingGroups_GroupId",
                         column: x => x.GroupId,
                         principalTable: "BillingGroups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CashbackGroupUsers",
+                columns: table => new
+                {
+                    CashbackGroupId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CashbackGroupUsers", x => new { x.CashbackGroupId, x.UserId });
+                    table.ForeignKey(
+                        name: "FK_CashbackGroupUsers_CashbackGroups_CashbackGroupId",
+                        column: x => x.CashbackGroupId,
+                        principalTable: "CashbackGroups",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -630,7 +692,9 @@ namespace Backend.Migrations
                     Value = table.Column<string>(type: "jsonb", nullable: true),
                     Options = table.Column<string>(type: "jsonb", nullable: true),
                     OrderIndex = table.Column<int>(type: "integer", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -703,7 +767,7 @@ namespace Backend.Migrations
                     Description = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: true),
                     RadiusProfileId = table.Column<int>(type: "integer", nullable: false),
-                    BillingGroupId = table.Column<int>(type: "integer", nullable: false),
+                    BillingGroupId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
@@ -850,6 +914,12 @@ namespace Backend.Migrations
                 {
                     table.PrimaryKey("PK_RadiusUsers", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_RadiusUsers_RadiusGroups_GroupId",
+                        column: x => x.GroupId,
+                        principalTable: "RadiusGroups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
                         name: "FK_RadiusUsers_RadiusProfiles_ProfileId",
                         column: x => x.ProfileId,
                         principalTable: "RadiusProfiles",
@@ -989,7 +1059,9 @@ namespace Backend.Migrations
                     LayoutW = table.Column<int>(type: "integer", nullable: false),
                     LayoutH = table.Column<int>(type: "integer", nullable: false),
                     Config = table.Column<string>(type: "jsonb", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1101,6 +1173,64 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CashbackProfileAmounts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CashbackGroupId = table.Column<int>(type: "integer", nullable: false),
+                    BillingProfileId = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CashbackProfileAmounts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CashbackProfileAmounts_BillingProfiles_BillingProfileId",
+                        column: x => x.BillingProfileId,
+                        principalTable: "BillingProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CashbackProfileAmounts_CashbackGroups_CashbackGroupId",
+                        column: x => x.CashbackGroupId,
+                        principalTable: "CashbackGroups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RadiusIpReservations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IpAddress = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    RadiusUserId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RadiusIpReservations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RadiusIpReservations_RadiusUsers_RadiusUserId",
+                        column: x => x.RadiusUserId,
+                        principalTable: "RadiusUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RadiusUserTags",
                 columns: table => new
                 {
@@ -1192,7 +1322,9 @@ namespace Backend.Migrations
                     Notes = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1215,7 +1347,9 @@ namespace Backend.Migrations
                     Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     SubscriberId = table.Column<Guid>(type: "uuid", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1284,6 +1418,36 @@ namespace Backend.Migrations
                 column: "UserWalletId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CashbackGroups_DeletedAt",
+                table: "CashbackGroups",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CashbackGroups_Disabled",
+                table: "CashbackGroups",
+                column: "Disabled");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CashbackGroups_Name",
+                table: "CashbackGroups",
+                column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CashbackGroupUsers_UserId",
+                table: "CashbackGroupUsers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CashbackProfileAmounts_BillingProfileId",
+                table: "CashbackProfileAmounts",
+                column: "BillingProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CashbackProfileAmounts_CashbackGroupId_BillingProfileId",
+                table: "CashbackProfileAmounts",
+                columns: new[] { "CashbackGroupId", "BillingProfileId" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CustomWallets_Name",
                 table: "CustomWallets",
                 column: "Name");
@@ -1339,6 +1503,33 @@ namespace Backend.Migrations
                 column: "name");
 
             migrationBuilder.CreateIndex(
+                name: "IX_RadiusIpReservations_DeletedAt",
+                table: "RadiusIpReservations",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusIpReservations_IpAddress",
+                table: "RadiusIpReservations",
+                column: "IpAddress");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusIpReservations_IpAddress_DeletedAt",
+                table: "RadiusIpReservations",
+                columns: new[] { "IpAddress", "DeletedAt" },
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusIpReservations_RadiusUserId",
+                table: "RadiusIpReservations",
+                column: "RadiusUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusIpReservations_RadiusUserId_DeletedAt",
+                table: "RadiusIpReservations",
+                columns: new[] { "RadiusUserId", "DeletedAt" },
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RadiusNasDevices_Nasname",
                 table: "RadiusNasDevices",
                 column: "Nasname");
@@ -1362,6 +1553,11 @@ namespace Backend.Migrations
                 name: "IX_RadiusTags_Title",
                 table: "RadiusTags",
                 column: "Title");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusUsers_GroupId",
+                table: "RadiusUsers",
+                column: "GroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RadiusUsers_ProfileId",
@@ -1564,6 +1760,12 @@ namespace Backend.Migrations
                 name: "BillingProfileWallets");
 
             migrationBuilder.DropTable(
+                name: "CashbackGroupUsers");
+
+            migrationBuilder.DropTable(
+                name: "CashbackProfileAmounts");
+
+            migrationBuilder.DropTable(
                 name: "DashboardGlobalFilters");
 
             migrationBuilder.DropTable(
@@ -1585,7 +1787,7 @@ namespace Backend.Migrations
                 name: "radius_ip_pools");
 
             migrationBuilder.DropTable(
-                name: "RadiusGroups");
+                name: "RadiusIpReservations");
 
             migrationBuilder.DropTable(
                 name: "RadiusNasDevices");
@@ -1627,6 +1829,9 @@ namespace Backend.Migrations
                 name: "BillingProfiles");
 
             migrationBuilder.DropTable(
+                name: "CashbackGroups");
+
+            migrationBuilder.DropTable(
                 name: "DashboardTabs");
 
             migrationBuilder.DropTable(
@@ -1655,6 +1860,9 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "Fdts");
+
+            migrationBuilder.DropTable(
+                name: "RadiusGroups");
 
             migrationBuilder.DropTable(
                 name: "RadiusProfiles");
