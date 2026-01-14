@@ -187,10 +187,11 @@ export default function WorkspaceView() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn:async () => {
+    mutationFn: workspaceApi.delete,
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
       await queryClient.invalidateQueries({ queryKey: ['workspaces'] })
-      queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
       toast.success('Workspace deleted successfully')
     },
     onError: () => {
