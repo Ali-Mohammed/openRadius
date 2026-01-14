@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cashbackGroupApi, type CashbackGroup } from '@/api/cashbackGroupApi';
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
 import { cashbackProfileAmountApi } from '@/api/cashbackProfileAmounts';
+import { userManagementApi, type User } from '@/api/userManagementApi';
 import { workspaceApi } from '@/lib/api';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getIconComponent } from '@/utils/iconColorHelper';
@@ -22,6 +23,7 @@ export default function CashbackProfiles() {
   const { i18n } = useTranslation();
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [cashbackAmounts, setCashbackAmounts] = useState<Record<number, number>>({});
+  const [focusedInput, setFocusedInput] = useState<number | null>(null);
 
   // Fetch workspace for currency
   const { data: workspace } = useQuery({
@@ -70,6 +72,24 @@ export default function CashbackProfiles() {
     enabled: !!selectedGroupId,
   });
 
+  // Fetch users in the selected cashback group
+  const { data: groupUserIds } = useQuery({
+    queryKey: ['cashback-group-users', selectedGroupId],
+    queryFn: () => cashbackGroupApi.getGroupUsers(selectedGroupId!),
+    enabled: !!selectedGroupId,
+  });
+
+  // Fetch user details for the group
+  const { data: groupUsers, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users-details', groupUserIds],
+    queryFn: async () => {
+      if (!groupUserIds || groupUserIds.length === 0) return [];
+      const userPromises = groupUserIds.map(id => userManagementApi.getById(id));
+      return Promise.all(userPromises);
+    },
+    enabled: !!groupUserIds && groupUserIds.length > 0,
+  });
+
   // Load existing amounts into state when data is fetched
   useEffect(() => {
     if (existingAmounts && existingAmounts.length > 0) {
@@ -115,6 +135,22 @@ export default function CashbackProfiles() {
         [profileId]: numAmount
       }));
     }
+  };
+
+  const formatCashbackValue = (profileId: number) => {
+    const value = cashbackAmounts[profileId];
+    if (!value) return '';
+    
+    // If focused, show raw number for easy editing
+    if (focusedInput === profileId) {
+      return value.toString();
+    }
+    
+    // If not focused, show formatted number
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   };
 
   const handleSave = () => {
@@ -198,11 +234,36 @@ export default function CashbackProfiles() {
                   <IconComponent className="h-6 w-6" />
                 </div>
               )}
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold">{selectedGroup.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   Configure cashback amounts for billing profiles
                 </p>
+                {groupUsers && groupUsers.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Users:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {groupUsers.slice(0, 5).map((user: User) => (
+                        <span
+                          key={user.id}
+                          className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
+                        >
+                          {user.firstName && user.lastName
+                            ? `${user.firstName} ${user.lastName}`
+                            : user.email || `User ${user.id}`}
+                        </span>
+                      ))}
+                      {groupUsers.length > 5 && (
+                        <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                          +{groupUsers.length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {isLoadingUsers && (
+                  <p className="mt-2 text-sm text-muted-foreground">Loading users...</p>
+                )}
               </div>
             </div>
           )}
@@ -266,8 +327,20 @@ export default function CashbackProfiles() {
                                 <span className="text-muted-foreground">{currencySymbol}</span>
                                 <Input
                                   type="text"
-                                  value={formatCashbackDisplay(cashbackAmounts[profile.id])}
+                                  value={formatCashbackValue(profile.id)}
                                   onChange={(e) => handleCashbackChange(profile.id, e.target.value)}
+                                  onFocus={() => setFocusedInput(profile.id)}
+                                  onBlur={() => {
+                                    setFocusedInput(null);
+                                    // Round to 2 decimal places
+                                    const val = cashbackAmounts[profile.id];
+                                    if (val && val > 0) {
+                                      setCashbackAmounts(prev => ({
+                                        ...prev,
+                                        [profile.id]: parseFloat(val.toFixed(2))
+                                      }));
+                                    }
+                                  }}
                                   placeholder="0.00"
                                   className="w-full"
                                 />
