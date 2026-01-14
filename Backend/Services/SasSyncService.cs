@@ -11,6 +11,7 @@ namespace Backend.Services;
 
 public class SasSyncService : ISasSyncService
 {
+    private const string AES_KEY = "abcdefghijuklmno0123456789012345";
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHubContext<SasSyncHub> _hubContext;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -190,9 +191,6 @@ public class SasSyncService : ISasSyncService
         var client = _httpClientFactory.CreateClient();
         var baseUrl = integration.Url.TrimEnd('/');
         
-        // SAS API encryption key (must match the key on SAS server)
-        const string AES_KEY = "abcdefghijuklmno0123456789012345"; // 32 bytes for AES-256
-        
         // Construct the login URL with SAS API path
         var uri = new Uri(baseUrl);
         var loginUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/login";
@@ -233,7 +231,6 @@ public class SasSyncService : ISasSyncService
 
     private async Task SyncProfilesAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
     {
-        const string AES_KEY = "abcdefghijuklmno0123456789012345";
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         
@@ -370,7 +367,6 @@ public class SasSyncService : ISasSyncService
 
     private async Task SyncUsersAsync(Guid syncId, SasRadiusIntegration integration, string token, Dictionary<int, int> sasIdToZoneId, CancellationToken cancellationToken)
     {
-        const string AES_KEY = "abcdefghijuklmno0123456789012345";
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         
@@ -715,7 +711,6 @@ public class SasSyncService : ISasSyncService
 
     private async Task SyncGroupsAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
     {
-        const string AES_KEY = "abcdefghijuklmno0123456789012345";
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         
