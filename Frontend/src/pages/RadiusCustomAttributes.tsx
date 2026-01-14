@@ -96,10 +96,7 @@ export default function RadiusCustomAttributes() {
   const [formData, setFormData] = useState<CreateRadiusCustomAttributeRequest>({
     attributeName: '',
     attributeValue: '',
-    attributeType: 0,
-    operator: ':=',
     linkType: 'profile',
-    priority: 0,
     enabled: true,
   })
 
@@ -268,10 +265,7 @@ export default function RadiusCustomAttributes() {
     setFormData({
       attributeName: '',
       attributeValue: '',
-      attributeType: 0,
-      operator: ':=',
       linkType: 'profile',
-      priority: 0,
       enabled: true,
     })
     setEditingAttribute(null)
@@ -283,12 +277,9 @@ export default function RadiusCustomAttributes() {
       setFormData({
         attributeName: attribute.attributeName,
         attributeValue: attribute.attributeValue,
-        attributeType: attribute.attributeType,
-        operator: attribute.operator,
         linkType: attribute.linkType,
         radiusUserId: attribute.radiusUserId,
         radiusProfileId: attribute.radiusProfileId,
-        priority: attribute.priority,
         enabled: attribute.enabled,
       })
     } else {

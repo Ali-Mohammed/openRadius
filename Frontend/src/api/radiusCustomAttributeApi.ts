@@ -4,14 +4,11 @@ export interface RadiusCustomAttribute {
   id: number
   attributeName: string
   attributeValue: string
-  attributeType: number
-  operator: string
   linkType: 'user' | 'profile'
   radiusUserId?: number
   radiusUsername?: string
   radiusProfileId?: number
   radiusProfileName?: string
-  priority: number
   enabled: boolean
   createdAt: string
   updatedAt: string
@@ -20,24 +17,18 @@ export interface RadiusCustomAttribute {
 export interface CreateRadiusCustomAttributeRequest {
   attributeName: string
   attributeValue: string
-  attributeType?: number
-  operator?: string
   linkType: 'user' | 'profile'
   radiusUserId?: number
   radiusProfileId?: number
-  priority?: number
   enabled?: boolean
 }
 
 export interface UpdateRadiusCustomAttributeRequest {
   attributeName?: string
   attributeValue?: string
-  attributeType?: number
-  operator?: string
   linkType?: 'user' | 'profile'
   radiusUserId?: number
   radiusProfileId?: number
-  priority?: number
   enabled?: boolean
 }
 

@@ -70,7 +70,6 @@ public class RadiusCustomAttributeController : ControllerBase
                 "attributename" => isDescending ? query.OrderByDescending(a => a.AttributeName) : query.OrderBy(a => a.AttributeName),
                 "attributevalue" => isDescending ? query.OrderByDescending(a => a.AttributeValue) : query.OrderBy(a => a.AttributeValue),
                 "linktype" => isDescending ? query.OrderByDescending(a => a.LinkType) : query.OrderBy(a => a.LinkType),
-                "priority" => isDescending ? query.OrderByDescending(a => a.Priority) : query.OrderBy(a => a.Priority),
                 "enabled" => isDescending ? query.OrderByDescending(a => a.Enabled) : query.OrderBy(a => a.Enabled),
                 "createdat" => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt),
                 _ => query.OrderByDescending(a => a.CreatedAt)
@@ -92,14 +91,11 @@ public class RadiusCustomAttributeController : ControllerBase
             Id = a.Id,
             AttributeName = a.AttributeName,
             AttributeValue = a.AttributeValue,
-            AttributeType = a.AttributeType,
-            Operator = a.Operator,
             LinkType = a.LinkType,
             RadiusUserId = a.RadiusUserId,
             RadiusUsername = a.RadiusUser?.Username,
             RadiusProfileId = a.RadiusProfileId,
             RadiusProfileName = a.RadiusProfile?.Name,
-            Priority = a.Priority,
             Enabled = a.Enabled,
             CreatedAt = a.CreatedAt,
             UpdatedAt = a.UpdatedAt
@@ -137,14 +133,11 @@ public class RadiusCustomAttributeController : ControllerBase
             Id = attribute.Id,
             AttributeName = attribute.AttributeName,
             AttributeValue = attribute.AttributeValue,
-            AttributeType = attribute.AttributeType,
-            Operator = attribute.Operator,
             LinkType = attribute.LinkType,
             RadiusUserId = attribute.RadiusUserId,
             RadiusUsername = attribute.RadiusUser?.Username,
             RadiusProfileId = attribute.RadiusProfileId,
             RadiusProfileName = attribute.RadiusProfile?.Name,
-            Priority = attribute.Priority,
             Enabled = attribute.Enabled,
             CreatedAt = attribute.CreatedAt,
             UpdatedAt = attribute.UpdatedAt
@@ -196,12 +189,9 @@ public class RadiusCustomAttributeController : ControllerBase
         {
             AttributeName = request.AttributeName,
             AttributeValue = request.AttributeValue,
-            AttributeType = request.AttributeType,
-            Operator = request.Operator,
             LinkType = request.LinkType,
             RadiusUserId = request.LinkType == "user" ? request.RadiusUserId : null,
             RadiusProfileId = request.LinkType == "profile" ? request.RadiusProfileId : null,
-            Priority = request.Priority,
             Enabled = request.Enabled,
             WorkspaceId = 1, // Will be set by multi-tenant context
             CreatedAt = DateTime.UtcNow,
@@ -222,14 +212,11 @@ public class RadiusCustomAttributeController : ControllerBase
             Id = created!.Id,
             AttributeName = created.AttributeName,
             AttributeValue = created.AttributeValue,
-            AttributeType = created.AttributeType,
-            Operator = created.Operator,
             LinkType = created.LinkType,
             RadiusUserId = created.RadiusUserId,
             RadiusUsername = created.RadiusUser?.Username,
             RadiusProfileId = created.RadiusProfileId,
             RadiusProfileName = created.RadiusProfile?.Name,
-            Priority = created.Priority,
             Enabled = created.Enabled,
             CreatedAt = created.CreatedAt,
             UpdatedAt = created.UpdatedAt
@@ -255,12 +242,6 @@ public class RadiusCustomAttributeController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(request.AttributeValue))
             attribute.AttributeValue = request.AttributeValue;
-
-        if (request.AttributeType.HasValue)
-            attribute.AttributeType = request.AttributeType.Value;
-
-        if (!string.IsNullOrWhiteSpace(request.Operator))
-            attribute.Operator = request.Operator;
 
         if (!string.IsNullOrWhiteSpace(request.LinkType))
         {
@@ -295,9 +276,6 @@ public class RadiusCustomAttributeController : ControllerBase
             }
         }
 
-        if (request.Priority.HasValue)
-            attribute.Priority = request.Priority.Value;
-
         if (request.Enabled.HasValue)
             attribute.Enabled = request.Enabled.Value;
 
@@ -316,14 +294,11 @@ public class RadiusCustomAttributeController : ControllerBase
             Id = updated!.Id,
             AttributeName = updated.AttributeName,
             AttributeValue = updated.AttributeValue,
-            AttributeType = updated.AttributeType,
-            Operator = updated.Operator,
             LinkType = updated.LinkType,
             RadiusUserId = updated.RadiusUserId,
             RadiusUsername = updated.RadiusUser?.Username,
             RadiusProfileId = updated.RadiusProfileId,
             RadiusProfileName = updated.RadiusProfile?.Name,
-            Priority = updated.Priority,
             Enabled = updated.Enabled,
             CreatedAt = updated.CreatedAt,
             UpdatedAt = updated.UpdatedAt

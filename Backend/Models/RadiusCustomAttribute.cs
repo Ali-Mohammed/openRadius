@@ -55,7 +55,7 @@ public class RadiusCustomAttributeResponse
     public string AttributeValue { get; set; } = string.Empty;
     public string LinkType { get; set; } = string.Empty;
     public int? RadiusUserId { get; set; }
-    public string? RadiusUsername { get; set; };
+    public string? RadiusUsername { get; set; }
     public int? RadiusProfileId { get; set; }
     public string? RadiusProfileName { get; set; }
     public bool Enabled { get; set; }
