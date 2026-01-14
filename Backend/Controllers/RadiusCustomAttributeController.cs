@@ -34,7 +34,7 @@ public class RadiusCustomAttributeController : ControllerBase
         var query = _context.RadiusCustomAttributes
             .Include(a => a.RadiusUser)
             .Include(a => a.RadiusProfile)
-            .Where(a => includeDeleted || !a.IsDeleted);
+            .Where(a => includeDeleted ? a.IsDeleted : !a.IsDeleted);
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(search))
