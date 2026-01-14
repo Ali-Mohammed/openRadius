@@ -55,7 +55,7 @@ namespace Backend.Controllers
 
                 // Get existing amounts for this group
                 var existingAmounts = await _context.CashbackProfileAmounts
-                    .Where(a => a.CashbackGroupId == request.GroupId && a.DeletedAt == null)
+                    .Where(a => a.CashbackGroupId == request.CashbackGroupId && a.DeletedAt == null)
                     .ToListAsync();
 
                 // Process each amount in the request
@@ -77,7 +77,7 @@ namespace Backend.Controllers
                             // Create new
                             var newAmount = new CashbackProfileAmount
                             {
-                                CashbackGroupId = request.GroupId,
+                                CashbackGroupId = request.CashbackGroupId,
                                 BillingProfileId = item.BillingProfileId,
                                 Amount = item.Amount,
                                 CreatedAt = DateTime.UtcNow,
@@ -135,7 +135,7 @@ namespace Backend.Controllers
 
     public class SaveCashbackAmountsRequest
     {
-        public int GroupId { get; set; }
+        public int CashbackGroupId { get; set; }
         public List<CashbackAmountItem> Amounts { get; set; } = new();
     }
 

@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { apiClient } from '../lib/api';
 
 export interface CashbackProfileAmount {
   id: number;
@@ -21,13 +19,13 @@ export interface SaveCashbackAmountsRequest {
 
 export const cashbackProfileAmountApi = {
   getAmounts: async (cashbackGroupId: number): Promise<CashbackProfileAmount[]> => {
-    const response = await axios.get(`${API_URL}/api/CashbackProfileAmount`, {
+    const response = await apiClient.get('/api/CashbackProfileAmount', {
       params: { groupId: cashbackGroupId }
     });
     return response.data;
   },
 
   saveAmounts: async (request: SaveCashbackAmountsRequest): Promise<void> => {
-    await axios.post(`${API_URL}/api/CashbackProfileAmount`, request);
+    await apiClient.post('/api/CashbackProfileAmount', request);
   }
 };

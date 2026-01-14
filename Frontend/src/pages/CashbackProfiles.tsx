@@ -106,12 +106,15 @@ export default function CashbackProfiles() {
     }
   });
 
-  const handleCashbackChange = (profileId: number, amount: string) => {
-    const numAmount = parseFloat(amount) || 0;
-    setCashbackAmounts(prev => ({
-      ...prev,
-      [profileId]: numAmount
-    }));
+  const handleCashbackChange = (profileId: number, value: string) => {
+    // Allow empty or valid decimal numbers
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      const numAmount = value === '' ? 0 : parseFloat(value);
+      setCashbackAmounts(prev => ({
+        ...prev,
+        [profileId]: numAmount
+      }));
+    }
   };
 
   const handleSave = () => {
@@ -262,10 +265,8 @@ export default function CashbackProfiles() {
                               <div className="flex items-center gap-2">
                                 <span className="text-muted-foreground">{currencySymbol}</span>
                                 <Input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={cashbackAmounts[profile.id] || ''}
+                                  type="text"
+                                  value={formatCashbackDisplay(cashbackAmounts[profile.id])}
                                   onChange={(e) => handleCashbackChange(profile.id, e.target.value)}
                                   placeholder="0.00"
                                   className="w-full"
