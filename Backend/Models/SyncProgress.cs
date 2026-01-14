@@ -25,7 +25,8 @@ public enum SyncPhase
     Groups = 2,
     Zones = 3,
     Users = 4,
-    Completed = 5
+    Nas = 5,
+    Completed = 6
 }
 
 public class SyncProgress
@@ -75,6 +76,15 @@ public class SyncProgress
     public int UserUpdatedRecords { get; set; }
     public int UserFailedRecords { get; set; }
     
+    // NAS sync tracking
+    public int NasCurrentPage { get; set; }
+    public int NasTotalPages { get; set; }
+    public int NasTotalRecords { get; set; }
+    public int NasProcessedRecords { get; set; }
+    public int NasNewRecords { get; set; }
+    public int NasUpdatedRecords { get; set; }
+    public int NasFailedRecords { get; set; }
+    
     // Overall progress
     public double ProgressPercentage { get; set; }
     public string? CurrentMessage { get; set; }
@@ -123,6 +133,14 @@ public class SyncProgressUpdate
     public int UserNewRecords { get; set; }
     public int UserUpdatedRecords { get; set; }
     public int UserFailedRecords { get; set; }
+    
+    public int NasCurrentPage { get; set; }
+    public int NasTotalPages { get; set; }
+    public int NasTotalRecords { get; set; }
+    public int NasProcessedRecords { get; set; }
+    public int NasNewRecords { get; set; }
+    public int NasUpdatedRecords { get; set; }
+    public int NasFailedRecords { get; set; }
     
     public double ProgressPercentage { get; set; }
     public string? CurrentMessage { get; set; }

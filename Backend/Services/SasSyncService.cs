@@ -163,6 +163,10 @@ public class SasSyncService : ISasSyncService
             await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Users, 55, "Starting user synchronization...", cancellationToken);
             await SyncUsersAsync(syncId, integration, token, sasIdToZoneId, cancellationToken);
 
+            // Sync NAS devices
+            await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Nas, 85, "Starting NAS synchronization...", cancellationToken);
+            await SyncNasAsync(syncId, integration, token, cancellationToken);
+
             // Complete
             await UpdateProgress(syncId, SyncStatus.Completed, SyncPhase.Completed, 100, "Synchronization completed successfully", cancellationToken);
             
@@ -943,6 +947,155 @@ public class SasSyncService : ISasSyncService
         return sasIdToZoneId;
     }
 
+    private async Task SyncNasAsync(Guid syncId, SasRadiusIntegration integration, string token, CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        
+        var uri = new Uri(integration.Url.TrimEnd('/'));
+        var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/nas";
+
+        int currentPage = 1;
+        int pageSize = integration.MaxItemInPagePerRequest > 0 ? integration.MaxItemInPagePerRequest : 100;
+        bool hasMorePages = true;
+        int totalPagesFromApi = 1;
+
+        while (hasMorePages)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            double progress = totalPagesFromApi > 1 ? (currentPage / (double)totalPagesFromApi) * 10 : 0;
+            await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Nas, 
+                85 + (int)progress, 
+                $"Fetching NAS page {currentPage} of {totalPagesFromApi}...", cancellationToken);
+
+            var requestData = new
+            {
+                page = currentPage,
+                count = pageSize
+            };
+            
+            var requestJson = System.Text.Json.JsonSerializer.Serialize(requestData);
+            var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
+            var requestBody = new { payload = encryptedPayload };
+            
+            var response = await client.PostAsJsonAsync(url, requestBody, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var apiResponse = await response.Content.ReadFromJsonAsync<SasNasApiResponse>(cancellationToken: cancellationToken);
+            
+            if (apiResponse == null || apiResponse.Data == null)
+                break;
+
+            totalPagesFromApi = apiResponse.LastPage;
+
+            double processProgress = totalPagesFromApi > 1 ? (currentPage / (double)totalPagesFromApi) * 10 : 0;
+            await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Nas, 
+                85 + (int)processProgress, 
+                $"Processing {apiResponse.Data.Count} NAS devices from page {currentPage} of {totalPagesFromApi}...", cancellationToken);
+
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                
+                var nasProgress = await context.SyncProgresses.FindAsync(syncId);
+                if (nasProgress != null)
+                {
+                    nasProgress.NasTotalPages = apiResponse.LastPage;
+                    nasProgress.NasCurrentPage = currentPage;
+                    nasProgress.NasTotalRecords = apiResponse.Total;
+
+                    foreach (var sasNas in apiResponse.Data)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        
+                        try
+                        {
+                            var existingNas = await context.RadiusNasDevices
+                                .FirstOrDefaultAsync(n => n.Nasname == sasNas.Nasname, cancellationToken);
+
+                            if (existingNas == null)
+                            {
+                                var newNas = new RadiusNas
+                                {
+                                    Nasname = sasNas.Nasname ?? string.Empty,
+                                    Shortname = sasNas.Shortname ?? string.Empty,
+                                    Type = sasNas.Type,
+                                    Version = sasNas.Version,
+                                    Secret = sasNas.Secret ?? string.Empty,
+                                    Enabled = sasNas.Enabled,
+                                    PingTime = sasNas.PingTime,
+                                    PingLoss = sasNas.PingLoss,
+                                    Monitor = sasNas.Monitor,
+                                    CreatedBy = 0, // System sync
+                                    CreatedAt = DateTime.UtcNow,
+                                    UpdatedAt = DateTime.UtcNow,
+                                    IsDeleted = false
+                                };
+                                await context.RadiusNasDevices.AddAsync(newNas, cancellationToken);
+                                nasProgress.NasNewRecords++;
+                            }
+                            else
+                            {
+                                existingNas.Shortname = sasNas.Shortname ?? existingNas.Shortname;
+                                existingNas.Type = sasNas.Type;
+                                existingNas.Version = sasNas.Version;
+                                existingNas.Secret = sasNas.Secret ?? existingNas.Secret;
+                                existingNas.Enabled = sasNas.Enabled;
+                                existingNas.PingTime = sasNas.PingTime;
+                                existingNas.PingLoss = sasNas.PingLoss;
+                                existingNas.Monitor = sasNas.Monitor;
+                                existingNas.UpdatedAt = DateTime.UtcNow;
+                                nasProgress.NasUpdatedRecords++;
+                            }
+
+                            nasProgress.NasProcessedRecords++;
+                        }
+                        catch (Exception ex)
+                        {
+                            nasProgress.NasFailedRecords++;
+                            _logger.LogError(ex, "Failed to sync NAS: {Nasname}", sasNas.Nasname);
+                        }
+                    }
+
+                    await context.SaveChangesAsync(cancellationToken);
+                    await SendProgressUpdateToClients(nasProgress);
+                }
+            }
+
+            hasMorePages = currentPage < totalPagesFromApi;
+            currentPage++;
+        }
+
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var nasProgress = await context.SyncProgresses.FindAsync(syncId);
+            if (nasProgress != null)
+            {
+                await SendProgressUpdateToClients(nasProgress);
+            }
+        }
+
+        await UpdateProgress(syncId, SyncStatus.SyncingUsers, SyncPhase.Nas, 95, 
+            $"NAS sync complete: {await GetNasSyncSummary(syncId)}", cancellationToken);
+    }
+
+    private async Task<string> GetNasSyncSummary(Guid syncId)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var nasProgress = await context.SyncProgresses.FindAsync(syncId);
+        
+        if (nasProgress == null)
+            return "Unable to retrieve sync summary";
+        
+        return $"{nasProgress.NasProcessedRecords} processed, " +
+            $"{nasProgress.NasNewRecords} new, " +
+            $"{nasProgress.NasUpdatedRecords} updated, " +
+            $"{nasProgress.NasFailedRecords} failed";
+    }
+
     private async Task UpdateProgress(Guid syncId, SyncStatus status, SyncPhase phase, double percentage, string message, CancellationToken cancellationToken, string? errorMessage = null)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -999,6 +1152,13 @@ public class SasSyncService : ISasSyncService
             UserNewRecords = progress.UserNewRecords,
             UserUpdatedRecords = progress.UserUpdatedRecords,
             UserFailedRecords = progress.UserFailedRecords,
+            NasCurrentPage = progress.NasCurrentPage,
+            NasTotalPages = progress.NasTotalPages,
+            NasTotalRecords = progress.NasTotalRecords,
+            NasProcessedRecords = progress.NasProcessedRecords,
+            NasNewRecords = progress.NasNewRecords,
+            NasUpdatedRecords = progress.NasUpdatedRecords,
+            NasFailedRecords = progress.NasFailedRecords,
             ProgressPercentage = progress.ProgressPercentage,
             CurrentMessage = progress.CurrentMessage,
             ErrorMessage = progress.ErrorMessage,
@@ -1080,3 +1240,75 @@ internal record SasGroup
     public int ManagersCount { get; init; }
 }
 
+// Helper class for SAS NAS API response
+internal record SasNasApiResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("current_page")]
+    public int CurrentPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
+    public List<SasNas> Data { get; init; } = new();
+    
+    [System.Text.Json.Serialization.JsonPropertyName("first_page_url")]
+    public string? FirstPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("from")]
+    public int From { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page")]
+    public int LastPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page_url")]
+    public string? LastPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("next_page_url")]
+    public string? NextPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("path")]
+    public string? Path { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("per_page")]
+    public int PerPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("prev_page_url")]
+    public string? PrevPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("to")]
+    public int To { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("total")]
+    public int Total { get; init; }
+}
+
+internal record SasNas
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public int Id { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("nasname")]
+    public string? Nasname { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("shortname")]
+    public string? Shortname { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
+    public int Type { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("version")]
+    public string? Version { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("secret")]
+    public string? Secret { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+    public int Enabled { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("ping_time")]
+    public int PingTime { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("ping_loss")]
+    public int PingLoss { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("monitor")]
+    public int Monitor { get; init; }
+}

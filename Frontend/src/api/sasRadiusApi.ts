@@ -51,6 +51,13 @@ export interface SyncProgress {
   userNewRecords: number
   userUpdatedRecords: number
   userFailedRecords: number
+  nasCurrentPage: number
+  nasTotalPages: number
+  nasTotalRecords: number
+  nasProcessedRecords: number
+  nasNewRecords: number
+  nasUpdatedRecords: number
+  nasFailedRecords: number
   progressPercentage: number
   currentMessage?: string
   errorMessage?: string

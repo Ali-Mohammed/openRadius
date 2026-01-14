@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSyncHub, SyncStatus, SyncPhase } from '@/hooks/useSyncHub'
-import { CheckCircle2, XCircle, Loader2, ArrowRight, Users, Layers, X, MapPin, FolderKanban } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, ArrowRight, Users, Layers, X, MapPin, FolderKanban, Server } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { sasRadiusApi, type SyncProgress } from '@/api/sasRadiusApi'
 import { useMutation } from '@tanstack/react-query'
@@ -397,6 +397,60 @@ export function SyncProgressDialog({ open, onOpenChange, syncId, workspaceId, on
                         <span className="text-xs text-muted-foreground">Failed</span>
                         <span className="font-semibold text-red-600 dark:text-red-400">
                           {formatNumber(currentProgress.userFailedRecords)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* NAS Sync Phase */}
+              <div className={`rounded-lg border p-4 ${currentProgress.currentPhase > SyncPhase.Nas || currentProgress.currentPhase === SyncPhase.Completed ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-background'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Server className={`w-5 h-5 ${currentProgress.currentPhase > SyncPhase.Nas || currentProgress.currentPhase === SyncPhase.Completed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                    <h3 className="font-semibold">NAS Synchronization</h3>
+                  </div>
+                  {currentProgress.currentPhase > SyncPhase.Nas || currentProgress.currentPhase === SyncPhase.Completed ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  ) : currentProgress.currentPhase === SyncPhase.Nas ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-green-600 dark:text-green-400" />
+                  ) : null}
+                </div>
+
+                {currentProgress.nasTotalRecords > 0 && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Page Progress:</span>
+                      <span className="font-medium">
+                        {currentProgress.nasCurrentPage} / {currentProgress.nasTotalPages}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Records:</span>
+                      <span className="font-medium">{formatNumber(currentProgress.nasTotalRecords)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Processed:</span>
+                      <span className="font-medium">{formatNumber(currentProgress.nasProcessedRecords)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-950 rounded">
+                        <span className="text-xs text-muted-foreground">New</span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          {formatNumber(currentProgress.nasNewRecords)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-950 rounded">
+                        <span className="text-xs text-muted-foreground">Updated</span>
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          {formatNumber(currentProgress.nasUpdatedRecords)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-950 rounded">
+                        <span className="text-xs text-muted-foreground">Failed</span>
+                        <span className="font-semibold text-red-600 dark:text-red-400">
+                          {formatNumber(currentProgress.nasFailedRecords)}
                         </span>
                       </div>
                     </div>

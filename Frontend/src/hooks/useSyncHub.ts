@@ -22,7 +22,8 @@ export enum SyncPhase {
   Groups = 2,
   Zones = 3,
   Users = 4,
-  Completed = 5
+  Nas = 5,
+  Completed = 6
 }
 
 export interface SyncProgressUpdate {
@@ -58,6 +59,13 @@ export interface SyncProgressUpdate {
   userNewRecords: number;
   userUpdatedRecords: number;
   userFailedRecords: number;
+  nasCurrentPage: number;
+  nasTotalPages: number;
+  nasTotalRecords: number;
+  nasProcessedRecords: number;
+  nasNewRecords: number;
+  nasUpdatedRecords: number;
+  nasFailedRecords: number;
   progressPercentage: number;
   currentMessage?: string;
   errorMessage?: string;
