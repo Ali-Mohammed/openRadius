@@ -230,6 +230,7 @@ export default function RadiusCustomAttributes() {
       queryClient.invalidateQueries({ queryKey: ['radiusCustomAttributes'] })
       toast.success('Custom attribute deleted successfully')
       setDeleteDialogOpen(false)
+      setAttributeToDelete(null)
     },
     onError: (error) => {
       toast.error(formatApiError(error))
@@ -242,6 +243,7 @@ export default function RadiusCustomAttributes() {
       queryClient.invalidateQueries({ queryKey: ['radiusCustomAttributes'] })
       toast.success('Custom attribute restored successfully')
       setRestoreDialogOpen(false)
+      setAttributeToRestore(null)
     },
     onError: (error) => {
       toast.error(formatApiError(error))
