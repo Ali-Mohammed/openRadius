@@ -179,14 +179,25 @@ export default function CashbackProfiles() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Cashback Profiles</h1>
+          <p className="text-muted-foreground mt-1">
+            Configure cashback amounts for billing profiles by cashback group
+          </p>
+        </div>
+      </div>
+
+      {/* Group Selection Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Cashback Profile Configuration</CardTitle>
+          <CardTitle>Select Cashback Group</CardTitle>
           <CardDescription>
-            Select a cashback group and configure cashback amounts for each billing profile
+            Choose a cashback group to configure amounts for its billing profiles
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* Cashback Group Selection */}
           <div className="space-y-2">
             <Label>Cashback Group *</Label>
@@ -194,7 +205,7 @@ export default function CashbackProfiles() {
               value={selectedGroupId?.toString() || ''}
               onValueChange={(value) => setSelectedGroupId(parseInt(value))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a cashback group" />
               </SelectTrigger>
               <SelectContent>
@@ -225,65 +236,76 @@ export default function CashbackProfiles() {
 
           {/* Selected Group Display */}
           {selectedGroup && (
-            <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
               {IconComponent && (
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-lg"
+                  className="flex h-14 w-14 items-center justify-center rounded-xl shadow-sm"
                   style={{ backgroundColor: selectedGroup.color + '20', color: selectedGroup.color }}
                 >
-                  <IconComponent className="h-6 w-6" />
+                  <IconComponent className="h-7 w-7" />
                 </div>
               )}
-              <div className="flex-1">
-                <h3 className="font-semibold">{selectedGroup.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configure cashback amounts for billing profiles
-                </p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-lg">{selectedGroup.name}</h3>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                    {groupUsers?.length || 0} {groupUsers?.length === 1 ? 'User' : 'Users'}
+                  </span>
+                </div>
                 {groupUsers && groupUsers.length > 0 && (
-                  <div className="mt-2 flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Users:</span>
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <span className="text-muted-foreground shrink-0">Members:</span>
                     <div className="flex flex-wrap gap-1">
-                      {groupUsers.slice(0, 5).map((user: User) => (
+                      {groupUsers.slice(0, 3).map((user: User) => (
                         <span
                           key={user.id}
-                          className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
+                          className="inline-flex items-center rounded-md bg-background border px-2 py-0.5 text-xs font-medium"
                         >
                           {user.firstName && user.lastName
                             ? `${user.firstName} ${user.lastName}`
                             : user.email || `User ${user.id}`}
                         </span>
                       ))}
-                      {groupUsers.length > 5 && (
-                        <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                          +{groupUsers.length - 5} more
+                      {groupUsers.length > 3 && (
+                        <span className="inline-flex items-center rounded-md bg-background border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          +{groupUsers.length - 3} more
                         </span>
                       )}
                     </div>
                   </div>
                 )}
                 {isLoadingUsers && (
-                  <p className="mt-2 text-sm text-muted-foreground">Loading users...</p>
+                  <p className="text-sm text-muted-foreground">Loading members...</p>
                 )}
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
 
-          {/* Billing Profiles Table */}
-          {selectedGroupId && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Billing Profiles</h3>
-                <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Save Cashback Amounts
-                </Button>
+      {/* Billing Profiles Configuration */}
+      {selectedGroupId && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Cashback Configuration</CardTitle>
+                <CardDescription>
+                  Set cashback amounts for each billing profile
+                </CardDescription>
               </div>
-
-              <div className="rounded-md border">
+              <Button onClick={handleSave} disabled={saveMutation.isPending} size="lg">
+                {saveMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -358,16 +380,24 @@ export default function CashbackProfiles() {
                   </TableBody>
                 </Table>
               </div>
-            </div>
-          )}
+            </CardContent>
+          </Card>
+        )}
 
-          {!selectedGroupId && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Please select a cashback group to configure cashback amounts for billing profiles</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {!selectedGroupId && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <DollarSign className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No Group Selected</h3>
+              <p className="text-muted-foreground text-center max-w-sm">
+                Please select a cashback group from above to configure cashback amounts for billing profiles
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
