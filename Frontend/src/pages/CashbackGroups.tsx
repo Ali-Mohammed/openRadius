@@ -744,32 +744,29 @@ export default function CashbackGroups() {
 
                   <div className="grid gap-2">
                     <Label>Color</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="color"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                        className="w-20 h-10"
-                      />
-                      <Input
-                        type="text"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                        placeholder="#3b82f6"
-                        className="flex-1"
-                      />
-                    </div>
                     <div className="flex gap-2 flex-wrap">
                       {PREDEFINED_COLORS.map((color) => (
                         <button
                           key={color}
-                          className="w-8 h-8 rounded border-2 hover:scale-110 transition-transform"
-                          style={{
-                            backgroundColor: color,
-                            borderColor: formData.color === color ? '#000' : 'transparent'
-                          }}
+                          type="button"
+                          className={cn(
+                            "w-10 h-10 rounded-md border-2 transition-all relative",
+                            formData.color === color ? "border-foreground ring-2 ring-offset-2 ring-foreground" : "border-muted hover:border-muted-foreground"
+                          )}
+                          style={{ backgroundColor: color }}
                           onClick={() => setFormData({ ...formData, color })}
-                        />
+                        >
+                          {formData.color === color && (
+                            <svg 
+                              className="absolute inset-0 m-auto h-6 w-6 text-white drop-shadow-md" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
                       ))}
                     </div>
                   </div>
