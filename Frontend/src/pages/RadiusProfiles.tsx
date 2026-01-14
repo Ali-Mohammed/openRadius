@@ -22,6 +22,7 @@ import {
   Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, Package, Settings
 } from 'lucide-react'
 import { radiusProfileApi, type RadiusProfile } from '@/api/radiusProfileApi'
+import { radiusCustomAttributeApi, type RadiusCustomAttribute, type CreateRadiusCustomAttributeRequest } from '@/api/radiusCustomAttributeApi'
 import { customWalletApi } from '@/api/customWallets'
 import { workspaceApi } from '@/lib/api'
 import { formatApiError } from '@/utils/errorHandler'
@@ -139,6 +140,9 @@ export default function RadiusProfiles() {
   // Custom wallet configuration state
   const [enableCustomWallets, setEnableCustomWallets] = useState(false)
   const [selectedWallets, setSelectedWallets] = useState<Array<{ customWalletId: number; amount: string }>>([])
+
+  // Custom attributes state
+  const [customAttributes, setCustomAttributes] = useState<Array<{ id?: number; attributeName: string; attributeValue: string; enabled: boolean }>>([])
 
   // Fetch workspace currency
   const { data: workspace } = useQuery({
@@ -427,8 +431,29 @@ export default function RadiusProfiles() {
   // Profile mutations
   const createProfileMutation = useMutation({
     mutationFn: (data: any) => radiusProfileApi.create(data),
-    onSuccess: () => {
+    onSuccess: async (response) => {
+      // Save custom attributes for new profile
+      const profileId = response?.id || response?.data?.id
+      if (profileId && customAttributes.length > 0) {
+        try {
+          await Promise.all(
+            customAttributes.map(attr =>
+              radiusCustomAttributeApi.create({
+                attributeName: attr.attributeName,
+                attributeValue: attr.attributeValue,
+                linkType: 'profile',
+                radiusProfileId: profileId,
+                enabled: attr.enabled
+              })
+            )
+          )
+        } catch (error) {
+          console.error('Failed to create custom attributes:', error)
+          toast.error('Profile created but some custom attributes failed')
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
+      queryClient.invalidateQueries({ queryKey: ['radiusCustomAttributes'] })
       toast.success('Profile created successfully')
       handleCloseProfileDialog()
     },
@@ -440,8 +465,69 @@ export default function RadiusProfiles() {
   const updateProfileMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
       radiusProfileApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
+      const profileId = variables.id
+      // Update custom attributes
+      if (customAttributes.length > 0) {
+        try {
+          // Delete existing attributes that are not in the current list
+          const existingAttrsResponse = await radiusCustomAttributeApi.getAll({
+            page: 1,
+            pageSize: 1000,
+            linkType: 'profile',
+            radiusProfileId: profileId,
+            includeDeleted: false
+          })
+          const existingAttrIds = existingAttrsResponse.data.map(a => a.id)
+          const currentAttrIds = customAttributes.filter(a => a.id).map(a => a.id!)
+          const toDelete = existingAttrIds.filter(id => !currentAttrIds.includes(id))
+          
+          // Delete removed attributes
+          await Promise.all(toDelete.map(id => radiusCustomAttributeApi.delete(id)))
+          
+          // Create or update attributes
+          await Promise.all(
+            customAttributes.map(attr => {
+              if (attr.id) {
+                // Update existing
+                return radiusCustomAttributeApi.update(attr.id, {
+                  attributeName: attr.attributeName,
+                  attributeValue: attr.attributeValue,
+                  enabled: attr.enabled
+                })
+              } else {
+                // Create new
+                return radiusCustomAttributeApi.create({
+                  attributeName: attr.attributeName,
+                  attributeValue: attr.attributeValue,
+                  linkType: 'profile',
+                  radiusProfileId: profileId,
+                  enabled: attr.enabled
+                })
+              }
+            })
+          )
+        } catch (error) {
+          console.error('Failed to update custom attributes:', error)
+          toast.error('Profile updated but some custom attributes failed')
+        }
+      } else {
+        // Delete all attributes if none are configured
+        try {
+          const existingAttrsResponse = await radiusCustomAttributeApi.getAll({
+            page: 1,
+            pageSize: 1000,
+            linkType: 'profile',
+            radiusProfileId: profileId,
+            includeDeleted: false
+          })
+          await Promise.all(existingAttrsResponse.data.map(a => radiusCustomAttributeApi.delete(a.id)))
+        } catch (error) {
+          console.error('Failed to delete custom attributes:', error)
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['radius-profiles'] })
+      queryClient.invalidateQueries({ queryKey: ['radiusCustomAttributes'] })
       toast.success('Profile updated successfully')
       handleCloseProfileDialog()
     },
@@ -527,7 +613,7 @@ export default function RadiusProfiles() {
     setCurrentPage(1)
   }
 
-  const handleOpenProfileDialog = (profile?: RadiusProfile) => {
+  const handleOpenProfileDialog = async (profile?: RadiusProfile) => {
     if (profile) {
       setEditingProfile(profile)
       setProfileFormData({
@@ -557,6 +643,25 @@ export default function RadiusProfiles() {
         setEnableCustomWallets(false)
         setSelectedWallets([])
       }
+      // Load custom attributes for this profile
+      try {
+        const attrs = await radiusCustomAttributeApi.getAll({
+          page: 1,
+          pageSize: 1000,
+          linkType: 'profile',
+          radiusProfileId: profile.id,
+          includeDeleted: false
+        })
+        setCustomAttributes(attrs.data.map(a => ({
+          id: a.id,
+          attributeName: a.attributeName,
+          attributeValue: a.attributeValue,
+          enabled: a.enabled
+        })))
+      } catch (error) {
+        console.error('Failed to load custom attributes:', error)
+        setCustomAttributes([])
+      }
     } else {
       setEditingProfile(null)
       setProfileFormData({
@@ -577,6 +682,7 @@ export default function RadiusProfiles() {
       })
       setEnableCustomWallets(false)
       setSelectedWallets([])
+      setCustomAttributes([])
     }
     setIsProfileDialogOpen(true)
   }
@@ -586,7 +692,7 @@ export default function RadiusProfiles() {
     setEditingProfile(null)
   }
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!profileFormData.name) {
       toast.error('Profile name is required')
       return
@@ -1500,6 +1606,78 @@ export default function RadiusProfiles() {
                       <Plus className="h-4 w-4 mr-2" />
                       Add Wallet
                     </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Attributes Section */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Custom RADIUS Attributes</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCustomAttributes([...customAttributes, { attributeName: '', attributeValue: '', enabled: true }])
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Attribute
+                  </Button>
+                </div>
+                {customAttributes.length > 0 && (
+                  <div className="space-y-3">
+                    {customAttributes.map((attr, index) => (
+                      <div key={index} className="grid grid-cols-[2fr_2fr_auto_auto] gap-2 items-center p-3 border rounded-lg">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Attribute Name</Label>
+                          <Input
+                            value={attr.attributeName}
+                            onChange={(e) => {
+                              const updated = [...customAttributes]
+                              updated[index].attributeName = e.target.value
+                              setCustomAttributes(updated)
+                            }}
+                            placeholder="e.g., Alc-SLA-Prof-Str"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Value</Label>
+                          <Input
+                            value={attr.attributeValue}
+                            onChange={(e) => {
+                              const updated = [...customAttributes]
+                              updated[index].attributeValue = e.target.value
+                              setCustomAttributes(updated)
+                            }}
+                            placeholder="e.g., P1"
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-1 pt-6">
+                          <Switch
+                            checked={attr.enabled}
+                            onCheckedChange={(checked) => {
+                              const updated = [...customAttributes]
+                              updated[index].enabled = checked
+                              setCustomAttributes(updated)
+                            }}
+                          />
+                          <Label className="text-xs">Enabled</Label>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-6"
+                          onClick={() => {
+                            setCustomAttributes(customAttributes.filter((_, i) => i !== index))
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

@@ -98,7 +98,10 @@ public class RadiusCustomAttributeController : ControllerBase
             RadiusProfileName = a.RadiusProfile?.Name,
             Enabled = a.Enabled,
             CreatedAt = a.CreatedAt,
-            UpdatedAt = a.UpdatedAt
+            UpdatedAt = a.UpdatedAt,
+            IsDeleted = a.IsDeleted,
+            DeletedAt = a.DeletedAt,
+            DeletedBy = a.DeletedBy
         }).ToList();
 
         return Ok(new
@@ -140,7 +143,10 @@ public class RadiusCustomAttributeController : ControllerBase
             RadiusProfileName = attribute.RadiusProfile?.Name,
             Enabled = attribute.Enabled,
             CreatedAt = attribute.CreatedAt,
-            UpdatedAt = attribute.UpdatedAt
+            UpdatedAt = attribute.UpdatedAt,
+            IsDeleted = attribute.IsDeleted,
+            DeletedAt = attribute.DeletedAt,
+            DeletedBy = attribute.DeletedBy
         };
 
         return Ok(response);
@@ -219,7 +225,10 @@ public class RadiusCustomAttributeController : ControllerBase
             RadiusProfileName = created.RadiusProfile?.Name,
             Enabled = created.Enabled,
             CreatedAt = created.CreatedAt,
-            UpdatedAt = created.UpdatedAt
+            UpdatedAt = created.UpdatedAt,
+            IsDeleted = created.IsDeleted,
+            DeletedAt = created.DeletedAt,
+            DeletedBy = created.DeletedBy
         };
 
         return CreatedAtAction(nameof(GetCustomAttribute), new { id = attribute.Id }, response);
@@ -301,7 +310,10 @@ public class RadiusCustomAttributeController : ControllerBase
             RadiusProfileName = updated.RadiusProfile?.Name,
             Enabled = updated.Enabled,
             CreatedAt = updated.CreatedAt,
-            UpdatedAt = updated.UpdatedAt
+            UpdatedAt = updated.UpdatedAt,
+            IsDeleted = updated.IsDeleted,
+            DeletedAt = updated.DeletedAt,
+            DeletedBy = updated.DeletedBy
         };
 
         return Ok(response);
@@ -321,6 +333,7 @@ public class RadiusCustomAttributeController : ControllerBase
         // Soft delete
         attribute.IsDeleted = true;
         attribute.DeletedAt = DateTime.UtcNow;
+        attribute.DeletedBy = User.Identity?.Name ?? "system";
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -344,6 +357,7 @@ public class RadiusCustomAttributeController : ControllerBase
 
         attribute.IsDeleted = false;
         attribute.DeletedAt = null;
+        attribute.DeletedBy = null;
         attribute.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
@@ -367,6 +381,7 @@ public class RadiusCustomAttributeController : ControllerBase
         {
             attribute.IsDeleted = true;
             attribute.DeletedAt = DateTime.UtcNow;
+            attribute.DeletedBy = User.Identity?.Name ?? "system";
         }
 
         await _context.SaveChangesAsync();
