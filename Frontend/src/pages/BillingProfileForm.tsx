@@ -60,6 +60,7 @@ export default function BillingProfileForm() {
   const [billingGroupPopoverOpen, setBillingGroupPopoverOpen] = useState(false);
   const [addonPopoverOpen, setAddonPopoverOpen] = useState(false);
   const [selectAllGroups, setSelectAllGroups] = useState(false);
+  const [focusedPriceInput, setFocusedPriceInput] = useState(false);
 
   const [wallets, setWallets] = useState<BillingProfileWallet[]>([]);
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
@@ -264,11 +265,21 @@ export default function BillingProfileForm() {
                 <Label htmlFor="price">Price</Label>
                 <Input
                   id="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  type="text"
+                  value={focusedPriceInput ? formData.price || '' : (formData.price ? formData.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/,/g, '');
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, price: value === '' ? 0 : parseFloat(value) });
+                    }
+                  }}
+                  onFocus={() => setFocusedPriceInput(true)}
+                  onBlur={() => {
+                    setFocusedPriceInput(false);
+                    if (formData.price) {
+                      setFormData({ ...formData, price: parseFloat(formData.price.toFixed(2)) });
+                    }
+                  }}
                   placeholder="0.00"
                 />
               </div>
