@@ -178,12 +178,12 @@ export default function CashbackProfiles() {
   const IconComponent = selectedGroupIcon ? getIconComponent(selectedGroupIcon) : null;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cashback Profiles</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold">Cashback Profiles</h1>
+          <p className="text-sm text-muted-foreground">
             Configure cashback amounts for billing profiles by cashback group
           </p>
         </div>
@@ -191,13 +191,13 @@ export default function CashbackProfiles() {
 
       {/* Group Selection Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>Select Cashback Group</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Select Cashback Group</CardTitle>
+          <CardDescription className="text-sm">
             Choose a cashback group to configure amounts for its billing profiles
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {/* Cashback Group Selection */}
           <div className="space-y-2">
             <Label>Cashback Group *</Label>
@@ -236,30 +236,30 @@ export default function CashbackProfiles() {
 
           {/* Selected Group Display */}
           {selectedGroup && (
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
+            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
               {IconComponent && (
                 <div
-                  className="flex h-14 w-14 items-center justify-center rounded-xl shadow-sm"
+                  className="flex h-12 w-12 items-center justify-center rounded-lg shadow-sm"
                   style={{ backgroundColor: selectedGroup.color + '20', color: selectedGroup.color }}
                 >
-                  <IconComponent className="h-7 w-7" />
+                  <IconComponent className="h-6 w-6" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-lg">{selectedGroup.name}</h3>
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="font-semibold text-base">{selectedGroup.name}</h3>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                     {groupUsers?.length || 0} {groupUsers?.length === 1 ? 'User' : 'Users'}
                   </span>
                 </div>
                 {groupUsers && groupUsers.length > 0 && (
                   <div className="flex items-center gap-2 text-sm flex-wrap">
-                    <span className="text-muted-foreground shrink-0">Members:</span>
+                    <span className="text-muted-foreground text-xs shrink-0">Members:</span>
                     <div className="flex flex-wrap gap-1">
                       {groupUsers.slice(0, 3).map((user: User) => (
                         <span
                           key={user.id}
-                          className="inline-flex items-center rounded-md bg-background border px-2 py-0.5 text-xs font-medium"
+                          className="inline-flex items-center rounded-md bg-background border px-1.5 py-0.5 text-xs"
                         >
                           {user.firstName && user.lastName
                             ? `${user.firstName} ${user.lastName}`
@@ -267,7 +267,7 @@ export default function CashbackProfiles() {
                         </span>
                       ))}
                       {groupUsers.length > 3 && (
-                        <span className="inline-flex items-center rounded-md bg-background border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        <span className="inline-flex items-center rounded-md bg-background border px-1.5 py-0.5 text-xs text-muted-foreground">
                           +{groupUsers.length - 3} more
                         </span>
                       )}
@@ -275,7 +275,7 @@ export default function CashbackProfiles() {
                   </div>
                 )}
                 {isLoadingUsers && (
-                  <p className="text-sm text-muted-foreground">Loading members...</p>
+                  <p className="text-xs text-muted-foreground">Loading members...</p>
                 )}
               </div>
             </div>
@@ -286,15 +286,15 @@ export default function CashbackProfiles() {
       {/* Billing Profiles Configuration */}
       {selectedGroupId && (
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Cashback Configuration</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base">Cashback Configuration</CardTitle>
+                <CardDescription className="text-sm">
                   Set cashback amounts for each billing profile
                 </CardDescription>
               </div>
-              <Button onClick={handleSave} disabled={saveMutation.isPending} size="lg">
+              <Button onClick={handleSave} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? (
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -304,7 +304,7 @@ export default function CashbackProfiles() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -386,12 +386,12 @@ export default function CashbackProfiles() {
 
         {!selectedGroupId && (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <DollarSign className="h-12 w-12 text-muted-foreground" />
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="rounded-full bg-muted p-4 mb-3">
+                <DollarSign className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No Group Selected</h3>
-              <p className="text-muted-foreground text-center max-w-sm">
+              <h3 className="text-lg font-semibold mb-1">No Group Selected</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
                 Please select a cashback group from above to configure cashback amounts for billing profiles
               </p>
             </CardContent>
