@@ -621,7 +621,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 📞 Support
 
-- 📧 Email: support@openradius.example.com
+- 📧 Email: al87mohammed@hotmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/yourusername/openradius/issues)
 - 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/openradius/discussions)
 
