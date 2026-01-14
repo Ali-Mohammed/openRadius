@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -397,7 +397,6 @@ export default function CashbackProfiles() {
             </CardContent>
           </Card>
         )}
-      </div>
     </div>
   );
 }
