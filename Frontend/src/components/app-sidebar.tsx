@@ -84,6 +84,11 @@ const getNavData = (workspaceId: number) => ({
           icon: Layers,
         },
         {
+          titleKey: "navigation.customAttributes",
+          url: `/radius/custom-attributes`,
+          icon: Settings,
+        },
+        {
           titleKey: "navigation.zones",
           url: `/radius/zones`,
           icon: MapPin,

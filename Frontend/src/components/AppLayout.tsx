@@ -81,6 +81,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname.includes('/radius/nas')) return { parent: null, current: 'Network Access Servers', icon: Server }
     if (location.pathname.includes('/radius/ip-pools')) return { parent: null, current: 'RADIUS IP Pools', icon: Network }
     if (location.pathname.includes('/radius/ip-reservations')) return { parent: null, current: 'IP Reservations', icon: Network }
+    if (location.pathname.includes('/radius/custom-attributes')) return { parent: null, current: 'Custom Attributes', icon: Settings }
     if (location.pathname.includes('/radius/zones')) return { parent: null, current: 'Zones', icon: MapPin }
     if (location.pathname.includes('/billing/profiles/new')) {
       return {

@@ -23,6 +23,7 @@
     "nas": "NAS",
     "ipPools": "IP Pools",
     "ipReservations": "IP Reservations",
+    "customAttributes": "Custom Attributes",
     "billing": "Billing",
     "billingProfiles": "Profiles",
     "addons": "Addons",
