@@ -629,7 +629,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 <div align="center">
 
-**Built with ❤️ using .NET 10, React 19, and modern web technologies**
+**Built with ❤️ by Ali Al-Estarbadee using .NET 10, React 19, and modern web technologies**
 
 [⬆ Back to Top](#-openradius)
 
