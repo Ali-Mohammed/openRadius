@@ -906,8 +906,12 @@ export default function Zones() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={columns.length} className='h-24 text-center'>
-                          No results.
+                        <TableCell colSpan={columns.length} className='h-64 text-center'>
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <MapPin className="h-12 w-12 text-muted-foreground/50" />
+                            <p className="text-muted-foreground font-medium">No zones found</p>
+                            <p className="text-sm text-muted-foreground">Create your first zone to get started</p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -941,8 +945,12 @@ export default function Zones() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={deletedColumns.length} className='h-24 text-center'>
-                          No deleted zones.
+                        <TableCell colSpan={deletedColumns.length} className='h-64 text-center'>
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Archive className="h-12 w-12 text-muted-foreground/50" />
+                            <p className="text-muted-foreground font-medium">No deleted zones</p>
+                            <p className="text-sm text-muted-foreground">Deleted zones will appear here</p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
