@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin, Package, Wallet, ArrowUp, History, Receipt, DollarSign, Tags } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -76,6 +76,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname === '/integrations') return { parent: null, current: 'Integrations', icon: Radio }
     if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
+    if (location.pathname.includes('/radius/groups')) return { parent: null, current: 'RADIUS Groups', icon: Users }
+    if (location.pathname.includes('/radius/tags')) return { parent: null, current: 'RADIUS Tags', icon: Tags }
     if (location.pathname.includes('/radius/nas')) return { parent: null, current: 'Network Access Servers', icon: Server }
     if (location.pathname.includes('/radius/ip-pools')) return { parent: null, current: 'RADIUS IP Pools', icon: Network }
     if (location.pathname.includes('/radius/ip-reservations')) return { parent: null, current: 'IP Reservations', icon: Network }
@@ -95,6 +97,16 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     }
     if (location.pathname.includes('/billing/profiles')) return { parent: null, current: 'Billing Profiles', icon: Settings }
+    if (location.pathname.includes('/billing/addons')) return { parent: null, current: 'Addons', icon: Package }
+    if (location.pathname.includes('/billing/groups')) return { parent: null, current: 'Billing Groups', icon: Users }
+    if (location.pathname.includes('/billing/cashbacks')) return { parent: null, current: 'Cashback Profiles', icon: DollarSign }
+    if (location.pathname.includes('/billing/cashback-groups')) return { parent: null, current: 'Cashback Groups', icon: Users }
+    if (location.pathname.includes('/billing/wallets')) return { parent: null, current: 'Custom Wallets', icon: Wallet }
+    if (location.pathname.includes('/billing/user-wallets')) return { parent: null, current: 'User Wallets', icon: Wallet }
+    if (location.pathname.includes('/billing/topup')) return { parent: null, current: 'Top Up', icon: ArrowUp }
+    if (location.pathname.includes('/billing/history')) return { parent: null, current: 'Wallet History', icon: History }
+    if (location.pathname.includes('/billing/transactions')) return { parent: null, current: 'Transactions', icon: Receipt }
+    if (location.pathname.includes('/billing/balances')) return { parent: null, current: 'Balances', icon: DollarSign }
     if (location.pathname === '/workspace/setting') return { parent: null, current: 'Workspace Settings', icon: Wrench }
     if (location.pathname === '/settings/oidc') return { parent: null, current: 'OIDC Settings', icon: Key }
     if (location.pathname === '/settings/database-backup') return { parent: null, current: 'Database Backup', icon: Database }
