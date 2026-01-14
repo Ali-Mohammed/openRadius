@@ -570,24 +570,51 @@ export default function RadiusIpReservations() {
                   <div className="grid gap-2">
                     <Label htmlFor="radiusUserId">RADIUS User</Label>
                     <Combobox
-                      options={users.map((user) => {
-                        const nameParts = []
-                        if (user.firstname) nameParts.push(user.firstname)
-                        if (user.lastname) nameParts.push(user.lastname)
-                        const fullName = nameParts.length > 0 ? ` (${nameParts.join(' ')})` : ''
-                        
-                        const details = []
-                        if (user.profileName) details.push(user.profileName)
-                        if (user.zoneName) details.push(user.zoneName)
-                        if (user.groupName) details.push(user.groupName)
-                        const detailsStr = details.length > 0 ? ` - ${details.join(' | ')}` : ''
-                        
-                        return {
-                          value: user.id?.toString() || '',
-                          label: `${user.username}${fullName}${detailsStr}`,
-                          searchKey: user.username
+                      options={(() => {
+                        const userOptions = users.map((user) => {
+                          const nameParts = []
+                          if (user.firstname) nameParts.push(user.firstname)
+                          if (user.lastname) nameParts.push(user.lastname)
+                          const fullName = nameParts.length > 0 ? ` (${nameParts.join(' ')})` : ''
+                          
+                          const details = []
+                          if (user.profileName) details.push(user.profileName)
+                          if (user.zoneName) details.push(user.zoneName)
+                          if (user.groupName) details.push(user.groupName)
+                          const detailsStr = details.length > 0 ? ` - ${details.join(' | ')}` : ''
+                          
+                          return {
+                            value: user.id?.toString() || '',
+                            label: `${user.username}${fullName}${detailsStr}`,
+                            searchKey: user.username
+                          }
+                        })
+
+                        // If editing and the selected user isn't in the current search results, add it
+                        if (editingReservation?.radiusUserId && editingReservation.username) {
+                          const isUserInList = userOptions.some(opt => opt.value === editingReservation.radiusUserId?.toString())
+                          if (!isUserInList) {
+                            const nameParts = []
+                            if (editingReservation.firstname) nameParts.push(editingReservation.firstname)
+                            if (editingReservation.lastname) nameParts.push(editingReservation.lastname)
+                            const fullName = nameParts.length > 0 ? ` (${nameParts.join(' ')})` : ''
+                            
+                            const details = []
+                            if (editingReservation.profileName) details.push(editingReservation.profileName)
+                            if (editingReservation.zoneName) details.push(editingReservation.zoneName)
+                            if (editingReservation.groupName) details.push(editingReservation.groupName)
+                            const detailsStr = details.length > 0 ? ` - ${details.join(' | ')}` : ''
+                            
+                            userOptions.unshift({
+                              value: editingReservation.radiusUserId.toString(),
+                              label: `${editingReservation.username}${fullName}${detailsStr}`,
+                              searchKey: editingReservation.username
+                            })
+                          }
                         }
-                      })}
+
+                        return userOptions
+                      })()}
                       value={formData.radiusUserId}
                       onValueChange={(value) => {
                         setFormData({ ...formData, radiusUserId: value })

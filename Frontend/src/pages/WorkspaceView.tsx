@@ -148,6 +148,7 @@ export default function WorkspaceView() {
     onSuccess: async (newWorkspace) => {
       await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
       await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] }) // Invalidate workspace switcher
       
       // If this is the first workspace, set it as default
       if (workspaces.length === 0 && deletedworkspaces.length === 0) {
@@ -176,6 +177,7 @@ export default function WorkspaceView() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
       await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] }) // Invalidate workspace switcher
       toast.success('Workspace updated successfully')
       setOpen(false)
       resetForm()
@@ -205,6 +207,7 @@ export default function WorkspaceView() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
       await queryClient.invalidateQueries({ queryKey: ['workspaces-deleted'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] }) // Invalidate workspace switcher
       toast.success('Workspace restored successfully')
     },
     onError: () => {

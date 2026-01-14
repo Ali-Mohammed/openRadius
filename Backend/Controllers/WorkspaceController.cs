@@ -176,6 +176,9 @@ public class WorkspaceController : ControllerBase
             // Create fresh database with migrations
             await tenantContext.Database.MigrateAsync();
             
+            // Seed default RADIUS tags
+            await SeedDefaultRadiusTags(tenantContext);
+            
             _logger.LogInformation($"✓ Created tenant database for workspace: {workspace.Title} (ID: {workspace.Id})");
         }
         catch (Exception ex)
@@ -368,6 +371,42 @@ public class WorkspaceController : ControllerBase
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"workspaces_{DateTime.UtcNow:yyyy-MM-dd}.xlsx"
         );
+    }
+
+    private async Task SeedDefaultRadiusTags(ApplicationDbContext context)
+    {
+        // Check if tags already exist
+        if (await context.RadiusTags.AnyAsync())
+        {
+            return;
+        }
+
+        var defaultTags = new List<RadiusTag>
+        {
+            new RadiusTag { Title = "Active", Description = "User account is active", Color = "#22c55e", Icon = "CheckCircle", Status = "active" },
+            new RadiusTag { Title = "Expired", Description = "Account has expired", Color = "#ef4444", Icon = "XCircle", Status = "active" },
+            new RadiusTag { Title = "Churn", Description = "Customer has churned", Color = "#dc2626", Icon = "UserX", Status = "active" },
+            new RadiusTag { Title = "Churn Risk", Description = "At risk of churning", Color = "#f59e0b", Icon = "AlertTriangle", Status = "active" },
+            new RadiusTag { Title = "Static IP", Description = "Has static IP assignment", Color = "#3b82f6", Icon = "Network", Status = "active" },
+            new RadiusTag { Title = "Power Issue", Description = "Power-related problems", Color = "#f97316", Icon = "Zap", Status = "active" },
+            new RadiusTag { Title = "Open Ticket", Description = "Has open support ticket", Color = "#8b5cf6", Icon = "Ticket", Status = "active" },
+            new RadiusTag { Title = "High Usage", Description = "High bandwidth usage", Color = "#ec4899", Icon = "TrendingUp", Status = "active" },
+            new RadiusTag { Title = "Heavy Usage", Description = "Excessive bandwidth consumption", Color = "#be123c", Icon = "Activity", Status = "active" },
+            new RadiusTag { Title = "Offline 24h+", Description = "Offline for more than 24 hours", Color = "#64748b", Icon = "WifiOff", Status = "active" },
+            new RadiusTag { Title = "VIP", Description = "VIP customer", Color = "#eab308", Icon = "Crown", Status = "active" },
+            new RadiusTag { Title = "New Customer", Description = "Recently joined", Color = "#06b6d4", Icon = "UserPlus", Status = "active" },
+            new RadiusTag { Title = "Suspended", Description = "Account suspended", Color = "#71717a", Icon = "Ban", Status = "active" },
+            new RadiusTag { Title = "Payment Issue", Description = "Payment problems", Color = "#dc2626", Icon = "CreditCard", Status = "active" },
+            new RadiusTag { Title = "Technical Issue", Description = "Technical problems reported", Color = "#f97316", Icon = "Wrench", Status = "active" },
+            new RadiusTag { Title = "Scheduled Maintenance", Description = "Under maintenance", Color = "#14b8a6", Icon = "Clock", Status = "active" },
+            new RadiusTag { Title = "Monitor", Description = "Requires monitoring", Color = "#a855f7", Icon = "Eye", Status = "active" },
+            new RadiusTag { Title = "Beta Tester", Description = "Testing new features", Color = "#10b981", Icon = "FlaskConical", Status = "active" }
+        };
+
+        context.RadiusTags.AddRange(defaultTags);
+        await context.SaveChangesAsync();
+        
+        _logger.LogInformation($"✓ Seeded {defaultTags.Count} default RADIUS tags");
     }
 
     private bool WorkspaceExists(int id)
