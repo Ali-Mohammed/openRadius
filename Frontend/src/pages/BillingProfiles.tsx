@@ -487,14 +487,7 @@ export default function BillingProfiles() {
                         </TableCell>
                         <TableCell>
                           {radiusProfile ? (
-                            <div className="flex flex-col">
-                              <span className="font-medium text-sm">{radiusProfile.name}</span>
-                              {radiusProfile.downrate && radiusProfile.uprate && (
-                                <span className="text-xs text-muted-foreground">
-                                  {radiusProfile.downrate}/{radiusProfile.uprate} Mbps
-                                </span>
-                              )}
-                            </div>
+                            <span className="font-medium text-sm">{radiusProfile.name}</span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
