@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '@/utils/iconColorHelper'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 export default function CashbackGroups() {
   const queryClient = useQueryClient()
@@ -744,31 +745,32 @@ export default function CashbackGroups() {
 
                   <div className="grid gap-2">
                     <Label>Color</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {PREDEFINED_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          className={cn(
-                            "w-10 h-10 rounded-md border-2 transition-all relative",
-                            formData.color === color ? "border-foreground ring-2 ring-offset-2 ring-foreground" : "border-muted hover:border-muted-foreground"
-                          )}
-                          style={{ backgroundColor: color }}
-                          onClick={() => setFormData({ ...formData, color })}
-                        >
-                          {formData.color === color && (
-                            <svg 
-                              className="absolute inset-0 m-auto h-6 w-6 text-white drop-shadow-md" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    <Select value={formData.color} onValueChange={(value) => setFormData({ ...formData, color: value })}>
+                      <SelectTrigger>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: formData.color }}
+                          />
+                          <span>
+                            {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Select Color'}
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_COLORS.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded-full border"
+                                style={{ backgroundColor: color.value }}
+                              />
+                              {color.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="flex items-center space-x-2">
