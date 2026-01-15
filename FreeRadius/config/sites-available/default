@@ -1,0 +1,206 @@
+# Default FreeRADIUS Virtual Server
+# Enterprise ISP Configuration with PostgreSQL and Redis
+
+server default {
+    listen {
+        type = auth
+        ipaddr = *
+        port = 1812
+        limit {
+            max_connections = 256
+            lifetime = 0
+            idle_timeout = 30
+        }
+    }
+
+    listen {
+        type = acct
+        ipaddr = *
+        port = 1813
+        limit {
+            max_connections = 256
+            lifetime = 0
+            idle_timeout = 30
+        }
+    }
+
+    # Authorization section
+    authorize {
+        # Filter username
+        filter_username
+
+        # Preprocess
+        preprocess
+
+        # Redis session cache check
+        update control {
+            &Cache-Status-Only := 'yes'
+        }
+
+        # Check if user is already authenticated in Redis cache
+        if ("%{redis_session_cache:GET:%{User-Name}}" != "") {
+            update control {
+                &Auth-Type := Accept
+            }
+        }
+        else {
+            # Query SQL for user credentials
+            sql
+
+            # Check group membership
+            if (ok || updated) {
+                sql
+            }
+
+            # Process CHAP if present
+            if ("%{%{Packet-Type}:-}" == "Access-Request") {
+                chap
+            }
+
+            # PAP
+            pap
+        }
+    }
+
+    # Authentication section
+    authenticate {
+        # PAP authentication
+        Auth-Type PAP {
+            pap
+        }
+
+        # CHAP authentication
+        Auth-Type CHAP {
+            chap
+        }
+
+        # MS-CHAP authentication
+        Auth-Type MS-CHAP {
+            mschap
+        }
+    }
+
+    # Pre-accounting
+    preacct {
+        preprocess
+        acct_unique
+        suffix
+        files
+    }
+
+    # Accounting
+    accounting {
+        # Write to detail file
+        detail
+
+        # Update Redis session cache
+        if ("%{Acct-Status-Type}" == "Start") {
+            update {
+                &control:Redis-Session-Key := "%{User-Name}"
+                &control:Redis-Session-Value := "%{Acct-Session-Id}"
+                &control:Redis-Session-TTL := "86400"
+            }
+            # Store session in Redis
+            "%{redis_session_cache:SET:%{User-Name}:%{Acct-Session-Id}:EX:86400}"
+        }
+
+        if ("%{Acct-Status-Type}" == "Stop") {
+            # Remove session from Redis
+            "%{redis_session_cache:DEL:%{User-Name}}"
+        }
+
+        # SQL accounting
+        sql
+
+        # Radutmp for simultaneous use check
+        radutmp
+
+        # Execute stored procedures (if needed)
+        # exec
+    }
+
+    # Session section
+    session {
+        radutmp
+    }
+
+    # Post-authentication
+    post-auth {
+        # Cache successful authentication in Redis
+        if (ok) {
+            update {
+                &control:Redis-Auth-Key := "%{User-Name}"
+                &control:Redis-Auth-TTL := "3600"
+            }
+            "%{redis_auth_cache:SET:%{User-Name}:1:EX:3600}"
+        }
+
+        # SQL post-auth logging
+        sql
+
+        # Post-Auth-Type REJECT
+        Post-Auth-Type REJECT {
+            # Log rejected attempts
+            sql
+            attr_filter.access_reject
+        }
+
+        # Update reply with cached attributes if needed
+        update reply {
+            &Session-Timeout := 86400
+            &Idle-Timeout := 3600
+        }
+    }
+
+    # Pre-proxy (if using proxy)
+    pre-proxy {
+        # attr_filter.pre-proxy
+    }
+
+    # Post-proxy (if using proxy)
+    post-proxy {
+        # eap
+    }
+}
+
+# Inner tunnel for EAP-TTLS/PEAP
+server inner-tunnel {
+    listen {
+        type = auth
+        ipaddr = 127.0.0.1
+        port = 18120
+    }
+
+    authorize {
+        filter_username
+        chap
+        mschap
+        suffix
+        sql
+        pap
+    }
+
+    authenticate {
+        Auth-Type PAP {
+            pap
+        }
+        Auth-Type CHAP {
+            chap
+        }
+        Auth-Type MS-CHAP {
+            mschap
+        }
+    }
+
+    session {
+        radutmp
+    }
+
+    post-auth {
+        sql
+        Post-Auth-Type REJECT {
+            sql
+            attr_filter.access_reject
+        }
+    }
+}
