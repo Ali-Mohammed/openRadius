@@ -220,6 +220,7 @@ namespace Backend.Models
         public int Id { get; set; }
         public int ExternalId { get; set; }
         public string? Username { get; set; }
+        public string? Password { get; set; }
         public string? Firstname { get; set; }
         public string? Lastname { get; set; }
         public string? City { get; set; }
@@ -270,9 +271,6 @@ namespace Backend.Models
         // Soft Delete
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
-        
-        // Foreign Keys
-        public int WorkspaceId { get; set; }
         
         // Timestamps
         public DateTime CreatedAt { get; set; }

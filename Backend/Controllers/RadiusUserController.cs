@@ -234,6 +234,7 @@ public class RadiusUserController : ControllerBase
         {
             ExternalId = 0, // Will be set when synced with SAS
             Username = request.Username,
+            Password = request.Password,
             Firstname = request.Firstname,
             Lastname = request.Lastname,
             Email = request.Email,
@@ -337,6 +338,7 @@ public class RadiusUserController : ControllerBase
 
         // Update only provided fields
         if (request.Username != null) user.Username = request.Username;
+        if (request.Password != null) user.Password = request.Password;
         if (request.Firstname != null) user.Firstname = request.Firstname;
         if (request.Lastname != null) user.Lastname = request.Lastname;
         if (request.Email != null) user.Email = request.Email;
