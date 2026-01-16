@@ -6,11 +6,11 @@ sql {
     dialect = "postgresql"
 
     # Database connection
-    server = "radius-postgres"
+    server = "openradius-postgres"
     port = 5432
-    login = "radius"
-    password = "radiuspass"
-    radius_db = "radius"
+    login = "admin"
+    password = "admin123"
+    radius_db = "openradius_workspace_1"
 
     # Connection pool settings - optimized for enterprise ISP
     pool {
@@ -31,6 +31,18 @@ sql {
 
     # Table names
     client_table = "nas"
+    authcheck_table = "radcheck"
+    authreply_table = "radreply"
+    groupcheck_table = "radgroupcheck"
+    groupreply_table = "radgroupreply"
+    usergroup_table = "radusergroup"
+    group_membership_table = "radusergroup"
+    acct_table1 = "radacct"
+    acct_table2 = "radacct"
+    postauth_table = "radpostauth"
+    
+    # Group attribute name
+    group_attribute = "SQL-Group"
 
     # Query configuration
     $INCLUDE ${modconfdir}/sql/main/${dialect}/queries.conf

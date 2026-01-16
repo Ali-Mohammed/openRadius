@@ -1,27 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database for FreeRADIUS
-  radius-postgres:
-    image: postgres:15-alpine
-    container_name: radius-postgres
-    environment:
-      POSTGRES_DB: radius
-      POSTGRES_USER: radius
-      POSTGRES_PASSWORD: radiuspass
-    volumes:
-      - radius-postgres-data:/var/lib/postgresql/data
-      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    ports:
-      - "5433:5432"
-    networks:
-      - radius-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U radius"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Redis for Session Caching
   radius-redis:
     image: redis:7-alpine
@@ -32,7 +11,7 @@ services:
     ports:
       - "6380:6379"
     networks:
-      - radius-network
+      - openradius-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -41,47 +20,38 @@ services:
 
   # FreeRADIUS 3.2 Server
   freeradius:
-    image: freeradius/freeradius-server:3.2-alpine
+    image: freeradius/freeradius-server:latest
     container_name: freeradius
     ports:
       - "1812:1812/udp"  # Authentication
       - "1813:1813/udp"  # Accounting
       - "18120:18120"    # Status server
     volumes:
-      - ./config/radiusd.conf:/etc/raddb/radiusd.conf
-      - ./config/clients.conf:/etc/raddb/clients.conf
-      - ./config/mods-available/sql:/etc/raddb/mods-available/sql
-      - ./config/mods-enabled/sql:/etc/raddb/mods-enabled/sql
-      - ./config/mods-available/redis:/etc/raddb/mods-available/redis
-      - ./config/mods-enabled/redis:/etc/raddb/mods-enabled/redis
-      - ./config/sites-available/default:/etc/raddb/sites-available/default
-      - ./config/sites-enabled/default:/etc/raddb/sites-enabled/default
-      - ./config/dictionary:/etc/raddb/dictionary
+      - ./config/radiusd.conf:/etc/freeradius/radiusd.conf
+      - ./config/clients.conf:/etc/freeradius/clients.conf
+      - ./config/mods-available/sql:/etc/freeradius/mods-available/sql
+      - ./config/mods-enabled/sql:/etc/freeradius/mods-enabled/sql
+      - ./config/mods-available/redis:/etc/freeradius/mods-available/redis
+      - ./config/mods-enabled/redis:/etc/freeradius/mods-enabled/redis
+      - ./config/sites-available/default:/etc/freeradius/sites-available/default
+      - ./config/sites-enabled/default:/etc/freeradius/sites-enabled/default
+      - ./config/dictionary:/etc/freeradius/dictionary
       - ./logs:/var/log/radius
     networks:
-      - radius-network
+      - openradius-network
     depends_on:
-      radius-postgres:
-        condition: service_healthy
       radius-redis:
         condition: service_healthy
     environment:
       - TZ=UTC
-      - RADIUS_DEBUG=no
+      - RADIUS_DEBUG=yes
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost", "0", "testing123"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    command: ["-X"]
 
 networks:
-  radius-network:
-    driver: bridge
+  openradius-network:
+    external: true
 
 volumes:
-  radius-postgres-data:
-    driver: local
   radius-redis-data:
     driver: local

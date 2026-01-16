@@ -32,34 +32,21 @@ server default {
         # Preprocess
         preprocess
 
-        # Redis session cache check
-        update control {
-            &Cache-Status-Only := 'yes'
-        }
+        # Query SQL for user credentials
+        sql
 
-        # Check if user is already authenticated in Redis cache
-        if ("%{redis_session_cache:GET:%{User-Name}}" != "") {
-            update control {
-                &Auth-Type := Accept
-            }
-        }
-        else {
-            # Query SQL for user credentials
+        # Check group membership
+        if (ok || updated) {
             sql
-
-            # Check group membership
-            if (ok || updated) {
-                sql
-            }
-
-            # Process CHAP if present
-            if ("%{%{Packet-Type}:-}" == "Access-Request") {
-                chap
-            }
-
-            # PAP
-            pap
         }
+
+        # Process CHAP if present
+        if ("%{%{Packet-Type}:-}" == "Access-Request") {
+            chap
+        }
+
+        # PAP
+        pap
     }
 
     # Authentication section
@@ -93,30 +80,11 @@ server default {
         # Write to detail file
         detail
 
-        # Update Redis session cache
-        if ("%{Acct-Status-Type}" == "Start") {
-            update {
-                &control:Redis-Session-Key := "%{User-Name}"
-                &control:Redis-Session-Value := "%{Acct-Session-Id}"
-                &control:Redis-Session-TTL := "86400"
-            }
-            # Store session in Redis
-            "%{redis_session_cache:SET:%{User-Name}:%{Acct-Session-Id}:EX:86400}"
-        }
-
-        if ("%{Acct-Status-Type}" == "Stop") {
-            # Remove session from Redis
-            "%{redis_session_cache:DEL:%{User-Name}}"
-        }
-
         # SQL accounting
         sql
 
         # Radutmp for simultaneous use check
         radutmp
-
-        # Execute stored procedures (if needed)
-        # exec
     }
 
     # Session section
@@ -126,15 +94,6 @@ server default {
 
     # Post-authentication
     post-auth {
-        # Cache successful authentication in Redis
-        if (ok) {
-            update {
-                &control:Redis-Auth-Key := "%{User-Name}"
-                &control:Redis-Auth-TTL := "3600"
-            }
-            "%{redis_auth_cache:SET:%{User-Name}:1:EX:3600}"
-        }
-
         # SQL post-auth logging
         sql
 
@@ -145,7 +104,7 @@ server default {
             attr_filter.access_reject
         }
 
-        # Update reply with cached attributes if needed
+        # Update reply with session timeouts
         update reply {
             &Session-Timeout := 86400
             &Idle-Timeout := 3600
@@ -160,47 +119,5 @@ server default {
     # Post-proxy (if using proxy)
     post-proxy {
         # eap
-    }
-}
-
-# Inner tunnel for EAP-TTLS/PEAP
-server inner-tunnel {
-    listen {
-        type = auth
-        ipaddr = 127.0.0.1
-        port = 18120
-    }
-
-    authorize {
-        filter_username
-        chap
-        mschap
-        suffix
-        sql
-        pap
-    }
-
-    authenticate {
-        Auth-Type PAP {
-            pap
-        }
-        Auth-Type CHAP {
-            chap
-        }
-        Auth-Type MS-CHAP {
-            mschap
-        }
-    }
-
-    session {
-        radutmp
-    }
-
-    post-auth {
-        sql
-        Post-Auth-Type REJECT {
-            sql
-            attr_filter.access_reject
-        }
     }
 }
