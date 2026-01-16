@@ -402,7 +402,7 @@ public class SasSyncService : ISasSyncService
                 search = "",
                 columns = new[]
                 {
-                    "n_row", "idx", "id", "username", "firstname", "lastname", "expiration",
+                    "n_row", "idx", "id", "username", "password", "firstname", "lastname", "expiration",
                     "parent_username", "name", "balance", "loan_balance", "group_name", "traffic",
                     "city", "remaining_days", "static_ip", "notes", "last_online", "company",
                     "simultaneous_sessions", "used_traffic", "phone", "address", "contract_id",
@@ -499,6 +499,7 @@ public class SasSyncService : ISasSyncService
                                 {
                                     ExternalId = sasUser.Id,
                                     Username = sasUser.Username ?? string.Empty,
+                                    Password = sasUser.Password,
                                     Firstname = sasUser.Firstname,
                                     Lastname = sasUser.Lastname,
                                     City = sasUser.City,
@@ -539,6 +540,18 @@ public class SasSyncService : ISasSyncService
                                 };
                                 await context.RadiusUsers.AddAsync(newUser, cancellationToken);
                                 await context.SaveChangesAsync(cancellationToken); // Save to get the user ID
+                                
+                                // Add password to radcheck table if provided
+                                if (!string.IsNullOrWhiteSpace(sasUser.Password))
+                                {
+                                    await context.Database.ExecuteSqlRawAsync(
+                                        "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
+                                        newUser.Username);
+                                    
+                                    await context.Database.ExecuteSqlRawAsync(
+                                        "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
+                                        newUser.Username, sasUser.Password);
+                                }
                                 
                                 // Create IP reservation if user has static IP
                                 if (!string.IsNullOrWhiteSpace(sasUser.StaticIp))
@@ -588,6 +601,7 @@ public class SasSyncService : ISasSyncService
                                 string? deviceSerialNumber = sasUser.Notes;
 
                                 existingUser.Username = sasUser.Username ?? string.Empty;
+                                existingUser.Password = sasUser.Password;
                                 existingUser.Firstname = sasUser.Firstname;
                                 existingUser.Lastname = sasUser.Lastname;
                                 existingUser.City = sasUser.City;

@@ -51,6 +51,9 @@ namespace Backend.Models
         [JsonPropertyName("username")]
         public string? Username { get; set; }
 
+        [JsonPropertyName("password")]
+        public string? Password { get; set; }
+
         [JsonPropertyName("firstname")]
         public string? Firstname { get; set; }
 
