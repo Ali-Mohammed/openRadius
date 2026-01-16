@@ -20,6 +20,7 @@ import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusGroupApi } from '@/api/radiusGroupApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
+import { radiusCustomAttributeApi, type RadiusCustomAttribute, type CreateRadiusCustomAttributeRequest } from '@/api/radiusCustomAttributeApi'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
@@ -207,6 +208,10 @@ export default function RadiusUsers() {
   const [bulkRenewDialogOpen, setBulkRenewDialogOpen] = useState(false)
   const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
   const [zoneSearchQuery, setZoneSearchQuery] = useState('')
+  
+  // Custom attributes state
+  const [customAttributes, setCustomAttributes] = useState<Array<{ id?: number; attributeName: string; attributeValue: string; enabled: boolean }>>([])
+
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -492,7 +497,7 @@ export default function RadiusUsers() {
   }
 
   // Handlers
-  const handleOpenDialog = (user?: RadiusUser) => {
+  const handleOpenDialog = async (user?: RadiusUser) => {
     if (user) {
       setEditingUser(user)
       setFormData({
@@ -519,6 +524,26 @@ export default function RadiusUsers() {
         groupId: user.groupId?.toString() || '',
       })
       setSelectedTagIds(user.tags?.map(t => t.id) || [])
+      
+      // Load custom attributes for this user
+      try {
+        const attrs = await radiusCustomAttributeApi.getAll({
+          page: 1,
+          pageSize: 1000,
+          linkType: 'user',
+          radiusUserId: user.id,
+          includeDeleted: false
+        })
+        setCustomAttributes(attrs.data.map(a => ({
+          id: a.id,
+          attributeName: a.attributeName,
+          attributeValue: a.attributeValue,
+          enabled: a.enabled
+        })))
+      } catch (error) {
+        console.error('Failed to load custom attributes:', error)
+        setCustomAttributes([])
+      }
     } else {
       setEditingUser(null)
       setFormData({
@@ -545,6 +570,7 @@ export default function RadiusUsers() {
         groupId: '',
       })
       setSelectedTagIds([])
+      setCustomAttributes([])
     }
     setIsDialogOpen(true)
   }
@@ -589,15 +615,81 @@ export default function RadiusUsers() {
         await updateMutation.mutateAsync({ id: editingUser.id, data })
         // Assign tags after updating user
         await assignTagsMutation.mutateAsync({ userId: editingUser.id, tagIds: selectedTagIds })
+        
+        // Update custom attributes
+        try {
+          // Get existing attributes
+          const existingAttrsResponse = await radiusCustomAttributeApi.getAll({
+            page: 1,
+            pageSize: 1000,
+            linkType: 'user',
+            radiusUserId: editingUser.id,
+            includeDeleted: false
+          })
+          const existingAttrs = existingAttrsResponse.data
+          
+          // Find attributes to delete (existing but not in current list)
+          const currentAttrIds = customAttributes.filter(a => a.id).map(a => a.id!)
+          const toDelete = existingAttrs.filter(a => !currentAttrIds.includes(a.id)).map(a => a.id)
+          
+          // Delete removed attributes
+          await Promise.all(toDelete.map(id => radiusCustomAttributeApi.delete(id)))
+          
+          // Create or update attributes
+          await Promise.all(
+            customAttributes.map(attr => {
+              if (attr.id) {
+                // Update existing attribute
+                return radiusCustomAttributeApi.update(attr.id, {
+                  attributeName: attr.attributeName,
+                  attributeValue: attr.attributeValue,
+                  enabled: attr.enabled
+                })
+              } else {
+                // Create new attribute
+                return radiusCustomAttributeApi.create({
+                  attributeName: attr.attributeName,
+                  attributeValue: attr.attributeValue,
+                  enabled: attr.enabled,
+                  radiusUserId: editingUser.id
+                })
+              }
+            })
+          )
+        } catch (error) {
+          console.error('Failed to update custom attributes:', error)
+          toast.error('User updated but some custom attributes failed')
+        }
+        
         toast.success('User updated successfully')
       } else {
         const newUser = await createMutation.mutateAsync(data)
         // Assign tags after creating user
         if (newUser.id) {
           await assignTagsMutation.mutateAsync({ userId: newUser.id, tagIds: selectedTagIds })
+          
+          // Save custom attributes for new user
+          if (customAttributes.length > 0) {
+            try {
+              await Promise.all(
+                customAttributes.map(attr =>
+                  radiusCustomAttributeApi.create({
+                    attributeName: attr.attributeName,
+                    attributeValue: attr.attributeValue,
+                    enabled: attr.enabled,
+                    radiusUserId: newUser.id
+                  })
+                )
+              )
+            } catch (error) {
+              console.error('Failed to create custom attributes:', error)
+              toast.error('User created but some custom attributes failed')
+            }
+          }
         }
         toast.success('User created successfully')
       }
+      queryClient.invalidateQueries({ queryKey: ['radiusCustomAttributes'] })
       handleCloseDialog()
     } catch (error) {
       // Error already handled by mutations
@@ -2170,6 +2262,78 @@ export default function RadiusUsers() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Custom Attributes Section */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Custom RADIUS Attributes</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCustomAttributes([...customAttributes, { attributeName: '', attributeValue: '', enabled: true }])
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Attribute
+                  </Button>
+                </div>
+                {customAttributes.length > 0 && (
+                  <div className="space-y-3">
+                    {customAttributes.map((attr, index) => (
+                      <div key={index} className="grid grid-cols-[2fr_2fr_auto_auto] gap-2 items-center p-3 border rounded-lg">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Attribute Name</Label>
+                          <Input
+                            value={attr.attributeName}
+                            onChange={(e) => {
+                              const updated = [...customAttributes]
+                              updated[index].attributeName = e.target.value
+                              setCustomAttributes(updated)
+                            }}
+                            placeholder="e.g., Alc-SLA-Prof-Str"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Value</Label>
+                          <Input
+                            value={attr.attributeValue}
+                            onChange={(e) => {
+                              const updated = [...customAttributes]
+                              updated[index].attributeValue = e.target.value
+                              setCustomAttributes(updated)
+                            }}
+                            placeholder="e.g., P1"
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-1 pt-6">
+                          <Switch
+                            checked={attr.enabled}
+                            onCheckedChange={(checked) => {
+                              const updated = [...customAttributes]
+                              updated[index].enabled = checked
+                              setCustomAttributes(updated)
+                            }}
+                          />
+                          <Label className="text-xs">Enabled</Label>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-6"
+                          onClick={() => {
+                            setCustomAttributes(customAttributes.filter((_, i) => i !== index))
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Tags & Status */}
