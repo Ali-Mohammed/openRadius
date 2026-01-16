@@ -70,9 +70,18 @@ sql {
                              AND (\"Expiration\" IS NULL OR \"Expiration\" > NOW()) \
                              LIMIT 1"
 
-    authorize_reply_query = "SELECT id, username, attribute, value, op \
-                             FROM radreply \
-                             WHERE username = '%{SQL-User-Name}' \
+    authorize_reply_query = "SELECT ca.\"Id\" as id, '%{SQL-User-Name}' as username, ca.\"AttributeName\" as attribute, ca.\"AttributeValue\" as value, ':=' as op \
+                             FROM \"RadiusCustomAttributes\" ca \
+                             INNER JOIN \"RadiusUsers\" ru ON ca.\"RadiusProfileId\" = ru.\"ProfileId\" \
+                             WHERE ru.\"Username\" = '%{SQL-User-Name}' \
+                             AND ca.\"Enabled\" = true \
+                             AND ca.\"IsDeleted\" = false \
+                             UNION ALL \
+                             SELECT ca.\"Id\" as id, '%{SQL-User-Name}' as username, ca.\"AttributeName\" as attribute, ca.\"AttributeValue\" as value, ':=' as op \
+                             FROM \"RadiusCustomAttributes\" ca \
+                             WHERE ca.\"RadiusUserId\" = (SELECT \"Id\" FROM \"RadiusUsers\" WHERE \"Username\" = '%{SQL-User-Name}') \
+                             AND ca.\"Enabled\" = true \
+                             AND ca.\"IsDeleted\" = false \
                              ORDER BY id"
 
     # Query configuration
