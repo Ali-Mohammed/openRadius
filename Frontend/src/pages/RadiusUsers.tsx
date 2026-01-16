@@ -650,6 +650,7 @@ export default function RadiusUsers() {
                 return radiusCustomAttributeApi.create({
                   attributeName: attr.attributeName,
                   attributeValue: attr.attributeValue,
+                  linkType: 'user',
                   enabled: attr.enabled,
                   radiusUserId: editingUser.id
                 })
@@ -676,6 +677,7 @@ export default function RadiusUsers() {
                   radiusCustomAttributeApi.create({
                     attributeName: attr.attributeName,
                     attributeValue: attr.attributeValue,
+                    linkType: 'user',
                     enabled: attr.enabled,
                     radiusUserId: newUser.id
                   })
