@@ -261,6 +261,27 @@ public class RadiusUserController : ControllerBase
         _context.RadiusUsers.Add(user);
         await _context.SaveChangesAsync();
 
+        // Add password to radcheck table if provided
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            // Remove existing password entries for this user
+            var existingPasswords = _context.Set<Dictionary<string, object>>("radcheck")
+                .FromSqlRaw("SELECT * FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'", user.Username)
+                .ToList();
+            
+            if (existingPasswords.Any())
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
+                    user.Username);
+            }
+
+            // Insert new password
+            await _context.Database.ExecuteSqlRawAsync(
+                "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
+                user.Username, request.Password);
+        }
+
         // Get IP reservation for this user
         var ipReservation = await _context.RadiusIpReservations
             .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
@@ -338,6 +359,20 @@ public class RadiusUserController : ControllerBase
         if (request.GroupId.HasValue) user.GroupId = request.GroupId;
 
         user.UpdatedAt = DateTime.UtcNow;
+
+        // Update password in radcheck table if provided
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            // Remove existing password entries for this user
+            await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
+                user.Username);
+
+            // Insert new password
+            await _context.Database.ExecuteSqlRawAsync(
+                "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
+                user.Username, request.Password);
+        }
 
         await _context.SaveChangesAsync();
 

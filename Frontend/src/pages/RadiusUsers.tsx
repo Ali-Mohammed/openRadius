@@ -178,6 +178,7 @@ export default function RadiusUsers() {
   const [isExporting, setIsExporting] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
+    password: '',
     firstname: '',
     lastname: '',
     email: '',
@@ -496,6 +497,7 @@ export default function RadiusUsers() {
       setEditingUser(user)
       setFormData({
         username: user.username,
+        password: '',
         firstname: user.firstname || '',
         lastname: user.lastname || '',
         email: user.email || '',
@@ -521,6 +523,7 @@ export default function RadiusUsers() {
       setEditingUser(null)
       setFormData({
         username: '',
+        password: '',
         firstname: '',
         lastname: '',
         email: '',
@@ -559,6 +562,7 @@ export default function RadiusUsers() {
 
     const data = {
       username: formData.username,
+      password: formData.password || undefined,
       firstname: formData.firstname || undefined,
       lastname: formData.lastname || undefined,
       email: formData.email || undefined,
@@ -1892,6 +1896,19 @@ export default function RadiusUsers() {
                     />
                   </div>
                   <div className="grid gap-2">
+                    <Label htmlFor="password">Password{editingUser ? ' (leave empty to keep current)' : ' *'}</Label>
+                    <Input
+                      id="password"
+                      type="text"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="Enter password"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
                     <Label htmlFor="email">{t('radiusUsers.email')}</Label>
                     <Input
                       id="email"
@@ -1899,6 +1916,15 @@ export default function RadiusUsers() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="e.g., john@example.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">{t('radiusUsers.phone')}</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="e.g., +1234567890"
                     />
                   </div>
                 </div>
@@ -1926,15 +1952,6 @@ export default function RadiusUsers() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="phone">{t('radiusUsers.phone')}</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="e.g., +1234567890"
-                    />
-                  </div>
-                  <div className="grid gap-2">
                     <Label htmlFor="city">{t('radiusUsers.city')}</Label>
                     <Input
                       id="city"
@@ -1943,6 +1960,7 @@ export default function RadiusUsers() {
                       placeholder="e.g., New York"
                     />
                   </div>
+                  <div className="grid gap-2"></div>
                 </div>
               </div>
 
