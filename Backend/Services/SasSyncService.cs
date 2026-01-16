@@ -499,7 +499,7 @@ public class SasSyncService : ISasSyncService
                                 {
                                     ExternalId = sasUser.Id,
                                     Username = sasUser.Username ?? string.Empty,
-                                    Password = sasUser.Password,
+                                    Password = sasUser.Password ?? "1234",
                                     Firstname = sasUser.Firstname,
                                     Lastname = sasUser.Lastname,
                                     City = sasUser.City,
@@ -601,7 +601,7 @@ public class SasSyncService : ISasSyncService
                                 string? deviceSerialNumber = sasUser.Notes;
 
                                 existingUser.Username = sasUser.Username ?? string.Empty;
-                                existingUser.Password = sasUser.Password;
+                                existingUser.Password = sasUser.Password ?? "1234";
                                 existingUser.Firstname = sasUser.Firstname;
                                 existingUser.Lastname = sasUser.Lastname;
                                 existingUser.City = sasUser.City;
