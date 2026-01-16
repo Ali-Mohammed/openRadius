@@ -44,8 +44,37 @@ sql {
     # Group attribute name
     group_attribute = "SQL-Group"
 
+    # Custom authorization query to use RadiusUsers table
+    authorize_check_query = "SELECT 'Cleartext-Password' AS attribute, ':=' AS op, \"Password\" AS value \
+                             FROM \"RadiusUsers\" \
+                             WHERE \"Username\" = '%{SQL-User-Name}' \
+                             AND \"Enabled\" = true \
+                             AND \"Password\" IS NOT NULL \
+                             LIMIT 1"
+
+    authorize_reply_query = "SELECT attribute, op, value \
+                             FROM ${authreply_table} \
+                             WHERE username = '%{SQL-User-Name}' \
+                             ORDER BY id"
+
+    authorize_group_check_query = "SELECT ${groupcheck_table}.id, ${groupcheck_table}.groupname, \
+                                    ${groupcheck_table}.attribute, ${groupcheck_table}.value, \
+                                    ${groupcheck_table}.op \
+                                    FROM ${groupcheck_table}, ${usergroup_table} \
+                                    WHERE ${usergroup_table}.username = '%{SQL-User-Name}' \
+                                    AND ${usergroup_table}.groupname = ${groupcheck_table}.groupname \
+                                    ORDER BY ${groupcheck_table}.id"
+
+    authorize_group_reply_query = "SELECT ${groupreply_table}.id, ${groupreply_table}.groupname, \
+                                   ${groupreply_table}.attribute, ${groupreply_table}.value, \
+                                   ${groupreply_table}.op \
+                                   FROM ${groupreply_table}, ${usergroup_table} \
+                                   WHERE ${usergroup_table}.username = '%{SQL-User-Name}' \
+                                   AND ${usergroup_table}.groupname = ${groupreply_table}.groupname \
+                                   ORDER BY ${groupreply_table}.id"
+
     # Query configuration
-    $INCLUDE ${modconfdir}/sql/main/${dialect}/queries.conf
+    # $INCLUDE ${modconfdir}/sql/main/${dialect}/queries.conf
 
     # Delete old sessions
     delete_stale_sessions = yes
