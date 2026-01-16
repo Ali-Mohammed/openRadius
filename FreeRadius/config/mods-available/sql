@@ -67,6 +67,7 @@ sql {
                              WHERE \"Username\" = '%{SQL-User-Name}' \
                              AND \"Enabled\" = true \
                              AND \"Password\" IS NOT NULL \
+                             AND (\"Expiration\" IS NULL OR \"Expiration\" > NOW()) \
                              LIMIT 1"
 
     authorize_reply_query = "SELECT id, username, attribute, value, op \
