@@ -1,0 +1,19 @@
+# Binaries
+test_auth
+test_accounting
+load_test
+simulate_online
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.sum
+
+# Temporary files
+/tmp/
+*.tmp
