@@ -119,6 +119,9 @@ builder.Services.AddHttpClient();
 // Add SAS Sync Service
 builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 
+// Add FreeRADIUS Log Service
+builder.Services.AddScoped<IFreeRadiusLogService, FreeRadiusLogService>();
+
 // Add Kafka Consumer Service for CDC monitoring
 builder.Services.AddHostedService<KafkaConsumerService>();
 
@@ -266,6 +269,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
 app.MapHub<CdcHub>("/hubs/cdc");
+app.MapHub<LogsHub>("/hubs/logs");
 
 app.Run();
 
