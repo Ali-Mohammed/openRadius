@@ -141,6 +141,8 @@ public class RadiusUserController : ControllerBase
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
             LastSyncedAt = u.LastSyncedAt,
+            DeletedAt = u.DeletedAt,
+            DeletedBy = u.DeletedBy,
             ZoneId = u.ZoneId,
             ZoneName = u.Zone != null ? u.Zone.Name : null,
             ZoneColor = u.Zone != null ? u.Zone.Color : null,
@@ -220,7 +222,9 @@ public class RadiusUserController : ControllerBase
             GroupName = user.RadiusGroup != null ? user.RadiusGroup.Name : null,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
-            LastSyncedAt = user.LastSyncedAt
+            LastSyncedAt = user.LastSyncedAt,
+            DeletedAt = user.DeletedAt,
+            DeletedBy = user.DeletedBy
         };
 
         return Ok(response);
@@ -429,6 +433,7 @@ public class RadiusUserController : ControllerBase
 
         user.IsDeleted = true;
         user.DeletedAt = DateTime.UtcNow;
+        user.DeletedBy = User.Identity?.Name ?? "system";
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -448,6 +453,7 @@ public class RadiusUserController : ControllerBase
 
         user.IsDeleted = false;
         user.DeletedAt = null;
+        user.DeletedBy = null;
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -471,10 +477,12 @@ public class RadiusUserController : ControllerBase
             return NotFound(new { message = "No users found to delete" });
         }
 
+        var deletedBy = User.Identity?.Name ?? "system";
         foreach (var user in users)
         {
             user.IsDeleted = true;
             user.DeletedAt = DateTime.UtcNow;
+            user.DeletedBy = deletedBy;
         }
 
         await _context.SaveChangesAsync();
@@ -504,6 +512,7 @@ public class RadiusUserController : ControllerBase
         {
             user.IsDeleted = false;
             user.DeletedAt = null;
+            user.DeletedBy = null;
         }
 
         await _context.SaveChangesAsync();
@@ -591,6 +600,7 @@ public class RadiusUserController : ControllerBase
             Enabled = u.Enabled,
             StaticIp = userIpMap.ContainsKey(u.Id) ? userIpMap[u.Id] : null,
             DeletedAt = u.DeletedAt,
+            DeletedBy = u.DeletedBy,
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
             ZoneId = u.ZoneId,

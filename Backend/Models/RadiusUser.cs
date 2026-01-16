@@ -274,6 +274,7 @@ namespace Backend.Models
         // Soft Delete
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
         
         // Timestamps
         public DateTime CreatedAt { get; set; }
@@ -329,6 +330,7 @@ namespace Backend.Models
         public DateTime UpdatedAt { get; set; }
         public DateTime? LastSyncedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
         public int? ZoneId { get; set; }
         public string? ZoneName { get; set; }
         public string? ZoneColor { get; set; }
