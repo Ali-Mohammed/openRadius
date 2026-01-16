@@ -26,8 +26,8 @@ server default {
 
     # Authorization section
     authorize {
-        # Filter username
-        filter_username
+        # Filter username - Commented out to allow realms without dots (e.g., @kt)
+        # filter_username
 
         # Preprocess
         preprocess
