@@ -30,7 +30,7 @@ sql {
     read_clients = yes
 
     # Table names
-    client_table = "nas"
+    client_table = "RadiusNasDevices"
     authcheck_table = "radcheck"
     authreply_table = "radreply"
     groupcheck_table = "radgroupcheck"
@@ -44,34 +44,35 @@ sql {
     # Group attribute name
     group_attribute = "SQL-Group"
 
-    # Custom authorization query to use RadiusUsers table
-    authorize_check_query = "SELECT 'Cleartext-Password' AS attribute, ':=' AS op, \"Password\" AS value \
+    # SQL-User-Name definition
+    sql_user_name = "%{User-Name}"
+
+    # Client query to read NAS devices from RadiusNasDevices table
+    client {
+        query = "SELECT \"Id\" as id, \"Nasname\" as nasname, \"Shortname\" as shortname, \
+                 CASE \"Type\" \
+                   WHEN 0 THEN 'other' \
+                   WHEN 1 THEN 'cisco' \
+                   WHEN 2 THEN 'mikrotik' \
+                   ELSE 'other' \
+                 END as type, \
+                 \"Secret\" as secret, \"Server\" as server \
+                 FROM \"RadiusNasDevices\" \
+                 WHERE \"Enabled\" = 1 AND \"IsDeleted\" = false"
+    }
+
+    # Custom authorization queries to use RadiusUsers table
+    authorize_check_query = "SELECT 1 as id, '%{SQL-User-Name}' as username, 'Cleartext-Password' as attribute, \"Password\" as value, ':=' as op \
                              FROM \"RadiusUsers\" \
                              WHERE \"Username\" = '%{SQL-User-Name}' \
                              AND \"Enabled\" = true \
                              AND \"Password\" IS NOT NULL \
                              LIMIT 1"
 
-    authorize_reply_query = "SELECT attribute, op, value \
-                             FROM ${authreply_table} \
+    authorize_reply_query = "SELECT id, username, attribute, value, op \
+                             FROM radreply \
                              WHERE username = '%{SQL-User-Name}' \
                              ORDER BY id"
-
-    authorize_group_check_query = "SELECT ${groupcheck_table}.id, ${groupcheck_table}.groupname, \
-                                    ${groupcheck_table}.attribute, ${groupcheck_table}.value, \
-                                    ${groupcheck_table}.op \
-                                    FROM ${groupcheck_table}, ${usergroup_table} \
-                                    WHERE ${usergroup_table}.username = '%{SQL-User-Name}' \
-                                    AND ${usergroup_table}.groupname = ${groupcheck_table}.groupname \
-                                    ORDER BY ${groupcheck_table}.id"
-
-    authorize_group_reply_query = "SELECT ${groupreply_table}.id, ${groupreply_table}.groupname, \
-                                   ${groupreply_table}.attribute, ${groupreply_table}.value, \
-                                   ${groupreply_table}.op \
-                                   FROM ${groupreply_table}, ${usergroup_table} \
-                                   WHERE ${usergroup_table}.username = '%{SQL-User-Name}' \
-                                   AND ${usergroup_table}.groupname = ${groupreply_table}.groupname \
-                                   ORDER BY ${groupreply_table}.id"
 
     # Query configuration
     # $INCLUDE ${modconfdir}/sql/main/${dialect}/queries.conf
@@ -83,7 +84,7 @@ sql {
     logfile = ${logdir}/sqllog.sql
 
     # Enable query logging for debugging (disable in production)
-    sqltrace = no
+    sqltrace = yes
     sqltracefile = ${logdir}/sqltrace.sql
 
     # Connection timeout
