@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Settings, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getProfiles,
@@ -22,6 +23,7 @@ import { customWalletApi } from '../api/customWallets';
 import userWalletApi from '../api/userWallets';
 import { workspaceApi } from '../lib/api';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { tablePreferenceApi } from '../api/tablePreferenceApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
