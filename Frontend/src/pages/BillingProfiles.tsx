@@ -690,6 +690,8 @@ export default function BillingProfiles() {
       direction: w.direction || 'in',
     }));
 
+    console.log('Submitting billing profile with wallets:', formattedWallets);
+
     // For now, use the first selected radius profile and billing group as the main one
     // TODO: Backend might need to be updated to support multiple
     const data = { 
@@ -1906,9 +1908,11 @@ export default function BillingProfiles() {
                               min="0"
                               step="0.01"
                               value={wallet.percentage}
-                              onChange={(e) =>
-                                updateWallet(index, 'percentage', parseFloat(e.target.value) || 0)
-                              }
+                              onChange={(e) => {
+                                const newValue = parseFloat(e.target.value) || 0;
+                                console.log(`Updating wallet ${index} price to:`, newValue);
+                                updateWallet(index, 'percentage', newValue);
+                              }}
                               placeholder="0.00"
                               className="h-10"
                             />
