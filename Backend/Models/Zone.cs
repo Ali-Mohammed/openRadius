@@ -9,7 +9,7 @@ public class Zone
     public string? Description { get; set; }
     public string? Color { get; set; }
     public string? Icon { get; set; }
-    public int WorkspaceId { get; set; } // Not a foreign key - just stores the workspace ID
+
     public int? ParentZoneId { get; set; } // For hierarchical zones
     public int? SasUserId { get; set; } // SAS Manager tree user ID for sync tracking
     

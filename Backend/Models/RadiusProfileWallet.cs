@@ -8,7 +8,6 @@ public class RadiusProfileWallet
     [Key]
     public int Id { get; set; }
 
-    public int WorkspaceId { get; set; }
 
     public int RadiusProfileId { get; set; }
 
