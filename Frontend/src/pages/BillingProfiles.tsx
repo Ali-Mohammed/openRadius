@@ -137,12 +137,12 @@ export default function BillingProfiles() {
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
 
   // Queries
-  const { data: activeProfilesData, isLoading: isLoadingActive } = useQuery({
+  const { data: activeProfilesData, isLoading: isLoadingActive, isFetching: isFetchingActive } = useQuery({
     queryKey: ['billing-profiles', 'active', search],
     queryFn: () => getProfiles({ search, includeDeleted: false }),
   });
 
-  const { data: deletedProfilesData, isLoading: isLoadingDeleted } = useQuery({
+  const { data: deletedProfilesData, isLoading: isLoadingDeleted, isFetching: isFetchingDeleted } = useQuery({
     queryKey: ['billing-profiles', 'deleted', search],
     queryFn: () => getProfiles({ search, includeDeleted: true }),
   });
