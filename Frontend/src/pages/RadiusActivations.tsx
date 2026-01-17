@@ -600,15 +600,15 @@ export default function RadiusActivations() {
               </div>
               <div>
                 <Label className="text-muted-foreground">Type</Label>
-                <p>{getTypeBadge(selectedActivation.type)}</p>
+                <div>{getTypeBadge(selectedActivation.type)}</div>
               </div>
               <div>
                 <Label className="text-muted-foreground">Status</Label>
-                <p>{getStatusBadge(selectedActivation.status)}</p>
+                <div>{getStatusBadge(selectedActivation.status)}</div>
               </div>
               <div>
                 <Label className="text-muted-foreground">API Status</Label>
-                <p>{getApiStatusBadge(selectedActivation.apiStatus)}</p>
+                <div>{getApiStatusBadge(selectedActivation.apiStatus)}</div>
               </div>
               <div>
                 <Label className="text-muted-foreground">RADIUS Profile</Label>

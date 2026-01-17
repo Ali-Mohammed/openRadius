@@ -393,6 +393,26 @@ export default function RadiusUsers() {
     return () => clearTimeout(timeoutId)
   }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId, preferencesLoaded])
 
+  // Get selected billing profile
+  const selectedBillingProfile = useMemo(() => {
+    if (!activationFormData.billingProfileId) return null
+    return billingProfiles.find(bp => bp.id.toString() === activationFormData.billingProfileId)
+  }, [activationFormData.billingProfileId, billingProfiles])
+
+  // Auto-update duration from selected billing profile's RADIUS profile
+  useEffect(() => {
+    if (!selectedBillingProfile) return
+
+    // Find the associated RADIUS profile
+    const radiusProfile = profiles.find(p => p.id === selectedBillingProfile.radiusProfileId)
+    if (radiusProfile && radiusProfile.expirationAmount) {
+      setActivationFormData(prev => ({
+        ...prev,
+        durationDays: radiusProfile.expirationAmount.toString()
+      }))
+    }
+  }, [selectedBillingProfile, profiles])
+
   // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
     count: users.length,
@@ -816,11 +836,6 @@ export default function RadiusUsers() {
 
     activationMutation.mutate(activationRequest)
   }
-
-  const selectedBillingProfile = useMemo(() => {
-    if (!activationFormData.billingProfileId) return null
-    return billingProfiles.find(bp => bp.id.toString() === activationFormData.billingProfileId)
-  }, [activationFormData.billingProfileId, billingProfiles])
 
   const handleResetColumns = () => {
     setResetColumnsDialogOpen(true)
@@ -2742,10 +2757,10 @@ export default function RadiusUsers() {
                         type="number"
                         min="1"
                         value={activationFormData.durationDays}
-                        onChange={(e) => setActivationFormData({
-                          ...activationFormData,
-                          durationDays: e.target.value
-                        })}
+                        disabled={true}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                        title="Auto-populated from selected billing profile"
                       />
                     </div>
                   </div>
