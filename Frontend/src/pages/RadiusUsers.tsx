@@ -3027,7 +3027,7 @@ export default function RadiusUsers() {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Price:</span>
-                      <span className="font-semibold text-orange-600">${selectedBillingProfile.price.toFixed(2)}</span>
+                      <span className="font-semibold text-orange-600">{currencySymbol} {formatCurrency(selectedBillingProfile.price)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Duration:</span>
@@ -3036,7 +3036,7 @@ export default function RadiusUsers() {
                     <Separator />
                     <div className="flex justify-between">
                       <span className="font-medium">Current Balance:</span>
-                      <span>${myWallet?.currentBalance?.toFixed(2) || '0.00'}</span>
+                      <span>{currencySymbol} {formatCurrency(myWallet?.currentBalance || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Balance After:</span>
@@ -3045,7 +3045,7 @@ export default function RadiusUsers() {
                           ? 'text-red-600 font-semibold' 
                           : 'text-green-600 font-semibold'
                       }>
-                        ${((myWallet?.currentBalance || 0) - selectedBillingProfile.price).toFixed(2)}
+                        {currencySymbol} {formatCurrency((myWallet?.currentBalance || 0) - selectedBillingProfile.price)}
                       </span>
                     </div>
                   </>
@@ -3053,7 +3053,7 @@ export default function RadiusUsers() {
               </div>
 
               <p className="text-sm text-amber-600 dark:text-amber-500">
-                This action will deduct ${selectedBillingProfile?.price.toFixed(2)} from your wallet.
+                This action will deduct {currencySymbol} {formatCurrency(selectedBillingProfile?.price || 0)} from your wallet.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
