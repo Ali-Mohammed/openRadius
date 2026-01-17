@@ -783,43 +783,20 @@ export default function RadiusGroups() {
 
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
-          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
             {isFetching && (
               <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                 <RefreshCw className="h-6 w-6 animate-spin text-primary" />
               </div>
             )}
-            <div ref={parentRef} className="border rounded-md overflow-auto" style={{ height: '500px' }}>
-              <Table>
+            <div ref={parentRef} className="border rounded-md overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-20">
                   <TableRow>
-                    {columnVisibility.name && (
-                      <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
-                        Name{getSortIcon('name')}
-                      </TableHead>
-                    )}
-                    {columnVisibility.description && (
-                      <TableHead>Description</TableHead>
-                    )}
-                    {columnVisibility.subscription && (
-                      <TableHead className="cursor-pointer" onClick={() => handleSort('subscription')}>
-                        Subscription{getSortIcon('subscription')}
-                      </TableHead>
-                    )}
-                    {columnVisibility.status && (
-                      <TableHead className="cursor-pointer" onClick={() => handleSort('isActive')}>
-                        Status{getSortIcon('isActive')}
-                      </TableHead>
-                    )}
-                    {columnVisibility.users && (
-                      <TableHead className="cursor-pointer" onClick={() => handleSort('userCount')}>
-                        Users{getSortIcon('userCount')}
-                      </TableHead>
-                    )}
-                    <TableHead className="text-right sticky right-0 bg-muted">Actions</TableHead>
+                    {columnOrder.map(column => renderColumnHeader(column))}
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
                   {isLoadingGroups ? (
                     Array.from({ length: 10 }).map((_, index) => (
                       <TableRow key={index}>
@@ -858,65 +835,22 @@ export default function RadiusGroups() {
                   ) : (
                     rowVirtualizer.getVirtualItems().map((virtualRow) => {
                       const group = groups[virtualRow.index]
-                      const GroupIcon = getIconComponent(group.icon)
                       return (
-                        <TableRow key={group.id} style={{ height: `${virtualRow.size}px` }}>
-                          {columnVisibility.name && (
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="rounded-lg p-1.5 flex items-center justify-center"
-                                  style={{ backgroundColor: `${group.color || '#3b82f6'}15`, color: group.color || '#3b82f6' }}
-                                >
-                                  <GroupIcon className="h-4 w-4" />
-                                </div>
-                                {group.name}
-                              </div>
-                            </TableCell>
-                          )}
-                          {columnVisibility.description && (
-                            <TableCell className="max-w-xs truncate" title={group.description}>
-                              {group.description || '-'}
-                            </TableCell>
-                          )}
-                          {columnVisibility.subscription && <TableCell>{group.subscription || '-'}</TableCell>}
-                          {columnVisibility.status && (
-                            <TableCell>
-                              <Badge variant={group.isActive ? 'default' : 'secondary'}>
-                                {group.isActive ? 'Active' : 'Disabled'}
-                              </Badge>
-                            </TableCell>
-                          )}
-                          {columnVisibility.users && <TableCell>{(group.usersCount || 0).toLocaleString()}</TableCell>}
-                          <TableCell className="text-right sticky right-0 bg-card">
-                            {showTrash ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRestoreGroup(group.id!)}
-                              >
-                                <RotateCcw className="mr-2 h-4 w-4" />
-                                Restore
-                              </Button>
-                            ) : (
-                              <div className="flex gap-2 justify-end">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditGroup(group)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteGroup(group.id!)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
+                        <TableRow 
+                          key={group.id}
+                          className="border-b"
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                            display: 'table',
+                            tableLayout: 'fixed',
+                          }}
+                        >
+                          {columnOrder.map(column => renderTableCell(column, group))}
                         </TableRow>
                       )
                     })
@@ -928,74 +862,91 @@ export default function RadiusGroups() {
 
           {/* Enhanced Pagination */}
           {pagination && pagination.totalPages > 0 && (
-            <div className="flex items-center justify-between p-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pagination.totalRecords)} of {pagination.totalRecords} groups
-              </div>
-              <div className="flex items-center gap-2">
-                <Select value={pageSize.toString()} onValueChange={(value) => { setPageSize(parseInt(value)); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 / page</SelectItem>
-                    <SelectItem value="25">25 / page</SelectItem>
-                    <SelectItem value="50">50 / page</SelectItem>
-                    <SelectItem value="100">100 / page</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <ChevronLeft className="h-4 w-4 -ml-2" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {getPaginationPages(currentPage, pagination.totalPages).map((page, index) => (
-                    page === '...' ? (
-                      <Button key={`ellipsis-${index}`} variant="outline" size="sm" disabled>
-                        ...
-                      </Button>
-                    ) : (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCurrentPage(page as number)}
-                      >
-                        {page}
-                      </Button>
-                    )
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === pagination.totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(pagination.totalPages)}
-                    disabled={currentPage === pagination.totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                    <ChevronRight className="h-4 w-4 -ml-2" />
-                  </Button>
+            <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                  <Select value={pageSize.toString()} onValueChange={(value) => { setPageSize(parseInt(value)); setCurrentPage(1); }}>
+                    <SelectTrigger className="h-8 w-[70px] text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="1000">1000</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div className="h-4 w-px bg-border" />
+                <div className="text-sm text-muted-foreground font-medium">
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pagination.totalRecords)} of {pagination.totalRecords} groups
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                  page === '...' ? (
+                    <Button
+                      key={`ellipsis-${idx}`}
+                      variant="ghost"
+                      size="icon"
+                      disabled
+                      className="h-8 w-8 p-0 text-sm"
+                    >
+                      ...
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="icon"
+                      onClick={() => setCurrentPage(page as number)}
+                      className="h-8 w-8 p-0 text-sm font-medium"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           )}
@@ -1212,6 +1163,19 @@ export default function RadiusGroups() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  )
-}
+
+      {/* Reset Columns Confirmation Dialog */}
+      <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Columns to Default?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all column widths, order, and visibility settings to their default values. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetColumns}>Reset</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
