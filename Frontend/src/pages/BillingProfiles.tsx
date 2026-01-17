@@ -710,6 +710,10 @@ export default function BillingProfiles() {
     restoreMutation.mutate(id);
   };
 
+  const handleToggleActive = (id: number) => {
+    toggleActiveMutation.mutate(id);
+  };
+
   // Render column header with drag and drop
   const renderColumnHeader = (columnKey: string) => {
     const columnConfig: Record<string, { label: string, sortKey?: string, align?: string, draggable?: boolean }> = {
@@ -1010,6 +1014,13 @@ export default function BillingProfiles() {
                   onSelect={(e) => e.preventDefault()}
                 >
                   Billing Group
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.isActive}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, isActive: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Active
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={columnVisibility.wallets}
