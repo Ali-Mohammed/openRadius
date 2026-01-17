@@ -1052,300 +1052,383 @@ export default function BillingProfiles() {
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
           {activeTab === 'active' ? (
-          isLoadingActive ? (
-            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
-              <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10">
-                  <TableRow>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4 text-right"><Skeleton className="h-4 w-16" /></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell className="h-12 px-4">
-                        <div className="flex justify-end gap-2">
-                          <Skeleton className="h-8 w-8 rounded" />
-                          <Skeleton className="h-8 w-8 rounded" />
-                        </div>
-                      </TableCell>
+            isLoadingActive ? (
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                  <TableHeader className="sticky top-0 bg-muted z-10">
+                    <TableRow>
+                      {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map((col) => (
+                        <TableHead key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths]}px` }}>
+                          <Skeleton className="h-4 w-20" />
+                        </TableHead>
+                      ))}
+                      <TableHead className="h-12 px-4 sticky right-0 bg-muted" style={{ width: `${columnWidths.actions}px` }}>
+                        <Skeleton className="h-4 w-16" />
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : activeProfilesData?.data?.filter((p) => !p.isDeleted).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <Receipt className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No billing profiles yet</h3>
-              <p className="text-sm text-muted-foreground mb-6">Get started by creating your first billing profile</p>
-              <Button onClick={() => navigate('/billing/profiles/new')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Profile
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
-              {isFetchingActive && (
-                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                  <div className="bg-background p-4 rounded-lg shadow-lg">
-                    <div className="flex items-center gap-3">
-                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                      <span className="text-sm font-medium">Refreshing...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10">
-                  <TableRow className="hover:bg-muted">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Radius Profile</TableHead>
-                    <TableHead>Billing Group</TableHead>
-                    <TableHead>Wallets</TableHead>
-                    <TableHead>Addons</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeProfilesData?.data
-                    ?.filter((p) => !p.isDeleted)
-                    .map((profile) => {
-                      const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId);
-                      const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId);
-                      
-                      return (
-                      <TableRow key={profile.id} className="border-b">
-                        <TableCell className="font-medium">{profile.name}</TableCell>
-                        <TableCell className="max-w-md truncate">
-                          {profile.description || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {profile.price ? (
-                            <span className="font-medium">{currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {radiusProfile ? (
-                            <span className="font-medium text-sm">{radiusProfile.name}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {profile.billingGroupId === 0 || !billingGroup ? (
-                            <Badge variant="outline">All Groups</Badge>
-                          ) : (
-                            <Badge variant="secondary">{billingGroup.name}</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{profile.wallets?.length || 0} wallets</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{profile.addons?.length || 0} addons</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(profile.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <TableRow key={i}>
+                        {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map((col) => (
+                          <TableCell key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths]}px` }}>
+                            <Skeleton className="h-4 w-full" />
+                          </TableCell>
+                        ))}
+                        <TableCell className="h-12 px-4 sticky right-0 bg-background" style={{ width: `${columnWidths.actions}px` }}>
                           <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/billing/profiles/edit?profileId=${profile.id}`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(profile.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Skeleton className="h-8 w-8 rounded" />
+                            <Skeleton className="h-8 w-8 rounded" />
                           </div>
                         </TableCell>
                       </TableRow>
-                    );
-                    })}
-                </TableBody>
-              </Table>
-            </div>
-          )
-          ) : (
-          isLoadingDeleted ? (
-            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
-              <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10">
-                  <TableRow>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
-                    <TableHead className="h-12 px-4 text-right"><Skeleton className="h-4 w-16" /></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell className="h-12 px-4">
-                        <div className="flex justify-end gap-2">
-                          <Skeleton className="h-8 w-20 rounded" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : deletedProfilesData?.data?.filter((p) => p.isDeleted).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <Archive className="h-12 w-12 text-muted-foreground" />
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <h3 className="text-lg font-semibold mb-2">No deleted profiles</h3>
-              <p className="text-sm text-muted-foreground">Deleted profiles will appear here</p>
-            </div>
-          ) : (
-            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
-              {isFetchingDeleted && (
-                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                  <div className="bg-background p-4 rounded-lg shadow-lg">
-                    <div className="flex items-center gap-3">
-                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                      <span className="text-sm font-medium">Refreshing...</span>
+            ) : activeProfiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="rounded-full bg-muted p-6 mb-4">
+                  <Receipt className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No billing profiles yet</h3>
+                <p className="text-sm text-muted-foreground mb-6">Get started by creating your first billing profile</p>
+                <Button onClick={() => handleOpenDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Profile
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 300px)' }}>
+                  {isFetchingActive && (
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                      <div className="bg-background p-4 rounded-lg shadow-lg">
+                        <div className="flex items-center gap-3">
+                          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                          <span className="text-sm font-medium">Refreshing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      <TableRow className="hover:bg-muted">
+                        {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map(column => renderColumnHeader(column))}
+                        {renderColumnHeader('actions')}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody style={{ height: `${rowVirtualizerActive.getTotalSize()}px`, position: 'relative' }}>
+                      {rowVirtualizerActive.getVirtualItems().map((virtualRow) => {
+                        const profile = activeProfiles[virtualRow.index];
+                        return (
+                          <TableRow 
+                            key={profile.id}
+                            className="border-b"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: `${virtualRow.size}px`,
+                              transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                          >
+                            {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map(column => renderTableCell(column, profile))}
+                            {renderTableCell('actions', profile)}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                {activePagination && activePagination.totalPages > 0 && (
+                  <div className="border-t bg-muted/50 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                        <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                          <SelectTrigger className="h-8 w-[70px] text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="200">200</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="h-4 w-px bg-border" />
+                      <div className="text-sm text-muted-foreground font-medium">
+                        Showing {formatNumber(activeProfiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + activeProfiles.length)} of {formatNumber(activePagination.totalRecords)} profiles
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      {getPaginationPages(currentPage, activePagination.totalPages).map((page, idx) => (
+                        page === '...' ? (
+                          <Button
+                            key={`ellipsis-${idx}`}
+                            variant="ghost"
+                            size="icon"
+                            disabled
+                            className="h-8 w-8 p-0 text-sm"
+                          >
+                            ...
+                          </Button>
+                        ) : (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? 'default' : 'outline'}
+                            size="icon"
+                            onClick={() => setCurrentPage(page as number)}
+                            className="h-8 w-8 p-0 text-sm font-medium"
+                          >
+                            {page}
+                          </Button>
+                        )
+                      ))}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.min(activePagination.totalPages, p + 1))}
+                        disabled={currentPage === activePagination.totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(activePagination.totalPages)}
+                        disabled={currentPage === activePagination.totalPages}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </div>
-              )}
-              <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10">
-                  <TableRow className="hover:bg-muted">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Radius Profile</TableHead>
-                    <TableHead>Billing Group</TableHead>
-                    <TableHead>Wallets</TableHead>
-                    <TableHead>Addons</TableHead>
-                    <TableHead>Deleted At</TableHead>
-                    <TableHead>Deleted By</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deletedProfilesData?.data
-                    ?.filter((p) => p.isDeleted)
-                    .map((profile) => {
-                      const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId);
-                      const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId);
-                      
-                      return (
-                      <TableRow key={profile.id} className="border-b">
-                        <TableCell className="font-medium opacity-60">{profile.name}</TableCell>
-                        <TableCell className="max-w-md truncate opacity-60">
-                          {profile.description || '-'}
-                        </TableCell>
-                        <TableCell className="opacity-60">
-                          {profile.price ? (
-                            <span className="font-medium">{currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="opacity-60">
-                          {radiusProfile ? (
-                            <div className="flex flex-col">
-                              <span className="font-medium text-sm">{radiusProfile.name}</span>
-                              {radiusProfile.downrate && radiusProfile.uprate && (
-                                <span className="text-xs text-muted-foreground">
-                                  {radiusProfile.downrate}/{radiusProfile.uprate} Mbps
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="opacity-60">
-                          {profile.billingGroupId === 0 || !billingGroup ? (
-                            <Badge variant="outline">All Groups</Badge>
-                          ) : (
-                            <Badge variant="secondary">{billingGroup.name}</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{profile.wallets?.length || 0} wallets</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{profile.addons?.length || 0} addons</Badge>
-                        </TableCell>
-                        <TableCell className="opacity-60">
-                          {profile.deletedAt
-                            ? new Date(profile.deletedAt).toLocaleDateString()
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="opacity-60">
-                          {profile.deletedBy || '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRestore(profile.id)}
-                          >
-                            <ArchiveRestore className="h-4 w-4 mr-2" />
-                            Restore
-                          </Button>
+                )}
+              </>
+            )
+          ) : (
+            isLoadingDeleted ? (
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                  <TableHeader className="sticky top-0 bg-muted z-10">
+                    <TableRow>
+                      {[...columnOrder, 'deletedAt', 'deletedBy'].map((col) => (
+                        <TableHead key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths] || 140}px` }}>
+                          <Skeleton className="h-4 w-20" />
+                        </TableHead>
+                      ))}
+                      <TableHead className="h-12 px-4 sticky right-0 bg-muted" style={{ width: `${columnWidths.actions}px` }}>
+                        <Skeleton className="h-4 w-16" />
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <TableRow key={i}>
+                        {[...columnOrder, 'deletedAt', 'deletedBy'].map((col) => (
+                          <TableCell key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths] || 140}px` }}>
+                            <Skeleton className="h-4 w-full" />
+                          </TableCell>
+                        ))}
+                        <TableCell className="h-12 px-4 sticky right-0 bg-background" style={{ width: `${columnWidths.actions}px` }}>
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-20 rounded" />
+                          </div>
                         </TableCell>
                       </TableRow>
-                    );
-                    })}
-                </TableBody>
-              </Table>
-            </div>
-          )
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : deletedProfiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="rounded-full bg-muted p-6 mb-4">
+                  <Archive className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No deleted profiles</h3>
+                <p className="text-sm text-muted-foreground">Deleted profiles will appear here</p>
+              </div>
+            ) : (
+              <>
+                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 300px)' }}>
+                  {isFetchingDeleted && (
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                      <div className="bg-background p-4 rounded-lg shadow-lg">
+                        <div className="flex items-center gap-3">
+                          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                          <span className="text-sm font-medium">Refreshing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      <TableRow className="hover:bg-muted">
+                        {columnOrder.map(column => renderColumnHeader(column))}
+                        {renderColumnHeader('deletedAt')}
+                        {renderColumnHeader('deletedBy')}
+                        {renderColumnHeader('actions')}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody style={{ height: `${rowVirtualizerDeleted.getTotalSize()}px`, position: 'relative' }}>
+                      {rowVirtualizerDeleted.getVirtualItems().map((virtualRow) => {
+                        const profile = deletedProfiles[virtualRow.index];
+                        return (
+                          <TableRow 
+                            key={profile.id}
+                            className="border-b"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: `${virtualRow.size}px`,
+                              transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                          >
+                            {columnOrder.map(column => renderTableCell(column, profile))}
+                            {renderTableCell('deletedAt', profile)}
+                            {renderTableCell('deletedBy', profile)}
+                            {renderTableCell('actions', profile)}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                {deletedPagination && deletedPagination.totalPages > 0 && (
+                  <div className="border-t bg-muted/50 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                        <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                          <SelectTrigger className="h-8 w-[70px] text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="200">200</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="h-4 w-px bg-border" />
+                      <div className="text-sm text-muted-foreground font-medium">
+                        Showing {formatNumber(deletedProfiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + deletedProfiles.length)} of {formatNumber(deletedPagination.totalRecords)} profiles
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      {getPaginationPages(currentPage, deletedPagination.totalPages).map((page, idx) => (
+                        page === '...' ? (
+                          <Button
+                            key={`ellipsis-${idx}`}
+                            variant="ghost"
+                            size="icon"
+                            disabled
+                            className="h-8 w-8 p-0 text-sm"
+                          >
+                            ...
+                          </Button>
+                        ) : (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? 'default' : 'outline'}
+                            size="icon"
+                            onClick={() => setCurrentPage(page as number)}
+                            className="h-8 w-8 p-0 text-sm font-medium"
+                          >
+                            {page}
+                          </Button>
+                        )
+                      ))}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.min(deletedPagination.totalPages, p + 1))}
+                        disabled={currentPage === deletedPagination.totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(deletedPagination.totalPages)}
+                        disabled={currentPage === deletedPagination.totalPages}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Columns Dialog */}
+      <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Table Columns</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all column widths, order, and visibility to their default values. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetColumns}>Reset</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
