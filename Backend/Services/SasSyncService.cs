@@ -30,7 +30,7 @@ public class SasSyncService : ISasSyncService
         _logger = logger;
     }
 
-    public async Task<Guid> SyncAsync(int integrationId, int WorkspaceId, bool fullSync = false)
+    public async Task<Guid> SyncAsync(int integrationId, bool fullSync = false)
     {
         using (var scope = _scopeFactory.CreateScope())
         {
@@ -67,7 +67,6 @@ public class SasSyncService : ISasSyncService
                 SyncId = syncId,
                 IntegrationId = integrationId,
                 IntegrationName = integration.Name,
-                WorkspaceId = WorkspaceId,
                 Status = SyncStatus.Starting,
                 CurrentPhase = SyncPhase.NotStarted,
                 ProgressPercentage = 0,
@@ -100,7 +99,7 @@ public class SasSyncService : ISasSyncService
         }
     }
 
-    public async Task<bool> CancelSyncAsync(Guid syncId, int WorkspaceId)
+    public async Task<bool> CancelSyncAsync(Guid syncId)
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1043,7 +1042,7 @@ public class SasSyncService : ISasSyncService
             try
             {
                 var existingZone = await context.Zones
-                    .FirstOrDefaultAsync(z => z.SasUserId == node.Id && z.WorkspaceId == integration.WorkspaceId, cancellationToken);
+                    .FirstOrDefaultAsync(z => z.SasUserId == node.Id, cancellationToken);
 
                 if (existingZone != null)
                 {
@@ -1059,7 +1058,6 @@ public class SasSyncService : ISasSyncService
                     var newZone = new Zone
                     {
                         Name = node.Username,
-                        WorkspaceId = integration.WorkspaceId,
                         SasUserId = node.Id,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -1292,7 +1290,6 @@ public class SasSyncService : ISasSyncService
             SyncId = progress.SyncId,
             IntegrationId = progress.IntegrationId,
             IntegrationName = progress.IntegrationName,
-            WorkspaceId = progress.WorkspaceId,
             Status = progress.Status,
             CurrentPhase = progress.CurrentPhase,
             ProfileCurrentPage = progress.ProfileCurrentPage,
