@@ -2794,13 +2794,13 @@ export default function RadiusUsers() {
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Current Balance:</span>
                           <span className="font-semibold text-lg text-green-600">
-                            {currencySymbol}{formatCurrency(myWallet.currentBalance || 0)}
+                            {currencySymbol} {formatCurrency(myWallet.currentBalance || 0)}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Deduction Amount:</span>
                           <span className="font-medium text-red-600">
-                            - {currencySymbol}{formatCurrency(selectedBillingProfile.price || 0)}
+                            - {currencySymbol} {formatCurrency(selectedBillingProfile.price || 0)}
                           </span>
                         </div>
                         <Separator />
@@ -2813,7 +2813,7 @@ export default function RadiusUsers() {
                                 ? 'text-orange-600' 
                                 : 'text-red-600'
                           }`}>
-                            {currencySymbol}{formatCurrency((myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0))}
+                            {currencySymbol} {formatCurrency((myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0))}
                           </span>
                         </div>
                         {(myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0) < 0 && (
