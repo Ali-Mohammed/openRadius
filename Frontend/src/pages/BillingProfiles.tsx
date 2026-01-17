@@ -1053,7 +1053,7 @@ export default function BillingProfiles() {
         <CardContent className="p-0 overflow-hidden relative">
           {activeTab === 'active' ? (
             isLoadingActive ? (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
                 <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                   <TableHeader className="sticky top-0 bg-muted z-10">
                     <TableRow>
@@ -1100,7 +1100,7 @@ export default function BillingProfiles() {
               </div>
             ) : (
               <>
-                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 300px)' }}>
+                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
                   {isFetchingActive && (
                     <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                       <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -1146,7 +1146,7 @@ export default function BillingProfiles() {
             )
           ) : (
             isLoadingDeleted ? (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
                 <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                   <TableHeader className="sticky top-0 bg-muted z-10">
                     <TableRow>
@@ -1188,7 +1188,7 @@ export default function BillingProfiles() {
               </div>
             ) : (
               <>
-                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 300px)' }}>
+                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
                   {isFetchingDeleted && (
                     <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                       <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -1242,7 +1242,7 @@ export default function BillingProfiles() {
         </CardContent>
         
         {/* Pagination - Always visible outside scroll area */}
-        {activeTab === 'active' && activePagination && activePagination.totalPages > 0 && !isLoadingActive && (
+        {activeTab === 'active' && activePagination && (
           <div className="border-t bg-muted/30 px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
@@ -1330,7 +1330,7 @@ export default function BillingProfiles() {
                   </div>
                 )}
 
-        {activeTab === 'deleted' && deletedPagination && deletedPagination.totalPages > 0 && !isLoadingDeleted && (
+        {activeTab === 'deleted' && deletedPagination && (
           <div className="border-t bg-muted/30 px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">

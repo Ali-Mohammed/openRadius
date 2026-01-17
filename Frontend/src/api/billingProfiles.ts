@@ -57,10 +57,12 @@ export interface UpdateBillingProfileRequest {
 
 export interface BillingProfilesResponse {
   data: BillingProfile[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalRecords: number;
+    totalPages: number;
+  };
 }
 
 export const getProfiles = async (params?: {
