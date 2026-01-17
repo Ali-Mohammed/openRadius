@@ -67,6 +67,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../components/ui/command';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { cn } from '../lib/utils';
 
 const walletIconOptions = [
@@ -91,11 +92,138 @@ export default function BillingProfiles() {
   const { currentWorkspaceId } = useWorkspace();
   const queryClient = useQueryClient();
   const { i18n } = useTranslation();
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize state from URL params
+  const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'));
+  const [pageSize, setPageSize] = useState(() => parseInt(searchParams.get('pageSize') || '50'));
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '');
+  const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc');
+
+  // Update URL params when state changes
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (currentPage !== 1) params.page = currentPage.toString()
+    if (pageSize !== 50) params.pageSize = pageSize.toString()
+    if (searchQuery) params.search = searchQuery
+    if (sortField) params.sortField = sortField
+    if (sortDirection !== 'asc') params.sortDirection = sortDirection
+    setSearchParams(params, { replace: true })
+  }, [currentPage, pageSize, searchQuery, sortField, sortDirection, setSearchParams])
+
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<BillingProfile | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('active');
+  const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false);
+  const [resizing, setResizing] = useState<string | null>(null);
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Default column settings
+  const DEFAULT_COLUMN_VISIBILITY = {
+    name: true,
+    description: true,
+    price: true,
+    radiusProfile: true,
+    billingGroup: true,
+    wallets: true,
+    addons: true,
+    createdAt: true,
+    updatedAt: false,
+  };
+
+  const DEFAULT_COLUMN_WIDTHS = {
+    name: 180,
+    description: 250,
+    price: 120,
+    radiusProfile: 160,
+    billingGroup: 150,
+    wallets: 120,
+    addons: 120,
+    createdAt: 140,
+    updatedAt: 140,
+    actions: 120,
+  };
+
+  const DEFAULT_COLUMN_ORDER = [
+    'name',
+    'description',
+    'price',
+    'radiusProfile',
+    'billingGroup',
+    'wallets',
+    'addons',
+    'createdAt',
+    'updatedAt',
+    'actions',
+  ];
+
+  const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY);
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS);
+  const [columnOrder, setColumnOrder] = useState(DEFAULT_COLUMN_ORDER);
+
+  // Track if preferences have been loaded
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('billing-profiles')
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
+          }
+        }
+      } catch (error) {
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  // Auto-save preferences when they change
+  useEffect(() => {
+    if (!preferencesLoaded) return
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'billing-profiles',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+        console.log('Table preferences saved successfully')
+      } catch (error) {
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId, preferencesLoaded])
 
   // Fetch workspace for currency
   const { data: workspace } = useQuery({
@@ -140,13 +268,45 @@ export default function BillingProfiles() {
 
   // Queries
   const { data: activeProfilesData, isLoading: isLoadingActive, isFetching: isFetchingActive } = useQuery({
-    queryKey: ['billing-profiles', 'active', search],
-    queryFn: () => getProfiles({ search, includeDeleted: false }),
+    queryKey: ['billing-profiles', 'active', currentPage, pageSize, searchQuery, sortField, sortDirection],
+    queryFn: () => getProfiles({ 
+      search: searchQuery, 
+      includeDeleted: false,
+      page: currentPage,
+      pageSize: pageSize,
+    }),
   });
 
+  const activeProfiles = useMemo(() => activeProfilesData?.data?.filter((p) => !p.isDeleted) || [], [activeProfilesData?.data]);
+  const activePagination = activeProfilesData?.pagination;
+
   const { data: deletedProfilesData, isLoading: isLoadingDeleted, isFetching: isFetchingDeleted } = useQuery({
-    queryKey: ['billing-profiles', 'deleted', search],
-    queryFn: () => getProfiles({ search, includeDeleted: true }),
+    queryKey: ['billing-profiles', 'deleted', currentPage, pageSize, searchQuery],
+    queryFn: () => getProfiles({ 
+      search: searchQuery, 
+      includeDeleted: true,
+      page: currentPage,
+      pageSize: pageSize,
+    }),
+  });
+
+  const deletedProfiles = useMemo(() => deletedProfilesData?.data?.filter((p) => p.isDeleted) || [], [deletedProfilesData?.data]);
+  const deletedPagination = deletedProfilesData?.pagination;
+
+  // Virtual scrolling for active profiles
+  const rowVirtualizerActive = useVirtualizer({
+    count: activeProfiles.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 53,
+    overscan: 2,
+  });
+
+  // Virtual scrolling for deleted profiles
+  const rowVirtualizerDeleted = useVirtualizer({
+    count: deletedProfiles.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 53,
+    overscan: 2,
   });
 
   const { data: radiusProfilesData, isLoading: isLoadingRadiusProfiles } = useQuery({
