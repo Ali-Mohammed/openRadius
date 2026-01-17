@@ -498,9 +498,39 @@ public class RadiusActivationController : ControllerBase
             }
 
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            
+            // Revert the user's expiration date to the previous value
+            if (activation.RadiusUserId > 0)
+            {
+                var radiusUser = await _context.RadiusUsers.FindAsync(activation.RadiusUserId);
+                if (radiusUser != null)
+                {
+                    // Restore the previous expiration date
+                    radiusUser.Expiration = activation.PreviousExpireDate;
+                    
+                    // Restore the previous profile if it was changed
+                    if (activation.PreviousRadiusProfileId.HasValue)
+                    {
+                        radiusUser.ProfileId = activation.PreviousRadiusProfileId.Value;
+                    }
+                    
+                    // Restore the previous billing profile if it was changed
+                    if (activation.PreviousBillingProfileId.HasValue)
+                    {
+                        radiusUser.ProfileBillingId = activation.PreviousBillingProfileId.Value;
+                    }
+                    
+                    radiusUser.UpdatedAt = DateTime.UtcNow;
+                    
+                    _logger.LogInformation($"Reverted user {radiusUser.Username} expiration to {activation.PreviousExpireDate}");
+                }
+            }
+            
+            // Soft delete the activation
             activation.IsDeleted = true;
             activation.DeletedAt = DateTime.UtcNow;
             activation.DeletedBy = userEmail;
+            activation.Status = "rolled_back";
 
             await _context.SaveChangesAsync();
 

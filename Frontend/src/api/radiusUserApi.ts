@@ -21,6 +21,7 @@ export interface RadiusUser {
   email?: string
   profileId?: number
   profileName?: string
+  profileBillingId?: number
   balance: number
   loanBalance?: number
   expiration?: string

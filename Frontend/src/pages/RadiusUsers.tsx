@@ -792,8 +792,32 @@ export default function RadiusUsers() {
   // Activation handlers
   const handleOpenActivation = (user: RadiusUser) => {
     setUserToActivate(user)
+    
+    // Auto-select billing profile based on user's current profile
+    let autoSelectedBillingProfileId = ''
+    
+    // First try to match by profileBillingId if user has one
+    if (user.profileBillingId) {
+      const matchedByBillingId = billingProfiles.find(
+        bp => bp.id === user.profileBillingId && bp.isActive
+      )
+      if (matchedByBillingId) {
+        autoSelectedBillingProfileId = matchedByBillingId.id.toString()
+      }
+    }
+    
+    // If no match by profileBillingId, try to match by profileId (radius profile)
+    if (!autoSelectedBillingProfileId && user.profileId) {
+      const matchedByProfileId = billingProfiles.find(
+        bp => bp.radiusProfileId === user.profileId && bp.isActive
+      )
+      if (matchedByProfileId) {
+        autoSelectedBillingProfileId = matchedByProfileId.id.toString()
+      }
+    }
+    
     setActivationFormData({
-      billingProfileId: '',
+      billingProfileId: autoSelectedBillingProfileId,
       paymentMethod: 'Cash',
       durationDays: '30',
       notes: '',
