@@ -164,6 +164,18 @@ export default function RadiusProfiles() {
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
+  // Helper function to format numbers with thousand separators
+  const formatNumber = (num: number | string) => {
+    const numValue = typeof num === 'string' ? parseFloat(num) : num
+    if (isNaN(numValue)) return ''
+    return numValue.toLocaleString()
+  }
+
+  // Helper function to parse formatted number string
+  const parseFormattedNumber = (str: string) => {
+    return str.replace(/,/g, '')
+  }
+
   // Fetch custom wallets
   const { data: customWalletsData } = useQuery({
     queryKey: ['custom-wallets', currentWorkspaceId],
@@ -1344,154 +1356,136 @@ export default function RadiusProfiles() {
       {/* Profile Dialog */}
       {isProfileDialogOpen && (
         <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingProfile ? 'Edit Profile' : 'Add Profile'}</DialogTitle>
               <DialogDescription>
                 {editingProfile ? 'Update profile details' : 'Fill in the profile details'}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Profile Name *</Label>
-                  <Input
-                    id="name"
-                    value={profileFormData.name}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
-                    placeholder="e.g., Basic Plan"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="price">Price ({workspace?.currency || 'USD'})</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">{currencySymbol}</span>
+            
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="network">Speed & Network</TabsTrigger>
+                <TabsTrigger value="wallets">Custom Wallets</TabsTrigger>
+                <TabsTrigger value="attributes">Attributes</TabsTrigger>
+              </TabsList>
+
+              {/* Basic Info Tab */}
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Profile Name *</Label>
                     <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={profileFormData.price}
-                      onChange={(e) => setProfileFormData({ ...profileFormData, price: e.target.value })}
-                      placeholder="0.00"
-                      className={workspace?.currency === 'IQD' ? 'pl-10' : 'pl-7'}
+                      id="name"
+                      value={profileFormData.name}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
+                      placeholder="e.g., Basic Plan"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* Color and Icon Selection */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Color</Label>
-                  <Select
-                    value={profileFormData.color}
-                    onValueChange={(value) => setProfileFormData({ ...profileFormData, color: value })}
-                  >
-                    <SelectTrigger>
-                      <span className="flex items-center gap-2">
-                        <span className="h-4 w-4 rounded" style={{ backgroundColor: profileFormData.color }} />
-                        <span>{PREDEFINED_COLORS.find(c => c.value === profileFormData.color)?.label || 'Blue'}</span>
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PREDEFINED_COLORS.map((color) => (
-                        <SelectItem key={color.value} value={color.value}>
-                          <div className="flex items-center gap-2">
-                            <div className="h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
-                            <span>{color.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid gap-2">
+                    <Label htmlFor="price">Price ({workspace?.currency || 'USD'})</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">{currencySymbol}</span>
+                      <Input
+                        id="price"
+                        type="text"
+                        value={workspace?.currency === 'IQD' && profileFormData.price ? formatNumber(profileFormData.price) : profileFormData.price}
+                        onChange={(e) => {
+                          const value = workspace?.currency === 'IQD' ? parseFormattedNumber(e.target.value) : e.target.value
+                          // Only allow numbers and decimal point
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            setProfileFormData({ ...profileFormData, price: value })
+                          }
+                        }}
+                        placeholder={workspace?.currency === 'IQD' ? '0' : '0.00'}
+                        className={workspace?.currency === 'IQD' ? 'pl-10' : 'pl-7'}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label>Icon</Label>
-                  <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-start"
-                      >
-                        {(() => {
-                          const IconComponent = getIconComponent(profileFormData.icon)
-                          return (
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="rounded-lg p-1.5 flex items-center justify-center"
-                                style={{ backgroundColor: `${profileFormData.color}15`, color: profileFormData.color }}
-                              >
-                                <IconComponent className="h-4 w-4" />
-                              </div>
-                              <span>{profileFormData.icon}</span>
-                            </div>
-                          )
-                        })()}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-[320px] p-4" 
-                      align="start"
-                      style={{ zIndex: 9999 }}
-                      sideOffset={5}
+                {/* Color and Icon Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Color</Label>
+                    <Select
+                      value={profileFormData.color}
+                      onValueChange={(value) => setProfileFormData({ ...profileFormData, color: value })}
                     >
-                      <div className="grid grid-cols-6 gap-2 max-h-[240px] overflow-y-auto">
-                        {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
-                          <Button
-                            key={name}
-                            type="button"
-                            variant={profileFormData.icon === name ? "default" : "outline"}
-                            size="sm"
-                            className="h-10 w-10 p-0"
-                            onClick={() => {
-                              setProfileFormData({ ...profileFormData, icon: name })
-                              setIconPopoverOpen(false)
-                            }}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </Button>
+                      <SelectTrigger>
+                        <span className="flex items-center gap-2">
+                          <span className="h-4 w-4 rounded" style={{ backgroundColor: profileFormData.color }} />
+                          <span>{PREDEFINED_COLORS.find(c => c.value === profileFormData.color)?.label || 'Blue'}</span>
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_COLORS.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-4 rounded border" style={{ backgroundColor: color.value }} />
+                              <span>{color.label}</span>
+                            </div>
+                          </SelectItem>
                         ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="downrate">Download Speed (Kbps)</Label>
-                  <Input
-                    id="downrate"
-                    type="number"
-                    value={profileFormData.downrate}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, downrate: e.target.value })}
-                    placeholder="e.g., 10240"
-                  />
+                  <div className="grid gap-2">
+                    <Label>Icon</Label>
+                    <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start"
+                        >
+                          {(() => {
+                            const IconComponent = getIconComponent(profileFormData.icon)
+                            return (
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="rounded-lg p-1.5 flex items-center justify-center"
+                                  style={{ backgroundColor: `${profileFormData.color}15`, color: profileFormData.color }}
+                                >
+                                  <IconComponent className="h-4 w-4" />
+                                </div>
+                                <span>{profileFormData.icon}</span>
+                              </div>
+                            )
+                          })()}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        className="w-[320px] p-4" 
+                        align="start"
+                        style={{ zIndex: 9999 }}
+                        sideOffset={5}
+                      >
+                        <div className="grid grid-cols-6 gap-2 max-h-[240px] overflow-y-auto">
+                          {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                            <Button
+                              key={name}
+                              type="button"
+                              variant={profileFormData.icon === name ? "default" : "outline"}
+                              size="sm"
+                              className="h-10 w-10 p-0"
+                              onClick={() => {
+                                setProfileFormData({ ...profileFormData, icon: name })
+                                setIconPopoverOpen(false)
+                              }}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="uprate">Upload Speed (Kbps)</Label>
-                  <Input
-                    id="uprate"
-                    type="number"
-                    value={profileFormData.uprate}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, uprate: e.target.value })}
-                    placeholder="e.g., 2048"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="pool">IP Pool</Label>
-                  <Input
-                    id="pool"
-                    value={profileFormData.pool}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, pool: e.target.value })}
-                    placeholder="e.g., main-pool"
-                  />
-                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="monthly">Monthly Fee</Label>
                   <Input
@@ -1502,26 +1496,68 @@ export default function RadiusProfiles() {
                     placeholder="0"
                   />
                 </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="enabled"
-                  checked={profileFormData.enabled}
-                  onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, enabled: checked })}
-                />
-                <Label htmlFor="enabled">Enabled</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="burstEnabled"
-                  checked={profileFormData.burstEnabled}
-                  onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, burstEnabled: checked })}
-                />
-                <Label htmlFor="burstEnabled">Burst Enabled</Label>
-              </div>
 
-              {/* Custom Wallets Configuration */}
-              <div className="border-t pt-4 mt-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enabled"
+                      checked={profileFormData.enabled}
+                      onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, enabled: checked })}
+                    />
+                    <Label htmlFor="enabled">Enabled</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="burstEnabled"
+                      checked={profileFormData.burstEnabled}
+                      onCheckedChange={(checked) => setProfileFormData({ ...profileFormData, burstEnabled: checked })}
+                    />
+                    <Label htmlFor="burstEnabled">Burst Enabled</Label>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Speed & Network Tab */}
+              <TabsContent value="network" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="downrate">Download Speed (Kbps)</Label>
+                    <Input
+                      id="downrate"
+                      type="number"
+                      value={profileFormData.downrate}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, downrate: e.target.value })}
+                      placeholder="e.g., 10240"
+                    />
+                    <p className="text-xs text-muted-foreground">Enter speed in kilobits per second</p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="uprate">Upload Speed (Kbps)</Label>
+                    <Input
+                      id="uprate"
+                      type="number"
+                      value={profileFormData.uprate}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, uprate: e.target.value })}
+                      placeholder="e.g., 2048"
+                    />
+                    <p className="text-xs text-muted-foreground">Enter speed in kilobits per second</p>
+                  </div>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="pool">IP Pool</Label>
+                  <Input
+                    id="pool"
+                    value={profileFormData.pool}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, pool: e.target.value })}
+                    placeholder="e.g., main-pool"
+                  />
+                  <p className="text-xs text-muted-foreground">Specify the IP pool name for this profile</p>
+                </div>
+              </TabsContent>
+
+              {/* Custom Wallets Tab */}
+              <TabsContent value="wallets" className="space-y-4 mt-4">
                 <div className="flex items-center space-x-2 mb-4">
                   <Switch
                     id="enableCustomWallets"
@@ -1537,9 +1573,9 @@ export default function RadiusProfiles() {
                 </div>
 
                 {enableCustomWallets && (
-                  <div className="space-y-3 pl-6">
+                  <div className="space-y-3">
                     {selectedWallets.map((wallet, index) => (
-                      <div key={index} className="grid grid-cols-[2fr_1fr_auto] gap-2 items-end">
+                      <div key={index} className="grid grid-cols-[2fr_1fr_auto] gap-2 items-end p-3 border rounded-lg">
                         <div className="space-y-2">
                           <Label>Wallet</Label>
                           <Select
@@ -1608,12 +1644,21 @@ export default function RadiusProfiles() {
                     </Button>
                   </div>
                 )}
-              </div>
 
-              {/* Custom Attributes Section */}
-              <div className="space-y-4 pt-4 border-t">
+                {!enableCustomWallets && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">Enable custom wallets to link this profile with wallet amounts</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Custom Attributes Tab */}
+              <TabsContent value="attributes" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Custom RADIUS Attributes</Label>
+                  <div>
+                    <Label className="text-base font-semibold">Custom RADIUS Attributes</Label>
+                    <p className="text-sm text-muted-foreground mt-1">Add custom RADIUS attributes for this profile</p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -1626,12 +1671,13 @@ export default function RadiusProfiles() {
                     Add Attribute
                   </Button>
                 </div>
-                {customAttributes.length > 0 && (
+                
+                {customAttributes.length > 0 ? (
                   <div className="space-y-3">
                     {customAttributes.map((attr, index) => (
-                      <div key={index} className="grid grid-cols-[2fr_2fr_auto_auto] gap-2 items-center p-3 border rounded-lg">
+                      <div key={index} className="grid grid-cols-[2fr_2fr_auto_auto] gap-3 items-end p-4 border rounded-lg bg-muted/50">
                         <div className="space-y-2">
-                          <Label className="text-xs">Attribute Name</Label>
+                          <Label className="text-xs font-medium">Attribute Name</Label>
                           <Input
                             value={attr.attributeName}
                             onChange={(e) => {
@@ -1643,7 +1689,7 @@ export default function RadiusProfiles() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs">Value</Label>
+                          <Label className="text-xs font-medium">Value</Label>
                           <Input
                             value={attr.attributeValue}
                             onChange={(e) => {
@@ -1654,7 +1700,7 @@ export default function RadiusProfiles() {
                             placeholder="e.g., P1"
                           />
                         </div>
-                        <div className="flex flex-col items-center gap-1 pt-6">
+                        <div className="flex flex-col items-center gap-2">
                           <Switch
                             checked={attr.enabled}
                             onCheckedChange={(checked) => {
@@ -1663,13 +1709,12 @@ export default function RadiusProfiles() {
                               setCustomAttributes(updated)
                             }}
                           />
-                          <Label className="text-xs">Enabled</Label>
+                          <Label className="text-xs font-medium">Enabled</Label>
                         </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="mt-6"
                           onClick={() => {
                             setCustomAttributes(customAttributes.filter((_, i) => i !== index))
                           }}
@@ -1679,10 +1724,17 @@ export default function RadiusProfiles() {
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+                    <Settings className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm font-medium">No custom attributes added</p>
+                    <p className="text-xs mt-1">Click "Add Attribute" to create custom RADIUS attributes</p>
+                  </div>
                 )}
-              </div>
-            </div>
-            <DialogFooter>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="mt-4">
               <Button variant="outline" onClick={handleCloseProfileDialog}>
                 Cancel
               </Button>
