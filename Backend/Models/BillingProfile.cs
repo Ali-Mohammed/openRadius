@@ -45,7 +45,7 @@ public class BillingProfileWallet
     public decimal Percentage { get; set; } // Now represents price instead of percentage
     public string? Icon { get; set; }
     public string? Color { get; set; }
-    public string? Direction { get; set; } // "in" or "out"
+    public string? Direction { get; set; } // "in", "out", or "remaining"
     public int DisplayOrder { get; set; }
     
     [JsonIgnore]

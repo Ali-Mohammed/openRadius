@@ -1863,7 +1863,13 @@ export default function BillingProfiles() {
                           <Label>Direction</Label>
                           <Select
                             value={wallet.direction || 'in'}
-                            onValueChange={(value) => updateWallet(index, 'direction', value)}
+                            onValueChange={(value) => {
+                              updateWallet(index, 'direction', value)
+                              // Reset price to 0 when selecting 'remaining'
+                              if (value === 'remaining') {
+                                updateWallet(index, 'percentage', 0)
+                              }
+                            }}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -1871,23 +1877,31 @@ export default function BillingProfiles() {
                             <SelectContent>
                               <SelectItem value="in">In</SelectItem>
                               <SelectItem value="out">Out</SelectItem>
+                              <SelectItem value="remaining">Remaining</SelectItem>
                             </SelectContent>
                           </Select>
+                          {wallet.direction === 'remaining' && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              This will add the remaining money to the selected wallet
+                            </p>
+                          )}
                         </div>
-                        <div className="space-y-2">
-                          <Label>Price</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={wallet.percentage}
-                            onChange={(e) =>
-                              updateWallet(index, 'percentage', parseFloat(e.target.value) || 0)
-                            }
-                            placeholder="0.00"
-                            className="h-10"
-                          />
-                        </div>
+                        {wallet.direction !== 'remaining' && (
+                          <div className="space-y-2">
+                            <Label>Price</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={wallet.percentage}
+                              onChange={(e) =>
+                                updateWallet(index, 'percentage', parseFloat(e.target.value) || 0)
+                              }
+                              placeholder="0.00"
+                              className="h-10"
+                            />
+                          </div>
+                        )}
                         <div className="space-y-2 self-end">
                           <Button
                             type="button"
