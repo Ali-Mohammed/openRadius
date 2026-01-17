@@ -25,6 +25,7 @@ import { radiusCustomAttributeApi, type RadiusCustomAttribute, type CreateRadius
 import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
 import { zoneApi, type Zone } from '@/services/zoneApi'
+import userWalletApi from '@/api/userWallets'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
