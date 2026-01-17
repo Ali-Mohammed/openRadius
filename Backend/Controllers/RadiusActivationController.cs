@@ -12,15 +12,18 @@ namespace Backend.Controllers;
 public class RadiusActivationController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusActivationController> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public RadiusActivationController(
         ApplicationDbContext context,
+        MasterDbContext masterContext,
         ILogger<RadiusActivationController> logger,
         IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _masterContext = masterContext;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
     }
@@ -328,6 +331,79 @@ public class RadiusActivationController : ControllerBase
                 return NotFound(new { error = "RADIUS user not found" });
             }
 
+            // Wallet payment validation
+            int? transactionId = null;
+            if (request.PaymentMethod?.ToLower() == "wallet")
+            {
+                // Get current user ID from MasterDbContext
+                var currentUser = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                if (currentUser == null)
+                {
+                    return BadRequest(new { error = "Current user not found" });
+                }
+
+                // Check if user has a wallet
+                var userWallet = await _context.UserWallets
+                    .Include(uw => uw.CustomWallet)
+                    .FirstOrDefaultAsync(uw => uw.UserId == currentUser.Id && !uw.IsDeleted);
+
+                if (userWallet == null)
+                {
+                    return BadRequest(new { error = "User does not have a wallet. Please create a wallet first." });
+                }
+
+                // Check if wallet status is active
+                if (userWallet.Status?.ToLower() != "active")
+                {
+                    return BadRequest(new { error = $"User wallet is {userWallet.Status}. Only active wallets can be used for payments." });
+                }
+
+                // Check balance and validate against negative balance policy
+                var activationAmount = request.Amount ?? 0;
+                var balanceAfter = userWallet.CurrentBalance - activationAmount;
+
+                // Check if wallet allows negative balance
+                var allowNegative = userWallet.AllowNegativeBalance ?? userWallet.CustomWallet?.AllowNegativeBalance ?? false;
+                
+                if (!allowNegative && balanceAfter < 0)
+                {
+                    return BadRequest(new { 
+                        error = $"Insufficient wallet balance. Current balance: {userWallet.CurrentBalance:F2}, Required: {activationAmount:F2}, Shortage: {Math.Abs(balanceAfter):F2}" 
+                    });
+                }
+
+                // Create transaction for wallet deduction
+                var balanceBefore = userWallet.CurrentBalance;
+                userWallet.CurrentBalance = balanceAfter;
+                userWallet.UpdatedAt = DateTime.UtcNow;
+                userWallet.UpdatedBy = userEmail;
+
+                var transaction = new Transaction
+                {
+                    WalletType = "user",
+                    UserWalletId = userWallet.Id,
+                    UserId = currentUser.Id,
+                    TransactionType = TransactionType.Payment,
+                    AmountType = "debit",
+                    Amount = activationAmount,
+                    Status = "completed",
+                    BalanceBefore = balanceBefore,
+                    BalanceAfter = balanceAfter,
+                    Description = $"RADIUS user activation for {radiusUser.Username}",
+                    Reference = $"ACTIVATION-{radiusUser.Id}",
+                    PaymentMethod = "Wallet",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userEmail
+                };
+
+                _context.Transactions.Add(transaction);
+                await _context.SaveChangesAsync(); // Save to get transaction ID
+
+                transactionId = transaction.Id;
+
+                _logger.LogInformation($"Created wallet transaction {transaction.Id} for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
+            }
+
             var activation = new RadiusActivation
             {
                 ActionByUsername = userEmail,
@@ -348,6 +424,7 @@ public class RadiusActivationController : ControllerBase
                 Type = request.Type,
                 Status = "completed",
                 PaymentMethod = request.PaymentMethod,
+                TransactionId = transactionId,
                 DurationDays = request.DurationDays,
                 Source = request.Source ?? "web",
                 IpAddress = ipAddress,
