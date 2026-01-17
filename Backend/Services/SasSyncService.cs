@@ -355,8 +355,12 @@ public class SasSyncService : ISasSyncService
                                 profileProgress.ProfileUpdatedRecords++;
                             }
 
-                            // Save to get the RadiusProfile ID if it's new
+                            // Save to get the RadiusProfile ID if it's new, or persist updates if existing
                             if (isNewRadiusProfile)
+                            {
+                                await context.SaveChangesAsync(cancellationToken);
+                            }
+                            else
                             {
                                 await context.SaveChangesAsync(cancellationToken);
                             }
