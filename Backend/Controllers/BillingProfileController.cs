@@ -125,7 +125,7 @@ public class BillingProfileController : ControllerBase
                         w.WalletType,
                         w.UserWalletId,
                         w.CustomWalletId,
-                        Price = w.Percentage,
+                        percentage = w.Percentage,
                         w.Direction,
                         w.DisplayOrder
                     }).ToList(),
@@ -188,7 +188,7 @@ public class BillingProfileController : ControllerBase
                         w.WalletType,
                         w.UserWalletId,
                         w.CustomWalletId,
-                        Price = w.Percentage,
+                        percentage = w.Percentage,
                         w.Direction,
                         w.DisplayOrder
                     }).ToList(),
