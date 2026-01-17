@@ -1,11 +1,29 @@
-import { useState } from 'react';
-import { Users, UserCircle } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import GroupCashback from '@/components/cashback/GroupCashback';
-import UserCashback from '@/components/cashback/UserCashback';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { Save, RefreshCw, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cashbackGroupApi, type CashbackGroup } from '@/api/cashbackGroupApi';
+import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
+import { cashbackProfileAmountApi } from '@/api/cashbackProfileAmounts';
+import { userManagementApi, type User } from '@/api/userManagementApi';
+import { workspaceApi } from '@/lib/api';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { getIconComponent } from '@/utils/iconColorHelper';
 
-export default function CashbackProfiles() {
-  const [activeTab, setActiveTab] = useState('group');
+export default function GroupCashback() {
+  const { currentWorkspaceId } = useWorkspace();
+  const queryClient = useQueryClient();
+  const { i18n } = useTranslation();
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [cashbackAmounts, setCashbackAmounts] = useState<Record<number, number>>({});
+  const [focusedInput, setFocusedInput] = useState<number | null>(null);
 
   // Fetch workspace for currency
   const { data: workspace } = useQuery({
@@ -79,16 +97,13 @@ export default function CashbackProfiles() {
       existingAmounts.forEach(item => {
         amountsMap[item.billingProfileId] = item.amount;
       });
-      // Use a functional update to avoid cascading renders
       setCashbackAmounts(prev => {
-        // Only update if different to prevent infinite loops
         if (JSON.stringify(prev) !== JSON.stringify(amountsMap)) {
           return amountsMap;
         }
         return prev;
       });
     } else if (selectedGroupId) {
-      // Reset amounts when changing groups
       setCashbackAmounts({});
     }
   }, [existingAmounts, selectedGroupId]);
@@ -109,7 +124,6 @@ export default function CashbackProfiles() {
   });
 
   const handleCashbackChange = (profileId: number, value: string) => {
-    // Allow empty or valid decimal numbers
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       const numAmount = value === '' ? 0 : parseFloat(value);
       setCashbackAmounts(prev => ({
@@ -123,12 +137,10 @@ export default function CashbackProfiles() {
     const value = cashbackAmounts[profileId];
     if (!value) return '';
     
-    // If focused, show raw number for easy editing
     if (focusedInput === profileId) {
       return value.toString();
     }
     
-    // If not focused, show formatted number
     return value.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -141,13 +153,12 @@ export default function CashbackProfiles() {
       return;
     }
 
-    // Convert cashbackAmounts to the format expected by the API
     const amounts = Object.entries(cashbackAmounts)
       .map(([billingProfileId, amount]) => ({
         billingProfileId: parseInt(billingProfileId),
         amount: amount
       }))
-      .filter(item => item.amount > 0); // Only include non-zero amounts
+      .filter(item => item.amount > 0);
 
     saveMutation.mutate({
       cashbackGroupId: selectedGroupId,
@@ -161,16 +172,6 @@ export default function CashbackProfiles() {
 
   return (
     <div className="space-y-4">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Cashback Profiles</h1>
-          <p className="text-sm text-muted-foreground">
-            Configure cashback amounts for billing profiles by cashback group
-          </p>
-        </div>
-      </div>
-
       {/* Group Selection Card */}
       <Card>
         <CardHeader className="pb-3">
@@ -180,7 +181,6 @@ export default function CashbackProfiles() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Cashback Group Selection */}
           <div className="space-y-2">
             <Label>Cashback Group *</Label>
             <Select
@@ -216,7 +216,6 @@ export default function CashbackProfiles() {
             </Select>
           </div>
 
-          {/* Selected Group Display */}
           {selectedGroup && (
             <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
               {IconComponent && (
@@ -265,7 +264,6 @@ export default function CashbackProfiles() {
         </CardContent>
       </Card>
 
-      {/* Billing Profiles Configuration */}
       {selectedGroupId && (
         <Card>
           <CardHeader className="pb-3">
@@ -288,97 +286,96 @@ export default function CashbackProfiles() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead className="w-[200px]">Cashback Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingProfiles || isLoadingAmounts ? (
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead className="w-[200px]">Cashback Amount</TableHead>
+                      <TableCell colSpan={4} className="text-center">
+                        <RefreshCw className="h-4 w-4 animate-spin mx-auto" />
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoadingProfiles || isLoadingAmounts ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center">
-                          <RefreshCw className="h-4 w-4 animate-spin mx-auto" />
-                        </TableCell>
-                      </TableRow>
-                    ) : profilesData?.data && profilesData.data.length > 0 ? (
-                      profilesData.data
-                        .filter((p: BillingProfile) => !p.isDeleted)
-                        .map((profile: BillingProfile) => (
-                          <TableRow key={profile.id}>
-                            <TableCell className="font-medium">{profile.name}</TableCell>
-                            <TableCell className="max-w-md truncate">
-                              {profile.description || '-'}
-                            </TableCell>
-                            <TableCell>
-                              {profile.price ? (
-                                <span className="font-medium">
-                                  {currencySymbol}
-                                  {profile.price.toLocaleString('en-US', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                  })}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">{currencySymbol}</span>
-                                <Input
-                                  type="text"
-                                  value={formatCashbackValue(profile.id)}
-                                  onChange={(e) => handleCashbackChange(profile.id, e.target.value)}
-                                  onFocus={() => setFocusedInput(profile.id)}
-                                  onBlur={() => {
-                                    setFocusedInput(null);
-                                    // Round to 2 decimal places
-                                    const val = cashbackAmounts[profile.id];
-                                    if (val && val > 0) {
-                                      setCashbackAmounts(prev => ({
-                                        ...prev,
-                                        [profile.id]: parseFloat(val.toFixed(2))
-                                      }));
-                                    }
-                                  }}
-                                  placeholder="0.00"
-                                  className="w-full"
-                                />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground">
-                          No billing profiles found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  ) : profilesData?.data && profilesData.data.length > 0 ? (
+                    profilesData.data
+                      .filter((p: BillingProfile) => !p.isDeleted)
+                      .map((profile: BillingProfile) => (
+                        <TableRow key={profile.id}>
+                          <TableCell className="font-medium">{profile.name}</TableCell>
+                          <TableCell className="max-w-md truncate">
+                            {profile.description || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {profile.price ? (
+                              <span className="font-medium">
+                                {currencySymbol}
+                                {profile.price.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2
+                                })}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{currencySymbol}</span>
+                              <Input
+                                type="text"
+                                value={formatCashbackValue(profile.id)}
+                                onChange={(e) => handleCashbackChange(profile.id, e.target.value)}
+                                onFocus={() => setFocusedInput(profile.id)}
+                                onBlur={() => {
+                                  setFocusedInput(null);
+                                  const val = cashbackAmounts[profile.id];
+                                  if (val && val > 0) {
+                                    setCashbackAmounts(prev => ({
+                                      ...prev,
+                                      [profile.id]: parseFloat(val.toFixed(2))
+                                    }));
+                                  }
+                                }}
+                                placeholder="0.00"
+                                className="w-full"
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        No billing profiles found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {!selectedGroupId && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="rounded-full bg-muted p-4 mb-3">
-                <DollarSign className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-1">No Group Selected</h3>
-              <p className="text-sm text-muted-foreground text-center max-w-sm">
-                Please select a cashback group from above to configure cashback amounts for billing profiles
-              </p>
-            </CardContent>
-          </Card>
-        )}
+      {!selectedGroupId && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="rounded-full bg-muted p-4 mb-3">
+              <DollarSign className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1">No Group Selected</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
+              Please select a cashback group to configure cashback amounts for billing profiles
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
