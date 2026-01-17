@@ -31,7 +31,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetIntegrations(int WorkspaceId, [FromQuery] bool includeDeleted = false)
     {
         var integrations = await _context.SasRadiusIntegrations
-            .Where(i => i.WorkspaceId == WorkspaceId && (includeDeleted || !i.IsDeleted))
+            .Where(i => (includeDeleted || !i.IsDeleted))
             .OrderByDescending(i => i.IsActive)
             .ThenBy(i => i.Name)
             .ToListAsync();
@@ -56,7 +56,6 @@ public class SasRadiusIntegrationController : ControllerBase
             integration.MaxItemInPagePerRequest,
             integration.Action,
             integration.Description,
-            integration.WorkspaceId,
             integration.CreatedAt,
             integration.UpdatedAt,
             integration.IsDeleted,
@@ -71,7 +70,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<ActionResult<SasRadiusIntegration>> GetIntegration(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(i => i.Id == id);
 
         if (integration == null)
         {
@@ -95,7 +94,7 @@ public class SasRadiusIntegrationController : ControllerBase
         if (integration.IsActive)
         {
             var activeIntegrations = await _context.SasRadiusIntegrations
-                .Where(i => i.WorkspaceId == WorkspaceId && i.IsActive)
+                .Where(i => i.IsActive)
                 .ToListAsync();
 
             foreach (var activeIntegration in activeIntegrations)
@@ -105,7 +104,6 @@ public class SasRadiusIntegrationController : ControllerBase
             }
         }
 
-        integration.WorkspaceId = WorkspaceId;
         integration.CreatedAt = DateTime.UtcNow;
         integration.UpdatedAt = DateTime.UtcNow;
 
@@ -126,7 +124,7 @@ public class SasRadiusIntegrationController : ControllerBase
         }
 
         var existingIntegration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(i => i.Id == id);
 
         if (existingIntegration == null)
         {
@@ -137,7 +135,7 @@ public class SasRadiusIntegrationController : ControllerBase
         if (integration.IsActive && !existingIntegration.IsActive)
         {
             var activeIntegrations = await _context.SasRadiusIntegrations
-                .Where(i => i.WorkspaceId == WorkspaceId && i.IsActive && i.Id != id)
+                .Where(i => i.IsActive && i.Id != id)
                 .ToListAsync();
 
             foreach (var activeIntegration in activeIntegrations)
@@ -169,7 +167,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<IActionResult> DeleteIntegration(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId && !i.IsDeleted);
+            .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
 
         if (integration == null)
         {
@@ -189,7 +187,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<IActionResult> RestoreIntegration(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId && i.IsDeleted);
+            .FirstOrDefaultAsync(i => i.Id == id && i.IsDeleted);
 
         if (integration == null)
         {
@@ -209,7 +207,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<ActionResult<IEnumerable<SasRadiusIntegration>>> GetDeletedIntegrations(int WorkspaceId)
     {
         var integrations = await _context.SasRadiusIntegrations
-            .Where(i => i.WorkspaceId == WorkspaceId && i.IsDeleted)
+            .Where(i => i.IsDeleted)
             .OrderByDescending(i => i.DeletedAt)
             .ToListAsync();
 
@@ -257,8 +255,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<ActionResult<IEnumerable<SyncProgress>>> GetActiveSyncs(int WorkspaceId)
     {
         var activeSyncs = await _context.SyncProgresses
-            .Where(s => s.WorkspaceId == WorkspaceId && 
-                       s.Status != SyncStatus.Completed && 
+            .Where(s => s.Status != SyncStatus.Completed && 
                        s.Status != SyncStatus.Failed &&
                        s.Status != SyncStatus.Cancelled)
             .OrderByDescending(s => s.StartedAt)
@@ -300,7 +297,7 @@ public class SasRadiusIntegrationController : ControllerBase
     public async Task<ActionResult<SyncProgress>> GetSyncProgress(int WorkspaceId, Guid syncId)
     {
         var sync = await _context.SyncProgresses
-            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(s => s.SyncId == syncId);
 
         if (sync == null)
         {
@@ -319,8 +316,7 @@ public class SasRadiusIntegrationController : ControllerBase
         [FromQuery] string? sortDirection = "desc",
         [FromQuery] int? status = null)
     {
-        var query = _context.SyncProgresses
-            .Where(s => s.WorkspaceId == WorkspaceId);
+        var query = _context.SyncProgresses.AsQueryable();
 
         // Filter by status if provided
         if (status.HasValue)
@@ -372,7 +368,7 @@ public class SasRadiusIntegrationController : ControllerBase
         try
         {
             var integrations = await _context.SasRadiusIntegrations
-                .Where(i => i.WorkspaceId == WorkspaceId && !i.IsDeleted)
+                .Where(i => !i.IsDeleted)
                 .Select(i => new
                 {
                     i.Name,
@@ -422,8 +418,7 @@ public class SasRadiusIntegrationController : ControllerBase
                 {
                     // Check if integration with same name already exists
                     var existing = await _context.SasRadiusIntegrations
-                        .FirstOrDefaultAsync(i => i.WorkspaceId == WorkspaceId && 
-                                                  i.Name == importData.Name && 
+                        .FirstOrDefaultAsync(i => i.Name == importData.Name && 
                                                   !i.IsDeleted);
 
                     if (existing != null)
@@ -453,7 +448,6 @@ public class SasRadiusIntegrationController : ControllerBase
                             MaxItemInPagePerRequest = importData.MaxItemInPagePerRequest,
                             Action = importData.Action,
                             Description = importData.Description,
-                            WorkspaceId = WorkspaceId,
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow
                         };

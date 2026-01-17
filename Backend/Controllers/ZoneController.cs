@@ -33,7 +33,7 @@ public class ZoneController : ControllerBase
     public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZones(int workspaceId)
     {
         var allZones = await _context.Zones
-            .Where(z => z.WorkspaceId == workspaceId && !z.IsDeleted)
+            .Where(z => !z.IsDeleted)
             .Include(z => z.ParentZone)
             .Include(z => z.UserZones)
             .Select(z => new ZoneResponse
@@ -146,7 +146,7 @@ public class ZoneController : ControllerBase
     {
         var zones = await _context.Zones
             .IgnoreQueryFilters()
-            .Where(z => z.WorkspaceId == workspaceId && z.IsDeleted)
+            .Where(z => z.IsDeleted)
             .Select(z => new ZoneResponse
             {
                 Id = z.Id,
@@ -154,7 +154,6 @@ public class ZoneController : ControllerBase
                 Description = z.Description,
                 Color = z.Color,
                 Icon = z.Icon,
-                WorkspaceId = z.WorkspaceId,
                 CreatedAt = z.CreatedAt,
                 CreatedBy = z.CreatedBy,
                 UpdatedAt = z.UpdatedAt,
@@ -174,7 +173,7 @@ public class ZoneController : ControllerBase
     public async Task<ActionResult<ZoneResponse>> GetZone(int workspaceId, int id)
     {
         var zone = await _context.Zones
-            .Where(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted)
+            .Where(z => z.Id == id && !z.IsDeleted)
             .Select(z => new ZoneResponse
             {
                 Id = z.Id,
@@ -182,7 +181,6 @@ public class ZoneController : ControllerBase
                 Description = z.Description,
                 Color = z.Color,
                 Icon = z.Icon,
-                WorkspaceId = z.WorkspaceId,
                 CreatedAt = z.CreatedAt,
                 CreatedBy = z.CreatedBy,
                 UpdatedAt = z.UpdatedAt,
@@ -212,7 +210,6 @@ public class ZoneController : ControllerBase
             Description = dto.Description,
             Color = dto.Color,
             Icon = dto.Icon,
-            WorkspaceId = workspaceId,
             ParentZoneId = dto.ParentZoneId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
@@ -228,7 +225,6 @@ public class ZoneController : ControllerBase
             Description = zone.Description,
             Color = zone.Color,
             Icon = zone.Icon,
-            WorkspaceId = zone.WorkspaceId,
             ParentZoneId = zone.ParentZoneId,
             CreatedAt = zone.CreatedAt,
             CreatedBy = zone.CreatedBy,
@@ -246,7 +242,7 @@ public class ZoneController : ControllerBase
     public async Task<ActionResult<ZoneResponse>> UpdateZone(int workspaceId, int id, [FromBody] ZoneUpdateDto dto)
     {
         var zone = await _context.Zones
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
@@ -296,7 +292,7 @@ public class ZoneController : ControllerBase
     public async Task<IActionResult> DeleteZone(int workspaceId, int id)
     {
         var zone = await _context.Zones
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
@@ -330,7 +326,7 @@ public class ZoneController : ControllerBase
     {
         var zone = await _context.Zones
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && z.IsDeleted);
 
         if (zone == null)
         {
@@ -355,7 +351,7 @@ public class ZoneController : ControllerBase
     public async Task<IActionResult> AssignUsersToZone(int workspaceId, int id, [FromBody] AssignUsersToZoneDto dto)
     {
         var zone = await _context.Zones
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
@@ -393,7 +389,7 @@ public class ZoneController : ControllerBase
     public async Task<ActionResult<IEnumerable<string>>> GetZoneUsers(int workspaceId, int id)
     {
         var zone = await _context.Zones
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
@@ -413,7 +409,7 @@ public class ZoneController : ControllerBase
     public async Task<IActionResult> AssignRadiusUsersToZone(int workspaceId, int id, [FromBody] AssignRadiusUsersToZoneDto dto)
     {
         var zone = await _context.Zones
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
@@ -439,7 +435,7 @@ public class ZoneController : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetZoneRadiusUsers(int workspaceId, int id)
     {
         var zone = await _context.Zones
-            .FirstOrDefaultAsync(z => z.Id == id && z.WorkspaceId == workspaceId && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
