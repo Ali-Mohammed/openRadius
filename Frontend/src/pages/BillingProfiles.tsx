@@ -437,9 +437,9 @@ export default function BillingProfiles() {
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
           {activeTab === 'active' ? (
-          <div className="rounded-md border">
+          <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-muted z-10">
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
@@ -534,9 +534,9 @@ export default function BillingProfiles() {
             </Table>
           </div>
           ) : (
-          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+          <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-muted z-10">
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
