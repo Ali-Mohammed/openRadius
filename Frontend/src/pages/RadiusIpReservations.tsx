@@ -483,6 +483,182 @@ export default function RadiusIpReservations() {
     return pages
   }, [])
 
+  const handleResetColumns = () => {
+    setResetColumnsDialogOpen(true)
+  }
+
+  const confirmResetColumns = async () => {
+    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
+    setColumnOrder(DEFAULT_COLUMN_ORDER)
+    
+    try {
+      await tablePreferenceApi.deletePreference('radius-ip-reservations')
+      toast.success('Table columns reset to defaults')
+    } catch (error) {
+      console.error('Failed to delete preferences:', error)
+      toast.error('Columns reset but failed to clear saved preferences')
+    }
+    
+    setResetColumnsDialogOpen(false)
+  }
+
+  // Helper function to render column header
+  const renderColumnHeader = (columnKey: string) => {
+    const columnConfig: Record<string, { label: string, sortKey?: string }> = {
+      ipAddress: { label: 'IP Address', sortKey: 'ipaddress' },
+      description: { label: 'Description', sortKey: 'description' },
+      username: { label: 'Username', sortKey: 'username' },
+      name: { label: 'Name' },
+      profile: { label: 'Profile' },
+      zone: { label: 'Zone' },
+      group: { label: 'Group' },
+      createdAt: { label: 'Created At', sortKey: 'createdAt' },
+      updatedAt: { label: 'Updated At', sortKey: 'updatedAt' },
+      actions: { label: 'Actions' },
+    }
+
+    const config = columnConfig[columnKey]
+    if (!config) return null
+
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const isDraggable = columnKey !== 'actions'
+    const isSortable = !!config.sortKey
+    const isDragging = draggingColumn === columnKey
+    const isDragOver = dragOverColumn === columnKey
+
+    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
+    const sortableClass = isSortable ? 'cursor-pointer' : ''
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
+    
+    return (
+      <TableHead
+        key={columnKey}
+        className={`${baseClasses} ${sortableClass} ${dragClasses} ${stickyClass}`}
+        style={{ width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }}
+        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
+        draggable={isDraggable}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
+      >
+        {config.label}
+        {isSortable && getSortIcon(config.sortKey!)}
+        <div 
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => { 
+            e.preventDefault()
+            e.stopPropagation() 
+            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
+          }}
+        />
+      </TableHead>
+    )
+  }
+
+  // Helper function to render table cell
+  const renderTableCell = (columnKey: string, reservation: RadiusIpReservation) => {
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
+    const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
+
+    switch (columnKey) {
+      case 'ipAddress':
+        return (
+          <TableCell key={columnKey} className="px-4 font-mono" style={baseStyle}>
+            {reservation.ipAddress}
+          </TableCell>
+        )
+      case 'description':
+        return (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.description || '-'}>
+            {reservation.description || '-'}
+          </TableCell>
+        )
+      case 'username':
+        return (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.username || '-'}>
+            {reservation.username || '-'}
+          </TableCell>
+        )
+      case 'name':
+        return (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} 
+            title={[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}>
+            {[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}
+          </TableCell>
+        )
+      case 'profile':
+        return (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.profileName || '-'}>
+            {reservation.profileName || '-'}
+          </TableCell>
+        )
+      case 'zone':
+        return (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.zoneName || '-'}>
+            {reservation.zoneName || '-'}
+          </TableCell>
+        )
+      case 'group':
+        return (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.groupName || '-'}>
+            {reservation.groupName || '-'}
+          </TableCell>
+        )
+      case 'createdAt':
+        return (
+          <TableCell key={columnKey} className="px-4" style={baseStyle}>
+            {reservation.createdAt ? new Date(reservation.createdAt).toLocaleDateString() : '-'}
+          </TableCell>
+        )
+      case 'updatedAt':
+        return (
+          <TableCell key={columnKey} className="px-4" style={baseStyle}>
+            {reservation.updatedAt ? new Date(reservation.updatedAt).toLocaleDateString() : '-'}
+          </TableCell>
+        )
+      case 'actions':
+        return (
+          <TableCell key={columnKey} className={`px-4 ${stickyClass}`} style={baseStyle}>
+            <div className="flex justify-end gap-2">
+              {showTrash ? (
+                <Button variant="outline" size="sm" onClick={() => handleRestore(reservation.id)}>
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Restore
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenDialog(reservation)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDelete(reservation.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </TableCell>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="space-y-2 overflow-x-hidden">
       <div className="flex items-center justify-between">
@@ -520,6 +696,25 @@ export default function RadiusIpReservations() {
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" title="Settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48" align="end">
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    onClick={handleResetColumns}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reset Columns
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
             <Plus className="h-4 w-4 mr-2" />
