@@ -782,28 +782,7 @@ export default function RadiusIpReservations() {
                   <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                     <TableHeader className="sticky top-0 bg-muted z-10">
                       <TableRow className="hover:bg-muted">
-                        <TableHead className="h-12 px-4 cursor-pointer w-[180px]" onClick={() => handleSort('ipaddress')}>
-                          IP Address
-                        </TableHead>
-                        <TableHead className="h-12 px-4 cursor-pointer w-[250px]" onClick={() => handleSort('description')}>
-                          Description
-                        </TableHead>
-                        <TableHead className="h-12 px-4 cursor-pointer w-[200px]" onClick={() => handleSort('username')}>
-                          Username
-                        </TableHead>
-                        <TableHead className="h-12 px-4 w-[180px]">
-                          Name
-                        </TableHead>
-                        <TableHead className="h-12 px-4 w-[150px]">
-                          Profile
-                        </TableHead>
-                        <TableHead className="h-12 px-4 w-[150px]">
-                          Zone
-                        </TableHead>
-                        <TableHead className="h-12 px-4 w-[150px]">
-                          Group
-                        </TableHead>
-                        <TableHead className="sticky right-0 bg-muted z-10 h-12 px-4 w-[140px]">Actions</TableHead>
+                        {columnOrder.map(columnKey => renderColumnHeader(columnKey))}
                       </TableRow>
                     </TableHeader>
                     
@@ -825,44 +804,7 @@ export default function RadiusIpReservations() {
                               tableLayout: 'fixed',
                             }}
                           >
-                            <TableCell className="px-4 font-mono w-[180px]">{reservation.ipAddress}</TableCell>
-                            <TableCell className="px-4 w-[250px] truncate" title={reservation.description || '-'}>
-                              {reservation.description || '-'}
-                            </TableCell>
-                            <TableCell className="px-4 w-[200px] truncate" title={reservation.username || '-'}>
-                              {reservation.username || '-'}
-                            </TableCell>
-                            <TableCell className="px-4 w-[180px] truncate" title={[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}>
-                              {[reservation.firstname, reservation.lastname].filter(Boolean).join(' ') || '-'}
-                            </TableCell>
-                            <TableCell className="px-4 w-[150px] truncate" title={reservation.profileName || '-'}>
-                              {reservation.profileName || '-'}
-                            </TableCell>
-                            <TableCell className="px-4 w-[150px] truncate" title={reservation.zoneName || '-'}>
-                              {reservation.zoneName || '-'}
-                            </TableCell>
-                            <TableCell className="px-4 w-[150px] truncate" title={reservation.groupName || '-'}>
-                              {reservation.groupName || '-'}
-                            </TableCell>
-                            <TableCell className="sticky right-0 bg-background z-10 px-4 w-[140px]">
-                              <div className="flex justify-end gap-2">
-                                {showTrash ? (
-                                  <Button variant="outline" size="sm" onClick={() => handleRestore(reservation.id)}>
-                                    <RotateCcw className="h-4 w-4 mr-1" />
-                                    Restore
-                                  </Button>
-                                ) : (
-                                  <>
-                                    <Button variant="outline" size="sm" onClick={() => handleOpenDialog(reservation)}>
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleDelete(reservation.id)}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </TableCell>
+                            {columnOrder.map(columnKey => renderTableCell(columnKey, reservation))}
                           </TableRow>
                         )
                       })}
@@ -870,64 +812,67 @@ export default function RadiusIpReservations() {
                   </Table>
                 </div>
               )}
-              
-              {pagination && (
-                <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">Per page:</span>
-                      <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                        <SelectTrigger className="h-8 w-[70px] text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="25">25</SelectItem>
-                          <SelectItem value="50">50</SelectItem>
-                          <SelectItem value="100">100</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="h-4 w-px bg-border" />
-                    <div className="text-sm text-muted-foreground font-medium">
-                      Showing {reservations.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + reservations.length} of {pagination.totalRecords}
-                    </div>
+            </CardContent>
+            
+            {pagination && (
+              <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Per page:</span>
+                    <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                      <SelectTrigger className="h-8 w-[70px] text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="200">200</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                        <SelectItem value="1000">1000</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    
-                    {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
-                      page === '...' ? (
-                        <Button key={`ellipsis-${idx}`} variant="ghost" size="icon" disabled className="h-8 w-8 p-0 text-sm">
-                          ...
-                        </Button>
-                      ) : (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? 'default' : 'outline'}
-                          size="icon"
-                          onClick={() => setCurrentPage(page as number)}
-                          className="h-8 w-8 p-0 text-sm font-medium"
-                        >
-                          {page}
-                        </Button>
-                      )
-                    ))}
-                    
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))} disabled={currentPage === pagination.totalPages}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(pagination.totalPages)} disabled={currentPage === pagination.totalPages}>
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
+                  <div className="h-4 w-px bg-border" />
+                  <div className="text-sm text-muted-foreground font-medium">
+                    Showing {reservations.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + reservations.length} of {pagination.totalRecords.toLocaleString()} reservations
                   </div>
                 </div>
-              )}
-            </CardContent>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                    page === '...' ? (
+                      <Button key={`ellipsis-${idx}`} variant="ghost" size="icon" disabled className="h-8 w-8 p-0 text-sm">
+                        ...
+                      </Button>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setCurrentPage(page as number)}
+                        className="h-8 w-8 p-0 text-sm font-medium"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  ))}
+                  
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))} disabled={currentPage === pagination.totalPages}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(pagination.totalPages)} disabled={currentPage === pagination.totalPages}>
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
@@ -1093,6 +1038,24 @@ export default function RadiusIpReservations() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRestore}>
               Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Columns Dialog */}
+      <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Columns to Default?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all column widths, order, and visibility to their default settings. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetColumns}>
+              Reset
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
