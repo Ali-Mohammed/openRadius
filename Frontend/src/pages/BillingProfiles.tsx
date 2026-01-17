@@ -686,7 +686,7 @@ export default function BillingProfiles() {
       walletType: w.walletType,
       userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,
       customWalletId: w.walletType === 'custom' ? w.customWalletId : undefined,
-      price: w.percentage || 0,
+      price: w.price || 0,
       direction: w.direction || 'in',
     }));
 
@@ -1880,7 +1880,7 @@ export default function BillingProfiles() {
                                 ...updated[index], 
                                 direction: value,
                                 // Reset price to 0 when selecting 'remaining'
-                                ...(value === 'remaining' ? { percentage: 0 } : {})
+                                ...(value === 'remaining' ? { price: 0 } : {})
                               };
                               setWallets(updated);
                             }}
@@ -1907,11 +1907,11 @@ export default function BillingProfiles() {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={wallet.percentage}
+                              value={wallet.price}
                               onChange={(e) => {
                                 const newValue = parseFloat(e.target.value) || 0;
                                 console.log(`Updating wallet ${index} price to:`, newValue);
-                                updateWallet(index, 'percentage', newValue);
+                                updateWallet(index, 'price', newValue);
                               }}
                               placeholder="0.00"
                               className="h-10"

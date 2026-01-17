@@ -5,7 +5,7 @@ export interface BillingProfileWallet {
   walletType: string;
   userWalletId?: number;
   customWalletId?: number;
-  percentage: number;
+  price: number;
   icon?: string;
   color?: string;
   direction?: string;

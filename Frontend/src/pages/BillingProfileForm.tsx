@@ -183,7 +183,7 @@ export default function BillingProfileForm() {
         walletType: w.walletType,
         userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,
         customWalletId: w.walletType === 'custom' ? w.customWalletId : undefined,
-        price: w.percentage || 0,
+        price: w.price || 0,
         direction: w.direction || 'in',
       })),
       addons: selectedAddons.map(sa => {
@@ -212,7 +212,7 @@ export default function BillingProfileForm() {
         userWalletId: undefined,
         customWalletId: undefined,
         direction: 'in',
-        percentage: 0,
+        price: 0,
       },
     ]);
   };
