@@ -154,6 +154,59 @@ export default function RadiusNasPage() {
     sshPort: '22',
   })
 
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('radius-nas')
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility(JSON.parse(preferences.columnVisibility))
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
+          }
+        }
+      } catch (error) {
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  // Auto-save preferences when they change
+  useEffect(() => {
+    if (!preferencesLoaded) return
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'radius-nas',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+      } catch (error) {
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, preferencesLoaded])
+
   // NAS queries
   const { data: nasData, isLoading, isFetching, error } = useQuery({
     queryKey: ['radius-nas', currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
