@@ -105,10 +105,13 @@ public class BillingProfileController : ControllerBase
             return Ok(new
             {
                 data = profiles,
-                totalCount,
-                page,
-                pageSize,
-                totalPages
+                pagination = new
+                {
+                    currentPage = page,
+                    pageSize,
+                    totalRecords = totalCount,
+                    totalPages
+                }
             });
         }
         catch (Exception ex)
