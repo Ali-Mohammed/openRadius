@@ -192,6 +192,9 @@ export default function RadiusGroups() {
 
   // Sorting handlers
   const handleSort = useCallback((field: string) => {
+    // Prevent sorting if we just finished resizing
+    if (resizing) return
+    
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -199,7 +202,7 @@ export default function RadiusGroups() {
       setSortDirection('asc')
     }
     setCurrentPage(1)
-  }, [sortField, sortDirection])
+  }, [sortField, sortDirection, resizing])
 
   const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) {
@@ -209,6 +212,83 @@ export default function RadiusGroups() {
       ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
       : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
   }, [sortField, sortDirection])
+
+  // Column resize handler
+  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    setResizing(column)
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(60, startWidth + diff) // Minimum width of 60px
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      
+      // Delay clearing resizing state to prevent sort from triggering
+      setTimeout(() => setResizing(null), 100)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
+  // Column drag and drop handlers
+  const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
+    if (column === 'actions') return // Don't allow dragging actions column
+    setDraggingColumn(column)
+    e.dataTransfer.effectAllowed = 'move'
+    // Add a subtle drag image
+    if (e.currentTarget instanceof HTMLElement) {
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
+      dragImage.style.opacity = '0.5'
+      document.body.appendChild(dragImage)
+      e.dataTransfer.setDragImage(dragImage, 0, 0)
+      setTimeout(() => document.body.removeChild(dragImage), 0)
+    }
+  }, [])
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent, column: string) => {
+    if (!draggingColumn || column === 'actions') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggingColumn !== column) {
+      setDragOverColumn(column)
+    }
+  }, [draggingColumn])
+
+  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumn: string) => {
+    e.preventDefault()
+    
+    if (!draggingColumn || draggingColumn === targetColumn || targetColumn === 'actions') {
+      setDraggingColumn(null)
+      setDragOverColumn(null)
+      return
+    }
+
+    setColumnOrder(prev => {
+      const newOrder = [...prev]
+      const dragIndex = newOrder.indexOf(draggingColumn)
+      const dropIndex = newOrder.indexOf(targetColumn)
+      
+      // Remove dragged column
+      newOrder.splice(dragIndex, 1)
+      // Insert at new position
+      newOrder.splice(dropIndex, 0, draggingColumn)
+      
+      return newOrder
+    })
+
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [draggingColumn])
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [])
 
   // Pagination pages generator
   const getPaginationPages = useCallback((current: number, total: number) => {
@@ -384,10 +464,184 @@ export default function RadiusGroups() {
     queryClient.invalidateQueries({ queryKey: ['radius-groups'] })
   }
 
+  const handleResetColumns = () => {
+    setResetColumnsDialogOpen(true)
+  }
+
+  const confirmResetColumns = async () => {
+    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
+    setColumnOrder(DEFAULT_COLUMN_ORDER)
+    
+    // Delete saved preferences from backend
+    try {
+      await tablePreferenceApi.deletePreference('radius-groups')
+      toast.success('Table columns reset to defaults')
+    } catch (error) {
+      console.error('Failed to delete preferences:', error)
+      toast.error('Columns reset but failed to clear saved preferences')
+    }
+    
+    setResetColumnsDialogOpen(false)
+  }
+
+  // Helper function to render column header with drag and drop
+  const renderColumnHeader = (columnKey: string) => {
+    const columnConfig: Record<string, { label: string, sortKey?: string, align?: string, draggable?: boolean }> = {
+      name: { label: 'Name', sortKey: 'name' },
+      description: { label: 'Description' },
+      subscription: { label: 'Subscription', sortKey: 'subscription' },
+      status: { label: 'Status', sortKey: 'isActive' },
+      users: { label: 'Users', sortKey: 'userCount', align: 'right' },
+      actions: { label: 'Actions', draggable: false },
+    }
+
+    const config = columnConfig[columnKey]
+    if (!config) return null
+
+    // Check if column is visible
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const isDraggable = config.draggable !== false && columnKey !== 'actions'
+    const isSortable = !!config.sortKey
+    const isDragging = draggingColumn === columnKey
+    const isDragOver = dragOverColumn === columnKey
+
+    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
+    const alignmentClass = config.align === 'right' ? 'text-right' : config.align === 'center' ? 'text-center' : ''
+    const sortableClass = isSortable ? 'cursor-pointer' : ''
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
+    
+    return (
+      <TableHead
+        key={columnKey}
+        className={`${baseClasses} ${alignmentClass} ${sortableClass} ${dragClasses} ${stickyClass}`}
+        style={{ width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }}
+        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
+        draggable={isDraggable}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
+      >
+        {config.label}
+        {isSortable && getSortIcon(config.sortKey!)}
+        <div 
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => { 
+            e.preventDefault()
+            e.stopPropagation() 
+            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
+          }}
+        />
+      </TableHead>
+    )
+  }
+
+  // Helper function to render table cell based on column order
+  const renderTableCell = (columnKey: string, group: RadiusGroup) => {
+    // Check if column is visible
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
+    const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
+
+    const GroupIcon = getIconComponent(group.icon)
+
+    switch (columnKey) {
+      case 'name':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>
+            <div className="flex items-center gap-2">
+              <div 
+                className="rounded-lg p-1.5 flex items-center justify-center"
+                style={{ backgroundColor: `${group.color || '#3b82f6'}15`, color: group.color || '#3b82f6' }}
+              >
+                <GroupIcon className="h-4 w-4" />
+              </div>
+              {group.name}
+            </div>
+          </TableCell>
+        )
+      case 'description':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <div className="max-w-xs truncate" title={group.description}>
+              {group.description || '-'}
+            </div>
+          </TableCell>
+        )
+      case 'subscription':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{group.subscription || '-'}</TableCell>
+        )
+      case 'status':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant={group.isActive ? 'default' : 'secondary'}>
+              {group.isActive ? 'Active' : 'Disabled'}
+            </Badge>
+          </TableCell>
+        )
+      case 'users':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
+            {(group.usersCount || 0).toLocaleString()}
+          </TableCell>
+        )
+      case 'actions':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
+            {showTrash ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRestoreGroup(group.id!)}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Restore
+              </Button>
+            ) : (
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditGroup(group)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDeleteGroup(group.id!)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </TableCell>
+        )
+      default:
+        return null
+    }
+  }
+
   // Toggle all columns
   const toggleAllColumns = (visible: boolean) => {
     setColumnVisibility({
       name: visible,
+      description: visible,
       subscription: visible,
       status: visible,
       users: visible,
@@ -499,6 +753,26 @@ export default function RadiusGroups() {
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" title="Table settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleResetColumns}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Columns
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <Button onClick={handleCreateGroup} disabled={showTrash}>
             <Plus className="mr-2 h-4 w-4" />
