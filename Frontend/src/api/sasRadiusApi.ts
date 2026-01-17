@@ -149,5 +149,29 @@ export const sasRadiusApi = {
     const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/syncs/${syncId}/cancel`)
     return response.data
   },
+
+  exportIntegrations: async (workspaceId: number): Promise<void> => {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius/export`, {
+      responseType: 'blob'
+    })
+    
+    // Create a blob URL and trigger download
+    const blob = new Blob([response.data], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `sas-radius-integrations-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  },
+
+  importIntegrations: async (workspaceId: number, file: File): Promise<{ message: string; imported: number; skipped: number; errors: string[] }> => {
+    const text = await file.text()
+    const integrations = JSON.parse(text)
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/import`, integrations)
+    return response.data
+  },
 }
 

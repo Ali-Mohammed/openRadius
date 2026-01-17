@@ -366,6 +366,141 @@ public class SasRadiusIntegrationController : ControllerBase
             }
         });
     }
+
+    [HttpGet("export")]
+    public async Task<ActionResult> ExportIntegrations(int WorkspaceId)
+    {
+        try
+        {
+            var integrations = await _context.SasRadiusIntegrations
+                .Where(i => i.WorkspaceId == WorkspaceId && !i.IsDeleted)
+                .Select(i => new
+                {
+                    i.Name,
+                    i.Url,
+                    i.Username,
+                    i.Password,
+                    i.UseHttps,
+                    i.IsActive,
+                    i.MaxItemInPagePerRequest,
+                    i.Action,
+                    i.Description
+                })
+                .ToListAsync();
+
+            var json = System.Text.Json.JsonSerializer.Serialize(integrations, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            var fileName = $"sas-radius-integrations-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+            return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export integrations for workspace {WorkspaceId}", WorkspaceId);
+            return StatusCode(500, new { error = "Failed to export integrations", details = ex.Message });
+        }
+    }
+
+    [HttpPost("import")]
+    public async Task<ActionResult> ImportIntegrations(int WorkspaceId, [FromBody] List<SasRadiusIntegrationImport> integrations)
+    {
+        try
+        {
+            if (integrations == null || integrations.Count == 0)
+            {
+                return BadRequest(new { error = "No integrations provided" });
+            }
+
+            var imported = 0;
+            var skipped = 0;
+            var errors = new List<string>();
+
+            foreach (var importData in integrations)
+            {
+                try
+                {
+                    // Check if integration with same name already exists
+                    var existing = await _context.SasRadiusIntegrations
+                        .FirstOrDefaultAsync(i => i.WorkspaceId == WorkspaceId && 
+                                                  i.Name == importData.Name && 
+                                                  !i.IsDeleted);
+
+                    if (existing != null)
+                    {
+                        // Update existing integration
+                        existing.Url = importData.Url;
+                        existing.Username = importData.Username;
+                        existing.Password = importData.Password;
+                        existing.UseHttps = importData.UseHttps;
+                        existing.IsActive = importData.IsActive;
+                        existing.MaxItemInPagePerRequest = importData.MaxItemInPagePerRequest;
+                        existing.Action = importData.Action;
+                        existing.Description = importData.Description;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        // Create new integration
+                        var newIntegration = new SasRadiusIntegration
+                        {
+                            Name = importData.Name,
+                            Url = importData.Url,
+                            Username = importData.Username,
+                            Password = importData.Password,
+                            UseHttps = importData.UseHttps,
+                            IsActive = importData.IsActive,
+                            MaxItemInPagePerRequest = importData.MaxItemInPagePerRequest,
+                            Action = importData.Action,
+                            Description = importData.Description,
+                            WorkspaceId = WorkspaceId,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        _context.SasRadiusIntegrations.Add(newIntegration);
+                    }
+
+                    imported++;
+                }
+                catch (Exception ex)
+                {
+                    skipped++;
+                    errors.Add($"Failed to import '{importData.Name}': {ex.Message}");
+                    _logger.LogError(ex, "Failed to import integration {Name}", importData.Name);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = $"Import completed: {imported} integrations imported/updated, {skipped} skipped",
+                imported,
+                skipped,
+                errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to import integrations for workspace {WorkspaceId}", WorkspaceId);
+            return StatusCode(500, new { error = "Failed to import integrations", details = ex.Message });
+        }
+    }
+}
+
+public class SasRadiusIntegrationImport
+{
+    public required string Name { get; set; }
+    public required string Url { get; set; }
+    public required string Username { get; set; }
+    public required string Password { get; set; }
+    public bool UseHttps { get; set; }
+    public bool IsActive { get; set; }
+    public int MaxItemInPagePerRequest { get; set; }
+    public required string Action { get; set; }
+    public string? Description { get; set; }
 }
 
 

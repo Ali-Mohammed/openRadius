@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -176,6 +176,43 @@ export default function WorkspaceSettings() {
     },
   })
 
+  const exportMutation = useMutation({
+    mutationFn: () => sasRadiusApi.exportIntegrations(Number(currentWorkspaceId)),
+    onSuccess: () => {
+      toast.success('Integrations exported successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to export integrations')
+    },
+  })
+
+  const importMutation = useMutation({
+    mutationFn: (file: File) => sasRadiusApi.importIntegrations(Number(currentWorkspaceId), file),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
+      toast.success(response.message)
+      if (response.errors && response.errors.length > 0) {
+        response.errors.forEach(error => toast.error(error))
+      }
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to import integrations')
+    },
+  })
+
+  const handleExport = () => {
+    exportMutation.mutate()
+  }
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      importMutation.mutate(file)
+      // Reset the input so the same file can be selected again
+      event.target.value = ''
+    }
+  }
+
   const handleOpenDialog = (integration?: SasRadiusIntegration) => {
     if (integration) {
       setEditingIntegration(integration)
@@ -330,6 +367,33 @@ export default function WorkspaceSettings() {
                 Trash
               </TabsTrigger>
             </TabsList>
+            {!showTrash && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={exportMutation.isPending || integrations.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById('import-file')?.click()}
+                  disabled={importMutation.isPending}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import
+                </Button>
+                <input
+                  id="import-file"
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  style={{ display: 'none' }}
+                />
+              </>
+            )}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => handleOpenDialog()} disabled={showTrash}>
