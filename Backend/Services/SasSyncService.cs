@@ -150,6 +150,10 @@ public class SasSyncService : ISasSyncService
             await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Profiles, 15, "Starting profile synchronization...", cancellationToken);
             await SyncProfilesAsync(syncId, integration, token, cancellationToken);
 
+            // Handle inactive radius profiles - set corresponding billing profiles to inactive
+            await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Profiles, 32, "Updating inactive billing profiles...", cancellationToken);
+            await UpdateInactiveBillingProfilesAsync(syncId, cancellationToken);
+
             // Sync Groups
             await UpdateProgress(syncId, SyncStatus.SyncingProfiles, SyncPhase.Groups, 35, "Starting group synchronization...", cancellationToken);
             await SyncGroupsAsync(syncId, integration, token, cancellationToken);
@@ -433,6 +437,36 @@ public class SasSyncService : ISasSyncService
 
             hasMorePages = currentPage < apiResponse.LastPage;
             currentPage++;
+        }
+    }
+
+    private async Task UpdateInactiveBillingProfilesAsync(Guid syncId, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        // Find all billing profiles that correspond to disabled radius profiles
+        var inactiveBillingProfiles = await context.BillingProfiles
+            .Join(context.RadiusProfiles, 
+                bp => bp.RadiusProfileId, 
+                rp => rp.Id, 
+                (bp, rp) => new { BillingProfile = bp, RadiusProfile = rp })
+            .Where(joined => !joined.RadiusProfile.Enabled && joined.BillingProfile.IsActive)
+            .Select(joined => joined.BillingProfile)
+            .ToListAsync(cancellationToken);
+
+        if (inactiveBillingProfiles.Any())
+        {
+            _logger.LogInformation("Deactivating {Count} billing profiles for disabled radius profiles", inactiveBillingProfiles.Count);
+
+            foreach (var billingProfile in inactiveBillingProfiles)
+            {
+                billingProfile.IsActive = false;
+                billingProfile.UpdatedAt = DateTime.UtcNow;
+                billingProfile.UpdatedBy = "System-Sync";
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 
