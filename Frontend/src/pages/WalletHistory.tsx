@@ -156,280 +156,410 @@ export default function WalletHistory() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <History className="h-8 w-8" />
-          Wallet History
-        </h1>
-        <p className="text-muted-foreground">
-          Track all wallet transactions with before and after balances
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <History className="h-8 w-8" />
+            Wallet History
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Track all wallet transactions with before and after balances
+          </p>
+        </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Bar */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-              <History className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {currencySymbol} {formatCurrency(stats.totalAmount)}
+        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-4">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">Total Transactions</p>
+                <p className="text-2xl font-bold">{stats.totalTransactions.toLocaleString()}</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Ups</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.count || 0}
+              <History className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+                <p className="text-2xl font-bold">
+                  {currencySymbol} {formatCurrency(stats.totalAmount)}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {currencySymbol} {formatCurrency(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0)}
-              </p>
-            </CardContent>
-          </Card>
+              <DollarSign className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">Top Ups</p>
+                <p className="text-2xl font-bold">
+                  {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.count || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {currencySymbol} {formatCurrency(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0)}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">Payments</p>
+                <p className="text-2xl font-bold">
+                  {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.PAYMENT)?.count || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {currencySymbol} {formatCurrency(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.PAYMENT)?.totalAmount || 0)}
+                </p>
+              </div>
+              <CreditCard className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Wallet Type</Label>
-              <Select value={filterWalletType} onValueChange={setFilterWalletType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="custom">Custom Wallet</SelectItem>
-                  <SelectItem value="user">User Wallet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Transaction Type</Label>
-              <Select value={filterTransactionType || "all"} onValueChange={(val) => setFilterTransactionType(val === "all" ? "" : val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Transactions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Transactions</SelectItem>
-                  {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
-                    <SelectItem key={value} value={value}>
-                      {info.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 flex items-center gap-2">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search transactions..."
+              className="pl-8"
+              disabled
+            />
           </div>
-
-          {(filterWalletType || filterTransactionType || startDate || endDate) && (
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFilterWalletType('')
-                  setFilterTransactionType('')
-                  setStartDate('')
-                  setEndDate('')
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
+          {hasFilters && (
+            <Badge variant="secondary" className="gap-1">
+              <Filter className="h-3 w-3" />
+              {[filterWalletType, filterTransactionType, startDate, endDate].filter(Boolean).length} active
+            </Badge>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {}}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+          {hasFilters && (
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                    {[filterWalletType, filterTransactionType, startDate, endDate].filter(Boolean).length}
+                  </Badge>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Filters</h4>
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="h-4 w-4 mr-1" />
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Wallet Type</Label>
+                    <Select value={filterWalletType || 'all'} onValueChange={(v) => { setFilterWalletType(v === 'all' ? '' : v); setCurrentPage(1) }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="custom">Custom Wallet</SelectItem>
+                        <SelectItem value="user">User Wallet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Transaction Type</Label>
+                    <Select value={filterTransactionType || 'all'} onValueChange={(v) => { setFilterTransactionType(v === 'all' ? '' : v); setCurrentPage(1) }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Transactions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Transactions</SelectItem>
+                        {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
+                          <SelectItem key={value} value={value}>
+                            {info.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1) }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1) }}
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+          {!hasFilters && (
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Filters</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Wallet Type</Label>
+                    <Select value={filterWalletType || 'all'} onValueChange={(v) => { setFilterWalletType(v === 'all' ? '' : v); setCurrentPage(1) }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="custom">Custom Wallet</SelectItem>
+                        <SelectItem value="user">User Wallet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Transaction Type</Label>
+                    <Select value={filterTransactionType || 'all'} onValueChange={(v) => { setFilterTransactionType(v === 'all' ? '' : v); setCurrentPage(1) }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Transactions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Transactions</SelectItem>
+                        {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
+                          <SelectItem key={value} value={value}>
+                            {info.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1) }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1) }}
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+      </div>
 
-      {/* History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-          <CardDescription>
-            Showing {history.length} of {totalCount} transactions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Wallet</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Before</TableHead>
-                  <TableHead className="text-right">After</TableHead>
-                  <TableHead>Reason</TableHead>
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="h-12 px-4 font-semibold">Date</TableHead>
+              <TableHead className="h-12 px-4 font-semibold">Type</TableHead>
+              <TableHead className="h-12 px-4 font-semibold">Wallet</TableHead>
+              <TableHead className="h-12 px-4 font-semibold">User</TableHead>
+              <TableHead className="h-12 px-4 font-semibold text-right">Amount</TableHead>
+              <TableHead className="h-12 px-4 font-semibold text-right">Before</TableHead>
+              <TableHead className="h-12 px-4 font-semibold text-right">After</TableHead>
+              <TableHead className="h-12 px-4 font-semibold">Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      Loading...
+              ))
+            ) : history.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <History className="h-12 w-12" />
+                    <p className="text-lg font-medium">No transaction history found</p>
+                    <p className="text-sm">Try adjusting your filters</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              history.map((item) => {
+                const typeInfo = TRANSACTION_TYPE_INFO[item.transactionType as TransactionType]
+                const IconComponent = transactionTypeIcons[item.transactionType as TransactionType] || ArrowUpCircle
+                return (
+                  <TableRow key={item.id} className="hover:bg-muted/50">
+                    <TableCell className="px-4">
+                      <div className="text-sm font-medium">{formatDate(item.createdAt)}</div>
+                    </TableCell>
+                    <TableCell className="px-4">
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="gap-1 w-fit">
+                          <IconComponent className={`h-3 w-3 ${typeInfo?.color}`} />
+                          {typeInfo?.label || item.transactionType}
+                        </Badge>
+                        <span className={`text-xs font-medium ${
+                          item.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {item.amountType === 'credit' ? 'Credit' : 'Debit'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4">
+                      <div>
+                        <div className="font-medium">
+                          {item.walletType === 'custom'
+                            ? item.customWalletName
+                            : 'User Wallet'}
+                        </div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {item.walletType}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4">
+                      {item.userName ? (
+                        <div>
+                          <div className="text-sm font-medium">{item.userName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.userEmail}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 text-right">
+                      <span className={`${typeInfo?.color} font-semibold`}>
+                        {item.amountType === 'credit' ? '+' : '-'}
+                        {currencySymbol} {formatCurrency(item.amount)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-4 text-right text-muted-foreground">
+                      {currencySymbol} {formatCurrency(item.balanceBefore)}
+                    </TableCell>
+                    <TableCell className="px-4 text-right font-medium">
+                      {currencySymbol} {formatCurrency(item.balanceAfter)}
+                    </TableCell>
+                    <TableCell className="px-4">
+                      <div className="max-w-xs">
+                        {item.reason && (
+                          <div className="text-sm">{item.reason}</div>
+                        )}
+                        {item.reference && (
+                          <div className="text-xs text-muted-foreground">
+                            Ref: {item.reference}
+                          </div>
+                        )}
+                        {!item.reason && !item.reference && (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : history.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      No transaction history found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  history.map((item) => {
-                    const typeInfo = TRANSACTION_TYPE_INFO[item.transactionType as TransactionType]
-                    const IconComponent = transactionTypeIcons[item.transactionType as TransactionType] || ArrowUpCircle
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="text-sm">{formatDate(item.createdAt)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge variant="outline" className="gap-1 w-fit">
-                              <IconComponent className={`h-3 w-3 ${typeInfo?.color}`} />
-                              {typeInfo?.label || item.transactionType}
-                            </Badge>
-                            <span className={`text-xs ${
-                              item.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {item.amountType === 'credit' ? 'Credit' : 'Debit'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {item.walletType === 'custom'
-                                ? item.customWalletName
-                                : 'User Wallet'}
-                            </div>
-                            <div className="text-xs text-muted-foreground capitalize">
-                              {item.walletType}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {item.userName ? (
-                            <div>
-                              <div className="text-sm">{item.userName}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.userEmail}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={`${typeInfo?.color} font-medium`}>
-                            {item.amountType === 'credit' ? '+' : '-'}
-                            {currencySymbol} {formatCurrency(item.amount)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {currencySymbol} {formatCurrency(item.balanceBefore)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {currencySymbol} {formatCurrency(item.balanceAfter)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs">
-                            {item.reason && (
-                              <div className="text-sm">{item.reason}</div>
-                            )}
-                            {item.reference && (
-                              <div className="text-xs text-muted-foreground">
-                                Ref: {item.reference}
-                              </div>
-                            )}
-                            {!item.reason && !item.reference && (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                )
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Showing <span className="font-medium">{history.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to{' '}
+          <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
+          <span className="font-medium">{totalCount}</span> transactions
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="font-medium">{currentPage}</span>
+            <span className="text-muted-foreground">of</span>
+            <span className="font-medium">{totalPages}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
