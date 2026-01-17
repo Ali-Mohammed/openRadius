@@ -463,25 +463,26 @@ export default function Transactions() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-[calc(100vh-120px)]">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Receipt className="h-8 w-8" />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Receipt className="h-6 w-6" />
             Transactions
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage all wallet transactions with automatic balance tracking
+          <p className="text-sm text-muted-foreground">
+            Manage all wallet transactions
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => setShowTrash(!showTrash)}
             variant={showTrash ? 'default' : 'outline'}
+            size="sm"
           >
             <Archive className="mr-2 h-4 w-4" />
-            {showTrash ? 'Show Active' : 'Show Trash'}
+            {showTrash ? 'Active' : 'Trash'}
           </Button>
           
           {/* Bulk Actions */}
@@ -490,24 +491,26 @@ export default function Transactions() {
               <Button
                 onClick={() => setIsBulkDeleteDialogOpen(true)}
                 variant="outline"
+                size="sm"
                 className="gap-2"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete Selected ({selectedTransactions.length})
+                Delete ({selectedTransactions.length})
               </Button>
               <Button
                 onClick={() => setIsBulkRestoreDialogOpen(true)}
                 variant="outline"
+                size="sm"
                 className="gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
-                Restore Selected ({selectedTransactions.length})
+                Restore ({selectedTransactions.length})
               </Button>
             </>
           )}
 
           {!showTrash && (
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => setIsDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Transaction
             </Button>
@@ -515,8 +518,10 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Main Content Area - Card wrapping table and pagination */}
+      <div className="flex-1 flex flex-col border rounded-lg overflow-hidden bg-card">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between gap-4 p-3 border-b bg-muted/30">
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
