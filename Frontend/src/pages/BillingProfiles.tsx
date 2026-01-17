@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getProfiles,
@@ -59,6 +59,7 @@ import {
 } from '../components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
+import { Skeleton } from '../components/ui/skeleton';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -437,43 +438,91 @@ export default function BillingProfiles() {
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
           {activeTab === 'active' ? (
-          <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
-            <Table>
-              <TableHeader className="sticky top-0 bg-muted z-10">
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Radius Profile</TableHead>
-                  <TableHead>Billing Group</TableHead>
-                  <TableHead>Wallets</TableHead>
-                  <TableHead>Addons</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingActive ? (
+          isLoadingActive ? (
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center">
-                      Loading...
-                    </TableCell>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 text-right"><Skeleton className="h-4 w-16" /></TableHead>
                   </TableRow>
-                ) : activeProfilesData?.data?.filter((p) => !p.isDeleted).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center">
-                      No profiles found
-                    </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="h-12 px-4">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-8 rounded" />
+                          <Skeleton className="h-8 w-8 rounded" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : activeProfilesData?.data?.filter((p) => !p.isDeleted).length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <Receipt className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No billing profiles yet</h3>
+              <p className="text-sm text-muted-foreground mb-6">Get started by creating your first billing profile</p>
+              <Button onClick={() => navigate('/billing/profiles/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Profile
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              {isFetchingActive && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Radius Profile</TableHead>
+                    <TableHead>Billing Group</TableHead>
+                    <TableHead>Wallets</TableHead>
+                    <TableHead>Addons</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  activeProfilesData?.data
+                </TableHeader>
+                <TableBody>
+                  {activeProfilesData?.data
                     ?.filter((p) => !p.isDeleted)
                     .map((profile) => {
                       const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId);
                       const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId);
                       
                       return (
-                      <TableRow key={profile.id}>
+                      <TableRow key={profile.id} className="border-b">
                         <TableCell className="font-medium">{profile.name}</TableCell>
                         <TableCell className="max-w-md truncate">
                           {profile.description || '-'}
@@ -528,50 +577,95 @@ export default function BillingProfiles() {
                         </TableCell>
                       </TableRow>
                     );
-                    })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    })}
+                </TableBody>
+              </Table>
+            </div>
+          )
           ) : (
-          <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
-            <Table>
-              <TableHeader className="sticky top-0 bg-muted z-10">
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Radius Profile</TableHead>
-                  <TableHead>Billing Group</TableHead>
-                  <TableHead>Wallets</TableHead>
-                  <TableHead>Addons</TableHead>
-                  <TableHead>Deleted At</TableHead>
-                  <TableHead>Deleted By</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingDeleted ? (
+          isLoadingDeleted ? (
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center">
-                      Loading...
-                    </TableCell>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 text-right"><Skeleton className="h-4 w-16" /></TableHead>
                   </TableRow>
-                ) : deletedProfilesData?.data?.filter((p) => p.isDeleted).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center">
-                      No deleted profiles found
-                    </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-20 rounded" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : deletedProfilesData?.data?.filter((p) => p.isDeleted).length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <Archive className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No deleted profiles</h3>
+              <p className="text-sm text-muted-foreground">Deleted profiles will appear here</p>
+            </div>
+          ) : (
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              {isFetchingDeleted && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Radius Profile</TableHead>
+                    <TableHead>Billing Group</TableHead>
+                    <TableHead>Wallets</TableHead>
+                    <TableHead>Addons</TableHead>
+                    <TableHead>Deleted At</TableHead>
+                    <TableHead>Deleted By</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  deletedProfilesData?.data
+                </TableHeader>
+                <TableBody>
+                  {deletedProfilesData?.data
                     ?.filter((p) => p.isDeleted)
                     .map((profile) => {
                       const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId);
                       const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId);
                       
                       return (
-                      <TableRow key={profile.id}>
+                      <TableRow key={profile.id} className="border-b">
                         <TableCell className="font-medium opacity-60">{profile.name}</TableCell>
                         <TableCell className="max-w-md truncate opacity-60">
                           {profile.description || '-'}
@@ -630,11 +724,11 @@ export default function BillingProfiles() {
                         </TableCell>
                       </TableRow>
                     );
-                    })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    })}
+                </TableBody>
+              </Table>
+            </div>
+          )
           )}
         </CardContent>
       </Card>
