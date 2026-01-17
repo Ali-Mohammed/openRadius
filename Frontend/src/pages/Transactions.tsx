@@ -113,17 +113,9 @@ export default function Transactions() {
   const { i18n } = useTranslation()
   const { currentWorkspaceId } = useWorkspace()
 
-  const [filterWalletType, setFilterWalletType] = useState('')
-  const [filterTransactionType, setFilterTransactionType] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchInput, setSearchInput] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [showTrash, setShowTrash] = useState(false)
-  const [showFilters, setShowFilters] = useState(true)
   const [columnVisibility, setColumnVisibility] = useState({
     date: true,
     type: true,
@@ -179,35 +171,19 @@ export default function Transactions() {
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
-  const { data: transactionsData, isLoading } = useQuery({
+  const { data: transactionsData, isLoading, isFetching } = useQuery({
     queryKey: [
       'transactions',
-      filterWalletType,
-      filterTransactionType,
-      filterStatus,
-      startDate,
-      endDate,
       currentPage,
       pageSize,
       showTrash,
     ],
     queryFn: async () => {
-      console.log('🔍 Fetching transactions with showTrash:', showTrash)
       const result = await transactionApi.getAll({
-        walletType: filterWalletType ? (filterWalletType as 'custom' | 'user') : undefined,
-        transactionType: filterTransactionType || undefined,
-        status: filterStatus || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
         page: currentPage,
         pageSize,
         includeDeleted: showTrash,
       })
-      console.log('📊 Received transactions:', result.data.length, 'total:', result.totalCount)
-      console.log('🗑️ Trash mode:', showTrash ? 'DELETED ONLY' : 'ACTIVE ONLY')
-      if (result.data.length > 0) {
-        console.log('📝 First transaction isDeleted:', result.data[0].isDeleted)
-      }
       return result
     },
   })
@@ -485,10 +461,14 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Transactions</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Receipt className="h-8 w-8" />
+            Transactions
+          </h1>
+          <p className="text-muted-foreground mt-1">
             Manage all wallet transactions with automatic balance tracking
           </p>
         </div>
@@ -532,288 +512,160 @@ export default function Transactions() {
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 flex-1">
-                <Input
-                  placeholder="Search transactions..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(searchInput)}
-                  className="max-w-sm"
-                />
-                <Button onClick={() => setSearchQuery(searchInput)} variant="outline" size="icon">
-                  <Search className="h-4 w-4" />
-                </Button>
-                <Button 
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })} 
-                  variant="outline" 
-                  size="icon"
-                  title="Refresh"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" title="Toggle columns">
-                      <Columns3 className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.date}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, date: checked }))}
-                    >
-                      Date
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.type}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, type: checked }))}
-                    >
-                      Type
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.wallet}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, wallet: checked }))}
-                    >
-                      Wallet
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.user}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, user: checked }))}
-                    >
-                      User
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.amount}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, amount: checked }))}
-                    >
-                      Amount
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.before}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, before: checked }))}
-                    >
-                      Balance Before
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.after}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, after: checked }))}
-                    >
-                      Balance After
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={columnVisibility.status}
-                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
-                    >
-                      Status
-                    </DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
-                  <SelectTrigger className="w-[70px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="200">200</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant={showFilters ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setShowFilters(!showFilters)}
-                  title="Toggle filters"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        {showFilters && (
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-5">
-            <div className="space-y-2">
-              <Label>Wallet Type</Label>
-              <Select value={filterWalletType || "all"} onValueChange={(val) => setFilterWalletType(val === "all" ? "" : val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="custom">Custom Wallet</SelectItem>
-                  <SelectItem value="user">User Wallet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Transaction Type</Label>
-              <Select value={filterTransactionType || "all"} onValueChange={(val) => setFilterTransactionType(val === "all" ? "" : val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Transactions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Transactions</SelectItem>
-                  {Object.entries(TRANSACTION_TYPE_INFO).map(([value, info]) => (
-                    <SelectItem key={value} value={value}>
-                      {info.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={filterStatus || "all"} onValueChange={(val) => setFilterStatus(val === "all" ? "" : val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="reversed">Reversed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-            {(filterWalletType || filterTransactionType || filterStatus || startDate || endDate) && (
-              <div className="mt-4 flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFilterWalletType('')
-                    setFilterTransactionType('')
-                    setFilterStatus('')
-                    setStartDate('')
-                    setEndDate('')
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Columns3 className="h-4 w-4" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.date}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, date: checked }))}
+              >
+                Date
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.type}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, type: checked }))}
+              >
+                Type
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.wallet}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, wallet: checked }))}
+              >
+                Wallet
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.user}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, user: checked }))}
+              >
+                User
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.amount}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, amount: checked }))}
+              >
+                Amount
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.before}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, before: checked }))}
+              >
+                Balance Before
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.after}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, after: checked }))}
+              >
+                Balance After
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.status}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, status: checked }))}
+              >
+                Status
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={pageSize.toString()} onValueChange={(val) => { setPageSize(Number(val)); setCurrentPage(1) }}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
 
       {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{showTrash ? 'Deleted Transactions' : 'All Transactions'}</CardTitle>
-              <CardDescription>
-                Showing {transactions.length} of {totalCount} transactions
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 500px)' }}>
-            <Table>
-              <TableHeader className="sticky top-0 bg-muted z-10">
-                <TableRow>
-                  <TableHead className="h-12 px-4 w-[50px]">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all"
-                      className={isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                    />
-                  </TableHead>
-                  {columnVisibility.date && <TableHead className="h-12 px-4 w-[180px]">Date</TableHead>}
-                  {columnVisibility.type && <TableHead className="h-12 px-4 w-[160px]">Type</TableHead>}
-                  {columnVisibility.wallet && <TableHead className="h-12 px-4 w-[160px]">Wallet</TableHead>}
-                  {columnVisibility.user && <TableHead className="h-12 px-4 w-[180px]">User</TableHead>}
-                  {columnVisibility.amount && <TableHead className="h-12 px-4 w-[120px] text-right">Amount</TableHead>}
-                  {columnVisibility.before && <TableHead className="h-12 px-4 w-[120px] text-right">Before</TableHead>}
-                  {columnVisibility.after && <TableHead className="h-12 px-4 w-[120px] text-right">After</TableHead>}
-                  {columnVisibility.status && <TableHead className="h-12 px-4 w-[120px]">Status</TableHead>}
-                  <TableHead className="sticky right-0 bg-muted h-12 px-4 w-[100px] text-right">Actions</TableHead>
+      <div className="rounded-md border">\
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="h-12 px-4 w-[50px] font-semibold">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all"
+                  className={isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                />
+              </TableHead>
+              {columnVisibility.date && <TableHead className="h-12 px-4 font-semibold">Date</TableHead>}
+              {columnVisibility.type && <TableHead className="h-12 px-4 font-semibold">Type</TableHead>}
+              {columnVisibility.wallet && <TableHead className="h-12 px-4 font-semibold">Wallet</TableHead>}
+              {columnVisibility.user && <TableHead className="h-12 px-4 font-semibold">User</TableHead>}
+              {columnVisibility.amount && <TableHead className="h-12 px-4 font-semibold text-right">Amount</TableHead>}
+              {columnVisibility.before && <TableHead className="h-12 px-4 font-semibold text-right">Before</TableHead>}
+              {columnVisibility.after && <TableHead className="h-12 px-4 font-semibold text-right">After</TableHead>}
+              {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold">Status</TableHead>}
+              <TableHead className="h-12 px-4 font-semibold text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  {columnVisibility.date && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
+                  {columnVisibility.type && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
+                  {columnVisibility.wallet && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
+                  {columnVisibility.user && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
+                  {columnVisibility.amount && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
+                  {columnVisibility.before && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
+                  {columnVisibility.after && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
+                  {columnVisibility.status && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <div className="flex items-center justify-center gap-2">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Loading...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : transactions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12">
-                      <div className="flex flex-col items-center gap-3">
-                        {showTrash ? (
-                          <>
-                            <Archive className="h-12 w-12 text-muted-foreground/50" />
-                            <div>
-                              <p className="text-lg font-medium text-muted-foreground">No deleted transactions</p>
-                              <p className="text-sm text-muted-foreground/70 mt-1">
-                                Deleted transactions will appear here
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Receipt className="h-12 w-12 text-muted-foreground/50" />
-                            <div>
-                              <p className="text-lg font-medium text-muted-foreground">No transactions found</p>
-                              <p className="text-sm text-muted-foreground/70 mt-1">
-                                Create your first transaction to get started
-                              </p>
-                            </div>
-                            <Button onClick={() => setIsDialogOpen(true)} className="mt-2 gap-2">
-                              <Plus className="h-4 w-4" />
-                              Create Transaction
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  transactions.map((transaction) => {
-                    const typeInfo = TRANSACTION_TYPE_INFO[transaction.transactionType as TransactionType]
-                    const IconComponent = transactionTypeIcons[transaction.transactionType as TransactionType] || ArrowUpCircle
-                    const isDeleted = transaction.isDeleted
-                    const isSelected = selectedTransactions.includes(transaction.id)
-                    return (
-                      <TableRow key={transaction.id} className={isDeleted ? 'opacity-60 bg-gray-50' : ''}>
+              ))
+) : transactions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    {showTrash ? (
+                      <>
+                        <Archive className="h-12 w-12" />
+                        <p className="text-lg font-medium">No deleted transactions</p>
+                        <p className="text-sm">Deleted transactions will appear here</p>
+                      </>
+                    ) : (
+                      <>
+                        <Receipt className="h-12 w-12" />
+                        <p className="text-lg font-medium">No transactions found</p>
+                        <p className="text-sm">Create your first transaction to get started</p>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              transactions.map((transaction) => {
+                const typeInfo = TRANSACTION_TYPE_INFO[transaction.transactionType as TransactionType]
+                const IconComponent = transactionTypeIcons[transaction.transactionType as TransactionType] || ArrowUpCircle
+                const isDeleted = transaction.isDeleted
+                const isSelected = selectedTransactions.includes(transaction.id)
+                return (
+                  <TableRow key={transaction.id} className={`hover:bg-muted/50 ${isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
                         <TableCell className="h-12 px-4">
                           <Checkbox
                             checked={isSelected}
@@ -966,79 +818,57 @@ export default function Transactions() {
                     )
                   })
                 )}
-              </TableBody>
-            </Table>
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Showing <span className="font-medium">{transactions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to{' '}
+          <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
+          <span className="font-medium">{totalCount}</span> transactions
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="font-medium">{currentPage}</span>
+            <span className="text-muted-foreground">of</span>
+            <span className="font-medium">{totalPages}</span>
           </div>
-
-          {/* Pagination - RadiusUsers style */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-              <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {formatNumber(totalCount)} transactions
-              </div>
-              <div className="flex items-center gap-2">
-                {/* First Page */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="h-8 w-8"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-
-                {/* Previous Page */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="h-8 w-8"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                {/* Page Numbers */}
-                {getPaginationPages(currentPage, totalPages).map((page, idx) => (
-                  <Button
-                    key={idx}
-                    variant={page === currentPage ? 'default' : 'outline'}
-                    size="icon"
-                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                    disabled={typeof page !== 'number'}
-                    className="h-8 w-8"
-                  >
-                    {page}
-                  </Button>
-                ))}
-
-                {/* Next Page */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="h-8 w-8"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-
-                {/* Last Page */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="h-8 w-8"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* Create Transaction Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
