@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, List } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, List, Settings } from 'lucide-react'
 import { radiusCustomAttributeApi, type RadiusCustomAttribute, type CreateRadiusCustomAttributeRequest, type UpdateRadiusCustomAttributeRequest } from '@/api/radiusCustomAttributeApi'
 import { radiusUserApi } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
@@ -22,6 +22,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
@@ -317,6 +318,32 @@ export default function RadiusCustomAttributes() {
     return sortDirection === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
   }
 
+  const handleResize = (column: string, startX: number, startWidth: number) => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(50, startWidth + diff)
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
+    }
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
+  const handleResetColumns = () => {
+    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
+    setColumnOrder(DEFAULT_COLUMN_ORDER)
+    setSortField('')
+    setSortDirection('asc')
+    setResetColumnsDialogOpen(false)
+    toast.success('Column settings reset successfully')
+  }
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedAttributeIds(attributes.map(a => a.id))
@@ -347,54 +374,6 @@ export default function RadiusCustomAttributes() {
     setPageSize(Number(value))
     setCurrentPage(1)
   }
-
-  const handleResetColumns = () => {
-    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
-    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
-    setColumnOrder(DEFAULT_COLUMN_ORDER)
-    setSortField('')
-    setSortDirection('asc')
-    setResetColumnsDialogOpen(false)
-    toast.success('Column settings reset successfully')
-  }
-
-  const handleResizeStart = useCallback((e: React.MouseEvent, column: string) => {
-    setResizing(column)
-    e.preventDefault()
-  }, [])
-
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!resizing) return
-    
-    const table = document.querySelector('.custom-attributes-table')
-    if (!table) return
-
-    const th = table.querySelector(`th[data-column="${resizing}"]`) as HTMLElement
-    if (!th) return
-
-    const startX = th.getBoundingClientRect().left
-    const width = Math.max(50, e.clientX - startX)
-    
-    setColumnWidths(prev => ({
-      ...prev,
-      [resizing]: width
-    }))
-  }, [resizing])
-
-  const handleResizeEnd = useCallback(() => {
-    setResizing(null)
-  }, [])
-
-  useEffect(() => {
-    if (resizing) {
-      document.addEventListener('mousemove', handleResizeMove)
-      document.addEventListener('mouseup', handleResizeEnd)
-      return () => {
-        document.removeEventListener('mousemove', handleResizeMove)
-        document.removeEventListener('mouseup', handleResizeEnd)
-      }
-    }
-  }, [resizing, handleResizeMove, handleResizeEnd])
 
   const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
     if (column === 'checkbox' || column === 'actions') return
@@ -494,44 +473,61 @@ export default function RadiusCustomAttributes() {
     const config = columnConfig[columnKey]
     if (!config) return null
 
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
     const isDraggable = config.draggable !== false
+    const isSortable = !!config.sortKey
+    const isDragging = draggingColumn === columnKey
+    const isDragOver = dragOverColumn === columnKey
     const width = columnWidths[columnKey as keyof typeof columnWidths] || 150
+
+    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
+    const sortableClass = isSortable ? 'cursor-pointer' : ''
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
 
     return (
       <TableHead
         key={columnKey}
-        data-column={columnKey}
-        className={`h-12 px-4 relative ${draggingColumn === columnKey ? 'opacity-50' : ''} ${dragOverColumn === columnKey ? 'border-l-2 border-primary' : ''}`}
-        style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
+        className={`${baseClasses} ${sortableClass} ${dragClasses} ${stickyClass}`}
+        style={{ width: `${width}px` }}
+        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
         draggable={isDraggable}
-        onDragStart={(e) => handleColumnDragStart(e, columnKey)}
-        onDragOver={(e) => handleColumnDragOver(e, columnKey)}
-        onDrop={(e) => handleColumnDrop(e, columnKey)}
-        onDragEnd={handleColumnDragEnd}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
       >
-        <div className="flex items-center justify-between">
-          {config.sortKey ? (
-            <Button variant="ghost" onClick={() => handleSort(config.sortKey!)} className="h-8 p-0 hover:bg-transparent">
-              <span>{config.label}</span>
-              {getSortIcon(config.sortKey)}
-            </Button>
-          ) : (
-            <span>{config.label}</span>
-          )}
-          {columnKey !== 'checkbox' && columnKey !== 'actions' && (
-            <div
-              className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50"
-              onMouseDown={(e) => handleResizeStart(e, columnKey)}
-            />
-          )}
-        </div>
+        {typeof config.label === 'string' ? config.label : config.label}
+        {isSortable && getSortIcon(config.sortKey!)}
+        <div 
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => { 
+            e.preventDefault()
+            e.stopPropagation() 
+            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
+          }}
+        />
       </TableHead>
     )
   }
 
   const renderTableCell = (attribute: RadiusCustomAttribute, columnKey: string) => {
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
     const width = columnWidths[columnKey as keyof typeof columnWidths] || 150
-    const baseStyle = { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }
+    const baseStyle = { width: `${width}px` }
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
 
     switch (columnKey) {
       case 'checkbox':
@@ -591,7 +587,7 @@ export default function RadiusCustomAttributes() {
         )
       case 'actions':
         return (
-          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
+          <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
             <div className="flex justify-end gap-2">
               {!showTrash ? (
                 <>
