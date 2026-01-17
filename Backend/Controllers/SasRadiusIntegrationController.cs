@@ -217,10 +217,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpPost("{id}/sync")]
-    public async Task<ActionResult> SyncIntegration(int WorkspaceId, int id, [FromQuery] bool fullSync = false)
+    public async Task<ActionResult> SyncIntegration(int id, [FromQuery] bool fullSync = false)
     {
         var integration = await _context.SasRadiusIntegrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(i => i.Id == id);
 
         if (integration == null)
         {
@@ -234,7 +234,7 @@ public class SasRadiusIntegrationController : ControllerBase
 
         try
         {
-            var syncId = await _syncService.SyncAsync(id, WorkspaceId, fullSync);
+            var syncId = await _syncService.SyncAsync(id, fullSync);
             
             _logger.LogInformation("Started sync {SyncId} for SAS Radius integration {Name}", syncId, integration.Name);
 
@@ -243,8 +243,7 @@ public class SasRadiusIntegrationController : ControllerBase
                 syncId = syncId.ToString(),
                 message = "Sync started successfully. Connect to SignalR hub at /hubs/sassync and join group with syncId to receive real-time updates.",
                 integrationId = id,
-                integrationName = integration.Name,
-                WorkspaceId
+                integrationName = integration.Name
             });
         }
         catch (Exception ex)
@@ -269,10 +268,10 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpPost("syncs/{syncId}/cancel")]
-    public async Task<ActionResult> CancelSync(int WorkspaceId, Guid syncId)
+    public async Task<ActionResult> CancelSync(Guid syncId)
     {
         var sync = await _context.SyncProgresses
-            .FirstOrDefaultAsync(s => s.SyncId == syncId && s.WorkspaceId == WorkspaceId);
+            .FirstOrDefaultAsync(s => s.SyncId == syncId);
 
         if (sync == null)
         {
@@ -284,11 +283,11 @@ public class SasRadiusIntegrationController : ControllerBase
             return BadRequest(new { error = "Sync is already completed, failed, or cancelled" });
         }
 
-        var cancelled = await _syncService.CancelSyncAsync(syncId, WorkspaceId);
+        var cancelled = await _syncService.CancelSyncAsync(syncId);
         
         if (cancelled)
         {
-            _logger.LogInformation("Cancelled sync {SyncId} for instant {WorkspaceId}", syncId, WorkspaceId);
+            _logger.LogInformation("Cancelled sync {SyncId}", syncId);
             return Ok(new { message = "Sync cancelled successfully", syncId });
         }
         else

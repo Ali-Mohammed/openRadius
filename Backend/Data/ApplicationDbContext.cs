@@ -361,15 +361,11 @@ public class ApplicationDbContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Zone configuration - no foreign key to Workspace (it's in a different database)
+        // Zone configuration
         modelBuilder.Entity<Zone>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.WorkspaceId);
             entity.HasIndex(e => e.Name);
-            
-            // WorkspaceId is just a regular field, not a foreign key
-            entity.Property(e => e.WorkspaceId).IsRequired();
             
             // Add query filter to exclude soft-deleted zones by default
             entity.HasQueryFilter(e => !e.IsDeleted);

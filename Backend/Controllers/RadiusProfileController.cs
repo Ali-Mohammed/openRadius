@@ -558,17 +558,16 @@ public class RadiusProfileController : ControllerBase
             }
 
             // Start the sync using the SAS sync service
-            var syncId = await _syncService.SyncAsync(integration.Id, workspaceId.Value, fullSync);
+            var syncId = await _syncService.SyncAsync(integration.Id, fullSync);
             
-            _logger.LogInformation("Started profile sync {SyncId} for workspace {WorkspaceId}", syncId, workspaceId.Value);
+            _logger.LogInformation("Started profile sync {SyncId}", syncId);
 
             return Ok(new
             {
                 syncId = syncId.ToString(),
                 message = "Profile sync started successfully. Connect to SignalR hub at /hubs/sassync and join group with syncId to receive real-time updates.",
                 integrationId = integration.Id,
-                integrationName = integration.Name,
-                workspaceId = workspaceId.Value
+                integrationName = integration.Name
             });
         }
         catch (Exception ex)
