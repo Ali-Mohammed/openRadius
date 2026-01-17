@@ -620,66 +620,66 @@ export default function Transactions() {
       </div>
 
       {/* Transactions Table */}
-      <div className="rounded-md border">\
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="h-12 px-4 w-[50px] font-semibold">
+              <TableHead className="h-9 px-2 w-[40px] text-xs font-medium">
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={handleSelectAll}
                   aria-label="Select all"
-                  className={isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                  className={`h-4 w-4 ${isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary/50" : ""}`}
                 />
               </TableHead>
-              {columnVisibility.date && <TableHead className="h-12 px-4 font-semibold">Date</TableHead>}
-              {columnVisibility.type && <TableHead className="h-12 px-4 font-semibold">Type</TableHead>}
-              {columnVisibility.wallet && <TableHead className="h-12 px-4 font-semibold">Wallet</TableHead>}
-              {columnVisibility.user && <TableHead className="h-12 px-4 font-semibold">User</TableHead>}
-              {columnVisibility.radiusUsername && <TableHead className="h-12 px-4 font-semibold">RADIUS Username</TableHead>}
-              {columnVisibility.radiusProfile && <TableHead className="h-12 px-4 font-semibold">RADIUS Profile</TableHead>}
-              {columnVisibility.billingProfile && <TableHead className="h-12 px-4 font-semibold">Billing Profile</TableHead>}
-              {columnVisibility.amount && <TableHead className="h-12 px-4 font-semibold text-right">Amount</TableHead>}
-              {columnVisibility.before && <TableHead className="h-12 px-4 font-semibold text-right">Before</TableHead>}
-              {columnVisibility.after && <TableHead className="h-12 px-4 font-semibold text-right">After</TableHead>}
-              {columnVisibility.status && <TableHead className="h-12 px-4 font-semibold">Status</TableHead>}
-              <TableHead className="h-12 px-4 font-semibold text-right">Actions</TableHead>
+              {columnVisibility.date && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Date</TableHead>}
+              {columnVisibility.type && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Type</TableHead>}
+              {columnVisibility.wallet && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Wallet</TableHead>}
+              {columnVisibility.user && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">User</TableHead>}
+              {columnVisibility.radiusUsername && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Username</TableHead>}
+              {columnVisibility.radiusProfile && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Profile</TableHead>}
+              {columnVisibility.billingProfile && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Billing</TableHead>}
+              {columnVisibility.amount && <TableHead className="h-9 px-2 text-xs font-medium text-right whitespace-nowrap">Amount</TableHead>}
+              {columnVisibility.before && <TableHead className="h-9 px-2 text-xs font-medium text-right whitespace-nowrap">Before</TableHead>}
+              {columnVisibility.after && <TableHead className="h-9 px-2 text-xs font-medium text-right whitespace-nowrap">After</TableHead>}
+              {columnVisibility.status && <TableHead className="h-9 px-2 text-xs font-medium whitespace-nowrap">Status</TableHead>}
+              <TableHead className="h-9 px-2 text-xs font-medium text-right sticky right-0 bg-muted/50">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                  {columnVisibility.date && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
-                  {columnVisibility.type && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
-                  {columnVisibility.wallet && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
-                  {columnVisibility.user && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
-                  {columnVisibility.radiusUsername && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
-                  {columnVisibility.radiusProfile && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
-                  {columnVisibility.billingProfile && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
-                  {columnVisibility.amount && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
-                  {columnVisibility.before && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
-                  {columnVisibility.after && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
-                  {columnVisibility.status && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableRow key={i} className="h-9">
+                  <TableCell className="px-2 py-1"><Skeleton className="h-3 w-4" /></TableCell>
+                  {columnVisibility.date && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-20" /></TableCell>}
+                  {columnVisibility.type && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-16" /></TableCell>}
+                  {columnVisibility.wallet && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-20" /></TableCell>}
+                  {columnVisibility.user && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-24" /></TableCell>}
+                  {columnVisibility.radiusUsername && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-20" /></TableCell>}
+                  {columnVisibility.radiusProfile && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-20" /></TableCell>}
+                  {columnVisibility.billingProfile && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-20" /></TableCell>}
+                  {columnVisibility.amount && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-16" /></TableCell>}
+                  {columnVisibility.before && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-16" /></TableCell>}
+                  {columnVisibility.after && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-16" /></TableCell>}
+                  {columnVisibility.status && <TableCell className="px-2 py-1"><Skeleton className="h-3 w-14" /></TableCell>}
+                  <TableCell className="px-2 py-1"><Skeleton className="h-3 w-16" /></TableCell>
                 </TableRow>
               ))
 ) : transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <TableCell colSpan={13} className="text-center py-8">
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
                     {showTrash ? (
                       <>
-                        <Archive className="h-12 w-12" />
-                        <p className="text-lg font-medium">No deleted transactions</p>
-                        <p className="text-sm">Deleted transactions will appear here</p>
+                        <Archive className="h-8 w-8" />
+                        <p className="text-sm font-medium">No deleted transactions</p>
+                        <p className="text-xs">Deleted transactions will appear here</p>
                       </>
                     ) : (
                       <>
-                        <Receipt className="h-12 w-12" />
-                        <p className="text-lg font-medium">No transactions found</p>
-                        <p className="text-sm">Create your first transaction to get started</p>
+                        <Receipt className="h-8 w-8" />
+                        <p className="text-sm font-medium">No transactions found</p>
+                        <p className="text-xs">Create your first transaction to get started</p>
                       </>
                     )}
                   </div>
@@ -692,178 +692,155 @@ export default function Transactions() {
                 const isDeleted = transaction.isDeleted
                 const isSelected = selectedTransactions.includes(transaction.id)
                 return (
-                  <TableRow key={transaction.id} className={`hover:bg-muted/50 ${isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                        <TableCell className="h-12 px-4">
+                  <TableRow key={transaction.id} className={`hover:bg-muted/50 h-9 ${isDeleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                        <TableCell className="px-2 py-1">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={(checked) => handleSelectTransaction(transaction.id, checked as boolean)}
                             aria-label={`Select transaction ${transaction.id}`}
+                            className="h-4 w-4"
                           />
                         </TableCell>
                         {columnVisibility.date && (
-                          <TableCell className="h-12 px-4">
-                            <div className="text-sm">{formatDate(transaction.createdAt)}</div>
+                          <TableCell className="px-2 py-1 whitespace-nowrap">
+                            <span className="text-xs">{formatDate(transaction.createdAt)}</span>
                             {isDeleted && (
-                              <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                                <Trash2 className="h-3 w-3" />
-                                Deleted
-                              </div>
+                              <span className="text-[10px] text-red-600 ml-1">
+                                <Trash2 className="h-2.5 w-2.5 inline" />
+                              </span>
                             )}
                           </TableCell>
                         )}
                         {columnVisibility.type && (
-                          <TableCell className="h-12 px-4">
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="outline" className="gap-1 w-fit">
-                                <IconComponent className={`h-3 w-3 ${typeInfo?.color}`} />
+                          <TableCell className="px-2 py-1">
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 h-5">
+                                <IconComponent className={`h-2.5 w-2.5 ${typeInfo?.color}`} />
                                 {typeInfo?.label || transaction.transactionType}
                               </Badge>
-                              <span className={`text-xs ${
-                                transaction.amountType === 'credit' ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {transaction.amountType === 'credit' ? 'Credit' : 'Debit'}
+                              <span className={`text-[10px] ${transaction.amountType === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                                {transaction.amountType === 'credit' ? '+' : '-'}
                               </span>
                             </div>
                           </TableCell>
                         )}
                         {columnVisibility.wallet && (
-                          <TableCell className="h-12 px-4">
-                            <div>
-                              <div className="font-medium">
-                                {transaction.walletType === 'custom'
-                                  ? transaction.customWalletName
-                                  : 'User Wallet'}
-                              </div>
-                              <div className="text-xs text-muted-foreground capitalize">
-                                {transaction.walletType}
-                              </div>
+                          <TableCell className="px-2 py-1">
+                            <div className="text-xs font-medium truncate max-w-[100px]" title={transaction.walletType === 'custom' ? transaction.customWalletName : 'User Wallet'}>
+                              {transaction.walletType === 'custom' ? transaction.customWalletName : 'User Wallet'}
                             </div>
                           </TableCell>
                         )}
                         {columnVisibility.user && (
-                          <TableCell className="h-12 px-4">
+                          <TableCell className="px-2 py-1">
                             {transaction.userName ? (
-                              <div>
-                                <div className="text-sm">{transaction.userName}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {transaction.userEmail}
-                                </div>
-                              </div>
+                              <span className="text-xs truncate max-w-[80px] block" title={transaction.userName}>{transaction.userName}</span>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </TableCell>
                         )}
                         {columnVisibility.radiusUsername && (
-                          <TableCell className="h-12 px-4">
+                          <TableCell className="px-2 py-1">
                             {transaction.radiusUsername ? (
-                              <span className="text-sm font-medium">{transaction.radiusUsername}</span>
+                              <span className="text-xs font-medium">{transaction.radiusUsername}</span>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </TableCell>
                         )}
                         {columnVisibility.radiusProfile && (
-                          <TableCell className="h-12 px-4">
+                          <TableCell className="px-2 py-1">
                             {transaction.radiusProfileName ? (
-                              <span className="text-sm">{transaction.radiusProfileName}</span>
+                              <span className="text-xs">{transaction.radiusProfileName}</span>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </TableCell>
                         )}
                         {columnVisibility.billingProfile && (
-                          <TableCell className="h-12 px-4">
+                          <TableCell className="px-2 py-1">
                             {transaction.billingProfileName ? (
-                              <span className="text-sm">{transaction.billingProfileName}</span>
+                              <span className="text-xs">{transaction.billingProfileName}</span>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </TableCell>
                         )}
                         {columnVisibility.amount && (
-                          <TableCell className="h-12 px-4 text-right">
-                            <span className={`${typeInfo?.color} font-medium`}>
-                              {transaction.amountType === 'credit' ? '+' : '-'}
-                              {currencySymbol} {formatCurrency(transaction.amount)}
+                          <TableCell className="px-2 py-1 text-right">
+                            <span className={`text-xs font-medium ${typeInfo?.color}`}>
+                              {transaction.amountType === 'credit' ? '+' : '-'}{currencySymbol} {formatCurrency(transaction.amount)}
                             </span>
                           </TableCell>
                         )}
                         {columnVisibility.before && (
-                          <TableCell className="h-12 px-4 text-right text-muted-foreground">
-                            {currencySymbol} {formatCurrency(transaction.balanceBefore)}
+                          <TableCell className="px-2 py-1 text-right">
+                            <span className="text-xs text-muted-foreground">{currencySymbol} {formatCurrency(transaction.balanceBefore)}</span>
                           </TableCell>
                         )}
                         {columnVisibility.after && (
-                          <TableCell className="h-12 px-4 text-right font-medium">
-                            {currencySymbol} {formatCurrency(transaction.balanceAfter)}
+                          <TableCell className="px-2 py-1 text-right">
+                            <span className="text-xs font-medium">{currencySymbol} {formatCurrency(transaction.balanceAfter)}</span>
                           </TableCell>
                         )}
                         {columnVisibility.status && (
-                          <TableCell className="h-12 px-4">
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="outline" className={statusColors[transaction.status]}>
-                                {transaction.status}
-                              </Badge>
-                              {isDeleted && transaction.deletedAt && (
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDate(transaction.deletedAt)}
-                                </span>
-                              )}
-                            </div>
+                          <TableCell className="px-2 py-1">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${statusColors[transaction.status]}`}>
+                              {transaction.status}
+                            </Badge>
                           </TableCell>
                         )}
-                        <TableCell className="sticky right-0 bg-background h-12 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Comments Button */}
+                        <TableCell className="sticky right-0 bg-background px-2 py-1 text-right">
+                          <div className="flex items-center justify-end gap-0">
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-7 w-7"
                               onClick={() => {
                                 setSelectedTransactionId(transaction.id!)
                                 setIsCommentsDialogOpen(true)
                               }}
-                              title="View/Add Comments"
+                              title="Comments"
                             >
-                              <MessageSquare className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                              <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
                             </Button>
-
-                            {/* History Button */}
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-7 w-7"
                               onClick={() => {
                                 setSelectedTransactionId(transaction.id)
                                 setIsHistoryDialogOpen(true)
                               }}
-                              title="View History"
+                              title="History"
                             >
-                              <History className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                              <History className="h-3.5 w-3.5 text-muted-foreground" />
                             </Button>
-
-                            {/* Restore/Delete Button */}
                             {isDeleted ? (
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7"
                                 onClick={() => {
                                   setRestoringTransaction(transaction)
                                   setIsRestoreDialogOpen(true)
                                 }}
-                                title="Restore transaction"
+                                title="Restore"
                               >
-                                <RotateCcw className="h-4 w-4 text-blue-600" />
+                                <RotateCcw className="h-3.5 w-3.5 text-blue-600" />
                               </Button>
                             ) : transaction.status === 'completed' ? (
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7"
                                 onClick={() => {
                                   setDeletingTransaction(transaction)
                                   setIsDeleteDialogOpen(true)
                                 }}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             ) : null}
                           </div>
