@@ -681,13 +681,25 @@ export default function BillingProfiles() {
       };
     });
 
+    // Format wallets with proper mapping
+    const formattedWallets = wallets.map((w, index) => ({
+      walletType: w.walletType,
+      userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,
+      customWalletId: w.walletType === 'custom' ? w.customWalletId : undefined,
+      percentage: w.percentage || 0,
+      icon: w.icon || '',
+      color: w.color || '',
+      direction: w.direction || 'in',
+      displayOrder: index,
+    }));
+
     // For now, use the first selected radius profile and billing group as the main one
     // TODO: Backend might need to be updated to support multiple
     const data = { 
       ...formData, 
       radiusProfileId: selectedRadiusProfiles[0].profileId,
       billingGroupId: selectAllGroups ? 0 : selectedBillingGroups[0], // 0 means all groups
-      wallets, 
+      wallets: formattedWallets, 
       addons: profileAddons 
     };
 
