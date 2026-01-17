@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -15,14 +15,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { 
-  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Archive, RotateCcw, 
-  ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Circle, Server
+  Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, 
+  ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Circle, Server, Settings
 } from 'lucide-react'
 import { radiusNasApi, type RadiusNas } from '@/api/radiusNasApi'
 import { radiusIpPoolApi, type RadiusIpPool } from '@/api/radiusIpPoolApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 
 // NAS Type mapping
 const NAS_TYPES: Record<number, string> = {
