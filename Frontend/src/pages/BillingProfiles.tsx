@@ -1864,15 +1864,18 @@ export default function BillingProfiles() {
                           <Select
                             value={wallet.direction || 'in'}
                             onValueChange={(value) => {
-                              updateWallet(index, 'direction', value)
-                              // Reset price to 0 when selecting 'remaining'
-                              if (value === 'remaining') {
-                                updateWallet(index, 'percentage', 0)
-                              }
+                              const updated = [...wallets];
+                              updated[index] = { 
+                                ...updated[index], 
+                                direction: value,
+                                // Reset price to 0 when selecting 'remaining'
+                                ...(value === 'remaining' ? { percentage: 0 } : {})
+                              };
+                              setWallets(updated);
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Select direction" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="in">In</SelectItem>
