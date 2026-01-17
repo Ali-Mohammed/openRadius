@@ -17,13 +17,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { 
-  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Archive, Users
+  Plus, Pencil, Trash2, RefreshCw, Search as SearchIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Archive, Users, Settings
 } from 'lucide-react'
 import { radiusGroupApi, type RadiusGroup } from '@/api/radiusGroupApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 
 export default function RadiusGroups() {
   const { t } = useTranslation()
@@ -57,6 +58,7 @@ export default function RadiusGroups() {
   const [groupToDelete, setGroupToDelete] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [groupToRestore, setGroupToRestore] = useState<number | null>(null)
+  const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
 
   // Color and Icon picker state
@@ -65,14 +67,44 @@ export default function RadiusGroups() {
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
   const [editIconPopoverOpen, setEditIconPopoverOpen] = useState(false)
 
-  // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState({
+  // Default column settings
+  const DEFAULT_COLUMN_VISIBILITY = {
     name: true,
     description: true,
     subscription: true,
     status: true,
     users: true,
-  })
+  }
+
+  const DEFAULT_COLUMN_WIDTHS = {
+    name: 200,
+    description: 250,
+    subscription: 180,
+    status: 120,
+    users: 100,
+    actions: 120,
+  }
+
+  const DEFAULT_COLUMN_ORDER = [
+    'name',
+    'description',
+    'subscription',
+    'status',
+    'users',
+    'actions',
+  ]
+
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY)
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS)
+  const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
+
+  const [resizing, setResizing] = useState<string | null>(null)
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+
+  // Track if preferences have been loaded
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
 
   const [groupFormData, setGroupFormData] = useState({
     name: '',
@@ -82,7 +114,62 @@ export default function RadiusGroups() {
     icon: 'Users',
   })
 
-  // Helper function to get icon component
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('radius-groups')
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
+          }
+        }
+      } catch (error) {
+        // Silently fail if preferences don't exist
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  // Auto-save preferences when they change (but not on initial load)
+  useEffect(() => {
+    if (!preferencesLoaded) return // Don't save until preferences are loaded
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'radius-groups',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+        console.log('Table preferences saved successfully')
+      } catch (error) {
+        // Silently fail - don't show error to user for preference saves
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    // Debounce the save to avoid too many API calls
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, preferencesLoaded])
 
   // Group queries
   const { data: groupsData, isLoading: isLoadingGroups, isFetching, error: groupsError } = useQuery({
