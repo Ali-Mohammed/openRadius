@@ -405,6 +405,17 @@ export default function BillingProfiles() {
     },
   });
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: toggleActive,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing-profiles'] });
+      toast.success('Billing profile status updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Failed to update billing profile status');
+    },
+  });
+
   // Handler functions
   const handleSort = useCallback((field: string) => {
     if (resizing) return
