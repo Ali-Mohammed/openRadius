@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin, Package, Wallet, ArrowUp, History, Receipt, DollarSign, Tags } from 'lucide-react'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin, Package, Wallet, ArrowUp, History, Receipt, DollarSign, Tags, Activity } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -83,6 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (location.pathname.includes('/radius/ip-reservations')) return { parent: null, current: 'IP Reservations', icon: Network }
     if (location.pathname.includes('/radius/custom-attributes')) return { parent: null, current: 'Custom Attributes', icon: Settings }
     if (location.pathname.includes('/radius/zones')) return { parent: null, current: 'Zones', icon: MapPin }
+    if (location.pathname.includes('/radius/activations')) return { parent: null, current: 'Activations', icon: Activity }
     if (location.pathname.includes('/billing/profiles/new')) {
       return {
         parent: { title: 'Billing Profiles', href: '/billing/profiles', icon: Settings },
