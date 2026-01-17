@@ -677,17 +677,28 @@ export default function RadiusCustomAttributes() {
                     {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                   </DropdownMenuCheckboxItem>
                 ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                  onSelect={(e) => {
-                    e.preventDefault()
-                    setResetColumnsDialogOpen(true)
-                  }}
-                >
-                  Reset to Default
-                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" title="Table settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setResetColumnsDialogOpen(true)}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Columns
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button onClick={() => handleOpenDialog()} size="sm">
               <Plus className="mr-2 h-4 w-4" />
               Add Attribute
@@ -696,11 +707,11 @@ export default function RadiusCustomAttributes() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
           {isLoading ? (
-            <div className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
-              <Table className="custom-attributes-table">
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
                     {columnOrder
@@ -729,7 +740,7 @@ export default function RadiusCustomAttributes() {
               </Table>
             </div>
           ) : !isLoading && attributes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center" style={{ height: 'calc(100vh - 280px)' }}>
+            <div className="flex flex-col items-center justify-center py-16 text-center" style={{ height: 'calc(100vh - 220px)' }}>
               <div className="rounded-full bg-muted p-6 mb-4">
                 {showTrash ? (
                   <Archive className="h-12 w-12 text-muted-foreground" />
@@ -753,7 +764,7 @@ export default function RadiusCustomAttributes() {
               )}
             </div>
           ) : attributes.length > 0 ? (
-            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
+            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -764,29 +775,31 @@ export default function RadiusCustomAttributes() {
                   </div>
                 </div>
               )}
-              <Table className="custom-attributes-table">
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
-                    {columnOrder
-                      .filter(col => col === 'checkbox' || col === 'actions' || columnVisibility[col as keyof typeof columnVisibility])
-                      .map(col => renderColumnHeader(col))}
+                    {columnOrder.map(column => renderColumnHeader(column))}
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
                   {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const attribute = attributes[virtualRow.index]
                     return (
                       <TableRow
                         key={attribute.id}
-                        data-index={virtualRow.index}
+                        className="border-b"
                         style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
                           height: `${virtualRow.size}px`,
-                          transform: `translateY(${virtualRow.start - virtualRow.index * virtualRow.size}px)`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                          display: 'table',
+                          tableLayout: 'fixed',
                         }}
                       >
-                        {columnOrder
-                          .filter(col => col === 'checkbox' || col === 'actions' || columnVisibility[col as keyof typeof columnVisibility])
-                          .map(col => renderTableCell(attribute, col))}
+                        {columnOrder.map(column => renderTableCell(attribute, column))}
                       </TableRow>
                     )
                   })}
@@ -794,62 +807,99 @@ export default function RadiusCustomAttributes() {
               </Table>
             </div>
           ) : null}
+
+          {/* Pagination Controls - Always visible */}
+          {pagination && (
+            <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Per Page</span>
+                  <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                    <SelectTrigger className="h-8 w-[70px] text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="1000">1000</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="h-4 w-px bg-border" />
+                <div className="text-sm text-muted-foreground font-medium">
+                  Showing {attributes.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + attributes.length} of {pagination.totalCount.toLocaleString()} attributes
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                  page === '...' ? (
+                    <Button
+                      key={`ellipsis-${idx}`}
+                      variant="ghost"
+                      size="icon"
+                      disabled
+                      className="h-8 w-8 p-0 text-sm"
+                    >
+                      ...
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="icon"
+                      onClick={() => setCurrentPage(page as number)}
+                      className="h-8 w-8 p-0 text-sm font-medium"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pagination.totalCount)} of {pagination.totalCount} results
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-25">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10 / page</SelectItem>
-                <SelectItem value="25">25 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-                <SelectItem value="100">100 / page</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              {getPaginationPages(currentPage, pagination.totalPages).map((page, index) => (
-                typeof page === 'number' ? (
-                  <Button
-                    key={index}
-                    variant={currentPage === page ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className="min-w-[2.5rem]"
-                  >
-                    {page}
-                  </Button>
-                ) : (
-                  <span key={index} className="flex items-center px-2">
-                    ...
-                  </span>
-                )
-              ))}
-
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === pagination.totalPages}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(pagination.totalPages)} disabled={currentPage === pagination.totalPages}>
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
