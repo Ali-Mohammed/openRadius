@@ -1142,8 +1142,15 @@ export default function BillingProfiles() {
                     </TableBody>
                   </Table>
                 </div>
-                {activePagination && activePagination.totalPages > 0 && (
-                  <div className="border-t bg-muted/50 px-4 py-3 flex items-center justify-between">
+              </>
+
+            )
+          )}
+        </CardContent>
+        
+        {/* Pagination - Always visible outside scroll area */}
+        {activeTab === 'active' && activePagination && activePagination.totalPages > 0 && !isLoadingActive && (
+          <div className="border-t bg-muted/30 px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
@@ -1229,9 +1236,8 @@ export default function BillingProfiles() {
                     </div>
                   </div>
                 )}
-              </>
-            )
-          ) : (
+
+        {activeTab === 'deleted' && deletedPagination && deletedPagination.totalPages > 0 && !isLoadingDeleted && (
             isLoadingDeleted ? (
               <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
                 <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
