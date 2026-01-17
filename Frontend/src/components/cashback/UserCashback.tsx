@@ -46,10 +46,10 @@ export default function UserCashback() {
   // Fetch all users
   const { data: usersData, isLoading: isLoadingUsers } = useQuery({
     queryKey: ['users-all', currentWorkspaceId],
-    queryFn: () => userManagementApi.getAllUsers({
-      page: 1,
-      pageSize: 1000,
-    }),
+    queryFn: async () => {
+      const users = await userManagementApi.getAll();
+      return { data: users };
+    },
     enabled: !!currentWorkspaceId,
   });
 
@@ -93,7 +93,7 @@ export default function UserCashback() {
     },
     onError: (error: unknown) => {
       const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error.response as any)?.data?.message || 'Failed to save user cashback amounts'
+        ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to save user cashback amounts')
         : 'Failed to save user cashback amounts';
       toast.error(errorMessage);
     }
@@ -171,8 +171,8 @@ export default function UserCashback() {
                   usersData.data.map((user: User) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName} (${user.email || user.username})`
-                        : user.email || user.username || `User ${user.id}`}
+                        ? `${user.firstName} ${user.lastName} (${user.email})`
+                        : user.email || `User ${user.id}`}
                     </SelectItem>
                   ))
                 ) : (
@@ -186,14 +186,14 @@ export default function UserCashback() {
             <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg shadow-sm bg-primary/10">
                 <span className="text-xl font-semibold text-primary">
-                  {(selectedUser.firstName?.[0] || selectedUser.username?.[0] || 'U').toUpperCase()}
+                  {(selectedUser.firstName?.[0] || selectedUser.email?.[0] || 'U').toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-base">
                   {selectedUser.firstName && selectedUser.lastName
                     ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                    : selectedUser.username || 'User'}
+                    : 'User'}
                 </h3>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   {selectedUser.email && (

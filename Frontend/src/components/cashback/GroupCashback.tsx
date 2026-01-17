@@ -117,7 +117,7 @@ export default function GroupCashback() {
     },
     onError: (error: unknown) => {
       const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error.response as any)?.data?.message || 'Failed to save cashback amounts'
+        ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to save cashback amounts')
         : 'Failed to save cashback amounts';
       toast.error(errorMessage);
     }
