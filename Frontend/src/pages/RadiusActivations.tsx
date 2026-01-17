@@ -358,12 +358,12 @@ export default function RadiusActivations() {
                   </div>
                   <div className="space-y-2">
                     <Label>Type</Label>
-                    <Select value={filterType} onValueChange={(v) => { setFilterType(v); setCurrentPage(1) }}>
+                    <Select value={filterType || 'all'} onValueChange={(v) => { setFilterType(v === 'all' ? '' : v); setCurrentPage(1) }}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Types" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Types</SelectItem>
+                        <SelectItem value="all">All Types</SelectItem>
                         {types?.map((type) => (
                           <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                         ))}
@@ -372,12 +372,12 @@ export default function RadiusActivations() {
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setCurrentPage(1) }}>
+                    <Select value={filterStatus || 'all'} onValueChange={(v) => { setFilterStatus(v === 'all' ? '' : v); setCurrentPage(1) }}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Statuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Statuses</SelectItem>
+                        <SelectItem value="all">All Statuses</SelectItem>
                         {statuses?.map((status) => (
                           <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                         ))}
@@ -386,12 +386,12 @@ export default function RadiusActivations() {
                   </div>
                   <div className="space-y-2">
                     <Label>API Status</Label>
-                    <Select value={filterApiStatus} onValueChange={(v) => { setFilterApiStatus(v); setCurrentPage(1) }}>
+                    <Select value={filterApiStatus || 'all'} onValueChange={(v) => { setFilterApiStatus(v === 'all' ? '' : v); setCurrentPage(1) }}>
                       <SelectTrigger>
                         <SelectValue placeholder="All API Statuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All API Statuses</SelectItem>
+                        <SelectItem value="all">All API Statuses</SelectItem>
                         {apiStatuses?.map((status) => (
                           <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                         ))}

@@ -221,7 +221,7 @@ export default function RadiusUsers() {
   const [userToActivate, setUserToActivate] = useState<RadiusUser | null>(null)
   const [activationFormData, setActivationFormData] = useState({
     billingProfileId: '',
-    paymentMethod: 'Cash',
+    paymentMethod: 'Wallet',
     durationDays: '30',
     notes: '',
   })
@@ -487,7 +487,7 @@ export default function RadiusUsers() {
       setUserToActivate(null)
       setActivationFormData({
         billingProfileId: '',
-        paymentMethod: 'Cash',
+        paymentMethod: 'Wallet',
         durationDays: '30',
         notes: '',
       })
@@ -818,7 +818,7 @@ export default function RadiusUsers() {
     
     setActivationFormData({
       billingProfileId: autoSelectedBillingProfileId,
-      paymentMethod: 'Cash',
+      paymentMethod: 'Wallet',
       durationDays: '30',
       notes: '',
     })
@@ -2825,21 +2825,13 @@ export default function RadiusUsers() {
                       </Label>
                       <Select
                         value={activationFormData.paymentMethod}
-                        onValueChange={(value) => setActivationFormData({
-                          ...activationFormData,
-                          paymentMethod: value
-                        })}
+                        disabled
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Cash">Cash</SelectItem>
-                          <SelectItem value="Card">Card</SelectItem>
-                          <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
-                          <SelectItem value="Online">Online</SelectItem>
                           <SelectItem value="Wallet">Wallet</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
