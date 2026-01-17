@@ -500,8 +500,10 @@ export default function RadiusCustomAttributes() {
         onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
         onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
       >
-        {typeof config.label === 'string' ? config.label : config.label}
-        {isSortable && getSortIcon(config.sortKey!)}
+        <div className="flex items-center">
+          {typeof config.label === 'string' ? config.label : config.label}
+          {isSortable && getSortIcon(config.sortKey!)}
+        </div>
         <div 
           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
           onClick={(e) => {
