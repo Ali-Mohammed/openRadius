@@ -611,11 +611,11 @@ export default function BillingProfileForm() {
                         value={wallet.direction || 'in'}
                         onValueChange={(value) => {
                           const updated = [...wallets];
-                          updated[index] = { 
-                            ...updated[index], 
+                          updated[index] = {
+                            ...updated[index],
                             direction: value,
                             // Reset price to 0 when selecting 'remaining'
-                            ...(value === 'remaining' ? { percentage: 0 } : {})
+                            ...(value === 'remaining' ? { price: 0 } : {})
                           };
                           setWallets(updated);
                         }}
@@ -642,9 +642,9 @@ export default function BillingProfileForm() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={wallet.percentage}
+                          value={wallet.price}
                           onChange={(e) =>
-                            updateWallet(index, 'percentage', parseFloat(e.target.value) || 0)
+                            updateWallet(index, 'price', parseFloat(e.target.value) || 0)
                           }
                           placeholder="0.00"
                           className="h-10"
