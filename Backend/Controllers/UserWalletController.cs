@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
@@ -320,7 +321,7 @@ public class UserWalletController : ControllerBase
     {
         try
         {
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
+            var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
             if (string.IsNullOrEmpty(userEmail))
             {
                 return Unauthorized(new { error = "User not authenticated" });

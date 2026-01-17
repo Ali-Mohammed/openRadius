@@ -2798,23 +2798,23 @@ export default function RadiusUsers() {
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Deduction Amount:</span>
                           <span className="font-medium text-red-600">
-                            - {currencySymbol}{formatCurrency(selectedBillingProfile.amount)}
+                            - {currencySymbol}{formatCurrency(selectedBillingProfile.price || 0)}
                           </span>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center pt-2">
                           <span className="text-muted-foreground font-medium">Remaining Balance:</span>
                           <span className={`font-bold text-lg ${
-                            (myWallet.currentBalance || 0) - selectedBillingProfile.amount >= 0 
+                            (myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0) >= 0 
                               ? 'text-green-600' 
                               : myWallet.allowNegativeBalance 
                                 ? 'text-orange-600' 
                                 : 'text-red-600'
                           }`}>
-                            {currencySymbol}{formatCurrency((myWallet.currentBalance || 0) - selectedBillingProfile.amount)}
+                            {currencySymbol}{formatCurrency((myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0))}
                           </span>
                         </div>
-                        {(myWallet.currentBalance || 0) - selectedBillingProfile.amount < 0 && (
+                        {(myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0) < 0 && (
                           <div className={`mt-2 p-2 rounded text-xs ${
                             myWallet.allowNegativeBalance 
                               ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
@@ -2960,7 +2960,7 @@ export default function RadiusUsers() {
                 !myWallet?.hasWallet ||
                 (myWallet?.hasWallet && 
                   !myWallet.allowNegativeBalance && 
-                  (myWallet.currentBalance || 0) < (billingProfiles.find(p => p.id === parseInt(activationFormData.billingProfileId))?.amount || 0))
+                  (myWallet.currentBalance || 0) < (selectedBillingProfile?.price || 0))
               }
               className="bg-green-600 hover:bg-green-700"
             >
