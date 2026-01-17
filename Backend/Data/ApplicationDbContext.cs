@@ -42,6 +42,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CashbackGroup> CashbackGroups { get; set; }
     public DbSet<CashbackGroupUser> CashbackGroupUsers { get; set; }
     public DbSet<CashbackProfileAmount> CashbackProfileAmounts { get; set; }
+    public DbSet<UserCashback> UserCashbacks { get; set; }
     public DbSet<WalletHistory> WalletHistories { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<TransactionComment> TransactionComments { get; set; }
