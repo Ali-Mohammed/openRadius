@@ -14,13 +14,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusGroupApi } from '@/api/radiusGroupApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
 import { radiusCustomAttributeApi, type RadiusCustomAttribute, type CreateRadiusCustomAttributeRequest } from '@/api/radiusCustomAttributeApi'
+import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
+import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
@@ -29,6 +32,7 @@ import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
@@ -212,6 +216,16 @@ export default function RadiusUsers() {
   // Custom attributes state
   const [customAttributes, setCustomAttributes] = useState<Array<{ id?: number; attributeName: string; attributeValue: string; enabled: boolean }>>([])
 
+  // Activation dialog state
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false)
+  const [userToActivate, setUserToActivate] = useState<RadiusUser | null>(null)
+  const [activationFormData, setActivationFormData] = useState({
+    billingProfileId: '',
+    paymentMethod: 'Cash',
+    durationDays: '30',
+    notes: '',
+  })
+
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -279,11 +293,19 @@ export default function RadiusUsers() {
     enabled: !!currentWorkspaceId,
   })
 
+  // Billing profiles query for activation
+  const { data: billingProfilesData } = useQuery({
+    queryKey: ['billing-profiles', currentWorkspaceId],
+    queryFn: () => getProfiles({ pageSize: 999999, isActive: true }),
+    enabled: !!currentWorkspaceId,
+  })
+
   const users = useMemo(() => usersData?.data || [], [usersData?.data])
   const pagination = usersData?.pagination
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const tags = useMemo(() => tagsData || [], [tagsData])
   const zones = useMemo(() => zonesData || [], [zonesData])
+  const billingProfiles = useMemo(() => billingProfilesData?.data || [], [billingProfilesData?.data])
 
   // Flatten zones for dropdown display
   const flatZones = useMemo(() => {
@@ -431,6 +453,27 @@ export default function RadiusUsers() {
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to assign tags')
+    },
+  })
+
+  // Activation mutation
+  const activationMutation = useMutation({
+    mutationFn: (data: CreateRadiusActivationRequest) => radiusActivationApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-activations'] })
+      toast.success('User activated successfully')
+      setActivationDialogOpen(false)
+      setUserToActivate(null)
+      setActivationFormData({
+        billingProfileId: '',
+        paymentMethod: 'Cash',
+        durationDays: '30',
+        notes: '',
+      })
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to activate user')
     },
   })
 
@@ -725,6 +768,59 @@ export default function RadiusUsers() {
       setUserToRestore(null)
     }
   }
+
+  // Activation handlers
+  const handleOpenActivation = (user: RadiusUser) => {
+    setUserToActivate(user)
+    setActivationFormData({
+      billingProfileId: '',
+      paymentMethod: 'Cash',
+      durationDays: '30',
+      notes: '',
+    })
+    setActivationDialogOpen(true)
+  }
+
+  const handleSubmitActivation = () => {
+    if (!userToActivate || !activationFormData.billingProfileId) {
+      toast.error('Please select a billing profile')
+      return
+    }
+
+    const selectedBillingProfile = billingProfiles.find(
+      bp => bp.id.toString() === activationFormData.billingProfileId
+    )
+
+    if (!selectedBillingProfile) {
+      toast.error('Selected billing profile not found')
+      return
+    }
+
+    // Calculate next expire date based on duration days
+    const durationDays = parseInt(activationFormData.durationDays) || 30
+    const nextExpireDate = new Date()
+    nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
+
+    const activationRequest: CreateRadiusActivationRequest = {
+      radiusUserId: userToActivate.id!,
+      radiusProfileId: selectedBillingProfile.radiusProfileId,
+      billingProfileId: selectedBillingProfile.id,
+      nextExpireDate: nextExpireDate.toISOString(),
+      amount: selectedBillingProfile.price || 0,
+      type: 'Activation',
+      paymentMethod: activationFormData.paymentMethod,
+      durationDays: durationDays,
+      source: 'Web',
+      notes: activationFormData.notes || undefined,
+    }
+
+    activationMutation.mutate(activationRequest)
+  }
+
+  const selectedBillingProfile = useMemo(() => {
+    if (!activationFormData.billingProfileId) return null
+    return billingProfiles.find(bp => bp.id.toString() === activationFormData.billingProfileId)
+  }, [activationFormData.billingProfileId, billingProfiles])
 
   const handleResetColumns = () => {
     setResetColumnsDialogOpen(true)
@@ -1259,13 +1355,22 @@ export default function RadiusUsers() {
       case 'actions':
         return (
           <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-1">
               {!showTrash ? (
                 <>
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleOpenActivation(user)}
+                    title="Activate user"
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                  >
+                    <Zap className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)} title="Edit user">
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id!)}>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id!)} title="Delete user">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </>
@@ -2465,6 +2570,232 @@ export default function RadiusUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Activation Dialog */}
+      <Dialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-green-600" />
+              Activate User
+            </DialogTitle>
+            <DialogDescription>
+              Activate this user with a billing profile
+            </DialogDescription>
+          </DialogHeader>
+
+          {userToActivate && (
+            <div className="space-y-6">
+              {/* User Information */}
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">User Information</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Username:</span>
+                    <span className="ml-2 font-medium">{userToActivate.username}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="ml-2 font-medium">
+                      {userToActivate.firstname || userToActivate.lastname 
+                        ? `${userToActivate.firstname || ''} ${userToActivate.lastname || ''}`.trim()
+                        : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Current Balance:</span>
+                    <span className="ml-2 font-medium">{currencySymbol} {formatCurrency(userToActivate.balance || 0)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Current Profile:</span>
+                    <span className="ml-2 font-medium">{userToActivate.profileName || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Expiration:</span>
+                    <span className="ml-2 font-medium">
+                      {userToActivate.expiration 
+                        ? new Date(userToActivate.expiration).toLocaleDateString()
+                        : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Status:</span>
+                    <Badge 
+                      variant={userToActivate.enabled ? 'default' : 'secondary'} 
+                      className="ml-2"
+                    >
+                      {userToActivate.enabled ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Billing Profile Selection */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Select Billing Profile</h3>
+                </div>
+                
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="billingProfile">Billing Profile <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={activationFormData.billingProfileId}
+                      onValueChange={(value) => setActivationFormData({
+                        ...activationFormData,
+                        billingProfileId: value
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a billing profile" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {billingProfiles.map((bp) => (
+                          <SelectItem key={bp.id} value={bp.id.toString()}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{bp.name}</span>
+                              <span className="ml-2 text-muted-foreground">
+                                {currencySymbol} {formatCurrency(bp.price || 0)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Selected Profile Details */}
+                  {selectedBillingProfile && (
+                    <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-sm">Profile Details</h4>
+                        <div className="flex items-center gap-1 text-lg font-bold text-green-600">
+                          <DollarSign className="h-5 w-5" />
+                          {currencySymbol} {formatCurrency(selectedBillingProfile.price || 0)}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Profile Name:</span>
+                          <span className="ml-2 font-medium">{selectedBillingProfile.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Description:</span>
+                          <span className="ml-2">{selectedBillingProfile.description || '-'}</span>
+                        </div>
+                      </div>
+                      {selectedBillingProfile.addons && selectedBillingProfile.addons.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <span className="text-xs text-muted-foreground">Addons:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedBillingProfile.addons.map((addon, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {addon.title} (+{currencySymbol}{formatCurrency(addon.price)})
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="paymentMethod">
+                        <CreditCard className="h-4 w-4 inline mr-1" />
+                        Payment Method
+                      </Label>
+                      <Select
+                        value={activationFormData.paymentMethod}
+                        onValueChange={(value) => setActivationFormData({
+                          ...activationFormData,
+                          paymentMethod: value
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Card">Card</SelectItem>
+                          <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
+                          <SelectItem value="Online">Online</SelectItem>
+                          <SelectItem value="Wallet">Wallet</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="durationDays">
+                        <Calendar className="h-4 w-4 inline mr-1" />
+                        Duration (Days)
+                      </Label>
+                      <Input
+                        id="durationDays"
+                        type="number"
+                        min="1"
+                        value={activationFormData.durationDays}
+                        onChange={(e) => setActivationFormData({
+                          ...activationFormData,
+                          durationDays: e.target.value
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="notes">Notes (Optional)</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Add any notes about this activation..."
+                      value={activationFormData.notes}
+                      onChange={(e) => setActivationFormData({
+                        ...activationFormData,
+                        notes: e.target.value
+                      })}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setActivationDialogOpen(false)}
+              disabled={activationMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitActivation}
+              disabled={!activationFormData.billingProfileId || activationMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {activationMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Activating...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Activate User
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
