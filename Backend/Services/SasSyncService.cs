@@ -361,6 +361,9 @@ public class SasSyncService : ISasSyncService
                                 await context.SaveChangesAsync(cancellationToken);
                             }
 
+                            // Sync custom attributes for this profile
+                            await SyncProfileCustomAttributesAsync(integration, token, sasProfile.Id, radiusProfile.Id, integration.WorkspaceId, cancellationToken);
+
                             // Now sync billing profiles
                             // Get all billing groups
                             var allBillingGroups = await context.BillingGroups
@@ -425,6 +428,93 @@ public class SasSyncService : ISasSyncService
 
             hasMorePages = currentPage < apiResponse.LastPage;
             currentPage++;
+        }
+    }
+
+    private async Task SyncProfileCustomAttributesAsync(
+        SasRadiusIntegration integration, 
+        string token, 
+        int sasProfileId, 
+        int radiusProfileId, 
+        int workspaceId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            
+            var uri = new Uri(integration.Url.TrimEnd('/'));
+            var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/radius/custom/profile/{sasProfileId}";
+
+            var response = await client.GetAsync(url, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to fetch custom attributes for profile {ProfileId}: {StatusCode}", sasProfileId, response.StatusCode);
+                return;
+            }
+
+            var apiResponse = await response.Content.ReadFromJsonAsync<SasProfileCustomAttributeApiResponse>(cancellationToken: cancellationToken);
+            
+            if (apiResponse == null || apiResponse.Data == null || apiResponse.Data.Count == 0)
+            {
+                return;
+            }
+
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Get existing custom attributes for this profile
+            var existingAttributes = await context.RadiusCustomAttributes
+                .Where(a => a.RadiusProfileId == radiusProfileId && a.LinkType == "profile" && a.WorkspaceId == workspaceId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var sasAttr in apiResponse.Data)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (sasAttr.Enabled != 1)
+                {
+                    // Skip disabled attributes
+                    continue;
+                }
+
+                // Check if attribute already exists
+                var existingAttr = existingAttributes.FirstOrDefault(a => 
+                    a.AttributeName == sasAttr.Attribute && 
+                    a.AttributeValue == sasAttr.Value);
+
+                if (existingAttr == null)
+                {
+                    // Create new custom attribute
+                    var newAttribute = new RadiusCustomAttribute
+                    {
+                        AttributeName = sasAttr.Attribute ?? string.Empty,
+                        AttributeValue = sasAttr.Value ?? string.Empty,
+                        LinkType = "profile",
+                        RadiusProfileId = radiusProfileId,
+                        Enabled = sasAttr.Enabled == 1,
+                        WorkspaceId = workspaceId,
+                        IsDeleted = false,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    await context.RadiusCustomAttributes.AddAsync(newAttribute, cancellationToken);
+                }
+                else
+                {
+                    // Update existing attribute if needed
+                    existingAttr.Enabled = sasAttr.Enabled == 1;
+                    existingAttr.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync custom attributes for profile {ProfileId}", sasProfileId);
         }
     }
 
@@ -1384,4 +1474,53 @@ internal record SasNas
     
     [System.Text.Json.Serialization.JsonPropertyName("monitor")]
     public int Monitor { get; init; }
+}
+
+// Helper class for SAS Profile Custom Attribute API response
+internal record SasProfileCustomAttributeApiResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("status")]
+    public int Status { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
+    public List<SasProfileCustomAttribute> Data { get; init; } = new();
+}
+
+internal record SasProfileCustomAttribute
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public int Id { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("attribute")]
+    public string? Attribute { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("value")]
+    public string? Value { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("cisco_av_pair")]
+    public int CiscoAvPair { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("description")]
+    public string? Description { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("profile_id")]
+    public int ProfileId { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("user_id")]
+    public int? UserId { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+    public int Enabled { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("nas_type")]
+    public int NasType { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+    public string? CreatedAt { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
+    public string? UpdatedAt { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("created_by")]
+    public string? CreatedBy { get; init; }
 }
