@@ -36,28 +36,28 @@ export interface SaveUserCashbacksRequest {
 export const userCashbackApi = {
   // Get cashbacks by user ID
   getByUser: async (userId: number): Promise<UserCashback[]> => {
-    const response = await apiClient.get<UserCashback[]>(`/UserCashback?userId=${userId}`);
+    const response = await apiClient.get<UserCashback[]>(`/api/UserCashback?userId=${userId}`);
     return response.data;
   },
 
   // Get all cashbacks (with user and billing profile details)
   getAll: async (): Promise<UserCashback[]> => {
-    const response = await apiClient.get<UserCashback[]>('/UserCashback/all');
+    const response = await apiClient.get<UserCashback[]>('/api/UserCashback/all');
     return response.data;
   },
 
   // Save cashbacks for a user (create/update)
   save: async (request: SaveUserCashbacksRequest): Promise<void> => {
-    await apiClient.post('/UserCashback', request);
+    await apiClient.post('/api/UserCashback', request);
   },
 
   // Delete single cashback
   delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/UserCashback/${id}`);
+    await apiClient.delete(`/api/UserCashback/${id}`);
   },
 
   // Delete all cashbacks for a user
   deleteByUser: async (userId: number): Promise<void> => {
-    await apiClient.delete(`/UserCashback/user/${userId}`);
+    await apiClient.delete(`/api/UserCashback/user/${userId}`);
   },
 };
