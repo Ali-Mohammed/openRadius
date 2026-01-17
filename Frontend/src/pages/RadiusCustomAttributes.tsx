@@ -163,7 +163,7 @@ export default function RadiusCustomAttributes() {
     setSearchParams(params, { replace: true })
   }, [currentPage, pageSize, searchQuery, sortField, sortDirection, setSearchParams])
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['radiusCustomAttributes', currentWorkspaceId, currentPage, pageSize, searchQuery, sortField, sortDirection, showTrash],
     queryFn: () => radiusCustomAttributeApi.getAll({
       page: currentPage,
@@ -702,32 +702,82 @@ export default function RadiusCustomAttributes() {
 
       <Card>
         <CardContent className="p-0">
-          <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
-            <Table className="custom-attributes-table">
-              <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow>
-                  {columnOrder
-                    .filter(col => col === 'checkbox' || col === 'actions' || columnVisibility[col as keyof typeof columnVisibility])
-                    .map(col => renderColumnHeader(col))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 10 }).map((_, i) => (
+          {isLoading ? (
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
+              <Table className="custom-attributes-table">
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    {columnOrder
+                      .filter(col => col === 'checkbox' || col === 'actions' || columnVisibility[col as keyof typeof columnVisibility])
+                      .map(col => renderColumnHeader(col))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={Object.keys(columnVisibility).length + 2}>
-                        <Skeleton className="h-8 w-full" />
+                      <TableCell className="h-12 px-4 w-[20px]"><Skeleton className="h-4 w-4" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[200px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[180px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[200px]"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4 w-[120px]">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-8 rounded" />
+                          <Skeleton className="h-8 w-8 rounded" />
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : attributes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={Object.keys(columnVisibility).length + 2} className="text-center py-8 text-muted-foreground">
-                      {showTrash ? 'No deleted attributes found' : 'No custom attributes found'}
-                    </TableCell>
-                  </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : !isLoading && attributes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center" style={{ height: 'calc(100vh - 280px)' }}>
+              <div className="rounded-full bg-muted p-6 mb-4">
+                {showTrash ? (
+                  <Archive className="h-12 w-12 text-muted-foreground" />
                 ) : (
-                  rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  <Settings className="h-12 w-12 text-muted-foreground" />
+                )}
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {showTrash ? 'No Deleted Attributes' : 'No Custom Attributes Yet'}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                {showTrash
+                  ? 'No custom attributes have been deleted'
+                  : 'Get started by adding your first custom RADIUS attribute'}
+              </p>
+              {!showTrash && (
+                <Button onClick={() => handleOpenDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Attribute
+                </Button>
+              )}
+            </div>
+          ) : attributes.length > 0 ? (
+            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
+              {isFetching && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Table className="custom-attributes-table">
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    {columnOrder
+                      .filter(col => col === 'checkbox' || col === 'actions' || columnVisibility[col as keyof typeof columnVisibility])
+                      .map(col => renderColumnHeader(col))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const attribute = attributes[virtualRow.index]
                     return (
                       <TableRow
@@ -743,11 +793,11 @@ export default function RadiusCustomAttributes() {
                           .map(col => renderTableCell(attribute, col))}
                       </TableRow>
                     )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
