@@ -427,7 +427,78 @@ public class RadiusActivationController : ControllerBase
                 _logger.LogInformation($"Created wallet transaction {transaction.Id} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
             }
 
-            // Process billing profile wallets if applicable
+            // Process custom wallet deposits from RADIUS profile FIRST (before billing profile)
+            var radiusProfileWalletTotal = 0m;
+            if (radiusProfileId.HasValue)
+            {
+                var profileWallets = await _context.RadiusProfileWallets
+                    .Include(pw => pw.CustomWallet)
+                    .Where(pw => pw.RadiusProfileId == radiusProfileId.Value 
+                        && pw.CustomWallet.Status.ToLower() == "active")
+                    .ToListAsync();
+
+                foreach (var profileWallet in profileWallets)
+                {
+                    var customWallet = profileWallet.CustomWallet;
+                    var depositAmount = profileWallet.Amount;
+
+                    // Update custom wallet balance
+                    var customBalanceBefore = customWallet.CurrentBalance;
+                    customWallet.CurrentBalance += depositAmount;
+                    customWallet.UpdatedAt = DateTime.UtcNow;
+                    radiusProfileWalletTotal += depositAmount;
+
+                    // Create transaction for custom wallet deposit
+                    var customTransaction = new Transaction
+                    {
+                        WalletType = "custom",
+                        CustomWalletId = customWallet.Id,
+                        UserId = null, // Custom wallets are not user-specific
+                        TransactionType = TransactionType.TopUp,
+                        AmountType = "credit",
+                        Amount = depositAmount,
+                        Status = "completed",
+                        BalanceBefore = customBalanceBefore,
+                        BalanceAfter = customWallet.CurrentBalance,
+                        Description = $"RADIUS profile wallet deposit for {radiusUser.Username} activation",
+                        Reference = $"ACTIVATION-{radiusUser.Id}",
+                        PaymentMethod = "Activation",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userEmail
+                    };
+
+                    _context.Transactions.Add(customTransaction);
+
+                    // Create wallet history for custom wallet
+                    var customWalletHistory = new WalletHistory
+                    {
+                        WalletType = "custom",
+                        CustomWalletId = customWallet.Id,
+                        UserId = null,
+                        TransactionType = TransactionType.TopUp,
+                        AmountType = "credit",
+                        Amount = depositAmount,
+                        BalanceBefore = customBalanceBefore,
+                        BalanceAfter = customWallet.CurrentBalance,
+                        Description = $"RADIUS profile wallet deposit for {radiusUser.Username} activation",
+                        Reference = $"ACTIVATION-{radiusUser.Id}",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userEmail
+                    };
+
+                    _context.WalletHistories.Add(customWalletHistory);
+
+                    _logger.LogInformation($"Added {depositAmount:F2} to custom wallet '{customWallet.Name}' (ID: {customWallet.Id}) from RADIUS profile. Balance: {customBalanceBefore:F2} -> {customWallet.CurrentBalance:F2}");
+                }
+
+                if (profileWallets.Any())
+                {
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Processed {profileWallets.Count} RADIUS profile wallet deposit(s) for activation. Total: {radiusProfileWalletTotal:F2}");
+                }
+            }
+
+            // Process billing profile wallets if applicable (AFTER RADIUS profile wallets)
             var billingProfileId = request.BillingProfileId ?? radiusUser.ProfileBillingId;
             if (billingProfileId.HasValue && request.PaymentMethod?.ToLower() == "wallet")
             {
@@ -563,8 +634,8 @@ public class RadiusActivationController : ControllerBase
                     }
 
                     // Step 3: Calculate remaining amount and process "remaining" wallets
-                    // Remaining = activation price - all "in" wallet amounts
-                    var remainingAmount = activationAmount - totalInAmount;
+                    // Remaining = activation price - RADIUS profile wallet deposits - billing profile "in" wallet amounts
+                    var remainingAmount = activationAmount - radiusProfileWalletTotal - totalInAmount;
                     
                     if (remainingAmount > 0)
                     {
@@ -630,77 +701,8 @@ public class RadiusActivationController : ControllerBase
                     if (billingProfile.ProfileWallets.Any())
                     {
                         await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Processed billing profile wallet distributions. Activation: {activationAmount:F2}, Distributed to 'in': {totalInAmount:F2}, Remaining: {remainingAmount:F2}");
+                        _logger.LogInformation($"Processed billing profile wallet distributions. Activation: {activationAmount:F2}, RADIUS Profile Wallets: {radiusProfileWalletTotal:F2}, Billing 'in': {totalInAmount:F2}, Remaining: {remainingAmount:F2}");
                     }
-                }
-            }
-
-            // Process custom wallet deposits if radius profile has linked custom wallets
-            if (radiusProfileId.HasValue)
-            {
-                var profileWallets = await _context.RadiusProfileWallets
-                    .Include(pw => pw.CustomWallet)
-                    .Where(pw => pw.RadiusProfileId == radiusProfileId.Value 
-                        && pw.CustomWallet.Status.ToLower() == "active")
-                    .ToListAsync();
-
-                foreach (var profileWallet in profileWallets)
-                {
-                    var customWallet = profileWallet.CustomWallet;
-                    var depositAmount = profileWallet.Amount;
-
-                    // Update custom wallet balance
-                    var customBalanceBefore = customWallet.CurrentBalance;
-                    customWallet.CurrentBalance += depositAmount;
-                    customWallet.UpdatedAt = DateTime.UtcNow;
-
-                    // Create transaction for custom wallet deposit
-                    var customTransaction = new Transaction
-                    {
-                        WalletType = "custom",
-                        CustomWalletId = customWallet.Id,
-                        UserId = null, // Custom wallets are not user-specific
-                        TransactionType = TransactionType.TopUp,
-                        AmountType = "credit",
-                        Amount = depositAmount,
-                        Status = "completed",
-                        BalanceBefore = customBalanceBefore,
-                        BalanceAfter = customWallet.CurrentBalance,
-                        Description = $"RADIUS activation payment from {userEmail} for user {radiusUser.Username}",
-                        Reference = $"ACTIVATION-{radiusUser.Id}",
-                        PaymentMethod = "Activation",
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
-                    };
-
-                    _context.Transactions.Add(customTransaction);
-
-                    // Create wallet history for custom wallet
-                    var customWalletHistory = new WalletHistory
-                    {
-                        WalletType = "custom",
-                        CustomWalletId = customWallet.Id,
-                        UserId = null,
-                        TransactionType = TransactionType.TopUp,
-                        AmountType = "credit",
-                        Amount = depositAmount,
-                        BalanceBefore = customBalanceBefore,
-                        BalanceAfter = customWallet.CurrentBalance,
-                        Description = $"RADIUS activation payment from {userEmail} for user {radiusUser.Username}",
-                        Reference = $"ACTIVATION-{radiusUser.Id}",
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
-                    };
-
-                    _context.WalletHistories.Add(customWalletHistory);
-
-                    _logger.LogInformation($"Added {depositAmount:F2} to custom wallet '{customWallet.Name}' (ID: {customWallet.Id}). Balance: {customBalanceBefore:F2} -> {customWallet.CurrentBalance:F2}");
-                }
-
-                if (profileWallets.Any())
-                {
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation($"Processed {profileWallets.Count} custom wallet deposit(s) for activation from RADIUS profile {radiusProfileId.Value}");
                 }
             }
 
