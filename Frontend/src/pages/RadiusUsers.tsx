@@ -1328,9 +1328,23 @@ export default function RadiusUsers() {
           </TableCell>
         )
       case 'remainingDays':
+        const days = user.remainingDays ?? 0
+        const maxDays = 30 // Consider 30 days as full bar
+        const percentage = Math.min((days / maxDays) * 100, 100)
+        const barColor = days === 0 ? 'bg-red-500' : days <= 3 ? 'bg-red-500' : days <= 7 ? 'bg-orange-500' : days <= 14 ? 'bg-yellow-500' : 'bg-green-500'
         return (
-          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
-            {user.remainingDays !== undefined ? user.remainingDays : '-'}
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <div className="flex items-center gap-2 min-w-[100px]">
+              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${barColor} transition-all duration-300`}
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className={`text-xs font-medium min-w-[24px] text-right ${days === 0 ? 'text-red-500' : days <= 3 ? 'text-red-500' : days <= 7 ? 'text-orange-500' : days <= 14 ? 'text-yellow-600' : 'text-green-600'}`}>
+                {days}
+              </span>
+            </div>
           </TableCell>
         )
       case 'debtDays':
