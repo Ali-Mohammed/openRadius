@@ -198,6 +198,8 @@ public class RadiusActivationResponse
     public DateTime? ProcessingCompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 }
 
 // Request model for creating activation

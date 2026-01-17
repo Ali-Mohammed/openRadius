@@ -21,7 +21,9 @@ import {
   User,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  RotateCcw,
+  Archive
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -65,10 +67,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { radiusActivationApi, type RadiusActivation } from '@/api/radiusActivationApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { workspaceApi } from '@/lib/api'
+import { formatApiError } from '@/utils/errorHandler'
 
 export default function RadiusActivations() {
   const queryClient = useQueryClient()
@@ -89,7 +93,9 @@ export default function RadiusActivations() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [selectedActivation, setSelectedActivation] = useState<RadiusActivation | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [restoreId, setRestoreId] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showTrash, setShowTrash] = useState(false)
 
   // Queries
   const { data: workspace } = useQuery({
@@ -123,21 +129,24 @@ export default function RadiusActivations() {
       startDate,
       endDate,
       sortField,
-      sortDirection
+      sortDirection,
+      showTrash
     ],
     queryFn: () =>
-      radiusActivationApi.getAll({
-        page: currentPage,
-        pageSize,
-        search: searchQuery || undefined,
-        type: filterType || undefined,
-        status: filterStatus || undefined,
-        apiStatus: filterApiStatus || undefined,
-        startDate: startDate?.toISOString(),
-        endDate: endDate?.toISOString(),
-        sortField,
-        sortDirection
-      }),
+      showTrash 
+        ? radiusActivationApi.getTrash(currentPage, pageSize)
+        : radiusActivationApi.getAll({
+            page: currentPage,
+            pageSize,
+            search: searchQuery || undefined,
+            type: filterType || undefined,
+            status: filterStatus || undefined,
+            apiStatus: filterApiStatus || undefined,
+            startDate: startDate?.toISOString(),
+            endDate: endDate?.toISOString(),
+            sortField,
+            sortDirection
+          }),
     enabled: !!currentWorkspaceId,
   })
 
@@ -164,8 +173,20 @@ export default function RadiusActivations() {
       toast.success('Activation deleted successfully')
       setDeleteId(null)
     },
-    onError: () => {
-      toast.error('Failed to delete activation')
+    onError: (error) => {
+      toast.error(formatApiError(error) || 'Failed to delete activation')
+    }
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => radiusActivationApi.restore(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-activations'] })
+      toast.success('Activation restored successfully')
+      setRestoreId(null)
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error) || 'Failed to restore activation')
     }
   })
 
@@ -277,25 +298,44 @@ export default function RadiusActivations() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Input
-              placeholder="Search activations..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-64"
-            />
-            <Button onClick={handleSearch} variant="outline" size="icon">
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-activations'] })}
-              variant="outline"
-              size="icon"
-              title="Refresh"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-            </Button>
+          <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => {
+            setShowTrash(v === 'trash')
+            setCurrentPage(1)
+          }}>
+            <TabsList>
+              <TabsTrigger value="active" className="flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4" />
+                Active
+              </TabsTrigger>
+              <TabsTrigger value="trash" className="flex items-center gap-1">
+                <Archive className="h-4 w-4" />
+                Trash
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {!showTrash && (
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="Search activations..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-64"
+              />
+              <Button onClick={handleSearch} variant="outline" size="icon">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <Button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-activations'] })}
+            variant="outline"
+            size="icon"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+          {!showTrash && (
             <Popover open={showFilters} onOpenChange={setShowFilters}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" title="Filters" className="relative">
@@ -397,7 +437,7 @@ export default function RadiusActivations() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
+          )}
         </div>
       </div>
 
@@ -442,8 +482,14 @@ export default function RadiusActivations() {
             ) : activations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="h-32 text-center">
-                  <Activity className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground">No activations found</p>
+                  {showTrash ? (
+                    <Archive className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  ) : (
+                    <Activity className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  )}
+                  <p className="text-muted-foreground">
+                    {showTrash ? 'No deleted activations found' : 'No activations found'}
+                  </p>
                 </TableCell>
               </TableRow>
             ) : (
@@ -506,13 +552,25 @@ export default function RadiusActivations() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(activation.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {showTrash ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setRestoreId(activation.id)}
+                          title="Restore"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(activation.id)}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -687,7 +745,7 @@ export default function RadiusActivations() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Activation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this activation record? This action cannot be undone.
+              Are you sure you want to delete this activation record? This will revert the user's expiration date to the previous value. This can only be done if the next expire date hasn't passed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -697,6 +755,26 @@ export default function RadiusActivations() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Confirmation */}
+      <AlertDialog open={!!restoreId} onOpenChange={() => setRestoreId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Activation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore this activation record? This will restore the user's expiration date to the activation value. This can only be done if the next expire date hasn't passed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => restoreId && restoreMutation.mutate(restoreId)}
+            >
+              Restore
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

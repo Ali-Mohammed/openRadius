@@ -497,6 +497,12 @@ public class RadiusActivationController : ControllerBase
                 return NotFound(new { error = "Activation not found" });
             }
 
+            // Check if next expire date has passed
+            if (activation.NextExpireDate.HasValue && activation.NextExpireDate.Value < DateTime.UtcNow)
+            {
+                return BadRequest(new { error = "Cannot delete activation - the expiration date has already passed" });
+            }
+
             var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
             
             // Revert the user's expiration date to the previous value
@@ -540,6 +546,159 @@ public class RadiusActivationController : ControllerBase
         {
             _logger.LogError(ex, $"Error deleting activation {id}");
             return StatusCode(500, new { error = "An error occurred while deleting the activation" });
+        }
+    }
+
+    // POST: api/RadiusActivation/{id}/restore
+    [HttpPost("{id}/restore")]
+    public async Task<ActionResult> RestoreActivation(int id)
+    {
+        try
+        {
+            var activation = await _context.RadiusActivations
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(a => a.Id == id);
+                
+            if (activation == null)
+            {
+                return NotFound(new { error = "Activation not found" });
+            }
+
+            if (!activation.IsDeleted)
+            {
+                return BadRequest(new { error = "Activation is not deleted" });
+            }
+
+            // Check if next expire date has passed
+            if (activation.NextExpireDate.HasValue && activation.NextExpireDate.Value < DateTime.UtcNow)
+            {
+                return BadRequest(new { error = "Cannot restore activation - the expiration date has already passed" });
+            }
+
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+            // Restore the user's expiration date and profiles
+            if (activation.RadiusUserId > 0)
+            {
+                var radiusUser = await _context.RadiusUsers.FindAsync(activation.RadiusUserId);
+                if (radiusUser != null)
+                {
+                    // Restore the next expiration date (the one from the activation)
+                    if (activation.NextExpireDate.HasValue)
+                    {
+                        radiusUser.Expiration = activation.NextExpireDate.Value;
+                    }
+                    
+                    // Restore the profile from the activation
+                    if (activation.RadiusProfileId.HasValue)
+                    {
+                        radiusUser.ProfileId = activation.RadiusProfileId.Value;
+                    }
+                    
+                    // Restore the billing profile from the activation
+                    if (activation.BillingProfileId.HasValue)
+                    {
+                        radiusUser.ProfileBillingId = activation.BillingProfileId.Value;
+                    }
+                    
+                    radiusUser.UpdatedAt = DateTime.UtcNow;
+                    
+                    _logger.LogInformation($"Restored user {radiusUser.Username} expiration to {activation.NextExpireDate}");
+                }
+            }
+            
+            // Restore the activation
+            activation.IsDeleted = false;
+            activation.DeletedAt = null;
+            activation.DeletedBy = null;
+            activation.Status = "completed";
+            activation.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Activation restored successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error restoring activation {id}");
+            return StatusCode(500, new { error = "An error occurred while restoring the activation" });
+        }
+    }
+
+    // GET: api/RadiusActivation/trash
+    [HttpGet("trash")]
+    public async Task<ActionResult<object>> GetDeletedActivations(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var query = _context.RadiusActivations
+                .IgnoreQueryFilters()
+                .Where(a => a.IsDeleted);
+
+            var totalCount = await query.CountAsync();
+
+            var activations = await query
+                .Include(a => a.RadiusProfile)
+                .Include(a => a.PreviousRadiusProfile)
+                .Include(a => a.BillingProfile)
+                .Include(a => a.PreviousBillingProfile)
+                .OrderByDescending(a => a.DeletedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new RadiusActivationResponse
+                {
+                    Id = a.Id,
+                    ActionByUsername = a.ActionByUsername,
+                    ActionForUsername = a.ActionForUsername,
+                    IsActionBehalf = a.IsActionBehalf,
+                    RadiusUserId = a.RadiusUserId,
+                    RadiusUsername = a.RadiusUsername,
+                    PreviousRadiusProfileId = a.PreviousRadiusProfileId,
+                    PreviousRadiusProfileName = a.PreviousRadiusProfile != null ? a.PreviousRadiusProfile.Name : null,
+                    RadiusProfileId = a.RadiusProfileId,
+                    RadiusProfileName = a.RadiusProfile != null ? a.RadiusProfile.Name : null,
+                    PreviousBillingProfileId = a.PreviousBillingProfileId,
+                    PreviousBillingProfileName = a.PreviousBillingProfile != null ? a.PreviousBillingProfile.Name : null,
+                    BillingProfileId = a.BillingProfileId,
+                    BillingProfileName = a.BillingProfile != null ? a.BillingProfile.Name : null,
+                    PreviousExpireDate = a.PreviousExpireDate,
+                    CurrentExpireDate = a.CurrentExpireDate,
+                    NextExpireDate = a.NextExpireDate,
+                    PreviousBalance = a.PreviousBalance,
+                    NewBalance = a.NewBalance,
+                    Amount = a.Amount,
+                    Type = a.Type,
+                    Status = a.Status,
+                    ApiStatus = a.ApiStatus,
+                    ApiStatusCode = a.ApiStatusCode,
+                    ApiStatusMessage = a.ApiStatusMessage,
+                    ExternalReferenceId = a.ExternalReferenceId,
+                    PaymentMethod = a.PaymentMethod,
+                    DurationDays = a.DurationDays,
+                    Source = a.Source,
+                    Notes = a.Notes,
+                    CreatedAt = a.CreatedAt,
+                    UpdatedAt = a.UpdatedAt,
+                    DeletedAt = a.DeletedAt,
+                    DeletedBy = a.DeletedBy
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                data = activations,
+                page,
+                pageSize,
+                totalCount,
+                totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching deleted activations");
+            return StatusCode(500, new { error = "An error occurred while fetching deleted activations" });
         }
     }
 

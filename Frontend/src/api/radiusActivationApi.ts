@@ -161,6 +161,17 @@ export const radiusActivationApi = {
     await apiClient.delete(`/api/RadiusActivation/${id}`)
   },
 
+  restore: async (id: number): Promise<void> => {
+    await apiClient.post(`/api/RadiusActivation/${id}/restore`)
+  },
+
+  getTrash: async (page: number = 1, pageSize: number = 20): Promise<RadiusActivationResponse> => {
+    const response = await apiClient.get<RadiusActivationResponse>(
+      `/api/RadiusActivation/trash?page=${page}&pageSize=${pageSize}`
+    )
+    return response.data
+  },
+
   getTypes: async (): Promise<ActivationType[]> => {
     const response = await apiClient.get<ActivationType[]>('/api/RadiusActivation/types')
     return response.data
