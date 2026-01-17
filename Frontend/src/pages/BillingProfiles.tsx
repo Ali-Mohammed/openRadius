@@ -254,6 +254,7 @@ export default function BillingProfiles() {
     price: 0,
     radiusProfileId: 0,
     billingGroupId: 0,
+    isActive: true,
     wallets: [],
     addons: [],
   });
