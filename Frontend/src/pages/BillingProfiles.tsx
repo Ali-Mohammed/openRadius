@@ -1143,7 +1143,100 @@ export default function BillingProfiles() {
                   </Table>
                 </div>
               </>
-
+            )
+          ) : (
+            isLoadingDeleted ? (
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                  <TableHeader className="sticky top-0 bg-muted z-10">
+                    <TableRow>
+                      {[...columnOrder, 'deletedAt', 'deletedBy'].map((col) => (
+                        <TableHead key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths] || 140}px` }}>
+                          <Skeleton className="h-4 w-20" />
+                        </TableHead>
+                      ))}
+                      <TableHead className="h-12 px-4 sticky right-0 bg-muted" style={{ width: `${columnWidths.actions}px` }}>
+                        <Skeleton className="h-4 w-16" />
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <TableRow key={i}>
+                        {[...columnOrder, 'deletedAt', 'deletedBy'].map((col) => (
+                          <TableCell key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths] || 140}px` }}>
+                            <Skeleton className="h-4 w-full" />
+                          </TableCell>
+                        ))}
+                        <TableCell className="h-12 px-4 sticky right-0 bg-background" style={{ width: `${columnWidths.actions}px` }}>
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-20 rounded" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : deletedProfiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="rounded-full bg-muted p-6 mb-4">
+                  <Archive className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No deleted profiles</h3>
+                <p className="text-sm text-muted-foreground">Deleted profiles will appear here</p>
+              </div>
+            ) : (
+              <>
+                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 300px)' }}>
+                  {isFetchingDeleted && (
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                      <div className="bg-background p-4 rounded-lg shadow-lg">
+                        <div className="flex items-center gap-3">
+                          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                          <span className="text-sm font-medium">Refreshing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                    <TableHeader className="sticky top-0 bg-muted z-10">
+                      <TableRow className="hover:bg-muted">
+                        {columnOrder.map(column => renderColumnHeader(column))}
+                        {renderColumnHeader('deletedAt')}
+                        {renderColumnHeader('deletedBy')}
+                        {renderColumnHeader('actions')}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody style={{ height: `${rowVirtualizerDeleted.getTotalSize()}px`, position: 'relative' }}>
+                      {rowVirtualizerDeleted.getVirtualItems().map((virtualRow) => {
+                        const profile = deletedProfiles[virtualRow.index];
+                        return (
+                          <TableRow 
+                            key={profile.id}
+                            className="border-b"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: `${virtualRow.size}px`,
+                              transform: `translateY(${virtualRow.start}px)`,
+                              display: 'table',
+                              tableLayout: 'fixed',
+                            }}
+                          >
+                            {columnOrder.map(column => renderTableCell(column, profile))}
+                            {renderTableCell('deletedAt', profile)}
+                            {renderTableCell('deletedBy', profile)}
+                            {renderTableCell('actions', profile)}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )
           )}
         </CardContent>
@@ -1238,186 +1331,93 @@ export default function BillingProfiles() {
                 )}
 
         {activeTab === 'deleted' && deletedPagination && deletedPagination.totalPages > 0 && !isLoadingDeleted && (
-            isLoadingDeleted ? (
-              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-                <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
-                  <TableHeader className="sticky top-0 bg-muted z-10">
-                    <TableRow>
-                      {[...columnOrder, 'deletedAt', 'deletedBy'].map((col) => (
-                        <TableHead key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths] || 140}px` }}>
-                          <Skeleton className="h-4 w-20" />
-                        </TableHead>
-                      ))}
-                      <TableHead className="h-12 px-4 sticky right-0 bg-muted" style={{ width: `${columnWidths.actions}px` }}>
-                        <Skeleton className="h-4 w-16" />
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <TableRow key={i}>
-                        {[...columnOrder, 'deletedAt', 'deletedBy'].map((col) => (
-                          <TableCell key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths] || 140}px` }}>
-                            <Skeleton className="h-4 w-full" />
-                          </TableCell>
-                        ))}
-                        <TableCell className="h-12 px-4 sticky right-0 bg-background" style={{ width: `${columnWidths.actions}px` }}>
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-20 rounded" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+          <div className="border-t bg-muted/30 px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="h-8 w-[70px] text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ) : deletedProfiles.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-muted p-6 mb-4">
-                  <Archive className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No deleted profiles</h3>
-                <p className="text-sm text-muted-foreground">Deleted profiles will appear here</p>
+              <div className="h-4 w-px bg-border" />
+              <div className="text-sm text-muted-foreground font-medium">
+                Showing {formatNumber(deletedProfiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + deletedProfiles.length)} of {formatNumber(deletedPagination.totalRecords)} profiles
               </div>
-            ) : (
-              <>
-                <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 300px)' }}>
-                  {isFetchingDeleted && (
-                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                      <div className="bg-background p-4 rounded-lg shadow-lg">
-                        <div className="flex items-center gap-3">
-                          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                          <span className="text-sm font-medium">Refreshing...</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
-                    <TableHeader className="sticky top-0 bg-muted z-10">
-                      <TableRow className="hover:bg-muted">
-                        {columnOrder.map(column => renderColumnHeader(column))}
-                        {renderColumnHeader('deletedAt')}
-                        {renderColumnHeader('deletedBy')}
-                        {renderColumnHeader('actions')}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody style={{ height: `${rowVirtualizerDeleted.getTotalSize()}px`, position: 'relative' }}>
-                      {rowVirtualizerDeleted.getVirtualItems().map((virtualRow) => {
-                        const profile = deletedProfiles[virtualRow.index];
-                        return (
-                          <TableRow 
-                            key={profile.id}
-                            className="border-b"
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: `${virtualRow.size}px`,
-                              transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                          >
-                            {columnOrder.map(column => renderTableCell(column, profile))}
-                            {renderTableCell('deletedAt', profile)}
-                            {renderTableCell('deletedBy', profile)}
-                            {renderTableCell('actions', profile)}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-                {deletedPagination && deletedPagination.totalPages > 0 && (
-                  <div className="border-t bg-muted/50 px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
-                        <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                          <SelectTrigger className="h-8 w-[70px] text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="25">25</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                            <SelectItem value="100">100</SelectItem>
-                            <SelectItem value="200">200</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="h-4 w-px bg-border" />
-                      <div className="text-sm text-muted-foreground font-medium">
-                        Showing {formatNumber(deletedProfiles.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1)} to {formatNumber(((currentPage - 1) * pageSize) + deletedProfiles.length)} of {formatNumber(deletedPagination.totalRecords)} profiles
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setCurrentPage(1)}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronsLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      
-                      {getPaginationPages(currentPage, deletedPagination.totalPages).map((page, idx) => (
-                        page === '...' ? (
-                          <Button
-                            key={`ellipsis-${idx}`}
-                            variant="ghost"
-                            size="icon"
-                            disabled
-                            className="h-8 w-8 p-0 text-sm"
-                          >
-                            ...
-                          </Button>
-                        ) : (
-                          <Button
-                            key={page}
-                            variant={currentPage === page ? 'default' : 'outline'}
-                            size="icon"
-                            onClick={() => setCurrentPage(page as number)}
-                            className="h-8 w-8 p-0 text-sm font-medium"
-                          >
-                            {page}
-                          </Button>
-                        )
-                      ))}
-                      
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setCurrentPage(p => Math.min(deletedPagination.totalPages, p + 1))}
-                        disabled={currentPage === deletedPagination.totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setCurrentPage(deletedPagination.totalPages)}
-                        disabled={currentPage === deletedPagination.totalPages}
-                      >
-                        <ChevronsRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )
-          )}
-        </CardContent>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              {getPaginationPages(currentPage, deletedPagination.totalPages).map((page, idx) => (
+                page === '...' ? (
+                  <Button
+                    key={`ellipsis-${idx}`}
+                    variant="ghost"
+                    size="icon"
+                    disabled
+                    className="h-8 w-8 p-0 text-sm"
+                  >
+                    ...
+                  </Button>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={() => setCurrentPage(page as number)}
+                    className="h-8 w-8 p-0 text-sm font-medium"
+                  >
+                    {page}
+                  </Button>
+                )
+              ))}
+              
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(p => Math.min(deletedPagination.totalPages, p + 1))}
+                disabled={currentPage === deletedPagination.totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(deletedPagination.totalPages)}
+                disabled={currentPage === deletedPagination.totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+        
       </Card>
 
       {/* Reset Columns Dialog */}
