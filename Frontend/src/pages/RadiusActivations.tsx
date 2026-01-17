@@ -644,11 +644,11 @@ export default function RadiusActivations() {
               </div>
               <div>
                 <Label className="text-muted-foreground">Previous Balance</Label>
-                <p>{selectedActivation.previousBalance !== undefined ? `${currencySymbol}${selectedActivation.previousBalance.toLocaleString()}` : '-'}</p>
+                <p>{selectedActivation.previousBalance != null ? `${currencySymbol}${selectedActivation.previousBalance.toLocaleString()}` : '-'}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">New Balance</Label>
-                <p className="font-medium">{selectedActivation.newBalance !== undefined ? `${currencySymbol}${selectedActivation.newBalance.toLocaleString()}` : '-'}</p>
+                <p className="font-medium">{selectedActivation.newBalance != null ? `${currencySymbol}${selectedActivation.newBalance.toLocaleString()}` : '-'}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Action By</Label>
