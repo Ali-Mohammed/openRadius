@@ -82,6 +82,13 @@ namespace Backend.Controllers
             {
                 var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
+                // Verify the user exists
+                var userExists = await _context.Users.AnyAsync(u => u.Id == request.UserId);
+                if (!userExists)
+                {
+                    return BadRequest(new { error = $"User with ID {request.UserId} does not exist" });
+                }
+
                 // Get existing cashbacks for this user
                 var existingCashbacks = await _context.UserCashbacks
                     .Where(uc => uc.UserId == request.UserId && uc.DeletedAt == null)
