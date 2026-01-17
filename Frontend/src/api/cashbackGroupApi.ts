@@ -64,6 +64,11 @@ export const cashbackGroupApi = {
     return response.data
   },
 
+  getAssignedUserIds: async (): Promise<number[]> => {
+    const response = await apiClient.get('/api/billing/cashback-groups/assigned-user-ids')
+    return response.data
+  },
+
   create: async (data: CreateCashbackGroupData): Promise<CashbackGroup> => {
     const response = await apiClient.post('/api/billing/cashback-groups', data)
     return response.data

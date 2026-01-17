@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Save, RefreshCw, DollarSign } from 'lucide-react';
+import { Save, RefreshCw, DollarSign, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { userManagementApi, type User } from '@/api/userManagementApi';
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
 import { userCashbackApi } from '@/api/userCashbackApi';
+import { cashbackGroupApi } from '@/api/cashbackGroupApi';
 import { workspaceApi } from '@/lib/api';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { cn } from '@/lib/utils';
 
 export default function UserCashback() {
   const { currentWorkspaceId } = useWorkspace();
@@ -50,6 +52,13 @@ export default function UserCashback() {
       const users = await userManagementApi.getAll();
       return { data: users };
     },
+    enabled: !!currentWorkspaceId,
+  });
+
+  // Fetch user IDs assigned to cashback groups
+  const { data: assignedUserIds } = useQuery({
+    queryKey: ['cashback-group-assigned-users', currentWorkspaceId],
+    queryFn: () => cashbackGroupApi.getAssignedUserIds(),
     enabled: !!currentWorkspaceId,
   });
 
@@ -168,13 +177,36 @@ export default function UserCashback() {
                 {isLoadingUsers ? (
                   <SelectItem value="loading" disabled>Loading...</SelectItem>
                 ) : usersData?.data && usersData.data.length > 0 ? (
-                  usersData.data.map((user: User) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName} (${user.email})`
-                        : user.email || `User ${user.id}`}
-                    </SelectItem>
-                  ))
+                  usersData.data.map((user: User) => {
+                    const isInGroup = assignedUserIds?.includes(user.id) || false;
+                    return (
+                      <SelectItem 
+                        key={user.id} 
+                        value={user.id.toString()}
+                        disabled={isInGroup}
+                        className={cn(
+                          isInGroup && "opacity-60"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          {isInGroup && (
+                            <Users className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          )}
+                          <span className={cn(
+                            "flex-1",
+                            isInGroup && "line-through"
+                          )}>
+                            {user.firstName && user.lastName
+                              ? `${user.firstName} ${user.lastName} (${user.email})`
+                              : user.email || `User ${user.id}`}
+                          </span>
+                          {isInGroup && (
+                            <span className="text-xs text-blue-500 ml-auto">In group</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })
                 ) : (
                   <SelectItem value="none" disabled>No users available</SelectItem>
                 )}

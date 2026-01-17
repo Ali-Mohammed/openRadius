@@ -139,6 +139,19 @@ public class CashbackGroupController : ControllerBase
         return Ok(userIds);
     }
 
+    // GET: api/billing/cashback-groups/assigned-user-ids
+    [HttpGet("assigned-user-ids")]
+    public async Task<ActionResult<List<int>>> GetAssignedUserIds()
+    {
+        var userIds = await _context.CashbackGroupUsers
+            .Where(gu => gu.CashbackGroup.DeletedAt == null && !gu.CashbackGroup.Disabled)
+            .Select(gu => gu.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        return Ok(userIds);
+    }
+
     // POST: api/billing/cashback-groups
     [HttpPost]
     public async Task<ActionResult<CashbackGroupResponse>> CreateGroup(CreateCashbackGroupRequest request)
