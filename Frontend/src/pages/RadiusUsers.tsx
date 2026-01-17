@@ -101,7 +101,7 @@ export default function RadiusUsers() {
   }
 
   const DEFAULT_COLUMN_WIDTHS = {
-    checkbox: 20,
+    checkbox: 50,
     username: 150,
     name: 180,
     email: 200,

@@ -71,7 +71,7 @@ export default function RadiusIpReservations() {
   }
 
   const DEFAULT_COLUMN_WIDTHS = {
-    checkbox: 20,
+    checkbox: 50,
     ipAddress: 180,
     description: 250,
     username: 200,
@@ -106,7 +106,6 @@ export default function RadiusIpReservations() {
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
-  const [selectedReservationIds, setSelectedReservationIds] = useState<number[]>([])
 
   // IP address validation function
   const isValidIPAddress = (ip: string): boolean => {
@@ -124,7 +123,14 @@ export default function RadiusIpReservations() {
             setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
           }
           if (preferences.columnOrder) {
-            setColumnOrder(JSON.parse(preferences.columnOrder))
+            const savedOrder = JSON.parse(preferences.columnOrder)
+            // Ensure checkbox and actions columns are always present
+            const ensuredOrder = [
+              'checkbox',
+              ...savedOrder.filter((col: string) => col !== 'checkbox' && col !== 'actions'),
+              'actions'
+            ]
+            setColumnOrder(ensuredOrder)
           }
           if (preferences.columnVisibility) {
             setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
@@ -524,7 +530,8 @@ export default function RadiusIpReservations() {
 
   // Helper function to render column header
   const renderColumnHeader = (columnKey: string) => {
-    const columnConfig: Record<string, { label: string, sortKey?: string }> = {
+    const columnConfig: Record<string, { label: string | React.ReactElement, sortKey?: string, draggable?: boolean }> = {
+      checkbox: { label: <Checkbox checked={selectedReservationIds.length === reservations.length && reservations.length > 0} onCheckedChange={handleSelectAll} />, draggable: false },
       ipAddress: { label: 'IP Address', sortKey: 'ipaddress' },
       description: { label: 'Description', sortKey: 'description' },
       username: { label: 'Username', sortKey: 'username' },
@@ -534,18 +541,18 @@ export default function RadiusIpReservations() {
       group: { label: 'Group' },
       createdAt: { label: 'Created At', sortKey: 'createdAt' },
       updatedAt: { label: 'Updated At', sortKey: 'updatedAt' },
-      actions: { label: 'Actions' },
+      actions: { label: 'Actions', draggable: false },
     }
 
     const config = columnConfig[columnKey]
     if (!config) return null
 
     const visibilityKey = columnKey as keyof typeof columnVisibility
-    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+    if (columnKey !== 'checkbox' && columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
       return null
     }
 
-    const isDraggable = columnKey !== 'actions'
+    const isDraggable = config.draggable !== false && columnKey !== 'checkbox' && columnKey !== 'actions'
     const isSortable = !!config.sortKey
     const isDragging = draggingColumn === columnKey
     const isDragOver = dragOverColumn === columnKey
@@ -567,8 +574,10 @@ export default function RadiusIpReservations() {
         onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
         onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
       >
-        {config.label}
-        {isSortable && getSortIcon(config.sortKey!)}
+        <div className="flex items-center">
+          {typeof config.label === 'string' ? config.label : config.label}
+          {isSortable && getSortIcon(config.sortKey!)}
+        </div>
         <div 
           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
           onClick={(e) => {
@@ -596,6 +605,15 @@ export default function RadiusIpReservations() {
     const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
 
     switch (columnKey) {
+      case 'checkbox':
+        return (
+          <TableCell key={columnKey} className="px-4" style={baseStyle}>
+            <Checkbox
+              checked={selectedReservationIds.includes(reservation.id)}
+              onCheckedChange={(checked) => handleSelectReservation(reservation.id, checked as boolean)}
+            />
+          </TableCell>
+        )
       case 'ipAddress':
         return (
           <TableCell key={columnKey} className="px-4 font-mono" style={baseStyle}>
