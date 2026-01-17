@@ -179,6 +179,9 @@ public class WorkspaceController : ControllerBase
             // Seed default RADIUS tags
             await SeedDefaultRadiusTags(tenantContext);
             
+            // Seed default custom wallets
+            await SeedDefaultCustomWallets(tenantContext);
+            
             _logger.LogInformation($"✓ Created tenant database for workspace: {workspace.Title} (ID: {workspace.Id})");
         }
         catch (Exception ex)
@@ -407,6 +410,54 @@ public class WorkspaceController : ControllerBase
         await context.SaveChangesAsync();
         
         _logger.LogInformation($"✓ Seeded {defaultTags.Count} default RADIUS tags");
+    }
+
+    private async Task SeedDefaultCustomWallets(ApplicationDbContext context)
+    {
+        // Check if wallets already exist
+        if (await context.CustomWallets.AnyAsync())
+        {
+            return;
+        }
+
+        var defaultWallets = new List<CustomWallet>
+        {
+            new CustomWallet 
+            { 
+                Name = "Ministry Wallet", 
+                Description = "Collection wallet for ministry payments",
+                Type = "collection",
+                Status = "active",
+                Color = "#8b5cf6",
+                Icon = "Building2",
+                MaxFillLimit = 0,
+                DailySpendingLimit = 0,
+                CurrentBalance = 0,
+                AllowNegativeBalance = false,
+                SortOrder = 1,
+                CreatedAt = DateTime.UtcNow
+            },
+            new CustomWallet 
+            { 
+                Name = "Marketing Wallet", 
+                Description = "Credit wallet for marketing campaigns",
+                Type = "credit",
+                Status = "active",
+                Color = "#f59e0b",
+                Icon = "Megaphone",
+                MaxFillLimit = 0,
+                DailySpendingLimit = 0,
+                CurrentBalance = 0,
+                AllowNegativeBalance = false,
+                SortOrder = 2,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        context.CustomWallets.AddRange(defaultWallets);
+        await context.SaveChangesAsync();
+        
+        _logger.LogInformation($"✓ Seeded {defaultWallets.Count} default custom wallets");
     }
 
     private bool WorkspaceExists(int id)

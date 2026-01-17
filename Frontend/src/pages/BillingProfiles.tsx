@@ -164,7 +164,6 @@ export default function BillingProfiles() {
     'addons',
     'createdAt',
     'updatedAt',
-    'actions',
   ];
 
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY);

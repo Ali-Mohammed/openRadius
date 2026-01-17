@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Save, RefreshCw, DollarSign } from 'lucide-react';
+import { Save, RefreshCw, DollarSign, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { cashbackGroupApi, type CashbackGroup } from '@/api/cashbackGroupApi';
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
 import { cashbackProfileAmountApi } from '@/api/cashbackProfileAmounts';
@@ -123,6 +134,22 @@ export default function GroupCashback() {
     }
   });
 
+  // Mutation to reset cashback amounts
+  const resetMutation = useMutation({
+    mutationFn: cashbackProfileAmountApi.resetGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashback-amounts', selectedGroupId] });
+      setCashbackAmounts({});
+      toast.success('All cashback amounts reset successfully');
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to reset cashback amounts')
+        : 'Failed to reset cashback amounts';
+      toast.error(errorMessage);
+    }
+  });
+
   const handleCashbackChange = (profileId: number, value: string) => {
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       const numAmount = value === '' ? 0 : parseFloat(value);
@@ -164,6 +191,15 @@ export default function GroupCashback() {
       cashbackGroupId: selectedGroupId,
       amounts: amounts
     });
+  };
+
+  const handleReset = () => {
+    if (!selectedGroupId) {
+      toast.error('Please select a cashback group');
+      return;
+    }
+
+    resetMutation.mutate(selectedGroupId);
   };
 
   const selectedGroup = groupsData?.find((g: CashbackGroup) => g.id === selectedGroupId);
@@ -274,14 +310,41 @@ export default function GroupCashback() {
                   Set cashback amounts for each billing profile
                 </CardDescription>
               </div>
-              <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Save Changes
-              </Button>
+              <div className="flex items-center gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={resetMutation.isPending}>
+                      {resetMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                      )}
+                      Reset All
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset All Cashback Amounts</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will reset all cashback amounts for this group to zero. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReset}>Reset All</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0">

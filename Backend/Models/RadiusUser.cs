@@ -69,6 +69,9 @@ namespace Backend.Models
         [JsonPropertyName("profile_id")]
         public int? ProfileId { get; set; }
 
+        [JsonPropertyName("profile_billing_id")]
+        public int? ProfileBillingId { get; set; }
+
         [JsonPropertyName("balance")]
         public string? Balance { get; set; }
 
@@ -229,6 +232,7 @@ namespace Backend.Models
         public string? City { get; set; }
         public string? Phone { get; set; }
         public int? ProfileId { get; set; }
+        public int? ProfileBillingId { get; set; }
         
         // Navigation properties
         public RadiusProfile? Profile { get; set; }

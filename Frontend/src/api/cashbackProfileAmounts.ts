@@ -27,5 +27,9 @@ export const cashbackProfileAmountApi = {
 
   saveAmounts: async (request: SaveCashbackAmountsRequest): Promise<void> => {
     await apiClient.post('/api/CashbackProfileAmount', request);
+  },
+
+  resetGroup: async (groupId: number): Promise<void> => {
+    await apiClient.delete(`/api/CashbackProfileAmount/group/${groupId}`);
   }
 };

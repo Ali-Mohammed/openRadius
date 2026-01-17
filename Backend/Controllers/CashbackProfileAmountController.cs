@@ -132,5 +132,34 @@ namespace Backend.Controllers
                 return StatusCode(500, new { error = "An error occurred while deleting the cashback amount" });
             }
         }
+
+        // DELETE: api/CashbackProfileAmount/group/{groupId}
+        [HttpDelete("group/{groupId}")]
+        public async Task<IActionResult> ResetGroupAmounts(int groupId)
+        {
+            try
+            {
+                var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+
+                var amounts = await _context.CashbackProfileAmounts
+                    .Where(a => a.CashbackGroupId == groupId && a.DeletedAt == null)
+                    .ToListAsync();
+
+                foreach (var amount in amounts)
+                {
+                    amount.DeletedAt = DateTime.UtcNow;
+                    amount.DeletedBy = userEmail;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = $"All cashback amounts reset for group {groupId}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error resetting cashback amounts for group {groupId}");
+                return StatusCode(500, new { error = "An error occurred while resetting cashback amounts" });
+            }
+        }
     }
 }
