@@ -330,6 +330,106 @@ export default function RadiusNasPage() {
     setCurrentPage(1)
   }
 
+  // Column resizing handlers
+  const handleResize = useCallback((columnKey: string, startX: number, startWidth: number) => {
+    setResizing(columnKey)
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(50, startWidth + diff)
+      
+      setColumnWidths(prev => ({
+        ...prev,
+        [columnKey]: newWidth
+      }))
+    }
+
+    const handleMouseUp = () => {
+      setResizing(null)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
+  // Column drag and drop handlers
+  const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
+    if (column === 'actions') return
+    setDraggingColumn(column)
+    e.dataTransfer.effectAllowed = 'move'
+    if (e.currentTarget instanceof HTMLElement) {
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
+      dragImage.style.opacity = '0.5'
+      document.body.appendChild(dragImage)
+      e.dataTransfer.setDragImage(dragImage, 0, 0)
+      setTimeout(() => document.body.removeChild(dragImage), 0)
+    }
+  }, [])
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent, column: string) => {
+    if (!draggingColumn || column === 'actions') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggingColumn !== column) {
+      setDragOverColumn(column)
+    }
+  }, [draggingColumn])
+
+  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumn: string) => {
+    e.preventDefault()
+    
+    if (!draggingColumn || draggingColumn === targetColumn || targetColumn === 'actions') {
+      setDraggingColumn(null)
+      setDragOverColumn(null)
+      return
+    }
+
+    setColumnOrder(prev => {
+      const newOrder = [...prev]
+      const dragIndex = newOrder.indexOf(draggingColumn)
+      const dropIndex = newOrder.indexOf(targetColumn)
+      
+      newOrder.splice(dragIndex, 1)
+      newOrder.splice(dropIndex, 0, draggingColumn)
+      
+      return newOrder
+    })
+
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [draggingColumn])
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [])
+
+  // Reset columns
+  const handleResetColumns = () => {
+    setResetColumnsDialogOpen(true)
+  }
+
+  const confirmResetColumns = () => {
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
+    setColumnOrder(DEFAULT_COLUMN_ORDER)
+    setColumnVisibility({
+      nasname: true,
+      shortname: true,
+      secret: true,
+      type: true,
+      ports: true,
+      server: true,
+      community: true,
+      description: true,
+      enabled: true,
+      actions: true,
+    })
+    setResetColumnsDialogOpen(false)
+    toast.success('Column settings reset to defaults')
+  }
+
   const handleOpenNasDialog = (nas?: RadiusNas) => {
     if (nas) {
       setEditingNas(nas)
@@ -467,6 +567,180 @@ export default function RadiusNasPage() {
     }
   }
 
+  // Helper function to render column headers
+  const renderColumnHeader = (columnKey: string) => {
+    const columnConfig: Record<string, { label: string; sortKey?: string; align?: string; draggable?: boolean }> = {
+      nasname: { label: 'NAS Name', sortKey: 'nasname' },
+      shortname: { label: 'Short Name', sortKey: 'shortname' },
+      secret: { label: 'Secret', sortKey: 'secret' },
+      type: { label: 'Type', sortKey: 'type' },
+      ports: { label: 'Ports' },
+      server: { label: 'Server', sortKey: 'server' },
+      community: { label: 'Community' },
+      description: { label: 'Description', sortKey: 'description' },
+      enabled: { label: 'Status', sortKey: 'enabled' },
+      actions: { label: 'Actions', draggable: false },
+    }
+
+    const config = columnConfig[columnKey]
+    if (!config) return null
+
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const isDraggable = config.draggable !== false && columnKey !== 'actions'
+    const isSortable = !!config.sortKey
+    const isDragging = draggingColumn === columnKey
+    const isDragOver = dragOverColumn === columnKey
+
+    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
+    const alignmentClass = config.align === 'right' ? 'text-right' : config.align === 'center' ? 'text-center' : ''
+    const sortableClass = isSortable ? 'cursor-pointer' : ''
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
+
+    return (
+      <TableHead
+        key={columnKey}
+        className={`${baseClasses} ${alignmentClass} ${sortableClass} ${dragClasses} ${stickyClass}`}
+        style={{ width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }}
+        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
+        draggable={isDraggable}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
+      >
+        {config.label}
+        {isSortable && getSortIcon(config.sortKey!)}
+        <div 
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => { 
+            e.preventDefault()
+            e.stopPropagation() 
+            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
+          }}
+        />
+      </TableHead>
+    )
+  }
+
+  // Helper function to render table cells
+  const renderTableCell = (columnKey: string, nas: RadiusNas) => {
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
+    const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
+
+    switch (columnKey) {
+      case 'nasname':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>
+            {nas.nasname}
+          </TableCell>
+        )
+      case 'shortname':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            {nas.shortname}
+          </TableCell>
+        )
+      case 'secret':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <span className="font-mono text-xs">{'•'.repeat(8)}</span>
+          </TableCell>
+        )
+      case 'type':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            {getNasTypeName(nas.type)}
+          </TableCell>
+        )
+      case 'ports':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <div className="text-xs space-y-1">
+              {nas.coaPort && <div>CoA: {nas.coaPort}</div>}
+              {nas.httpPort && <div>HTTP: {nas.httpPort}</div>}
+            </div>
+          </TableCell>
+        )
+      case 'server':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            {nas.server || '-'}
+          </TableCell>
+        )
+      case 'community':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            {nas.snmpCommunity || '-'}
+          </TableCell>
+        )
+      case 'description':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <div className="truncate max-w-[200px]" title={nas.description || ''}>
+              {nas.description || '-'}
+            </div>
+          </TableCell>
+        )
+      case 'enabled':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant={nas.enabled === 1 ? 'default' : 'secondary'}>
+              {nas.enabled === 1 ? 'Enabled' : 'Disabled'}
+            </Badge>
+          </TableCell>
+        )
+      case 'actions':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${stickyClass}`} style={baseStyle}>
+            <div className="flex justify-end gap-2">
+              {showTrash ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRestoreNas(nas.id)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenNasDialog(nas)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteNas(nas.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </TableCell>
+        )
+      default:
+        return null
+    }
+  }
+
   if (error) {
     return (
       <div className="p-6">
@@ -520,6 +794,26 @@ export default function RadiusNasPage() {
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" title="Table settings">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48">
+              <div className="space-y-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleResetColumns}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset Columns
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button onClick={() => handleOpenNasDialog()} disabled={showTrash}>
             <Plus className="mr-2 h-4 w-4" />
             Add NAS Device
@@ -529,179 +823,177 @@ export default function RadiusNasPage() {
 
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
-          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('nasname')}>
-                    NAS Name {getSortIcon('nasname')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('shortname')}>
-                    Short Name {getSortIcon('shortname')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('type')}>
-                    Type {getSortIcon('type')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('version')}>
-                    Version {getSortIcon('version')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('enabled')}>
-                    Status {getSortIcon('enabled')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('monitor')}>
-                    Monitor {getSortIcon('monitor')}
-                  </TableHead>
-                  <TableHead>Ping</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading || isFetching ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : nasDevices.length === 0 ? (
+          {isLoading ? (
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
-                    <TableCell colSpan={8} className="p-0">
-                      <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="rounded-full bg-muted p-6 mb-4">
-                          <Server className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2">
-                          {showTrash ? 'No deleted NAS devices' : 'No NAS devices yet'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                          {showTrash ? 'Deleted NAS devices will appear here' : 'Get started by adding your first NAS device'}
-                        </p>
-                        {!showTrash && (
-                          <Button onClick={() => handleOpenNasDialog()}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add NAS Device
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+                    {columnOrder.map(column => (
+                      <TableHead key={column} className="h-12 px-4">
+                        <Skeleton className="h-4 w-20" />
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ) : (
-                  nasDevices.map((nas) => (
-                    <TableRow key={nas.id}>
-                      <TableCell className="font-medium">{nas.nasname}</TableCell>
-                      <TableCell>{nas.shortname}</TableCell>
-                      <TableCell>{getNasTypeName(nas.type)}</TableCell>
-                      <TableCell>{nas.version || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant={nas.enabled === 1 ? 'default' : 'secondary'}>
-                          {nas.enabled === 1 ? 'Enabled' : 'Disabled'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={nas.monitor === 1 ? 'default' : 'outline'}>
-                          {nas.monitor === 1 ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Circle 
-                            className={`h-3 w-3 ${
-                              nas.pingLoss === 0 ? 'fill-green-500 text-green-500' : 
-                              nas.pingLoss < 50 ? 'fill-yellow-500 text-yellow-500' : 
-                              'fill-red-500 text-red-500'
-                            }`}
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {nas.pingTime >= 0 ? `${nas.pingTime}ms` : 'N/A'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {showTrash ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRestoreNas(nas.id)}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenNasDialog(nas)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteNas(nas.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {columnOrder.map(column => (
+                        <TableCell key={column} className="h-12 px-4">
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <p className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pagination.totalRecords)} of {pagination.totalRecords} results
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : !isLoading && nasData && nasDevices.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <Server className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {showTrash ? 'No deleted NAS devices' : 'No NAS devices yet'}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                {showTrash ? 'Deleted NAS devices will appear here' : 'Get started by adding your first NAS device'}
               </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
+              {!showTrash && (
+                <Button onClick={() => handleOpenNasDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add NAS Device
                 </Button>
-                {getPaginationPages(currentPage, pagination.totalPages).map((page, index) =>
-                  typeof page === 'number' ? (
-                    <Button
-                      key={index}
-                      variant={page === currentPage ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
+              )}
+            </div>
+          ) : nasDevices.length > 0 ? (
+            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
+              {isFetching && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    {columnOrder.map(column => renderColumnHeader(column))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nasDevices.map((nas) => (
+                    <TableRow 
+                      key={nas.id}
+                      className="border-b"
+                      style={{
+                        display: 'table',
+                        tableLayout: 'fixed',
+                        width: '100%',
+                      }}
                     >
-                      {page}
-                    </Button>
-                  ) : (
-                    <span key={index} className="px-2">
-                      {page}
-                    </span>
-                  )
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
-                  disabled={currentPage === pagination.totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                      {columnOrder.map(column => renderTableCell(column, nas))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
+        </CardContent>
+
+        {/* Pagination Controls - Outside CardContent */}
+        {pagination && (
+          <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="h-8 w-[70px] text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="1000">1000</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="text-sm text-muted-foreground font-medium">
+                Showing {nasDevices.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + nasDevices.length} of {pagination.totalRecords} devices
               </div>
             </div>
-          )}
-        </CardContent>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              {getPaginationPages(currentPage, pagination.totalPages).map((page, idx) => (
+                page === '...' ? (
+                  <Button
+                    key={`ellipsis-${idx}`}
+                    variant="ghost"
+                    size="icon"
+                    disabled
+                    className="h-8 w-8 p-0 text-sm"
+                  >
+                    ...
+                  </Button>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={() => setCurrentPage(page as number)}
+                    className="h-8 w-8 p-0 text-sm font-medium"
+                  >
+                    {page}
+                  </Button>
+                )
+              ))}
+              
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={currentPage === pagination.totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(pagination.totalPages)}
+                disabled={currentPage === pagination.totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Create/Edit Dialog */}
@@ -1034,6 +1326,22 @@ export default function RadiusNasPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRestore}>Restore</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Columns Confirmation Dialog */}
+      <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Column Settings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all column widths, order, and visibility to their default values. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetColumns}>Reset</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

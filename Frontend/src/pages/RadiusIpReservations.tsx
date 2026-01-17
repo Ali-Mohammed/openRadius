@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Settings, List, Network } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Settings, List, Network, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { radiusIpReservationApi, type RadiusIpReservation } from '@/api/radiusIpReservationApi'
 import { radiusUserApi } from '@/api/radiusUserApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -20,7 +20,9 @@ import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 
 export default function RadiusIpReservations() {
   const { t } = useTranslation()
@@ -43,6 +45,7 @@ export default function RadiusIpReservations() {
   const [reservationToDelete, setReservationToDelete] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [reservationToRestore, setReservationToRestore] = useState<number | null>(null)
+  const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
   
   const [formData, setFormData] = useState({
     ipAddress: '',
@@ -54,11 +57,113 @@ export default function RadiusIpReservations() {
   const [userSearch, setUserSearch] = useState('')
   const [formErrors, setFormErrors] = useState<{ ipAddress?: string; radiusUserId?: string }>({})
 
+  // Default column settings
+  const DEFAULT_COLUMN_VISIBILITY = {
+    ipAddress: true,
+    description: true,
+    username: true,
+    name: true,
+    profile: true,
+    zone: false,
+    group: false,
+    createdAt: false,
+    updatedAt: false,
+  }
+
+  const DEFAULT_COLUMN_WIDTHS = {
+    ipAddress: 180,
+    description: 250,
+    username: 200,
+    name: 180,
+    profile: 150,
+    zone: 150,
+    group: 150,
+    createdAt: 160,
+    updatedAt: 160,
+    actions: 140,
+  }
+
+  const DEFAULT_COLUMN_ORDER = [
+    'ipAddress',
+    'description',
+    'username',
+    'name',
+    'profile',
+    'zone',
+    'group',
+    'createdAt',
+    'updatedAt',
+    'actions',
+  ]
+
+  // Column state
+  const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY)
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS)
+  const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
+  const [resizing, setResizing] = useState<string | null>(null)
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+
   // IP address validation function
   const isValidIPAddress = (ip: string): boolean => {
     const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
     return ipPattern.test(ip)
   }
+
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('radius-ip-reservations')
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
+          }
+        }
+      } catch (error) {
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  // Auto-save preferences when they change
+  useEffect(() => {
+    if (!preferencesLoaded) return
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'radius-ip-reservations',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+        console.log('Table preferences saved successfully')
+      } catch (error) {
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId, preferencesLoaded])
 
   useEffect(() => {
     const params: Record<string, string> = {}
@@ -248,13 +353,96 @@ export default function RadiusIpReservations() {
   }
 
   const handleSort = useCallback((field: string) => {
+    if (resizing) return
+    
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
       setSortDirection('asc')
     }
+  }, [sortField, sortDirection, resizing])
+
+  const getSortIcon = useCallback((field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 inline-block" />
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4 inline-block" />
+      : <ArrowDown className="ml-2 h-4 w-4 inline-block" />
   }, [sortField, sortDirection])
+
+  // Column resize handler
+  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    setResizing(column)
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(60, startWidth + diff)
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      setTimeout(() => setResizing(null), 100)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
+  // Column drag and drop handlers
+  const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
+    if (column === 'actions') return
+    setDraggingColumn(column)
+    e.dataTransfer.effectAllowed = 'move'
+    if (e.currentTarget instanceof HTMLElement) {
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
+      dragImage.style.opacity = '0.5'
+      document.body.appendChild(dragImage)
+      e.dataTransfer.setDragImage(dragImage, 0, 0)
+      setTimeout(() => document.body.removeChild(dragImage), 0)
+    }
+  }, [])
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent, column: string) => {
+    if (!draggingColumn || column === 'actions') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggingColumn !== column) {
+      setDragOverColumn(column)
+    }
+  }, [draggingColumn])
+
+  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumn: string) => {
+    e.preventDefault()
+    
+    if (!draggingColumn || draggingColumn === targetColumn || targetColumn === 'actions') {
+      setDraggingColumn(null)
+      setDragOverColumn(null)
+      return
+    }
+
+    setColumnOrder(prev => {
+      const newOrder = [...prev]
+      const dragIndex = newOrder.indexOf(draggingColumn)
+      const dropIndex = newOrder.indexOf(targetColumn)
+      
+      newOrder.splice(dragIndex, 1)
+      newOrder.splice(dropIndex, 0, draggingColumn)
+      
+      return newOrder
+    })
+
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [draggingColumn])
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [])
 
   const handleSearch = () => {
     setSearchQuery(searchInput)
