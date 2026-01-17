@@ -366,7 +366,7 @@ public class SasSyncService : ISasSyncService
                             }
 
                             // Sync custom attributes for this profile
-                            await SyncProfileCustomAttributesAsync(integration, token, sasProfile.Id, radiusProfile.Id, integration.WorkspaceId, cancellationToken);
+                            await SyncProfileCustomAttributesAsync(integration, token, sasProfile.Id, radiusProfile.Id, cancellationToken);
 
                             // Now sync billing profiles
                             // Get all billing groups
@@ -439,8 +439,7 @@ public class SasSyncService : ISasSyncService
         SasRadiusIntegration integration, 
         string token, 
         int sasProfileId, 
-        int radiusProfileId, 
-        int workspaceId,
+        int radiusProfileId,
         CancellationToken cancellationToken)
     {
         try
@@ -469,9 +468,10 @@ public class SasSyncService : ISasSyncService
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Get existing custom attributes for this profile
+            // Get existing custom attributes for this profile (including soft-deleted ones to restore them)
             var existingAttributes = await context.RadiusCustomAttributes
-                .Where(a => a.RadiusProfileId == radiusProfileId && a.LinkType == "profile" && a.WorkspaceId == workspaceId)
+                .IgnoreQueryFilters() // Include soft-deleted items
+                .Where(a => a.RadiusProfileId == radiusProfileId && a.LinkType == "profile")
                 .ToListAsync(cancellationToken);
 
             foreach (var sasAttr in apiResponse.Data)
@@ -484,7 +484,7 @@ public class SasSyncService : ISasSyncService
                     continue;
                 }
 
-                // Check if attribute already exists
+                // Check if attribute already exists (including soft-deleted ones)
                 var existingAttr = existingAttributes.FirstOrDefault(a => 
                     a.AttributeName == sasAttr.Attribute && 
                     a.AttributeValue == sasAttr.Value);
@@ -499,7 +499,6 @@ public class SasSyncService : ISasSyncService
                         LinkType = "profile",
                         RadiusProfileId = radiusProfileId,
                         Enabled = sasAttr.Enabled == 1,
-                        WorkspaceId = workspaceId,
                         IsDeleted = false,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -508,8 +507,11 @@ public class SasSyncService : ISasSyncService
                 }
                 else
                 {
-                    // Update existing attribute if needed
+                    // Update existing attribute and restore if it was soft-deleted
                     existingAttr.Enabled = sasAttr.Enabled == 1;
+                    existingAttr.IsDeleted = false; // Restore if previously deleted
+                    existingAttr.DeletedAt = null;
+                    existingAttr.DeletedBy = null;
                     existingAttr.UpdatedAt = DateTime.UtcNow;
                 }
             }

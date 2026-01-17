@@ -36,9 +36,6 @@ public class RadiusCustomAttribute
     /// </summary>
     public bool Enabled { get; set; } = true;
     
-    // Multi-tenancy
-    public int WorkspaceId { get; set; }
-    
     // Soft Delete
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }

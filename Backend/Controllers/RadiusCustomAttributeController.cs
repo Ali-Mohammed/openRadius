@@ -199,7 +199,6 @@ public class RadiusCustomAttributeController : ControllerBase
             RadiusUserId = request.LinkType == "user" ? request.RadiusUserId : null,
             RadiusProfileId = request.LinkType == "profile" ? request.RadiusProfileId : null,
             Enabled = request.Enabled,
-            WorkspaceId = 1, // Will be set by multi-tenant context
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
