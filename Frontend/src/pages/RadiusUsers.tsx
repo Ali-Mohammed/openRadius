@@ -831,6 +831,9 @@ export default function RadiusUsers() {
       notes: '',
     })
     setActivationDialogOpen(true)
+    
+    // Refetch wallet balance when dialog opens
+    refetchWallet()
   }
 
   const handleSubmitActivation = () => {
@@ -2778,6 +2781,67 @@ export default function RadiusUsers() {
                     </div>
                   )}
 
+                  {/* Wallet Balance Preview */}
+                  {selectedBillingProfile && myWallet?.hasWallet && (
+                    <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
+                      <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        Wallet Balance
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Current Balance:</span>
+                          <span className="font-semibold text-lg text-green-600">
+                            {currencySymbol}{formatCurrency(myWallet.currentBalance || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Deduction Amount:</span>
+                          <span className="font-medium text-red-600">
+                            - {currencySymbol}{formatCurrency(selectedBillingProfile.amount)}
+                          </span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="text-muted-foreground font-medium">Remaining Balance:</span>
+                          <span className={`font-bold text-lg ${
+                            (myWallet.currentBalance || 0) - selectedBillingProfile.amount >= 0 
+                              ? 'text-green-600' 
+                              : myWallet.allowNegativeBalance 
+                                ? 'text-orange-600' 
+                                : 'text-red-600'
+                          }`}>
+                            {currencySymbol}{formatCurrency((myWallet.currentBalance || 0) - selectedBillingProfile.amount)}
+                          </span>
+                        </div>
+                        {(myWallet.currentBalance || 0) - selectedBillingProfile.amount < 0 && (
+                          <div className={`mt-2 p-2 rounded text-xs ${
+                            myWallet.allowNegativeBalance 
+                              ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                              : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                          }`}>
+                            {myWallet.allowNegativeBalance 
+                              ? '⚠️ Warning: This will result in a negative balance' 
+                              : '❌ Error: Insufficient balance. Negative balance not allowed.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Wallet Warning */}
+                  {!myWallet?.hasWallet && (
+                    <div className="rounded-lg border bg-yellow-50 dark:bg-yellow-950/20 p-4">
+                      <div className="flex items-start gap-2">
+                        <div className="text-yellow-600 dark:text-yellow-400">⚠️</div>
+                        <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                          <p className="font-medium mb-1">No Wallet Found</p>
+                          <p>You don't have a wallet yet. Please contact an administrator to create a wallet for you before activating users.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Expiration Details */}
                   {selectedBillingProfile && (
                     <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4">
@@ -2890,7 +2954,14 @@ export default function RadiusUsers() {
             </Button>
             <Button
               onClick={handleSubmitActivation}
-              disabled={!activationFormData.billingProfileId || activationMutation.isPending}
+              disabled={
+                !activationFormData.billingProfileId || 
+                activationMutation.isPending ||
+                !myWallet?.hasWallet ||
+                (myWallet?.hasWallet && 
+                  !myWallet.allowNegativeBalance && 
+                  (myWallet.currentBalance || 0) < (billingProfiles.find(p => p.id === parseInt(activationFormData.billingProfileId))?.amount || 0))
+              }
               className="bg-green-600 hover:bg-green-700"
             >
               {activationMutation.isPending ? (
