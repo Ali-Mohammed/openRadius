@@ -447,7 +447,7 @@ public class SasSyncService : ISasSyncService
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             
             var uri = new Uri(integration.Url.TrimEnd('/'));
-            var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/radius/custom/profile/{sasProfileId}";
+            var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/customRadiusAttribute/profile/{sasProfileId}";
 
             var response = await client.GetAsync(url, cancellationToken);
             
