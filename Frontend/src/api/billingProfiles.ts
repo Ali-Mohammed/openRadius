@@ -75,6 +75,7 @@ export const getProfiles = async (params?: {
   page?: number;
   pageSize?: number;
   includeDeleted?: boolean;
+  isActive?: boolean;
 }): Promise<BillingProfilesResponse> => {
   const response = await apiClient.get('/api/billingprofile', { params });
   return response.data;
