@@ -56,8 +56,9 @@ export default function RadiusIpReservations() {
   const [selectedReservationIds, setSelectedReservationIds] = useState<number[]>([])
   const [userSearch, setUserSearch] = useState('')
   const [formErrors, setFormErrors] = useState<{ ipAddress?: string; radiusUserId?: string }>({})
-
-  // Default column settings
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+  const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
   const DEFAULT_COLUMN_VISIBILITY = {
     ipAddress: true,
     description: true,
@@ -358,6 +359,36 @@ export default function RadiusIpReservations() {
       restoreMutation.mutate(reservationToRestore)
       setRestoreDialogOpen(false)
       setReservationToRestore(null)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setBulkActionLoading(true)
+    try {
+      const result = await radiusIpReservationApi.bulkDelete(selectedReservationIds)
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })
+      toast.success(result.message || `Successfully deleted ${result.count} reservation(s)`)
+      setSelectedReservationIds([])
+      setBulkDeleteDialogOpen(false)
+    } catch (error) {
+      toast.error(formatApiError(error) || 'Failed to delete reservations')
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkRestore = async () => {
+    setBulkActionLoading(true)
+    try {
+      const result = await radiusIpReservationApi.bulkRestore(selectedReservationIds)
+      queryClient.invalidateQueries({ queryKey: ['radius-ip-reservations', currentWorkspaceId] })
+      toast.success(result.message || `Successfully restored ${result.count} reservation(s)`)
+      setSelectedReservationIds([])
+      setBulkRestoreDialogOpen(false)
+    } catch (error) {
+      toast.error(formatApiError(error) || 'Failed to restore reservations')
+    } finally {
+      setBulkActionLoading(false)
     }
   }
 
@@ -1093,6 +1124,107 @@ export default function RadiusIpReservations() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmResetColumns}>
               Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Floating Action Bar */}
+      {selectedReservationIds.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+          <span className="font-medium">
+            {selectedReservationIds.length.toLocaleString()} reservation(s) selected
+          </span>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          
+          {showTrash ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setBulkRestoreDialogOpen(true)}
+              disabled={bulkActionLoading}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restore
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              disabled={bulkActionLoading}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setSelectedReservationIds([])}
+            disabled={bulkActionLoading}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple IP Reservations</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedReservationIds.length} reservation(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkActionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkActionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Restore Confirmation Dialog */}
+      <AlertDialog open={bulkRestoreDialogOpen} onOpenChange={setBulkRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Multiple IP Reservations</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore {selectedReservationIds.length} reservation(s)? They will be available in the active list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRestore}
+              disabled={bulkActionLoading}
+            >
+              {bulkActionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                'Restore'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

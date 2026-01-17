@@ -313,6 +313,88 @@ public class RadiusIpReservationController : ControllerBase
         return NoContent();
     }
 
+    // POST: api/radius/ip-reservations/bulk-delete (Bulk soft delete)
+    [HttpPost("bulk-delete")]
+    public async Task<ActionResult<object>> BulkDeleteIpReservations([FromBody] List<int> ids)
+    {
+        if (ids == null || ids.Count == 0)
+        {
+            return BadRequest(new { message = "No IDs provided" });
+        }
+
+        var reservations = await _context.RadiusIpReservations
+            .Where(r => ids.Contains(r.Id) && r.DeletedAt == null)
+            .ToListAsync();
+
+        if (reservations.Count == 0)
+        {
+            return NotFound(new { message = "No active reservations found with the provided IDs" });
+        }
+
+        // Get current user email from claims
+        var userEmail = _httpContextAccessor.HttpContext?.User?.FindFirst("preferred_username")?.Value 
+                       ?? _httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value 
+                       ?? "system";
+
+        foreach (var reservation in reservations)
+        {
+            reservation.DeletedAt = DateTime.UtcNow;
+            reservation.DeletedBy = userEmail;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"Successfully deleted {reservations.Count} IP reservation(s)",
+            count = reservations.Count
+        });
+    }
+
+    // POST: api/radius/ip-reservations/bulk-restore (Bulk restore)
+    [HttpPost("bulk-restore")]
+    public async Task<ActionResult<object>> BulkRestoreIpReservations([FromBody] List<int> ids)
+    {
+        if (ids == null || ids.Count == 0)
+        {
+            return BadRequest(new { message = "No IDs provided" });
+        }
+
+        var reservations = await _context.RadiusIpReservations
+            .Where(r => ids.Contains(r.Id) && r.DeletedAt != null)
+            .ToListAsync();
+
+        if (reservations.Count == 0)
+        {
+            return NotFound(new { message = "No deleted reservations found with the provided IDs" });
+        }
+
+        foreach (var reservation in reservations)
+        {
+            // Check if IP already exists and not deleted
+            var existingIp = await _context.RadiusIpReservations
+                .Where(r => r.IpAddress == reservation.IpAddress && r.Id != reservation.Id && r.DeletedAt == null)
+                .FirstOrDefaultAsync();
+
+            if (existingIp != null)
+            {
+                return BadRequest(new { message = $"IP address {reservation.IpAddress} is already reserved by another active entry" });
+            }
+
+            reservation.DeletedAt = null;
+            reservation.DeletedBy = null;
+            reservation.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"Successfully restored {reservations.Count} IP reservation(s)",
+            count = reservations.Count
+        });
+    }
+
     private async Task<bool> IpReservationExists(int id)
     {
         return await _context.RadiusIpReservations.AnyAsync(e => e.Id == id);

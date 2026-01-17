@@ -71,4 +71,14 @@ export const radiusIpReservationApi = {
   restore: async (id: number): Promise<void> => {
     await apiClient.post(`/api/radius/ip-reservations/${id}/restore`)
   },
+
+  bulkDelete: async (ids: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post('/api/radius/ip-reservations/bulk-delete', ids)
+    return response.data
+  },
+
+  bulkRestore: async (ids: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post('/api/radius/ip-reservations/bulk-restore', ids)
+    return response.data
+  },
 }
