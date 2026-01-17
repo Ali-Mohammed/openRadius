@@ -93,6 +93,11 @@ const getNavData = (workspaceId: number) => ({
           url: `/radius/zones`,
           icon: MapPin,
         },
+        {
+          titleKey: "navigation.activations",
+          url: `/radius/activations`,
+          icon: Activity,
+        },
       ],
     },
     {
