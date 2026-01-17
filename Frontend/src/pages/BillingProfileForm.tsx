@@ -629,6 +629,16 @@ export default function BillingProfileForm() {
                           <SelectItem value="remaining">Remaining</SelectItem>
                         </SelectContent>
                       </Select>
+                      {wallet.direction === 'in' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This will add the specified amount into the wallet
+                        </p>
+                      )}
+                      {wallet.direction === 'out' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This will deduct the specified amount from the wallet
+                        </p>
+                      )}
                       {wallet.direction === 'remaining' && (
                         <p className="text-xs text-muted-foreground mt-1">
                           This will add the remaining money to the selected wallet
