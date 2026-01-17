@@ -90,7 +90,6 @@ export default function RadiusCustomAttributes() {
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY)
   const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS)
   const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
-  const [resizing, setResizing] = useState<string | null>(null)
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
@@ -458,7 +457,7 @@ export default function RadiusCustomAttributes() {
   }
 
   const renderColumnHeader = (columnKey: string) => {
-    const columnConfig: Record<string, { label: string | JSX.Element, sortKey?: string, draggable?: boolean }> = {
+    const columnConfig: Record<string, { label: string | React.ReactElement, sortKey?: string, draggable?: boolean }> = {
       checkbox: { label: <Checkbox checked={selectedAttributeIds.length === attributes.length && attributes.length > 0} onCheckedChange={handleSelectAll} />, draggable: false },
       attributeName: { label: 'Attribute Name', sortKey: 'attributename' },
       attributeValue: { label: 'Value', sortKey: 'attributevalue' },
