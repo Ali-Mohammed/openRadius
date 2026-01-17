@@ -50,6 +50,8 @@ export default function RadiusCustomAttributes() {
   const [attributeToRestore, setAttributeToRestore] = useState<number | null>(null)
   const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+  const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
   const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([])
   const [showTrash, setShowTrash] = useState(false)
 
@@ -64,7 +66,7 @@ export default function RadiusCustomAttributes() {
   }
 
   const DEFAULT_COLUMN_WIDTHS = {
-    checkbox: 20,
+    checkbox: 50,
     attributeName: 200,
     attributeValue: 180,
     linkType: 120,
@@ -262,6 +264,37 @@ export default function RadiusCustomAttributes() {
       toast.error(formatApiError(error))
     },
   })
+
+  const bulkRestoreMutation = useMutation({
+    mutationFn: radiusCustomAttributeApi.bulkRestore,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['radiusCustomAttributes'] })
+      toast.success(result.message || `Successfully restored ${result.count} custom attribute(s)`)
+      setSelectedAttributeIds([])
+      setBulkRestoreDialogOpen(false)
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const handleBulkDelete = async () => {
+    setBulkActionLoading(true)
+    try {
+      await bulkDeleteMutation.mutateAsync(selectedAttributeIds)
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkRestore = async () => {
+    setBulkActionLoading(true)
+    try {
+      await bulkRestoreMutation.mutateAsync(selectedAttributeIds)
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
 
   const resetForm = () => {
     setFormData({
@@ -1095,10 +1128,8 @@ export default function RadiusCustomAttributes() {
               variant="ghost"
               size="sm"
               className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => {
-                // Bulk restore - to be implemented if needed
-                toast.info('Bulk restore not yet implemented')
-              }}
+              onClick={() => setBulkRestoreDialogOpen(true)}
+              disabled={bulkActionLoading}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Restore
@@ -1109,6 +1140,7 @@ export default function RadiusCustomAttributes() {
               size="sm"
               className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
               onClick={() => setBulkDeleteDialogOpen(true)}
+              disabled={bulkActionLoading}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
@@ -1120,6 +1152,7 @@ export default function RadiusCustomAttributes() {
             size="sm"
             className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
             onClick={() => setSelectedAttributeIds([])}
+            disabled={bulkActionLoading}
           >
             Clear
           </Button>

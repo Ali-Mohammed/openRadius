@@ -87,4 +87,9 @@ export const radiusCustomAttributeApi = {
   bulkDelete: async (ids: number[]): Promise<void> => {
     await apiClient.delete('/api/radius/custom-attributes/bulk', { data: ids })
   },
+
+  bulkRestore: async (ids: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post('/api/radius/custom-attributes/bulk-restore', ids)
+    return response.data
+  },
 }

@@ -387,4 +387,30 @@ public class RadiusCustomAttributeController : ControllerBase
 
         return Ok(new { message = $"{attributes.Count} custom attributes deleted" });
     }
+
+    // POST: api/radius/custom-attributes/bulk-restore
+    [HttpPost("bulk-restore")]
+    public async Task<IActionResult> BulkRestoreCustomAttributes([FromBody] int[] ids)
+    {
+        var attributes = await _context.RadiusCustomAttributes
+            .Where(a => ids.Contains(a.Id) && a.IsDeleted)
+            .ToListAsync();
+
+        if (!attributes.Any())
+        {
+            return NotFound(new { message = "No deleted custom attributes found" });
+        }
+
+        foreach (var attribute in attributes)
+        {
+            attribute.IsDeleted = false;
+            attribute.DeletedAt = null;
+            attribute.DeletedBy = null;
+            attribute.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = $"{attributes.Count} custom attributes restored", count = attributes.Count });
+    }
 }
