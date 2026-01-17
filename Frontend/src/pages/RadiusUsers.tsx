@@ -226,6 +226,8 @@ export default function RadiusUsers() {
     durationDays: '30',
     notes: '',
   })
+  const [confirmActivation, setConfirmActivation] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
 
   // Helper to get currency symbol
@@ -2940,6 +2942,23 @@ export default function RadiusUsers() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Confirmation Checkbox */}
+              <div className="flex items-center space-x-2 p-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20">
+                <Checkbox 
+                  id="confirm-activation" 
+                  checked={confirmActivation}
+                  onCheckedChange={(checked) => setConfirmActivation(checked as boolean)}
+                />
+                <label
+                  htmlFor="confirm-activation"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  I confirm that I want to activate this user with the selected billing profile
+                </label>
               </div>
             </div>
           )}
