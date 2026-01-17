@@ -335,6 +335,14 @@ public class RadiusActivationController : ControllerBase
             // Determine which radius profile to use
             var radiusProfileId = request.RadiusProfileId ?? radiusUser.ProfileId;
 
+            // Fetch radius profile name for transaction records
+            string? radiusProfileName = null;
+            if (radiusProfileId.HasValue)
+            {
+                var radiusProfile = await _context.RadiusProfiles.FindAsync(radiusProfileId.Value);
+                radiusProfileName = radiusProfile?.Name;
+            }
+
             // Wallet payment validation
             int? transactionId = null;
             if (request.PaymentMethod?.ToLower() == "wallet")
@@ -397,7 +405,11 @@ public class RadiusActivationController : ControllerBase
                     Reference = $"ACTIVATION-{radiusUser.Id}",
                     PaymentMethod = "Wallet",
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userEmail
+                    CreatedBy = userEmail,
+                    RadiusUserId = radiusUser.Id,
+                    RadiusUsername = radiusUser.Username,
+                    RadiusProfileId = radiusProfileId,
+                    RadiusProfileName = radiusProfileName
                 };
 
                 _context.Transactions.Add(transaction);
@@ -464,7 +476,11 @@ public class RadiusActivationController : ControllerBase
                         Reference = $"ACTIVATION-{radiusUser.Id}",
                         PaymentMethod = "Activation",
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
+                        CreatedBy = userEmail,
+                        RadiusUserId = radiusUser.Id,
+                        RadiusUsername = radiusUser.Username,
+                        RadiusProfileId = radiusProfileId,
+                        RadiusProfileName = radiusProfileName
                     };
 
                     _context.Transactions.Add(customTransaction);
@@ -547,7 +563,13 @@ public class RadiusActivationController : ControllerBase
                             Reference = $"ACTIVATION-{radiusUser.Id}",
                             PaymentMethod = "Activation",
                             CreatedAt = DateTime.UtcNow,
-                            CreatedBy = userEmail
+                            CreatedBy = userEmail,
+                            RadiusUserId = radiusUser.Id,
+                            RadiusUsername = radiusUser.Username,
+                            RadiusProfileId = radiusProfileId,
+                            RadiusProfileName = radiusProfileName,
+                            BillingProfileId = billingProfileId,
+                            BillingProfileName = billingProfile.Name
                         };
                         _context.Transactions.Add(transaction);
 
@@ -608,7 +630,13 @@ public class RadiusActivationController : ControllerBase
                             Reference = $"ACTIVATION-{radiusUser.Id}",
                             PaymentMethod = "Activation",
                             CreatedAt = DateTime.UtcNow,
-                            CreatedBy = userEmail
+                            CreatedBy = userEmail,
+                            RadiusUserId = radiusUser.Id,
+                            RadiusUsername = radiusUser.Username,
+                            RadiusProfileId = radiusProfileId,
+                            RadiusProfileName = radiusProfileName,
+                            BillingProfileId = billingProfileId,
+                            BillingProfileName = billingProfile.Name
                         };
                         _context.Transactions.Add(transaction);
 
@@ -672,7 +700,13 @@ public class RadiusActivationController : ControllerBase
                                 Reference = $"ACTIVATION-{radiusUser.Id}",
                                 PaymentMethod = "Activation",
                                 CreatedAt = DateTime.UtcNow,
-                                CreatedBy = userEmail
+                                CreatedBy = userEmail,
+                                RadiusUserId = radiusUser.Id,
+                                RadiusUsername = radiusUser.Username,
+                                RadiusProfileId = radiusProfileId,
+                                RadiusProfileName = radiusProfileName,
+                                BillingProfileId = billingProfileId,
+                                BillingProfileName = billingProfile.Name
                             };
                             _context.Transactions.Add(transaction);
 

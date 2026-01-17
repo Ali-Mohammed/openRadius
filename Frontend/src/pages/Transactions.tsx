@@ -121,6 +121,9 @@ export default function Transactions() {
     type: true,
     wallet: true,
     user: true,
+    radiusUsername: true,
+    radiusProfile: true,
+    billingProfile: true,
     amount: true,
     before: true,
     after: true,
@@ -550,6 +553,24 @@ export default function Transactions() {
                 User
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
+                checked={columnVisibility.radiusUsername}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, radiusUsername: checked }))}
+              >
+                RADIUS Username
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.radiusProfile}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, radiusProfile: checked }))}
+              >
+                RADIUS Profile
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.billingProfile}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, billingProfile: checked }))}
+              >
+                Billing Profile
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
                 checked={columnVisibility.amount}
                 onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, amount: checked }))}
               >
@@ -615,6 +636,9 @@ export default function Transactions() {
               {columnVisibility.type && <TableHead className="h-12 px-4 font-semibold">Type</TableHead>}
               {columnVisibility.wallet && <TableHead className="h-12 px-4 font-semibold">Wallet</TableHead>}
               {columnVisibility.user && <TableHead className="h-12 px-4 font-semibold">User</TableHead>}
+              {columnVisibility.radiusUsername && <TableHead className="h-12 px-4 font-semibold">RADIUS Username</TableHead>}
+              {columnVisibility.radiusProfile && <TableHead className="h-12 px-4 font-semibold">RADIUS Profile</TableHead>}
+              {columnVisibility.billingProfile && <TableHead className="h-12 px-4 font-semibold">Billing Profile</TableHead>}
               {columnVisibility.amount && <TableHead className="h-12 px-4 font-semibold text-right">Amount</TableHead>}
               {columnVisibility.before && <TableHead className="h-12 px-4 font-semibold text-right">Before</TableHead>}
               {columnVisibility.after && <TableHead className="h-12 px-4 font-semibold text-right">After</TableHead>}
@@ -631,6 +655,9 @@ export default function Transactions() {
                   {columnVisibility.type && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
                   {columnVisibility.wallet && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
                   {columnVisibility.user && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
+                  {columnVisibility.radiusUsername && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
+                  {columnVisibility.radiusProfile && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
+                  {columnVisibility.billingProfile && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
                   {columnVisibility.amount && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
                   {columnVisibility.before && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
                   {columnVisibility.after && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
@@ -640,7 +667,7 @@ export default function Transactions() {
               ))
 ) : transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-12">
+                <TableCell colSpan={13} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     {showTrash ? (
                       <>
@@ -722,6 +749,33 @@ export default function Transactions() {
                                   {transaction.userEmail}
                                 </div>
                               </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {columnVisibility.radiusUsername && (
+                          <TableCell className="h-12 px-4">
+                            {transaction.radiusUsername ? (
+                              <span className="text-sm font-medium">{transaction.radiusUsername}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {columnVisibility.radiusProfile && (
+                          <TableCell className="h-12 px-4">
+                            {transaction.radiusProfileName ? (
+                              <span className="text-sm">{transaction.radiusProfileName}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {columnVisibility.billingProfile && (
+                          <TableCell className="h-12 px-4">
+                            {transaction.billingProfileName ? (
+                              <span className="text-sm">{transaction.billingProfileName}</span>
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}

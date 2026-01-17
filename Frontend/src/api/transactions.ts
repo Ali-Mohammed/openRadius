@@ -26,6 +26,13 @@ export interface Transaction {
   deletedBy?: string
   createdAt: string
   createdBy?: string
+  // RADIUS activation related fields
+  radiusUserId?: number
+  radiusUsername?: string
+  radiusProfileId?: number
+  radiusProfileName?: string
+  billingProfileId?: number
+  billingProfileName?: string
 }
 
 export interface CreateTransactionRequest {
