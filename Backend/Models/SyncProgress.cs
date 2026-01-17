@@ -37,8 +37,7 @@ public class SyncProgress
     public int IntegrationId { get; set; }
     public string IntegrationName { get; set; } = string.Empty;
     
-    public int WorkspaceId { get; set; }
-    
+
     public SyncStatus Status { get; set; }
     public SyncPhase CurrentPhase { get; set; }
     
