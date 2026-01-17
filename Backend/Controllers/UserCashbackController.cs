@@ -75,6 +75,27 @@ namespace Backend.Controllers
             }
         }
 
+        // GET: api/UserCashback/user-ids
+        [HttpGet("user-ids")]
+        public async Task<IActionResult> GetUserIdsWithCashbacks()
+        {
+            try
+            {
+                var userIds = await _context.UserCashbacks
+                    .Where(uc => uc.DeletedAt == null)
+                    .Select(uc => uc.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                return Ok(userIds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user IDs with cashbacks");
+                return StatusCode(500, new { error = "An error occurred while retrieving user IDs" });
+            }
+        }
+
         // POST: api/UserCashback
         [HttpPost]
         public async Task<IActionResult> SaveUserCashbacks([FromBody] SaveUserCashbacksRequest request)

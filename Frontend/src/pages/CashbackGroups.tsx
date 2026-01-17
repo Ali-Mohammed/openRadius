@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Trash2, RefreshCw, Search, Archive, RotateCcw, UsersRound, Users, Palette } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, Archive, RotateCcw, UsersRound, Users, Palette, Settings } from 'lucide-react'
 import { cashbackGroupApi, type CashbackGroup } from '@/api/cashbackGroupApi'
 import { userManagementApi } from '@/api/userManagementApi'
+import { userCashbackApi } from '@/api/userCashbackApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -87,6 +88,13 @@ export default function CashbackGroups() {
     queryFn: () => userManagementApi.getAll(),
   })
 
+  // Fetch user IDs that have individual cashback settings
+  const { data: userIdsWithCashbacks } = useQuery({
+    queryKey: ['user-cashback-ids', currentWorkspaceId],
+    queryFn: () => userCashbackApi.getUserIdsWithCashbacks(),
+    enabled: !!currentWorkspaceId,
+  })
+
   // Fetch all active groups to track user assignments
   const { data: allGroupsData } = useQuery({
     queryKey: ['cashback-groups-all', currentWorkspaceId],
@@ -129,14 +137,25 @@ export default function CashbackGroups() {
   const pagination = groupsData?.pagination
   const users = useMemo(() => usersData || [], [usersData])
   
-  // Filter users to only show unassigned users or users in current editing group
+  // Show all users but mark those with individual cashbacks or assigned to other groups
   const availableUsers = useMemo(() => {
-    return users.filter(user => {
+    return users.map(user => {
       const assignedGroupId = assignedUserIds[user.id]
-      // Include if not assigned to any group, or assigned to the group being edited
-      return !assignedGroupId || (editingGroup && assignedGroupId === editingGroup.id)
+      const hasIndividualCashback = userIdsWithCashbacks?.includes(user.id) || false
+      const isInOtherGroup = assignedGroupId && (!editingGroup || assignedGroupId !== editingGroup.id)
+      
+      return {
+        ...user,
+        hasIndividualCashback,
+        isDisabled: hasIndividualCashback || isInOtherGroup,
+        disabledReason: hasIndividualCashback 
+          ? 'Has individual cashback settings' 
+          : isInOtherGroup 
+            ? `Already in another group` 
+            : undefined
+      }
     })
-  }, [users, assignedUserIds, editingGroup])
+  }, [users, assignedUserIds, editingGroup, userIdsWithCashbacks])
 
   const rowVirtualizer = useVirtualizer({
     count: groups.length,
@@ -674,14 +693,31 @@ export default function CashbackGroups() {
                               return fullName.includes(userSearch.toLowerCase())
                             })
                             .map(user => (
-                              <div key={user.id} className="flex items-center space-x-2">
+                              <div key={user.id} className={cn(
+                                "flex items-center space-x-2 p-2 rounded",
+                                user.isDisabled && "bg-muted/50"
+                              )}>
                                 <Checkbox
                                   id={`user-${user.id}`}
                                   checked={selectedUserIds.includes(user.id)}
-                                  onCheckedChange={() => toggleUserSelection(user.id)}
+                                  onCheckedChange={() => !user.isDisabled && toggleUserSelection(user.id)}
+                                  disabled={user.isDisabled}
                                 />
-                                <Label htmlFor={`user-${user.id}`} className="cursor-pointer flex-1">
-                                  {user.firstName} {user.lastName} ({user.email})
+                                <Label 
+                                  htmlFor={`user-${user.id}`} 
+                                  className={cn(
+                                    "flex-1 flex items-center gap-2",
+                                    user.isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                                  )}
+                                  title={user.disabledReason}
+                                >
+                                  {user.hasIndividualCashback && (
+                                    <Settings className="h-4 w-4 text-orange-500" />
+                                  )}
+                                  <span>{user.firstName} {user.lastName} ({user.email})</span>
+                                  {user.hasIndividualCashback && (
+                                    <span className="text-xs text-orange-500 ml-auto">Individual settings</span>
+                                  )}
                                 </Label>
                               </div>
                             ))}

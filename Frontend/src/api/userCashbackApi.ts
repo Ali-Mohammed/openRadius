@@ -46,6 +46,12 @@ export const userCashbackApi = {
     return response.data;
   },
 
+  // Get user IDs that have individual cashback settings
+  getUserIdsWithCashbacks: async (): Promise<number[]> => {
+    const response = await apiClient.get<number[]>('/api/UserCashback/user-ids');
+    return response.data;
+  },
+
   // Save cashbacks for a user (create/update)
   save: async (request: SaveUserCashbacksRequest): Promise<void> => {
     await apiClient.post('/api/UserCashback', request);
