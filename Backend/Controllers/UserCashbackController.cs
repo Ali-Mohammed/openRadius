@@ -12,15 +12,18 @@ namespace Backend.Controllers
     public class UserCashbackController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly MasterDbContext _masterContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<UserCashbackController> _logger;
 
         public UserCashbackController(
             ApplicationDbContext context,
+            MasterDbContext masterContext,
             IHttpContextAccessor httpContextAccessor,
             ILogger<UserCashbackController> logger)
         {
             _context = context;
+            _masterContext = masterContext;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
         }
@@ -33,7 +36,6 @@ namespace Backend.Controllers
             {
                 IQueryable<UserCashback> query = _context.UserCashbacks
                     .Where(uc => uc.DeletedAt == null)
-                    .Include(uc => uc.User)
                     .Include(uc => uc.BillingProfile);
 
                 if (userId.HasValue)
@@ -60,9 +62,8 @@ namespace Backend.Controllers
             {
                 var cashbacks = await _context.UserCashbacks
                     .Where(uc => uc.DeletedAt == null)
-                    .Include(uc => uc.User)
                     .Include(uc => uc.BillingProfile)
-                    .OrderBy(uc => uc.User!.Email)
+                    .OrderBy(uc => uc.UserId)
                     .ToListAsync();
 
                 return Ok(cashbacks);
@@ -83,7 +84,7 @@ namespace Backend.Controllers
                 var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
 
                 // Verify the user exists
-                var userExists = await _context.Users.AnyAsync(u => u.Id == request.UserId);
+                var userExists = await _masterContext.Users.AnyAsync(u => u.Id == request.UserId);
                 if (!userExists)
                 {
                     return BadRequest(new { error = $"User with ID {request.UserId} does not exist" });

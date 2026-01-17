@@ -77,6 +77,18 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().Ignore(u => u.UserRoles);
         modelBuilder.Entity<User>().Ignore(u => u.UserGroups);
 
+        // UserCashback: Ignore User navigation property since Users table is in MasterDbContext
+        modelBuilder.Entity<UserCashback>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.User); // User is in master database, not workspace database
+            
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<RadiusUser>(entity =>
         {
             entity.HasKey(e => e.Id);
