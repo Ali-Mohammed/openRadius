@@ -10,13 +10,20 @@ namespace Backend.Migrations.ApplicationDb
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserCashbacks_User_UserId",
-                table: "UserCashbacks");
+            // Drop FK only if it exists (may have been removed in a previous migration or never created)
+            migrationBuilder.Sql(@"
+                DO $$ 
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'FK_UserCashbacks_User_UserId' AND table_name = 'UserCashbacks') THEN
+                        ALTER TABLE ""UserCashbacks"" DROP CONSTRAINT ""FK_UserCashbacks_User_UserId"";
+                    END IF;
+                END $$;
+            ");
 
-            migrationBuilder.DropIndex(
-                name: "IX_UserCashbacks_UserId",
-                table: "UserCashbacks");
+            // Drop index only if it exists
+            migrationBuilder.Sql(@"
+                DROP INDEX IF EXISTS ""IX_UserCashbacks_UserId"";
+            ");
         }
 
         /// <inheritdoc />

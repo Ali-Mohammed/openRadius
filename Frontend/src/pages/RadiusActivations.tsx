@@ -17,7 +17,6 @@ import {
   Activity,
   Eye,
   Trash2,
-  Download,
   Calendar,
   User,
   ArrowUpDown,
@@ -27,7 +26,7 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
