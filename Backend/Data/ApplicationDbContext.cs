@@ -66,6 +66,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Fdt> Fdts { get; set; }
     public DbSet<Fat> Fats { get; set; }
     public DbSet<FatPort> FatPorts { get; set; }
+    public DbSet<RadiusAccounting> RadiusAccounting { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

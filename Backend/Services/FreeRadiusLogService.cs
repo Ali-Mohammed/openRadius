@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Backend.Models;
+using Backend.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services;
 
@@ -15,11 +17,15 @@ public interface IFreeRadiusLogService
 public class FreeRadiusLogService : IFreeRadiusLogService
 {
     private readonly ILogger<FreeRadiusLogService> _logger;
+    private readonly ApplicationDbContext _dbContext;
     private readonly string _containerName = "freeradius";
 
-    public FreeRadiusLogService(ILogger<FreeRadiusLogService> logger)
+    public FreeRadiusLogService(
+        ILogger<FreeRadiusLogService> logger,
+        ApplicationDbContext dbContext)
     {
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     public async Task<bool> IsFreeRadiusRunningAsync()
@@ -129,34 +135,85 @@ public class FreeRadiusLogService : IFreeRadiusLogService
 
         try
         {
-            // Use radlast command to read wtmp file
-            var command = $"exec {_containerName} radlast -n {limit}";
-            var output = await ExecuteDockerCommandAsync(command);
+            // Read from radacct table instead of radwtmp file
+            // Use FromSqlRaw to handle inet type conversion to text
+            var sessions = await _dbContext.RadiusAccounting
+                .FromSqlRaw(@"
+                    SELECT 
+                        radacctid,
+                        acctsessionid,
+                        acctuniqueid,
+                        username,
+                        realm,
+                        CAST(nasipaddress AS TEXT) as nasipaddress,
+                        nasportid,
+                        nasporttype,
+                        acctstarttime,
+                        acctupdatetime,
+                        acctstoptime,
+                        acctinterval,
+                        acctsessiontime,
+                        acctauthentic,
+                        connectinfo_start,
+                        connectinfo_stop,
+                        acctinputoctets,
+                        acctoutputoctets,
+                        CAST(calledstationid AS TEXT) as calledstationid,
+                        CAST(callingstationid AS TEXT) as callingstationid,
+                        acctterminatecause,
+                        servicetype,
+                        framedprotocol,
+                        CAST(framedipaddress AS TEXT) as framedipaddress,
+                        framedipv6address,
+                        framedipv6prefix,
+                        framedinterfaceid,
+                        delegatedipv6prefix,
+                        class
+                    FROM radacct 
+                    ORDER BY acctstarttime DESC 
+                    LIMIT {0}", limit)
+                .AsNoTracking()
+                .ToListAsync();
 
-            if (string.IsNullOrWhiteSpace(output))
+            foreach (var session in sessions)
             {
-                return entries;
-            }
-
-            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            
-            // Skip header line
-            foreach (var line in lines.Skip(1))
-            {
-                var entry = ParseRadwtmpLine(line);
-                if (entry != null)
+                var entry = new RadwtmpEntry
                 {
-                    entries.Add(entry);
-                }
+                    Username = session.UserName ?? "",
+                    NasIpAddress = session.NasIpAddress ?? "",
+                    LoginTime = session.AcctStartTime ?? DateTime.MinValue,
+                    LogoutTime = session.AcctStopTime,
+                    IsOnline = session.AcctStopTime == null,
+                    Duration = FormatSessionDuration(session.AcctSessionTime)
+                };
+
+                entries.Add(entry);
             }
 
             return entries;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to read radwtmp entries");
+            _logger.LogError(ex, "Failed to read login history from radacct table");
             return entries;
         }
+    }
+
+    private string FormatSessionDuration(long? seconds)
+    {
+        if (!seconds.HasValue || seconds.Value == 0)
+            return "0s";
+
+        var ts = TimeSpan.FromSeconds(seconds.Value);
+        
+        if (ts.TotalDays >= 1)
+            return $"{(int)ts.TotalDays}d {ts.Hours}h {ts.Minutes}m";
+        else if (ts.TotalHours >= 1)
+            return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+        else if (ts.TotalMinutes >= 1)
+            return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        else
+            return $"{ts.Seconds}s";
     }
 
     private async Task<string> GetRawLogsAsync(string logPath, int lines)
@@ -300,57 +357,6 @@ public class FreeRadiusLogService : IFreeRadiusLogService
             : line;
 
         return entry;
-    }
-
-    private RadwtmpEntry? ParseRadwtmpLine(string line)
-    {
-        try
-        {
-            // radlast output format: username  nas  login-time  logout-time  duration
-            var parts = Regex.Split(line, @"\s{2,}"); // Split by 2+ spaces
-            
-            if (parts.Length < 3)
-                return null;
-
-            var entry = new RadwtmpEntry
-            {
-                Username = parts[0].Trim(),
-                NasIpAddress = parts.Length > 1 ? parts[1].Trim() : "",
-            };
-
-            // Parse login time
-            if (parts.Length > 2 && DateTime.TryParse(parts[2], out var loginTime))
-            {
-                entry.LoginTime = loginTime;
-            }
-
-            // Check if still logged in
-            if (line.Contains("still logged in"))
-            {
-                entry.IsOnline = true;
-            }
-            else if (parts.Length > 3)
-            {
-                if (DateTime.TryParse(parts[3], out var logoutTime))
-                {
-                    entry.LogoutTime = logoutTime;
-                    entry.IsOnline = false;
-                }
-            }
-
-            // Parse duration
-            if (parts.Length > 4)
-            {
-                entry.Duration = parts[4].Trim();
-            }
-
-            return entry;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to parse radwtmp line: {Line}", line);
-            return null;
-        }
     }
 
     private string GetLogPath(string logType)
