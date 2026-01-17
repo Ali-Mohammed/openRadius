@@ -2966,20 +2966,26 @@ export default function RadiusUsers() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setActivationDialogOpen(false)}
+              onClick={() => {
+                setActivationDialogOpen(false)
+                setUserToActivate(null)
+                setActivationFormData({ billingProfileId: "" })
+                setConfirmActivation(false)
+              }}
               disabled={activationMutation.isPending}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSubmitActivation}
+              onClick={() => setShowConfirmDialog(true)}
               disabled={
                 !activationFormData.billingProfileId || 
                 activationMutation.isPending ||
                 !myWallet?.hasWallet ||
                 (myWallet?.hasWallet && 
                   !myWallet.allowNegativeBalance && 
-                  (myWallet.currentBalance || 0) < (selectedBillingProfile?.price || 0))
+                  (myWallet.currentBalance || 0) < (selectedBillingProfile?.price || 0)) ||
+                !confirmActivation
               }
               className="bg-green-600 hover:bg-green-700"
             >
@@ -2998,6 +3004,73 @@ export default function RadiusUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Activation Confirmation AlertDialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm User Activation</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Please confirm that you want to activate the following user:</p>
+              
+              <div className="space-y-2 rounded-lg border p-3 bg-muted/50">
+                <div className="flex justify-between">
+                  <span className="font-medium">Username:</span>
+                  <span>{userToActivate?.username}</span>
+                </div>
+                {selectedBillingProfile && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="font-medium">Billing Profile:</span>
+                      <span>{selectedBillingProfile.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Price:</span>
+                      <span className="font-semibold text-orange-600">${selectedBillingProfile.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Duration:</span>
+                      <span>{selectedBillingProfile.duration} days</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="font-medium">Current Balance:</span>
+                      <span>${myWallet?.currentBalance?.toFixed(2) || '0.00'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Balance After:</span>
+                      <span className={
+                        ((myWallet?.currentBalance || 0) - selectedBillingProfile.price) < 0 
+                          ? 'text-red-600 font-semibold' 
+                          : 'text-green-600 font-semibold'
+                      }>
+                        ${((myWallet?.currentBalance || 0) - selectedBillingProfile.price).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <p className="text-sm text-amber-600 dark:text-amber-500">
+                This action will deduct ${selectedBillingProfile?.price.toFixed(2)} from your wallet.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                handleSubmitActivation()
+                setShowConfirmDialog(false)
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Confirm Activation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
