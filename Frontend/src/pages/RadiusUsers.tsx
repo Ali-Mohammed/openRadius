@@ -260,6 +260,13 @@ export default function RadiusUsers() {
     enabled: !!currentWorkspaceId,
   })
 
+  // Get current user's wallet
+  const { data: myWallet, refetch: refetchWallet } = useQuery({
+    queryKey: ['my-wallet', currentWorkspaceId],
+    queryFn: () => userWalletApi.getMyWallet(),
+    enabled: !!currentWorkspaceId && activationDialogOpen,
+  })
+
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: usersData, isLoading, isFetching } = useQuery({
