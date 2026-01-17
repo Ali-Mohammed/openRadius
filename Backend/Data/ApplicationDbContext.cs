@@ -58,6 +58,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Zone> Zones { get; set; }
     public DbSet<UserZone> UserZones { get; set; }
     public DbSet<Dashboard> Dashboards { get; set; }
+    public DbSet<RadiusActivation> RadiusActivations { get; set; }
     public DbSet<DashboardTab> DashboardTabs { get; set; }
     public DbSet<DashboardItem> DashboardItems { get; set; }
     public DbSet<DashboardGlobalFilter> DashboardGlobalFilters { get; set; }
@@ -446,6 +447,47 @@ public class ApplicationDbContext : DbContext
             
             // Add query filter to exclude soft-deleted amounts by default
             entity.HasQueryFilter(e => e.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<RadiusActivation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.RadiusUserId);
+            entity.HasIndex(e => e.RadiusProfileId);
+            entity.HasIndex(e => e.BillingProfileId);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.ApiStatus);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.RadiusUserId, e.CreatedAt });
+
+            entity.HasOne(e => e.RadiusUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.RadiusUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.RadiusProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.RadiusProfileId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.PreviousRadiusProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.PreviousRadiusProfileId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.PreviousBillingProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.PreviousBillingProfileId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Add query filter to exclude soft-deleted activations by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
     }
 }

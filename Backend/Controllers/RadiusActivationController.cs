@@ -1,0 +1,590 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Backend.Data;
+using Backend.Models;
+
+namespace Backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class RadiusActivationController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<RadiusActivationController> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public RadiusActivationController(
+        ApplicationDbContext context,
+        ILogger<RadiusActivationController> logger,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _context = context;
+        _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    // GET: api/RadiusActivation
+    [HttpGet]
+    public async Task<ActionResult<object>> GetActivations(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? type = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? apiStatus = null,
+        [FromQuery] int? radiusUserId = null,
+        [FromQuery] int? radiusProfileId = null,
+        [FromQuery] int? billingProfileId = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = "desc",
+        [FromQuery] bool includeDeleted = false)
+    {
+        try
+        {
+            var query = includeDeleted 
+                ? _context.RadiusActivations.IgnoreQueryFilters()
+                : _context.RadiusActivations.AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(a => 
+                    (a.RadiusUsername != null && a.RadiusUsername.Contains(search)) ||
+                    (a.ActionByUsername != null && a.ActionByUsername.Contains(search)) ||
+                    (a.ActionForUsername != null && a.ActionForUsername.Contains(search)) ||
+                    (a.ExternalReferenceId != null && a.ExternalReferenceId.Contains(search)) ||
+                    (a.Notes != null && a.Notes.Contains(search)));
+            }
+
+            if (!string.IsNullOrEmpty(type))
+            {
+                query = query.Where(a => a.Type == type);
+            }
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(a => a.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(apiStatus))
+            {
+                query = query.Where(a => a.ApiStatus == apiStatus);
+            }
+
+            if (radiusUserId.HasValue)
+            {
+                query = query.Where(a => a.RadiusUserId == radiusUserId.Value);
+            }
+
+            if (radiusProfileId.HasValue)
+            {
+                query = query.Where(a => a.RadiusProfileId == radiusProfileId.Value);
+            }
+
+            if (billingProfileId.HasValue)
+            {
+                query = query.Where(a => a.BillingProfileId == billingProfileId.Value);
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(a => a.CreatedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(a => a.CreatedAt <= endDate.Value);
+            }
+
+            // Apply sorting
+            query = sortField?.ToLower() switch
+            {
+                "radiususername" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.RadiusUsername) 
+                    : query.OrderByDescending(a => a.RadiusUsername),
+                "type" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.Type) 
+                    : query.OrderByDescending(a => a.Type),
+                "status" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.Status) 
+                    : query.OrderByDescending(a => a.Status),
+                "apistatus" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.ApiStatus) 
+                    : query.OrderByDescending(a => a.ApiStatus),
+                "amount" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.Amount) 
+                    : query.OrderByDescending(a => a.Amount),
+                "currentexpiredate" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.CurrentExpireDate) 
+                    : query.OrderByDescending(a => a.CurrentExpireDate),
+                "createdat" => sortDirection == "asc" 
+                    ? query.OrderBy(a => a.CreatedAt) 
+                    : query.OrderByDescending(a => a.CreatedAt),
+                _ => query.OrderByDescending(a => a.CreatedAt)
+            };
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var activations = await query
+                .Include(a => a.RadiusUser)
+                .Include(a => a.RadiusProfile)
+                .Include(a => a.PreviousRadiusProfile)
+                .Include(a => a.BillingProfile)
+                .Include(a => a.PreviousBillingProfile)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new RadiusActivationResponse
+                {
+                    Id = a.Id,
+                    ActionById = a.ActionById,
+                    ActionByUsername = a.ActionByUsername,
+                    ActionForId = a.ActionForId,
+                    ActionForUsername = a.ActionForUsername,
+                    IsActionBehalf = a.IsActionBehalf,
+                    RadiusUserId = a.RadiusUserId,
+                    RadiusUsername = a.RadiusUsername ?? a.RadiusUser!.Username,
+                    PreviousRadiusProfileId = a.PreviousRadiusProfileId,
+                    PreviousRadiusProfileName = a.PreviousRadiusProfile != null ? a.PreviousRadiusProfile.Name : null,
+                    RadiusProfileId = a.RadiusProfileId,
+                    RadiusProfileName = a.RadiusProfile != null ? a.RadiusProfile.Name : null,
+                    PreviousBillingProfileId = a.PreviousBillingProfileId,
+                    PreviousBillingProfileName = a.PreviousBillingProfile != null ? a.PreviousBillingProfile.Name : null,
+                    BillingProfileId = a.BillingProfileId,
+                    BillingProfileName = a.BillingProfile != null ? a.BillingProfile.Name : null,
+                    PreviousExpireDate = a.PreviousExpireDate,
+                    CurrentExpireDate = a.CurrentExpireDate,
+                    NextExpireDate = a.NextExpireDate,
+                    PreviousBalance = a.PreviousBalance,
+                    NewBalance = a.NewBalance,
+                    Amount = a.Amount,
+                    Type = a.Type,
+                    Status = a.Status,
+                    ApiStatus = a.ApiStatus,
+                    ApiStatusCode = a.ApiStatusCode,
+                    ApiStatusMessage = a.ApiStatusMessage,
+                    ExternalReferenceId = a.ExternalReferenceId,
+                    TransactionId = a.TransactionId,
+                    PaymentMethod = a.PaymentMethod,
+                    DurationDays = a.DurationDays,
+                    Source = a.Source,
+                    IpAddress = a.IpAddress,
+                    Notes = a.Notes,
+                    RetryCount = a.RetryCount,
+                    ProcessingStartedAt = a.ProcessingStartedAt,
+                    ProcessingCompletedAt = a.ProcessingCompletedAt,
+                    CreatedAt = a.CreatedAt,
+                    UpdatedAt = a.UpdatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                data = activations,
+                page,
+                pageSize,
+                totalCount,
+                totalPages
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching activations");
+            return StatusCode(500, new { error = "An error occurred while fetching activations" });
+        }
+    }
+
+    // GET: api/RadiusActivation/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<RadiusActivationResponse>> GetActivation(int id)
+    {
+        try
+        {
+            var activation = await _context.RadiusActivations
+                .Include(a => a.RadiusUser)
+                .Include(a => a.RadiusProfile)
+                .Include(a => a.PreviousRadiusProfile)
+                .Include(a => a.BillingProfile)
+                .Include(a => a.PreviousBillingProfile)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (activation == null)
+            {
+                return NotFound(new { error = "Activation not found" });
+            }
+
+            return Ok(new RadiusActivationResponse
+            {
+                Id = activation.Id,
+                ActionById = activation.ActionById,
+                ActionByUsername = activation.ActionByUsername,
+                ActionForId = activation.ActionForId,
+                ActionForUsername = activation.ActionForUsername,
+                IsActionBehalf = activation.IsActionBehalf,
+                RadiusUserId = activation.RadiusUserId,
+                RadiusUsername = activation.RadiusUsername ?? activation.RadiusUser?.Username,
+                PreviousRadiusProfileId = activation.PreviousRadiusProfileId,
+                PreviousRadiusProfileName = activation.PreviousRadiusProfile?.Name,
+                RadiusProfileId = activation.RadiusProfileId,
+                RadiusProfileName = activation.RadiusProfile?.Name,
+                PreviousBillingProfileId = activation.PreviousBillingProfileId,
+                PreviousBillingProfileName = activation.PreviousBillingProfile?.Name,
+                BillingProfileId = activation.BillingProfileId,
+                BillingProfileName = activation.BillingProfile?.Name,
+                PreviousExpireDate = activation.PreviousExpireDate,
+                CurrentExpireDate = activation.CurrentExpireDate,
+                NextExpireDate = activation.NextExpireDate,
+                PreviousBalance = activation.PreviousBalance,
+                NewBalance = activation.NewBalance,
+                Amount = activation.Amount,
+                Type = activation.Type,
+                Status = activation.Status,
+                ApiStatus = activation.ApiStatus,
+                ApiStatusCode = activation.ApiStatusCode,
+                ApiStatusMessage = activation.ApiStatusMessage,
+                ExternalReferenceId = activation.ExternalReferenceId,
+                TransactionId = activation.TransactionId,
+                PaymentMethod = activation.PaymentMethod,
+                DurationDays = activation.DurationDays,
+                Source = activation.Source,
+                IpAddress = activation.IpAddress,
+                Notes = activation.Notes,
+                RetryCount = activation.RetryCount,
+                ProcessingStartedAt = activation.ProcessingStartedAt,
+                ProcessingCompletedAt = activation.ProcessingCompletedAt,
+                CreatedAt = activation.CreatedAt,
+                UpdatedAt = activation.UpdatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching activation {id}");
+            return StatusCode(500, new { error = "An error occurred while fetching the activation" });
+        }
+    }
+
+    // GET: api/RadiusActivation/user/{radiusUserId}
+    [HttpGet("user/{radiusUserId}")]
+    public async Task<ActionResult<IEnumerable<RadiusActivationResponse>>> GetUserActivations(
+        int radiusUserId,
+        [FromQuery] int limit = 50)
+    {
+        try
+        {
+            var activations = await _context.RadiusActivations
+                .Where(a => a.RadiusUserId == radiusUserId)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(limit)
+                .Include(a => a.RadiusProfile)
+                .Include(a => a.BillingProfile)
+                .Select(a => new RadiusActivationResponse
+                {
+                    Id = a.Id,
+                    ActionByUsername = a.ActionByUsername,
+                    IsActionBehalf = a.IsActionBehalf,
+                    RadiusUserId = a.RadiusUserId,
+                    RadiusUsername = a.RadiusUsername,
+                    RadiusProfileId = a.RadiusProfileId,
+                    RadiusProfileName = a.RadiusProfile != null ? a.RadiusProfile.Name : null,
+                    BillingProfileId = a.BillingProfileId,
+                    BillingProfileName = a.BillingProfile != null ? a.BillingProfile.Name : null,
+                    PreviousExpireDate = a.PreviousExpireDate,
+                    CurrentExpireDate = a.CurrentExpireDate,
+                    Amount = a.Amount,
+                    Type = a.Type,
+                    Status = a.Status,
+                    ApiStatus = a.ApiStatus,
+                    CreatedAt = a.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(activations);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching activations for user {radiusUserId}");
+            return StatusCode(500, new { error = "An error occurred while fetching user activations" });
+        }
+    }
+
+    // POST: api/RadiusActivation
+    [HttpPost]
+    public async Task<ActionResult<RadiusActivationResponse>> CreateActivation([FromBody] CreateRadiusActivationRequest request)
+    {
+        try
+        {
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+            var userAgent = _httpContextAccessor.HttpContext?.Request?.Headers["User-Agent"].ToString();
+
+            // Get the RADIUS user
+            var radiusUser = await _context.RadiusUsers.FindAsync(request.RadiusUserId);
+            if (radiusUser == null)
+            {
+                return NotFound(new { error = "RADIUS user not found" });
+            }
+
+            var activation = new RadiusActivation
+            {
+                ActionByUsername = userEmail,
+                ActionForId = request.ActionForId,
+                ActionForUsername = request.ActionForUsername,
+                IsActionBehalf = request.IsActionBehalf,
+                RadiusUserId = request.RadiusUserId,
+                RadiusUsername = radiusUser.Username,
+                PreviousRadiusProfileId = radiusUser.ProfileId,
+                RadiusProfileId = request.RadiusProfileId ?? radiusUser.ProfileId,
+                PreviousBillingProfileId = radiusUser.ProfileBillingId,
+                BillingProfileId = request.BillingProfileId ?? radiusUser.ProfileBillingId,
+                PreviousExpireDate = radiusUser.Expiration,
+                CurrentExpireDate = radiusUser.Expiration,
+                NextExpireDate = request.NextExpireDate,
+                PreviousBalance = radiusUser.Balance,
+                Amount = request.Amount,
+                Type = request.Type,
+                Status = "pending",
+                PaymentMethod = request.PaymentMethod,
+                DurationDays = request.DurationDays,
+                Source = request.Source ?? "web",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                Notes = request.Notes,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.RadiusActivations.Add(activation);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Created activation {activation.Id} for user {radiusUser.Username}");
+
+            return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
+            {
+                Id = activation.Id,
+                ActionByUsername = activation.ActionByUsername,
+                IsActionBehalf = activation.IsActionBehalf,
+                RadiusUserId = activation.RadiusUserId,
+                RadiusUsername = activation.RadiusUsername,
+                RadiusProfileId = activation.RadiusProfileId,
+                BillingProfileId = activation.BillingProfileId,
+                PreviousExpireDate = activation.PreviousExpireDate,
+                CurrentExpireDate = activation.CurrentExpireDate,
+                NextExpireDate = activation.NextExpireDate,
+                Amount = activation.Amount,
+                Type = activation.Type,
+                Status = activation.Status,
+                Source = activation.Source,
+                CreatedAt = activation.CreatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating activation");
+            return StatusCode(500, new { error = "An error occurred while creating the activation" });
+        }
+    }
+
+    // PUT: api/RadiusActivation/{id}/status
+    [HttpPut("{id}/status")]
+    public async Task<ActionResult> UpdateActivationStatus(
+        int id,
+        [FromBody] UpdateActivationStatusRequest request)
+    {
+        try
+        {
+            var activation = await _context.RadiusActivations.FindAsync(id);
+            if (activation == null)
+            {
+                return NotFound(new { error = "Activation not found" });
+            }
+
+            activation.Status = request.Status;
+            activation.ApiStatus = request.ApiStatus;
+            activation.ApiStatusCode = request.ApiStatusCode;
+            activation.ApiStatusMessage = request.ApiStatusMessage;
+            activation.ApiResponse = request.ApiResponse;
+            activation.ExternalReferenceId = request.ExternalReferenceId;
+            activation.UpdatedAt = DateTime.UtcNow;
+
+            if (request.Status == "processing" && activation.ProcessingStartedAt == null)
+            {
+                activation.ProcessingStartedAt = DateTime.UtcNow;
+            }
+
+            if (request.Status == "completed" || request.Status == "failed")
+            {
+                activation.ProcessingCompletedAt = DateTime.UtcNow;
+            }
+
+            if (request.Status == "failed")
+            {
+                activation.RetryCount++;
+                activation.LastRetryAt = DateTime.UtcNow;
+            }
+
+            if (request.NewBalance.HasValue)
+            {
+                activation.NewBalance = request.NewBalance;
+            }
+
+            if (request.CurrentExpireDate.HasValue)
+            {
+                activation.CurrentExpireDate = request.CurrentExpireDate;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Activation status updated" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error updating activation status {id}");
+            return StatusCode(500, new { error = "An error occurred while updating the activation status" });
+        }
+    }
+
+    // DELETE: api/RadiusActivation/{id}
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteActivation(int id)
+    {
+        try
+        {
+            var activation = await _context.RadiusActivations.FindAsync(id);
+            if (activation == null)
+            {
+                return NotFound(new { error = "Activation not found" });
+            }
+
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            activation.IsDeleted = true;
+            activation.DeletedAt = DateTime.UtcNow;
+            activation.DeletedBy = userEmail;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error deleting activation {id}");
+            return StatusCode(500, new { error = "An error occurred while deleting the activation" });
+        }
+    }
+
+    // GET: api/RadiusActivation/types
+    [HttpGet("types")]
+    public ActionResult<IEnumerable<object>> GetActivationTypes()
+    {
+        var types = new[]
+        {
+            new { value = "new_activation", label = "New Activation" },
+            new { value = "renew", label = "Renew" },
+            new { value = "change_profile", label = "Change Profile" },
+            new { value = "upgrade", label = "Upgrade" },
+            new { value = "downgrade", label = "Downgrade" },
+            new { value = "extension", label = "Extension" },
+            new { value = "reactivation", label = "Reactivation" },
+            new { value = "suspension", label = "Suspension" },
+            new { value = "cancellation", label = "Cancellation" }
+        };
+
+        return Ok(types);
+    }
+
+    // GET: api/RadiusActivation/statuses
+    [HttpGet("statuses")]
+    public ActionResult<IEnumerable<object>> GetActivationStatuses()
+    {
+        var statuses = new[]
+        {
+            new { value = "pending", label = "Pending" },
+            new { value = "processing", label = "Processing" },
+            new { value = "completed", label = "Completed" },
+            new { value = "failed", label = "Failed" },
+            new { value = "cancelled", label = "Cancelled" },
+            new { value = "rolled_back", label = "Rolled Back" }
+        };
+
+        return Ok(statuses);
+    }
+
+    // GET: api/RadiusActivation/api-statuses
+    [HttpGet("api-statuses")]
+    public ActionResult<IEnumerable<object>> GetApiStatuses()
+    {
+        var statuses = new[]
+        {
+            new { value = "success", label = "Success" },
+            new { value = "failed", label = "Failed" },
+            new { value = "timeout", label = "Timeout" },
+            new { value = "not_called", label = "Not Called" }
+        };
+
+        return Ok(statuses);
+    }
+
+    // GET: api/RadiusActivation/stats
+    [HttpGet("stats")]
+    public async Task<ActionResult<object>> GetActivationStats(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        try
+        {
+            var query = _context.RadiusActivations.AsQueryable();
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(a => a.CreatedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(a => a.CreatedAt <= endDate.Value);
+            }
+
+            var stats = new
+            {
+                totalActivations = await query.CountAsync(),
+                byStatus = await query
+                    .GroupBy(a => a.Status)
+                    .Select(g => new { status = g.Key, count = g.Count() })
+                    .ToListAsync(),
+                byType = await query
+                    .GroupBy(a => a.Type)
+                    .Select(g => new { type = g.Key, count = g.Count() })
+                    .ToListAsync(),
+                byApiStatus = await query
+                    .GroupBy(a => a.ApiStatus)
+                    .Select(g => new { apiStatus = g.Key, count = g.Count() })
+                    .ToListAsync(),
+                totalAmount = await query.SumAsync(a => a.Amount ?? 0),
+                successRate = await query.CountAsync() > 0
+                    ? Math.Round((double)await query.CountAsync(a => a.Status == "completed") / await query.CountAsync() * 100, 2)
+                    : 0
+            };
+
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching activation stats");
+            return StatusCode(500, new { error = "An error occurred while fetching activation stats" });
+        }
+    }
+}
+
+public class UpdateActivationStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+    public string? ApiStatus { get; set; }
+    public int? ApiStatusCode { get; set; }
+    public string? ApiStatusMessage { get; set; }
+    public string? ApiResponse { get; set; }
+    public string? ExternalReferenceId { get; set; }
+    public decimal? NewBalance { get; set; }
+    public DateTime? CurrentExpireDate { get; set; }
+}
