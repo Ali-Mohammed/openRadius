@@ -27,6 +27,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { tablePreferenceApi } from '../api/tablePreferenceApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Switch } from '../components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -823,6 +824,16 @@ export default function BillingProfiles() {
             ) : (
               <Badge variant="secondary">{billingGroup.name}</Badge>
             )}
+          </TableCell>
+        )
+      case 'isActive':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 text-center ${opacityClass}`} style={baseStyle}>
+            <Switch
+              checked={profile.isActive}
+              onCheckedChange={() => handleToggleActive(profile.id)}
+              disabled={profile.isDeleted || toggleActiveMutation.isPending}
+            />
           </TableCell>
         )
       case 'wallets':
