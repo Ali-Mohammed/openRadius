@@ -696,6 +696,200 @@ export default function BillingProfiles() {
     restoreMutation.mutate(id);
   };
 
+  // Render column header with drag and drop
+  const renderColumnHeader = (columnKey: string) => {
+    const columnConfig: Record<string, { label: string, sortKey?: string, align?: string, draggable?: boolean }> = {
+      name: { label: 'Name', sortKey: 'name' },
+      description: { label: 'Description', sortKey: 'description' },
+      price: { label: 'Price', sortKey: 'price', align: 'right' },
+      radiusProfile: { label: 'Radius Profile', sortKey: 'radiusProfile' },
+      billingGroup: { label: 'Billing Group' },
+      wallets: { label: 'Wallets' },
+      addons: { label: 'Addons' },
+      createdAt: { label: 'Created At', sortKey: 'createdAt' },
+      updatedAt: { label: 'Updated At', sortKey: 'updatedAt' },
+      deletedAt: { label: 'Deleted At' },
+      deletedBy: { label: 'Deleted By' },
+      actions: { label: 'Actions', draggable: false },
+    }
+
+    const config = columnConfig[columnKey]
+    if (!config) return null
+
+    // Check if column is visible
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const isDraggable = config.draggable !== false && columnKey !== 'actions'
+    const isSortable = !!config.sortKey
+    const isDragging = draggingColumn === columnKey
+    const isDragOver = dragOverColumn === columnKey
+
+    const baseClasses = "h-12 px-4 font-semibold whitespace-nowrap select-none relative"
+    const alignmentClass = config.align === 'right' ? 'text-right' : config.align === 'center' ? 'text-center' : ''
+    const sortableClass = isSortable ? 'cursor-pointer' : ''
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-muted z-10' : ''
+    
+    return (
+      <TableHead
+        key={columnKey}
+        className={`${baseClasses} ${alignmentClass} ${sortableClass} ${dragClasses} ${stickyClass}`}
+        style={{ width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }}
+        onClick={isSortable ? () => handleSort(config.sortKey!) : undefined}
+        draggable={isDraggable}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, columnKey) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, columnKey) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, columnKey) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
+      >
+        {config.label}
+        {isSortable && getSortIcon(config.sortKey!)}
+        <div 
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => { 
+            e.preventDefault()
+            e.stopPropagation() 
+            handleResize(columnKey, e.clientX, columnWidths[columnKey as keyof typeof columnWidths])
+          }}
+        />
+      </TableHead>
+    )
+  }
+
+  // Render table cell based on column order
+  const renderTableCell = (columnKey: string, profile: BillingProfile) => {
+    // Check if column is visible
+    const visibilityKey = columnKey as keyof typeof columnVisibility
+    if (columnKey !== 'actions' && columnVisibility[visibilityKey] === false) {
+      return null
+    }
+
+    const stickyClass = columnKey === 'actions' ? 'sticky right-0 bg-background z-10' : ''
+    const baseStyle = { width: `${columnWidths[columnKey as keyof typeof columnWidths]}px` }
+    const opacityClass = profile.isDeleted ? 'opacity-60' : ''
+
+    switch (columnKey) {
+      case 'name':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 font-medium ${opacityClass}`} style={baseStyle}>
+            {profile.name}
+          </TableCell>
+        )
+      case 'description':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 max-w-md truncate ${opacityClass}`} style={baseStyle}>
+            {profile.description || '-'}
+          </TableCell>
+        )
+      case 'price':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 text-right ${opacityClass}`} style={baseStyle}>
+            {profile.price ? (
+              <span className="font-medium">{currencySymbol}{profile.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </TableCell>
+        )
+      case 'radiusProfile':
+        const radiusProfile = radiusProfilesData?.data?.find((rp: any) => rp.id === profile.radiusProfileId)
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            {radiusProfile ? (
+              <div className="flex flex-col">
+                <span className="font-medium text-sm">{radiusProfile.name}</span>
+                {radiusProfile.downrate && radiusProfile.uprate && (
+                  <span className="text-xs text-muted-foreground">
+                    {radiusProfile.downrate}/{radiusProfile.uprate} Mbps
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </TableCell>
+        )
+      case 'billingGroup':
+        const billingGroup = billingGroupsData?.data?.find((bg: any) => bg.id === profile.billingGroupId)
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            {profile.billingGroupId === 0 || !billingGroup ? (
+              <Badge variant="outline">All Groups</Badge>
+            ) : (
+              <Badge variant="secondary">{billingGroup.name}</Badge>
+            )}
+          </TableCell>
+        )
+      case 'wallets':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant="secondary">{profile.wallets?.length || 0} wallets</Badge>
+          </TableCell>
+        )
+      case 'addons':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant="secondary">{profile.addons?.length || 0} addons</Badge>
+          </TableCell>
+        )
+      case 'createdAt':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            {formatDate(profile.createdAt)}
+          </TableCell>
+        )
+      case 'updatedAt':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            {formatDate(profile.updatedAt)}
+          </TableCell>
+        )
+      case 'deletedAt':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            {profile.deletedAt ? formatDate(profile.deletedAt) : '-'}
+          </TableCell>
+        )
+      case 'deletedBy':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            {profile.deletedBy || '-'}
+          </TableCell>
+        )
+      case 'actions':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
+            <div className="flex justify-end gap-2">
+              {!profile.isDeleted ? (
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(profile)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(profile.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => handleRestore(profile.id)}>
+                  <ArchiveRestore className="h-4 w-4 mr-2" />
+                  Restore
+                </Button>
+              )}
+            </div>
+          </TableCell>
+        )
+      default:
+        return null
+    }
+  }
+
   const addWallet = () => {
     setWallets([
       ...wallets,
@@ -729,7 +923,7 @@ export default function BillingProfiles() {
           <p className="text-sm text-muted-foreground">Configure billing profiles with radius profiles, billing groups, wallets, and addons</p>
         </div>
         <div className="flex items-center gap-2">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={(value) => {setActiveTab(value); setCurrentPage(1);}}>
             <TabsList>
               <TabsTrigger value="active">
                 <Receipt className="h-4 w-4" />
@@ -742,18 +936,113 @@ export default function BillingProfiles() {
           <div className="flex items-center gap-1">
             <Input
               placeholder="Search profiles..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="w-64"
             />
-            <Button onClick={() => setSearch(search)} variant="outline" size="icon">
+            <Button onClick={handleSearch} variant="outline" size="icon">
               <Search className="h-4 w-4" />
             </Button>
             <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['billing-profiles'] })} variant="outline" size="icon" title="Refresh">
               <RefreshCw className="h-4 w-4" />
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Toggle columns">
+                  <Columns3 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.name}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Name
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.description}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, description: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Description
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.price}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, price: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Price
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.radiusProfile}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, radiusProfile: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Radius Profile
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.billingGroup}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, billingGroup: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Billing Group
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.wallets}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, wallets: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Wallets
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.addons}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, addons: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Addons
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.createdAt}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, createdAt: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Created At
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.updatedAt}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, updatedAt: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Updated At
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" title="Table settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleResetColumns}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Columns
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
-          <Button onClick={() => navigate('/billing/profiles/new')} disabled={activeTab === 'deleted'}>
+          <Button onClick={() => handleOpenDialog()} disabled={activeTab === 'deleted'}>
             <Plus className="h-4 w-4 mr-2" />
             Add Profile
           </Button>
