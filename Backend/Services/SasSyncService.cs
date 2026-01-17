@@ -307,9 +307,12 @@ public class SasSyncService : ISasSyncService
                             var existingProfile = await context.RadiusProfiles
                                 .FirstOrDefaultAsync(p => p.ExternalId == sasProfile.Id, cancellationToken);
 
+                            RadiusProfile radiusProfile;
+                            bool isNewRadiusProfile = false;
+
                             if (existingProfile == null)
                             {
-                                var newProfile = new RadiusProfile
+                                radiusProfile = new RadiusProfile
                                 {
                                     ExternalId = sasProfile.Id,
                                     Name = sasProfile.Name ?? string.Empty,
@@ -328,26 +331,82 @@ public class SasSyncService : ISasSyncService
                                     UpdatedAt = DateTime.UtcNow,
                                     LastSyncedAt = DateTime.UtcNow
                                 };
-                                await context.RadiusProfiles.AddAsync(newProfile, cancellationToken);
+                                await context.RadiusProfiles.AddAsync(radiusProfile, cancellationToken);
+                                isNewRadiusProfile = true;
                                 profileProgress.ProfileNewRecords++;
                             }
                             else
                             {
-                                existingProfile.Name = sasProfile.Name ?? string.Empty;
-                                existingProfile.Downrate = sasProfile.Downrate;
-                                existingProfile.Uprate = sasProfile.Uprate;
-                                existingProfile.Price = sasProfile.Price;
-                                existingProfile.Pool = sasProfile.Pool;
-                                existingProfile.Type = sasProfile.Type;
-                                existingProfile.ExpirationAmount = sasProfile.ExpirationAmount;
-                                existingProfile.ExpirationUnit = sasProfile.ExpirationUnit;
-                                existingProfile.Enabled = sasProfile.Enabled == 1;
-                                existingProfile.BurstEnabled = sasProfile.BurstEnabled == 1;
-                                existingProfile.Monthly = sasProfile.Monthly;
-                                existingProfile.LimitExpiration = sasProfile.LimitExpiration == 1;
-                                existingProfile.UpdatedAt = DateTime.UtcNow;
-                                existingProfile.LastSyncedAt = DateTime.UtcNow;
+                                radiusProfile = existingProfile;
+                                radiusProfile.Name = sasProfile.Name ?? string.Empty;
+                                radiusProfile.Downrate = sasProfile.Downrate;
+                                radiusProfile.Uprate = sasProfile.Uprate;
+                                radiusProfile.Price = sasProfile.Price;
+                                radiusProfile.Pool = sasProfile.Pool;
+                                radiusProfile.Type = sasProfile.Type;
+                                radiusProfile.ExpirationAmount = sasProfile.ExpirationAmount;
+                                radiusProfile.ExpirationUnit = sasProfile.ExpirationUnit;
+                                radiusProfile.Enabled = sasProfile.Enabled == 1;
+                                radiusProfile.BurstEnabled = sasProfile.BurstEnabled == 1;
+                                radiusProfile.Monthly = sasProfile.Monthly;
+                                radiusProfile.LimitExpiration = sasProfile.LimitExpiration == 1;
+                                radiusProfile.UpdatedAt = DateTime.UtcNow;
+                                radiusProfile.LastSyncedAt = DateTime.UtcNow;
                                 profileProgress.ProfileUpdatedRecords++;
+                            }
+
+                            // Save to get the RadiusProfile ID if it's new
+                            if (isNewRadiusProfile)
+                            {
+                                await context.SaveChangesAsync(cancellationToken);
+                            }
+
+                            // Now sync billing profiles
+                            // Get all billing groups
+                            var allBillingGroups = await context.BillingGroups
+                                .Where(g => !g.IsDeleted)
+                                .ToListAsync(cancellationToken);
+
+                            // For each billing group (or null for "all groups"), create/update billing profile
+                            var groupsToProcess = new List<int?> { null }; // null means "all groups"
+                            groupsToProcess.AddRange(allBillingGroups.Select(g => (int?)g.Id));
+
+                            foreach (var billingGroupId in groupsToProcess)
+                            {
+                                // Check if billing profile already exists (match by name, price, and radius profile ID)
+                                var existingBillingProfile = await context.BillingProfiles
+                                    .FirstOrDefaultAsync(bp => 
+                                        bp.Name == radiusProfile.Name &&
+                                        bp.Price == radiusProfile.Price &&
+                                        bp.RadiusProfileId == radiusProfile.Id &&
+                                        bp.BillingGroupId == billingGroupId &&
+                                        !bp.IsDeleted, 
+                                        cancellationToken);
+
+                                if (existingBillingProfile == null)
+                                {
+                                    // Create new billing profile
+                                    var newBillingProfile = new BillingProfile
+                                    {
+                                        Name = radiusProfile.Name,
+                                        Description = $"Auto-synced from Radius Profile: {radiusProfile.Name}",
+                                        Price = radiusProfile.Price,
+                                        RadiusProfileId = radiusProfile.Id,
+                                        BillingGroupId = billingGroupId,
+                                        IsDeleted = false,
+                                        CreatedAt = DateTime.UtcNow,
+                                        CreatedBy = "System-Sync"
+                                    };
+                                    await context.BillingProfiles.AddAsync(newBillingProfile, cancellationToken);
+                                }
+                                else
+                                {
+                                    // Update existing billing profile
+                                    existingBillingProfile.Name = radiusProfile.Name;
+                                    existingBillingProfile.Price = radiusProfile.Price;
+                                    existingBillingProfile.UpdatedAt = DateTime.UtcNow;
+                                    existingBillingProfile.UpdatedBy = "System-Sync";
+                                }
                             }
 
                             profileProgress.ProfileProcessedRecords++;
