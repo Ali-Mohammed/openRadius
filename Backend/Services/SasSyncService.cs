@@ -297,7 +297,7 @@ public class SasSyncService : ISasSyncService
                     profileProgress.ProfileCurrentPage = currentPage;
                     profileProgress.ProfileTotalRecords = apiResponse.Total;
 
-                    foreach (var sasProfile in apiResponse.Data)
+                    foreach (var sasProfile in apiResponse.Data.Where(p => p.Enabled == 1))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         
@@ -399,6 +399,7 @@ public class SasSyncService : ISasSyncService
                                         Price = radiusProfile.Price,
                                         RadiusProfileId = radiusProfile.Id,
                                         BillingGroupId = billingGroupId,
+                                        IsActive = radiusProfile.Enabled, // Set active status based on radius profile
                                         IsDeleted = false,
                                         CreatedAt = DateTime.UtcNow,
                                         CreatedBy = "System-Sync"
@@ -410,6 +411,7 @@ public class SasSyncService : ISasSyncService
                                     // Update existing billing profile
                                     existingBillingProfile.Name = radiusProfile.Name;
                                     existingBillingProfile.Price = radiusProfile.Price;
+                                    existingBillingProfile.IsActive = radiusProfile.Enabled; // Update active status
                                     existingBillingProfile.UpdatedAt = DateTime.UtcNow;
                                     existingBillingProfile.UpdatedBy = "System-Sync";
                                 }
