@@ -62,7 +62,8 @@ public class BillingProfileController : ControllerBase
         [FromQuery] int? billingGroupId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
-        [FromQuery] bool includeDeleted = false)
+        [FromQuery] bool includeDeleted = false,
+        [FromQuery] bool? isActive = null)
     {
         try
         {
@@ -74,6 +75,11 @@ public class BillingProfileController : ControllerBase
             if (!includeDeleted)
             {
                 query = query.Where(p => !p.IsDeleted);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(p => p.IsActive == isActive.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
