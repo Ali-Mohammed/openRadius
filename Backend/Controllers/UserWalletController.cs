@@ -313,4 +313,52 @@ public class UserWalletController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while deleting the user wallet" });
         }
     }
+
+    // GET: api/user-wallets/my-wallet
+    [HttpGet("my-wallet")]
+    public async Task<ActionResult<object>> GetMyWallet()
+    {
+        try
+        {
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return Unauthorized(new { error = "User not authenticated" });
+            }
+
+            // Get current user from master database
+            var currentUser = await _masterContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            if (currentUser == null)
+            {
+                return NotFound(new { error = "Current user not found" });
+            }
+
+            // Get user's wallet
+            var userWallet = await _context.UserWallets
+                .Include(uw => uw.CustomWallet)
+                .FirstOrDefaultAsync(uw => uw.UserId == currentUser.Id && !uw.IsDeleted);
+
+            if (userWallet == null)
+            {
+                return Ok(new { hasWallet = false, message = "No wallet found for current user" });
+            }
+
+            return Ok(new
+            {
+                hasWallet = true,
+                id = userWallet.Id,
+                userId = userWallet.UserId,
+                customWalletId = userWallet.CustomWalletId,
+                customWalletName = userWallet.CustomWallet?.Name,
+                currentBalance = userWallet.CurrentBalance,
+                status = userWallet.Status,
+                allowNegativeBalance = userWallet.AllowNegativeBalance ?? userWallet.CustomWallet?.AllowNegativeBalance ?? false
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting current user's wallet");
+            return StatusCode(500, new { error = "An error occurred while retrieving your wallet" });
+        }
+    }
 }

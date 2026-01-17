@@ -71,6 +71,11 @@ const userWalletApi = {
   async delete(id: number): Promise<void> {
     await apiClient.delete(`/api/user-wallets/${id}`)
   },
+
+  async getMyWallet(): Promise<{ hasWallet: boolean; id?: number; currentBalance?: number; status?: string; allowNegativeBalance?: boolean; message?: string }> {
+    const response = await apiClient.get('/api/user-wallets/my-wallet')
+    return response.data
+  },
 }
 
 export default userWalletApi
