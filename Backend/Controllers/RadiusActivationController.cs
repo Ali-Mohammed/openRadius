@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
@@ -320,7 +321,7 @@ public class RadiusActivationController : ControllerBase
     {
         try
         {
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email") ?? "system";
             var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
             var userAgent = _httpContextAccessor.HttpContext?.Request?.Headers["User-Agent"].ToString();
 
