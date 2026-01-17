@@ -62,7 +62,7 @@ namespace Backend.Controllers
                     .Where(uc => uc.DeletedAt == null)
                     .Include(uc => uc.User)
                     .Include(uc => uc.BillingProfile)
-                    .OrderBy(uc => uc.User!.Name)
+                    .OrderBy(uc => uc.User!.Email)
                     .ToListAsync();
 
                 return Ok(cashbacks);
@@ -190,17 +190,5 @@ namespace Backend.Controllers
                 return StatusCode(500, new { error = "An error occurred while deleting user cashbacks" });
             }
         }
-    }
-
-    public class SaveUserCashbacksRequest
-    {
-        public int UserId { get; set; }
-        public List<CashbackAmountItem> Amounts { get; set; } = new();
-    }
-
-    public class CashbackAmountItem
-    {
-        public int BillingProfileId { get; set; }
-        public decimal Amount { get; set; }
     }
 }
