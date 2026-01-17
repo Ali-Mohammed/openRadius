@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Save, RefreshCw, DollarSign, Users } from 'lucide-react';
+import { Save, RefreshCw, DollarSign, Users, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { userManagementApi, type User } from '@/api/userManagementApi';
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
 import { userCashbackApi } from '@/api/userCashbackApi';
@@ -24,6 +25,7 @@ export default function UserCashback() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [cashbackAmounts, setCashbackAmounts] = useState<Record<number, number>>({});
   const [focusedInput, setFocusedInput] = useState<number | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // Fetch workspace for currency
   const { data: workspace } = useQuery({
@@ -98,12 +100,30 @@ export default function UserCashback() {
     mutationFn: userCashbackApi.save,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-cashback-amounts', selectedUserId] });
+      queryClient.invalidateQueries({ queryKey: ['user-cashback-ids', currentWorkspaceId] });
       toast.success('User cashback amounts saved successfully');
     },
     onError: (error: unknown) => {
       const errorMessage = error && typeof error === 'object' && 'response' in error
         ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to save user cashback amounts')
         : 'Failed to save user cashback amounts';
+      toast.error(errorMessage);
+    }
+  });
+
+  // Mutation to reset cashback amounts
+  const resetMutation = useMutation({
+    mutationFn: userCashbackApi.deleteByUser,
+    onSuccess: () => {
+      setCashbackAmounts({});
+      queryClient.invalidateQueries({ queryKey: ['user-cashback-amounts', selectedUserId] });
+      queryClient.invalidateQueries({ queryKey: ['user-cashback-ids', currentWorkspaceId] });
+      toast.success('User cashback amounts reset successfully');
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to reset user cashback amounts')
+        : 'Failed to reset user cashback amounts';
       toast.error(errorMessage);
     }
   });
@@ -149,6 +169,22 @@ export default function UserCashback() {
       userId: selectedUserId,
       amounts: amounts
     });
+  };
+
+  const handleReset = () => {
+    if (!selectedUserId) {
+      toast.error('Please select a user');
+      return;
+    }
+
+    setShowResetDialog(true);
+  };
+
+  const confirmReset = () => {
+    if (selectedUserId) {
+      resetMutation.mutate(selectedUserId);
+    }
+    setShowResetDialog(false);
   };
 
   const selectedUser = usersData?.data?.find((u: User) => u.id === selectedUserId);
@@ -254,14 +290,28 @@ export default function UserCashback() {
                   Set direct cashback amounts for each billing profile
                 </CardDescription>
               </div>
-              <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Save Changes
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleReset} 
+                  disabled={resetMutation.isPending || !Object.keys(cashbackAmounts).some(key => cashbackAmounts[parseInt(key)] > 0)}
+                >
+                  {resetMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                  )}
+                  Reset
+                </Button>
+                <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -356,6 +406,28 @@ export default function UserCashback() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Cashback Amounts</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reset all cashback amounts for this user? 
+              This action will permanently delete all individual cashback settings and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmReset}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Reset All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
