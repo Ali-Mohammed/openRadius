@@ -71,6 +71,7 @@ export default function RadiusIpReservations() {
   }
 
   const DEFAULT_COLUMN_WIDTHS = {
+    checkbox: 20,
     ipAddress: 180,
     description: 250,
     username: 200,
@@ -84,6 +85,7 @@ export default function RadiusIpReservations() {
   }
 
   const DEFAULT_COLUMN_ORDER = [
+    'checkbox',
     'ipAddress',
     'description',
     'username',
@@ -104,6 +106,7 @@ export default function RadiusIpReservations() {
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  const [selectedReservationIds, setSelectedReservationIds] = useState<number[]>([])
 
   // IP address validation function
   const isValidIPAddress = (ip: string): boolean => {
@@ -482,6 +485,22 @@ export default function RadiusIpReservations() {
     
     return pages
   }, [])
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedReservationIds(reservations.map(r => r.id))
+    } else {
+      setSelectedReservationIds([])
+    }
+  }
+
+  const handleSelectReservation = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedReservationIds(prev => [...prev, id])
+    } else {
+      setSelectedReservationIds(prev => prev.filter(resId => resId !== id))
+    }
+  }
 
   const handleResetColumns = () => {
     setResetColumnsDialogOpen(true)
