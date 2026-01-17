@@ -589,6 +589,7 @@ export default function BillingProfiles() {
         price: profile.price || 0,
         radiusProfileId: profile.radiusProfileId,
         billingGroupId: profile.billingGroupId,
+        isActive: profile.isActive,
         wallets: profile.wallets || [],
         addons: profile.addons || [],
       });
@@ -611,6 +612,7 @@ export default function BillingProfiles() {
         price: 0,
         radiusProfileId: 0,
         billingGroupId: 0,
+        isActive: true,
         wallets: [],
         addons: [],
       });
@@ -1501,7 +1503,7 @@ export default function BillingProfiles() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -1530,6 +1532,16 @@ export default function BillingProfiles() {
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                   placeholder="0.00"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="isActive">Active</Label>
+                <div className="flex items-center pt-2">
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  />
+                </div>
               </div>
             </div>
 

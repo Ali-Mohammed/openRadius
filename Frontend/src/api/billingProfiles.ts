@@ -53,6 +53,7 @@ export interface UpdateBillingProfileRequest {
   price?: number;
   radiusProfileId: number;
   billingGroupId: number;
+  isActive?: boolean;
   wallets?: BillingProfileWallet[];
   addons?: BillingProfileAddon[];
 }
