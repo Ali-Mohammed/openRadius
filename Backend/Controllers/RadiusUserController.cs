@@ -23,6 +23,14 @@ public class RadiusUserController : ControllerBase
         _logger = logger;
     }
 
+    // Helper method to calculate remaining days based on expiration date
+    private static int CalculateRemainingDays(DateTime? expiration)
+    {
+        if (expiration == null) return 0;
+        var days = (expiration.Value.Date - DateTime.UtcNow.Date).Days;
+        return days < 0 ? 0 : days;
+    }
+
     // GET: api/radius/users
     [HttpGet]
     public async Task<ActionResult<object>> GetUsers(
@@ -127,7 +135,7 @@ public class RadiusUserController : ControllerBase
             LastOnline = u.LastOnline,
             Enabled = u.Enabled,
             OnlineStatus = u.OnlineStatus,
-            RemainingDays = u.RemainingDays,
+            RemainingDays = CalculateRemainingDays(u.Expiration),
             DebtDays = u.DebtDays,
             StaticIp = userIpMap.ContainsKey(u.Id) ? userIpMap[u.Id] : null,
             Company = u.Company,
@@ -209,7 +217,7 @@ public class RadiusUserController : ControllerBase
             LastOnline = user.LastOnline,
             Enabled = user.Enabled,
             OnlineStatus = user.OnlineStatus,
-            RemainingDays = user.RemainingDays,
+            RemainingDays = CalculateRemainingDays(user.Expiration),
             DebtDays = user.DebtDays,
             StaticIp = ipReservation?.IpAddress,
             Company = user.Company,
@@ -309,7 +317,7 @@ public class RadiusUserController : ControllerBase
             LastOnline = user.LastOnline,
             Enabled = user.Enabled,
             OnlineStatus = user.OnlineStatus,
-            RemainingDays = user.RemainingDays,
+            RemainingDays = CalculateRemainingDays(user.Expiration),
             DebtDays = user.DebtDays,
             StaticIp = ipReservation?.IpAddress,
             Company = user.Company,
@@ -404,7 +412,7 @@ public class RadiusUserController : ControllerBase
             LastOnline = user.LastOnline,
             Enabled = user.Enabled,
             OnlineStatus = user.OnlineStatus,
-            RemainingDays = user.RemainingDays,
+            RemainingDays = CalculateRemainingDays(user.Expiration),
             DebtDays = user.DebtDays,
             StaticIp = updateUserIpReservation?.IpAddress,
             Company = user.Company,
