@@ -56,7 +56,7 @@ export default function UserCashback() {
   // Fetch all billing profiles
   const { data: profilesData, isLoading: isLoadingProfiles } = useQuery({
     queryKey: ['billing-profiles-all'],
-    queryFn: () => getProfiles({ includeDeleted: false }),
+    queryFn: () => getProfiles({ includeDeleted: false, isActive: true }),
   });
 
   // Fetch existing cashback amounts for selected user
