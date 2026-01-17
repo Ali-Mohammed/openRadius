@@ -816,9 +816,21 @@ export default function RadiusUsers() {
       return
     }
 
-    // Calculate next expire date based on duration days
+    // Calculate next expire date based on current expiration + duration days
     const durationDays = parseInt(activationFormData.durationDays) || 30
-    const nextExpireDate = new Date()
+    const now = new Date()
+    let baseDate = now
+    
+    // If user has a current expiration date and it's in the future, use it as base
+    // Otherwise use today's date
+    if (userToActivate.expiration) {
+      const currentExpireDate = new Date(userToActivate.expiration)
+      if (currentExpireDate > now) {
+        baseDate = currentExpireDate
+      }
+    }
+    
+    const nextExpireDate = new Date(baseDate)
     nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
 
     const activationRequest: CreateRadiusActivationRequest = {
@@ -2588,7 +2600,7 @@ export default function RadiusUsers() {
 
       {/* Activation Dialog */}
       <Dialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-green-600" />
@@ -2600,7 +2612,7 @@ export default function RadiusUsers() {
           </DialogHeader>
 
           {userToActivate && (
-            <div className="space-y-6">
+            <div className="overflow-y-auto flex-1 space-y-6">
               {/* User Information */}
               <div className="rounded-lg border bg-muted/50 p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -2717,6 +2729,53 @@ export default function RadiusUsers() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Expiration Details */}
+                  {selectedBillingProfile && (
+                    <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4">
+                      <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        Expiration Details
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Current Expire Date:</span>
+                          <span className="font-medium">
+                            {userToActivate?.expiration 
+                              ? new Date(userToActivate.expiration).toLocaleDateString()
+                              : 'No expiration'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Duration:</span>
+                          <span className="font-medium text-blue-600">{activationFormData.durationDays} days</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="text-muted-foreground font-medium">Next Expire Date:</span>
+                          <span className="font-bold text-lg text-blue-600">
+                            {(() => {
+                              const durationDays = parseInt(activationFormData.durationDays || 0)
+                              const now = new Date()
+                              let baseDate = now
+                              
+                              // If user has a current expiration date and it's in the future, use it as base
+                              if (userToActivate?.expiration) {
+                                const currentExpireDate = new Date(userToActivate.expiration)
+                                if (currentExpireDate > now) {
+                                  baseDate = currentExpireDate
+                                }
+                              }
+                              
+                              const nextDate = new Date(baseDate)
+                              nextDate.setDate(nextDate.getDate() + durationDays)
+                              return nextDate.toLocaleDateString()
+                            })()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 

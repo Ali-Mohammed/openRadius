@@ -346,7 +346,7 @@ public class RadiusActivationController : ControllerBase
                 PreviousBalance = radiusUser.Balance,
                 Amount = request.Amount,
                 Type = request.Type,
-                Status = "pending",
+                Status = "completed",
                 PaymentMethod = request.PaymentMethod,
                 DurationDays = request.DurationDays,
                 Source = request.Source ?? "web",
@@ -356,10 +356,49 @@ public class RadiusActivationController : ControllerBase
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Calculate the next expiration date
+            // If current expiration is in the past, use now + duration
+            // If current expiration is in the future, use current + duration
+            if (request.NextExpireDate.HasValue)
+            {
+                radiusUser.Expiration = request.NextExpireDate.Value;
+                activation.CurrentExpireDate = request.NextExpireDate.Value;
+            }
+            else if (request.DurationDays.HasValue)
+            {
+                var now = DateTime.UtcNow;
+                var baseDate = now;
+                
+                if (radiusUser.Expiration.HasValue && radiusUser.Expiration.Value > now)
+                {
+                    baseDate = radiusUser.Expiration.Value;
+                }
+                
+                var newExpireDate = baseDate.AddDays(request.DurationDays.Value);
+                radiusUser.Expiration = newExpireDate;
+                activation.NextExpireDate = newExpireDate;
+                activation.CurrentExpireDate = newExpireDate;
+            }
+            
+            if (request.RadiusProfileId.HasValue)
+            {
+                radiusUser.ProfileId = request.RadiusProfileId.Value;
+            }
+            
+            if (request.BillingProfileId.HasValue)
+            {
+                radiusUser.ProfileBillingId = request.BillingProfileId.Value;
+            }
+            
+            radiusUser.UpdatedAt = DateTime.UtcNow;
+            activation.NewBalance = radiusUser.Balance;
+            activation.ProcessingStartedAt = DateTime.UtcNow;
+            activation.ProcessingCompletedAt = DateTime.UtcNow;
+
             _context.RadiusActivations.Add(activation);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation($"Created activation {activation.Id} for user {radiusUser.Username}");
+            _logger.LogInformation($"Created activation {activation.Id} for user {radiusUser.Username}, updated expiration to {radiusUser.Expiration}");
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {
