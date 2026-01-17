@@ -686,11 +686,8 @@ export default function BillingProfiles() {
       walletType: w.walletType,
       userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,
       customWalletId: w.walletType === 'custom' ? w.customWalletId : undefined,
-      percentage: w.percentage || 0,
-      icon: w.icon || '',
-      color: w.color || '',
+      price: w.percentage || 0,
       direction: w.direction || 'in',
-      displayOrder: index,
     }));
 
     // For now, use the first selected radius profile and billing group as the main one

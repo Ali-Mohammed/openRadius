@@ -180,9 +180,11 @@ export default function BillingProfileForm() {
       radiusProfileId: selectedRadiusProfiles[0]?.profileId || 0,
       billingGroupId: selectAllGroups ? 0 : selectedBillingGroups[0] || 0,
       wallets: wallets.map(w => ({
-        ...w,
+        walletType: w.walletType,
         userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,
         customWalletId: w.walletType === 'custom' ? w.customWalletId : undefined,
+        price: w.percentage || 0,
+        direction: w.direction || 'in',
       })),
       addons: selectedAddons.map(sa => {
         const addon = addonsData?.data?.find((a: Addon) => a.id === sa.addonId);
