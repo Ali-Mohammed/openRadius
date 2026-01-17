@@ -53,6 +53,7 @@ import Fats from './pages/Fats'
 import DatabaseBackup from './pages/DatabaseBackup'
 import Zones from './pages/Zones'
 import FreeRadiusLogsViewer from './pages/FreeRadiusLogsViewer'
+import RadiusActivations from './pages/RadiusActivations'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -92,6 +93,7 @@ function App() {
                           <Route path="/radius/custom-attributes" element={<RadiusCustomAttributes />} />
                           <Route path="/radius/zones" element={<Zones />} />
                           <Route path="/radius/logs" element={<FreeRadiusLogsViewer />} />
+                          <Route path="/radius/activations" element={<RadiusActivations />} />
                           <Route path="/network/settings" element={<NetworkSettings />} />
                           <Route path="/network/olts" element={<Olts />} />
                           <Route path="/network/fdts" element={<Fdts />} />
