@@ -34,6 +34,7 @@ namespace Backend.Controllers
                 var amounts = await _context.CashbackProfileAmounts
                     .Where(a => a.CashbackGroupId == groupId && a.DeletedAt == null)
                     .Include(a => a.BillingProfile)
+                    .Where(a => a.BillingProfile != null && a.BillingProfile.IsActive)
                     .ToListAsync();
 
                 return Ok(amounts);
