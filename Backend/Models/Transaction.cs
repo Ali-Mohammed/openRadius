@@ -18,6 +18,16 @@ public class Transaction
     // User reference (for user wallets)
     public int? UserId { get; set; }
     
+    // RADIUS user reference (for activation transactions)
+    public int? RadiusUserId { get; set; }
+    public string? RadiusUsername { get; set; }
+    
+    // Profile references (for activation transactions)
+    public int? RadiusProfileId { get; set; }
+    public string? RadiusProfileName { get; set; }
+    public int? BillingProfileId { get; set; }
+    public string? BillingProfileName { get; set; }
+    
     // Balance tracking
     public decimal BalanceBefore { get; set; }
     public decimal BalanceAfter { get; set; }

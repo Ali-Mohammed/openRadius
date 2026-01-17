@@ -2774,7 +2774,7 @@ export default function RadiusUsers() {
                           <div className="flex flex-wrap gap-1 mt-1">
                             {selectedBillingProfile.addons.map((addon, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs">
-                                {addon.title} (+{currencySymbol}{formatCurrency(addon.price)})
+                                {addon.title} (+{currencySymbol} {formatCurrency(addon.price)})
                               </Badge>
                             ))}
                           </div>
