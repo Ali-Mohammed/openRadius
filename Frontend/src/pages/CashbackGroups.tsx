@@ -89,7 +89,7 @@ export default function CashbackGroups() {
   })
 
   // Fetch user IDs that have individual cashback settings
-  const { data: userIdsWithCashbacks } = useQuery({
+  const { data: userIdsWithCashbacks, refetch: refetchUserCashbackIds } = useQuery({
     queryKey: ['user-cashback-ids', currentWorkspaceId],
     queryFn: () => userCashbackApi.getUserIdsWithCashbacks(),
     enabled: !!currentWorkspaceId,
@@ -211,18 +211,38 @@ export default function CashbackGroups() {
   })
 
   const handleOpenDialog = async (group?: CashbackGroup) => {
+    // Refetch user cashback IDs to get the latest data
+    await refetchUserCashbackIds()
+    
     if (group) {
       setEditingGroup(group)
       // Fetch group users
       try {
         const userIds = await cashbackGroupApi.getGroupUsers(group.id)
-        setSelectedUserIds(userIds)
+        
+        // Get fresh cashback IDs data
+        const freshCashbackIds = await userCashbackApi.getUserIdsWithCashbacks()
+        
+        // Filter out users who now have individual cashback settings
+        const validUserIds = userIds.filter(userId => 
+          !freshCashbackIds?.includes(userId)
+        )
+        
+        // Show warning if some users were filtered out
+        if (validUserIds.length < userIds.length) {
+          toast.warning(
+            `${userIds.length - validUserIds.length} user(s) removed from group due to individual cashback settings`,
+            { duration: 5000 }
+          )
+        }
+        
+        setSelectedUserIds(validUserIds)
         setFormData({
           name: group.name,
           icon: group.icon || 'Gift',
           color: group.color || '#3b82f6',
           disabled: group.disabled,
-          userIds: userIds
+          userIds: validUserIds
         })
       } catch (error) {
         toast.error('Failed to load group users')
