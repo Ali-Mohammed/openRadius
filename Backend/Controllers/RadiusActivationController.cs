@@ -398,11 +398,30 @@ public class RadiusActivationController : ControllerBase
                 };
 
                 _context.Transactions.Add(transaction);
+
+                // Also create wallet history record for tracking
+                var walletHistory = new WalletHistory
+                {
+                    WalletType = "user",
+                    UserWalletId = userWallet.Id,
+                    UserId = currentUser.Id,
+                    TransactionType = TransactionType.Payment,
+                    AmountType = "debit",
+                    Amount = activationAmount,
+                    BalanceBefore = balanceBefore,
+                    BalanceAfter = balanceAfter,
+                    Description = $"RADIUS user activation for {radiusUser.Username}",
+                    Reference = $"ACTIVATION-{radiusUser.Id}",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userEmail
+                };
+
+                _context.WalletHistories.Add(walletHistory);
                 await _context.SaveChangesAsync(); // Save to get transaction ID
 
                 transactionId = transaction.Id;
 
-                _logger.LogInformation($"Created wallet transaction {transaction.Id} for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
+                _logger.LogInformation($"Created wallet transaction {transaction.Id} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
             }
 
             var activation = new RadiusActivation
