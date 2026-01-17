@@ -27,6 +27,7 @@ export interface BillingProfile {
   price?: number;
   radiusProfileId: number;
   billingGroupId: number;
+  isActive: boolean;
   isDeleted: boolean;
   deletedAt?: string;
   createdAt: string;
@@ -98,5 +99,10 @@ export const deleteProfile = async (id: number): Promise<void> => {
 
 export const restoreProfile = async (id: number): Promise<BillingProfile> => {
   const response = await apiClient.post(`/api/billingprofile/${id}/restore`);
+  return response.data;
+};
+
+export const toggleActive = async (id: number): Promise<BillingProfile> => {
+  const response = await apiClient.post(`/api/billingprofile/${id}/toggle-active`);
   return response.data;
 };

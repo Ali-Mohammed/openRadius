@@ -23,6 +23,35 @@ public class BillingProfileController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
     }
 
+    // POST: api/billingprofile/{id}/toggle-active
+    [HttpPost("{id}/toggle-active")]
+    public async Task<ActionResult<BillingProfile>> ToggleActive(int id)
+    {
+        try
+        {
+            var profile = await _context.BillingProfiles.FindAsync(id);
+            if (profile == null || profile.IsDeleted)
+            {
+                return NotFound($"Billing profile with ID {id} not found.");
+            }
+
+            profile.IsActive = !profile.IsActive;
+            profile.UpdatedAt = DateTime.UtcNow;
+            profile.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation($"Billing profile {id} active status toggled to {profile.IsActive}");
+            
+            return Ok(profile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error toggling active status for billing profile {id}");
+            return StatusCode(500, "An error occurred while toggling the profile status.");
+        }
+    }
+
     // GET: api/billingprofile
     [HttpGet]
     public async Task<ActionResult<object>> GetProfiles(
