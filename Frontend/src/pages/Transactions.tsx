@@ -604,18 +604,20 @@ export default function Transactions() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={pageSize.toString()} onValueChange={(val) => { setPageSize(Number(val)); setCurrentPage(1) }}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-[80px] h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="50">50</SelectItem>
               <SelectItem value="100">100</SelectItem>
+              <SelectItem value="200">200</SelectItem>
             </SelectContent>
           </Select>
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })}
             disabled={isFetching}
           >
@@ -624,8 +626,8 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Transactions Table */}
-      <div className="rounded-md border overflow-x-auto">
+      {/* Transactions Table - Scrollable */}
+      <div className="flex-1 overflow-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -858,17 +860,18 @@ export default function Transactions() {
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
+      {/* Pagination Controls - Fixed at bottom */}
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
         <div className="text-sm text-muted-foreground">
           Showing <span className="font-medium">{transactions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to{' '}
           <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
           <span className="font-medium">{totalCount}</span> transactions
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8"
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
           >
@@ -877,19 +880,21 @@ export default function Transactions() {
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-1 px-2 text-sm">
             <span className="font-medium">{currentPage}</span>
-            <span className="text-muted-foreground">of</span>
+            <span className="text-muted-foreground">/</span>
             <span className="font-medium">{totalPages}</span>
           </div>
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
@@ -898,6 +903,7 @@ export default function Transactions() {
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8"
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
           >
@@ -905,6 +911,7 @@ export default function Transactions() {
           </Button>
         </div>
       </div>
+    </div>
 
       {/* Create Transaction Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
