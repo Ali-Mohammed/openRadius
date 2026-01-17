@@ -278,13 +278,13 @@ public class RadiusUserController : ControllerBase
             {
                 await _context.Database.ExecuteSqlRawAsync(
                     "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                    user.Username);
+                    new object[] { user.Username });
             }
 
             // Insert new password
             await _context.Database.ExecuteSqlRawAsync(
                 "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
-                user.Username, request.Password);
+                new object[] { user.Username, request.Password });
         }
 
         // Get IP reservation for this user
@@ -372,7 +372,7 @@ public class RadiusUserController : ControllerBase
             // Remove existing password entries for this user
             await _context.Database.ExecuteSqlRawAsync(
                 "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                user.Username);
+                new object[] { user.Username });
 
             // Insert new password
             await _context.Database.ExecuteSqlRawAsync(

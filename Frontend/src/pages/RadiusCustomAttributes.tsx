@@ -1134,34 +1134,6 @@ export default function RadiusCustomAttributes() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Bulk Restore Dialog */}
-      <AlertDialog open={bulkRestoreDialogOpen} onOpenChange={setBulkRestoreDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore {selectedAttributeIds.length} attribute{selectedAttributeIds.length > 1 ? 's' : ''}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will restore all selected custom attributes from trash. They will be available in the active list.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleBulkRestore}
-              disabled={bulkActionLoading}
-            >
-              {bulkActionLoading ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Restoring...
-                </>
-              ) : (
-                'Restore All'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

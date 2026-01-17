@@ -421,8 +421,8 @@ public class OltController : ControllerBase
             olt.SerialNumber = dto.SerialNumber;
             olt.AssetTag = dto.AssetTag;
             olt.Role = dto.Role;
-            olt.Environment = dto.Environment;
-            olt.Status = dto.Status;
+            olt.Environment = dto.Environment ?? "prod";
+            olt.Status = dto.Status ?? "active";
             olt.ManagementIp = dto.ManagementIp;
             olt.ManagementVlan = dto.ManagementVlan;
             olt.LoopbackIp = dto.LoopbackIp;
