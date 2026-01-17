@@ -49,6 +49,7 @@ export default function RadiusNasPage() {
   const { currentWorkspaceId } = useWorkspace()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+  const parentRef = useRef<HTMLDivElement>(null)
 
   // Initialize state from URL params
   const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1'))
@@ -68,6 +69,55 @@ export default function RadiusNasPage() {
     if (sortDirection !== 'asc') params.sortDirection = sortDirection
     setSearchParams(params, { replace: true })
   }, [currentPage, pageSize, searchQuery, sortField, sortDirection, setSearchParams])
+
+  // Default column settings
+  const DEFAULT_COLUMN_WIDTHS = {
+    nasname: 180,
+    shortname: 150,
+    secret: 120,
+    type: 100,
+    ports: 100,
+    server: 140,
+    community: 120,
+    description: 200,
+    enabled: 100,
+    actions: 120,
+  }
+
+  const DEFAULT_COLUMN_ORDER = [
+    'nasname',
+    'shortname',
+    'secret',
+    'type',
+    'ports',
+    'server',
+    'community',
+    'description',
+    'enabled',
+    'actions',
+  ]
+
+  // Column management state
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS)
+  const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
+  const [columnVisibility, setColumnVisibility] = useState({
+    nasname: true,
+    shortname: true,
+    secret: true,
+    type: true,
+    ports: true,
+    server: true,
+    community: true,
+    description: true,
+    enabled: true,
+    actions: true,
+  })
+
+  const [resizing, setResizing] = useState<string | null>(null)
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
 
   // NAS state
   const [isNasDialogOpen, setIsNasDialogOpen] = useState(false)
