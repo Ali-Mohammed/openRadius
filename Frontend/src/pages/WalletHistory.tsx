@@ -7,7 +7,6 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Calendar,
   ArrowUpCircle,
   ArrowDownCircle,
   RefreshCw,
@@ -16,17 +15,15 @@ import {
   Gift,
   Zap,
   Percent,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -44,6 +41,8 @@ import {
 } from '@/components/ui/table'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Skeleton } from '@/components/ui/skeleton'
 import walletHistoryApi from '@/api/walletHistory'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { workspaceApi } from '@/lib/api'
@@ -73,7 +72,8 @@ export default function WalletHistory() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(50)
+  const [showFilters, setShowFilters] = useState(false)
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -100,7 +100,7 @@ export default function WalletHistory() {
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
-  const { data: historyData, isLoading } = useQuery({
+  const { data: historyData, isLoading, isFetching } = useQuery({
     queryKey: [
       'walletHistory',
       filterWalletType,
@@ -141,6 +141,16 @@ export default function WalletHistory() {
     } catch {
       return dateString
     }
+  }
+
+  const hasFilters = filterWalletType || filterTransactionType || startDate || endDate
+
+  const clearFilters = () => {
+    setFilterWalletType('')
+    setFilterTransactionType('')
+    setStartDate('')
+    setEndDate('')
+    setCurrentPage(1)
   }
 
   return (
