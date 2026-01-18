@@ -87,11 +87,11 @@ export default function UserManagement() {
 
   // Fetch user zones when dialog opens
   const { data: userZoneIds = [], refetch: refetchUserZones } = useQuery({
-    queryKey: ['user-zones', zoneAssignUser?.keycloakUserId],
-    queryFn: () => zoneAssignUser?.keycloakUserId 
-      ? userManagementApi.getUserZones(zoneAssignUser.keycloakUserId)
+    queryKey: ['user-zones', workspaceIdNum, zoneAssignUser?.keycloakUserId],
+    queryFn: () => zoneAssignUser?.keycloakUserId && workspaceIdNum
+      ? userManagementApi.getUserZones(workspaceIdNum, zoneAssignUser.keycloakUserId)
       : Promise.resolve([]),
-    enabled: !!zoneAssignUser && isZoneDialogOpen,
+    enabled: !!zoneAssignUser && isZoneDialogOpen && !!workspaceIdNum,
   })
 
   // Reset zones when dialog closes
@@ -200,12 +200,12 @@ export default function UserManagement() {
 
   const assignZonesMutation = useMutation({
     mutationFn: ({ userId, zoneIds }: { userId: string; zoneIds: number[] }) =>
-      userManagementApi.assignZonesToUser(userId, zoneIds),
+      userManagementApi.assignZonesToUser(workspaceIdNum, userId, zoneIds),
     onSuccess: () => {
       toast.success('Zones assigned successfully')
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['user-zones'] })
-      queryClient.invalidateQueries({ queryKey: ['zones'] })
+      queryClient.invalidateQueries({ queryKey: ['zones-flat'] })
       setIsZoneDialogOpen(false)
       setZoneAssignUser(null)
       setSelectedZoneIds([])
