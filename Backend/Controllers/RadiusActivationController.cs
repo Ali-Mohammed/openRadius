@@ -450,10 +450,11 @@ public class RadiusActivationController : ControllerBase
 
                 _logger.LogInformation($"Created wallet transaction {transaction.Id} for user {walletOwnerId} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
 
-                // Process cashback if enabled and this is an on-behalf activation
-                if (request.ApplyCashback && request.PayerUserId.HasValue && request.BillingProfileId.HasValue)
+                // Process cashback if enabled - works for both normal and on-behalf activations
+                // The cashback goes to the wallet owner (payer for on-behalf, current user for normal activation)
+                if (request.ApplyCashback && request.BillingProfileId.HasValue)
                 {
-                    // Calculate cashback amount for the payer user
+                    // Calculate cashback amount for the wallet owner (who paid for the activation)
                     decimal cashbackAmount = 0;
                     string cashbackSource = "none";
 
@@ -491,7 +492,7 @@ public class RadiusActivationController : ControllerBase
                         }
                     }
 
-                    // Apply cashback to payer's wallet if amount > 0
+                    // Apply cashback to wallet owner's wallet if amount > 0
                     if (cashbackAmount > 0)
                     {
                         var cashbackBalanceBefore = userWallet.CurrentBalance;
@@ -499,19 +500,24 @@ public class RadiusActivationController : ControllerBase
                         userWallet.UpdatedAt = DateTime.UtcNow;
                         userWallet.UpdatedBy = userEmail;
 
-                        // Create cashback transaction
+                        // Determine description based on whether this is on-behalf or normal activation
+                        var cashbackDescription = request.IsActionBehalf && request.PayerUserId.HasValue
+                            ? $"Cashback for activating {radiusUser.Username} on behalf ({cashbackSource})"
+                            : $"Cashback for activating {radiusUser.Username} ({cashbackSource})";
+
+                        // Create cashback transaction with TransactionType.Cashback
                         var cashbackTransaction = new Transaction
                         {
                             WalletType = "user",
                             UserWalletId = userWallet.Id,
                             UserId = walletOwnerId,
-                            TransactionType = TransactionType.Reward,
+                            TransactionType = TransactionType.Cashback,
                             AmountType = "credit",
                             Amount = cashbackAmount,
                             Status = "completed",
                             BalanceBefore = cashbackBalanceBefore,
                             BalanceAfter = userWallet.CurrentBalance,
-                            Description = $"Cashback for activating {radiusUser.Username} ({cashbackSource})",
+                            Description = cashbackDescription,
                             Reference = $"CASHBACK-{radiusUser.Id}",
                             PaymentMethod = "Cashback",
                             CreatedAt = DateTime.UtcNow,
@@ -532,12 +538,12 @@ public class RadiusActivationController : ControllerBase
                             WalletType = "user",
                             UserWalletId = userWallet.Id,
                             UserId = walletOwnerId,
-                            TransactionType = TransactionType.Reward,
+                            TransactionType = TransactionType.Cashback,
                             AmountType = "credit",
                             Amount = cashbackAmount,
                             BalanceBefore = cashbackBalanceBefore,
                             BalanceAfter = userWallet.CurrentBalance,
-                            Description = $"Cashback for activating {radiusUser.Username} ({cashbackSource})",
+                            Description = cashbackDescription,
                             Reference = $"CASHBACK-{radiusUser.Id}",
                             CreatedAt = DateTime.UtcNow,
                             CreatedBy = userEmail
