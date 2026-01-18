@@ -274,19 +274,6 @@ export default function RadiusUsers() {
     enabled: !!currentWorkspaceId && activationDialogOpen,
   })
 
-  // Get selected billing profile for activation
-  const selectedBillingProfileForCashback = useMemo(() => {
-    if (!activationFormData.billingProfileId) return null
-    return billingProfilesData?.data?.find(bp => bp.id.toString() === activationFormData.billingProfileId)
-  }, [activationFormData.billingProfileId, billingProfilesData?.data])
-
-  // Calculate cashback when on-behalf activation is enabled
-  const { data: cashbackData } = useQuery({
-    queryKey: ['cashback', 'calculate', myWallet?.userId, selectedBillingProfileForCashback?.id],
-    queryFn: () => userCashbackApi.calculateCashback(myWallet!.userId!, selectedBillingProfileForCashback!.id),
-    enabled: !!myWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && applyCashback && activationDialogOpen,
-  })
-
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: usersData, isLoading, isFetching } = useQuery({
