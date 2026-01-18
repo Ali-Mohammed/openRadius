@@ -69,6 +69,10 @@ export default function WorkspaceSettings() {
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
   const [syncConfirmOpen, setSyncConfirmOpen] = useState(false)
   const [integrationToSync, setIntegrationToSync] = useState<SasRadiusIntegration | null>(null)
+  const [managerSyncProgress, setManagerSyncProgress] = useState<ManagerSyncProgress | null>(null)
+  const [isManagerSyncDialogOpen, setIsManagerSyncDialogOpen] = useState(false)
+  const [syncingIntegrationId, setSyncingIntegrationId] = useState<number | null>(null)
+  const hubConnectionRef = useRef<signalR.HubConnection | null>(null)
   const [formData, setFormData] = useState<SasRadiusIntegration>({
     name: '',
     url: '',
