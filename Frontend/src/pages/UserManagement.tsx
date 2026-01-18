@@ -644,7 +644,7 @@ export default function UserManagement() {
               {user.zones?.length ? user.zones.map((zone) => (
                 <Badge key={zone.id} variant="secondary" className="flex items-center gap-1.5 text-xs">
                   <div
-                    className="h-2 w-2 rounded-full flex-shrink-0"
+                    className="h-2 w-2 rounded-full shrink-0"
                     style={{ backgroundColor: zone.color || '#3b82f6' }}
                   />
                   <span>{zone.name}</span>
@@ -860,7 +860,7 @@ export default function UserManagement() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
                   <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                    <SelectTrigger className="h-8 w-[70px] text-sm">
+                    <SelectTrigger className="h-8 w-18 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1184,7 +1184,7 @@ export default function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="border rounded-md max-h-[400px] overflow-y-auto">
+            <div className="border rounded-md max-h-100 overflow-y-auto">
               <div className="p-2 space-y-1">
                 {zones.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
@@ -1215,7 +1215,7 @@ export default function UserManagement() {
                       />
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div
-                          className="h-4 w-4 rounded-full flex-shrink-0"
+                          className="h-4 w-4 rounded-full shrink-0"
                           style={{ backgroundColor: zone.color || '#3b82f6' }}
                         />
                         <div className="flex-1 min-w-0">
