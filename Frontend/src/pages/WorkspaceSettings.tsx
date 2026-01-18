@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -39,11 +39,12 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog'
 import { workspaceApi } from '../lib/api'
-import { sasRadiusApi, type SasRadiusIntegration } from '../api/sasRadiusApi'
+import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../api/sasRadiusApi'
 import { SyncProgressDialog } from '../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../utils/errorHandler'
 import { useWorkspace } from '../contexts/WorkspaceContext'
+import * as signalR from '@microsoft/signalr'
 
 export default function WorkspaceSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
