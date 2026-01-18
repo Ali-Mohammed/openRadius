@@ -902,6 +902,11 @@ export default function RadiusUsers() {
       durationDays: durationDays,
       source: 'Web',
       notes: activationFormData.notes || undefined,
+      // On-behalf activation parameters
+      isActionBehalf: isOnBehalfActivation,
+      payerUserId: isOnBehalfActivation && myWallet?.userId ? myWallet.userId : undefined,
+      payerUsername: isOnBehalfActivation && myWallet?.userName ? myWallet.userName : undefined,
+      applyCashback: isOnBehalfActivation && applyCashback,
     }
 
     activationMutation.mutate(activationRequest)
@@ -2804,6 +2809,51 @@ export default function RadiusUsers() {
                     </div>
                   )}
 
+                  {/* On-Behalf Activation Options */}
+                  {selectedBillingProfile && myWallet?.hasWallet && (
+                    <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="on-behalf-toggle" className="text-sm font-medium">
+                            Activate on behalf of user
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Pay from your wallet and receive cashback
+                          </p>
+                        </div>
+                        <Switch
+                          id="on-behalf-toggle"
+                          checked={isOnBehalfActivation}
+                          onCheckedChange={setIsOnBehalfActivation}
+                        />
+                      </div>
+                      {isOnBehalfActivation && (
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div>
+                            <Label htmlFor="cashback-toggle" className="text-sm font-medium">
+                              Apply Cashback
+                            </Label>
+                            {cashbackData && cashbackData.cashbackAmount > 0 ? (
+                              <p className="text-xs text-green-600">
+                                You'll receive {currencySymbol} {formatCurrency(cashbackData.cashbackAmount)} ({cashbackData.source})
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                No cashback configured for this profile
+                              </p>
+                            )}
+                          </div>
+                          <Switch
+                            id="cashback-toggle"
+                            checked={applyCashback}
+                            onCheckedChange={setApplyCashback}
+                            disabled={!cashbackData || cashbackData.cashbackAmount <= 0}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Wallet Balance Preview */}
                   {selectedBillingProfile && myWallet?.hasWallet && (
                     <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
@@ -2824,30 +2874,59 @@ export default function RadiusUsers() {
                             - {currencySymbol} {formatCurrency(selectedBillingProfile.price || 0)}
                           </span>
                         </div>
-                        <Separator />
-                        <div className="flex justify-between items-center pt-2">
-                          <span className="text-muted-foreground font-medium">Remaining Balance:</span>
-                          <span className={`font-bold text-lg ${
-                            (myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0) >= 0 
-                              ? 'text-green-600' 
-                              : myWallet.allowNegativeBalance 
-                                ? 'text-orange-600' 
-                                : 'text-red-600'
-                          }`}>
-                            {currencySymbol} {formatCurrency((myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0))}
-                          </span>
-                        </div>
-                        {(myWallet.currentBalance || 0) - (selectedBillingProfile.price || 0) < 0 && (
-                          <div className={`mt-2 p-2 rounded text-xs ${
-                            myWallet.allowNegativeBalance 
-                              ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
-                              : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                          }`}>
-                            {myWallet.allowNegativeBalance 
-                              ? '⚠️ Warning: This will result in a negative balance' 
-                              : '❌ Error: Insufficient balance. Negative balance not allowed.'}
+                        {/* Cashback display - only for on-behalf activations */}
+                        {isOnBehalfActivation && applyCashback && cashbackData && cashbackData.cashbackAmount > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">
+                              Cashback ({cashbackData.source}):
+                            </span>
+                            <span className="font-medium text-green-600">
+                              + {currencySymbol} {formatCurrency(cashbackData.cashbackAmount)}
+                            </span>
                           </div>
                         )}
+                        <Separator />
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="text-muted-foreground font-medium">
+                            {isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount ? 'Final Balance:' : 'Remaining Balance:'}
+                          </span>
+                          {(() => {
+                            const deduction = selectedBillingProfile.price || 0
+                            const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
+                            const finalBalance = (myWallet.currentBalance || 0) - deduction + cashback
+                            const isNegative = finalBalance < 0
+                            return (
+                              <span className={`font-bold text-lg ${
+                                isNegative 
+                                  ? myWallet.allowNegativeBalance 
+                                    ? 'text-orange-600' 
+                                    : 'text-red-600'
+                                  : 'text-green-600'
+                              }`}>
+                                {currencySymbol} {formatCurrency(finalBalance)}
+                              </span>
+                            )
+                          })()}
+                        </div>
+                        {(() => {
+                          const deduction = selectedBillingProfile.price || 0
+                          const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
+                          const finalBalance = (myWallet.currentBalance || 0) - deduction + cashback
+                          if (finalBalance < 0) {
+                            return (
+                              <div className={`mt-2 p-2 rounded text-xs ${
+                                myWallet.allowNegativeBalance 
+                                  ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                                  : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                              }`}>
+                                {myWallet.allowNegativeBalance 
+                                  ? '⚠️ Warning: This will result in a negative balance' 
+                                  : '❌ Error: Insufficient balance. Negative balance not allowed.'}
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
                     </div>
                   )}
