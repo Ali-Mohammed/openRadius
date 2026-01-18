@@ -342,12 +342,22 @@ export default function RadiusUsers() {
     return billingProfilesData?.data?.find(bp => bp.id.toString() === activationFormData.billingProfileId)
   }, [activationFormData.billingProfileId, billingProfilesData?.data])
 
-  // Calculate cashback when on-behalf activation is enabled (uses selected payer's userId)
-  const { data: cashbackData } = useQuery({
-    queryKey: ['cashback', 'calculate', selectedPayerWallet?.userId, selectedBillingProfileForCashback?.id],
+  // Calculate cashback for on-behalf activation (uses selected payer's userId)
+  const { data: payerCashbackData } = useQuery({
+    queryKey: ['cashback', 'calculate', 'payer', selectedPayerWallet?.userId, selectedBillingProfileForCashback?.id],
     queryFn: () => userCashbackApi.calculateCashback(selectedPayerWallet!.userId!, selectedBillingProfileForCashback!.id),
-    enabled: !!selectedPayerWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && applyCashback && activationDialogOpen,
+    enabled: !!selectedPayerWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && activationDialogOpen,
   })
+
+  // Calculate cashback for current user (when not on-behalf)
+  const { data: myUserCashbackData } = useQuery({
+    queryKey: ['cashback', 'calculate', 'my', myWallet?.userId, selectedBillingProfileForCashback?.id],
+    queryFn: () => userCashbackApi.calculateCashback(myWallet!.userId!, selectedBillingProfileForCashback!.id),
+    enabled: !!myWallet?.userId && !!selectedBillingProfileForCashback?.id && !isOnBehalfActivation && activationDialogOpen,
+  })
+
+  // Use the appropriate cashback data based on activation mode
+  const cashbackData = isOnBehalfActivation ? payerCashbackData : myUserCashbackData
 
   // Flatten zones for dropdown display
   const flatZones = useMemo(() => {
@@ -3098,6 +3108,62 @@ export default function RadiusUsers() {
                       />
                     </div>
                   </div>
+
+                  {/* Cashback Info for Selected Payer */}
+                  {isOnBehalfActivation && selectedPayerWallet && cashbackData && (
+                    <div className="rounded-lg border bg-emerald-50 dark:bg-emerald-950/20 p-4">
+                      <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-emerald-600" />
+                        Cashback Details
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Payer:</span>
+                          <span className="font-medium">{selectedPayerWallet.userName || selectedPayerWallet.userEmail}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Cashback Source:</span>
+                          <span className={`font-medium ${
+                            cashbackData.source === 'individual' 
+                              ? 'text-purple-600' 
+                              : cashbackData.source === 'group' 
+                                ? 'text-blue-600' 
+                                : 'text-muted-foreground'
+                          }`}>
+                            {cashbackData.source === 'individual' 
+                              ? '👤 Individual Setting' 
+                              : cashbackData.source === 'group' 
+                                ? '👥 Group Setting' 
+                                : 'No Cashback'}
+                          </span>
+                        </div>
+                        {cashbackData.cashbackAmount > 0 && (
+                          <>
+                            <Separator />
+                            <div className="flex justify-between items-center pt-2">
+                              <span className="text-muted-foreground font-medium">Cashback Amount:</span>
+                              <span className="font-bold text-lg text-emerald-600">
+                                + {currencySymbol} {formatCurrency(cashbackData.cashbackAmount)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Checkbox
+                                id="apply-cashback-checkbox"
+                                checked={applyCashback}
+                                onCheckedChange={(checked) => setApplyCashback(checked as boolean)}
+                              />
+                              <label
+                                htmlFor="apply-cashback-checkbox"
+                                className="text-sm cursor-pointer"
+                              >
+                                Apply cashback to payer's wallet
+                              </label>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid gap-2">
                     <Label htmlFor="notes">Notes (Optional)</Label>
