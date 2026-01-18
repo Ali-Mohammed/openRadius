@@ -276,10 +276,10 @@ export default function RadiusUsers() {
   })
 
   // Get all user wallets for on-behalf activation payer selection
-  const { data: allUserWalletsData } = useQuery({
+  const { data: allUserWalletsData, isLoading: isLoadingUserWallets } = useQuery({
     queryKey: ['all-user-wallets', currentWorkspaceId],
-    queryFn: () => userWalletApi.getAll({ pageSize: 999999, status: 'Active' }),
-    enabled: !!currentWorkspaceId && activationDialogOpen && isOnBehalfActivation,
+    queryFn: () => userWalletApi.getAll({ pageSize: 999999 }),
+    enabled: !!currentWorkspaceId && activationDialogOpen,
   })
 
   // Get selected payer wallet details
@@ -2857,19 +2857,25 @@ export default function RadiusUsers() {
                               onValueChange={setSelectedPayerWalletId}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a user with wallet" />
+                                <SelectValue placeholder={isLoadingUserWallets ? "Loading users..." : "Select a user with wallet"} />
                               </SelectTrigger>
                               <SelectContent>
-                                {allUserWalletsData?.data?.map((wallet) => (
-                                  <SelectItem key={wallet.id} value={wallet.id!.toString()}>
-                                    <div className="flex items-center justify-between w-full gap-4">
-                                      <span>{wallet.userName || wallet.userEmail || `User #${wallet.userId}`}</span>
-                                      <span className="text-muted-foreground text-xs">
-                                        {currencySymbol} {formatCurrency(wallet.currentBalance)}
-                                      </span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
+                                {isLoadingUserWallets ? (
+                                  <div className="p-2 text-center text-muted-foreground text-sm">Loading...</div>
+                                ) : allUserWalletsData?.data?.length === 0 ? (
+                                  <div className="p-2 text-center text-muted-foreground text-sm">No users with wallets found</div>
+                                ) : (
+                                  allUserWalletsData?.data?.map((wallet) => (
+                                    <SelectItem key={wallet.id} value={wallet.id!.toString()}>
+                                      <div className="flex items-center justify-between w-full gap-4">
+                                        <span>{wallet.userName || wallet.userEmail || `User #${wallet.userId}`}</span>
+                                        <span className="text-muted-foreground text-xs">
+                                          {currencySymbol} {formatCurrency(wallet.currentBalance)}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                           </div>
@@ -2904,17 +2910,21 @@ export default function RadiusUsers() {
                   )}
 
                   {/* Wallet Balance Preview */}
-                  {selectedBillingProfile && myWallet?.hasWallet && (
+                  {selectedBillingProfile && (isOnBehalfActivation ? selectedPayerWallet : myWallet?.hasWallet) && (
                     <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
                       <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-primary" />
-                        Wallet Balance
+                        {isOnBehalfActivation ? `${selectedPayerWallet?.userName || 'Payer'}'s Wallet Balance` : 'Wallet Balance'}
                       </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Current Balance:</span>
                           <span className="font-semibold text-lg text-green-600">
-                            {currencySymbol} {formatCurrency(myWallet.currentBalance || 0)}
+                            {currencySymbol} {formatCurrency(
+                              isOnBehalfActivation 
+                                ? (selectedPayerWallet?.currentBalance || 0) 
+                                : (myWallet?.currentBalance || 0)
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
@@ -2940,14 +2950,20 @@ export default function RadiusUsers() {
                             {isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount ? 'Final Balance:' : 'Remaining Balance:'}
                           </span>
                           {(() => {
+                            const currentBalance = isOnBehalfActivation 
+                              ? (selectedPayerWallet?.currentBalance || 0) 
+                              : (myWallet?.currentBalance || 0)
+                            const allowNegative = isOnBehalfActivation 
+                              ? (selectedPayerWallet?.allowNegativeBalance ?? false) 
+                              : (myWallet?.allowNegativeBalance ?? false)
                             const deduction = selectedBillingProfile.price || 0
                             const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
-                            const finalBalance = (myWallet.currentBalance || 0) - deduction + cashback
+                            const finalBalance = currentBalance - deduction + cashback
                             const isNegative = finalBalance < 0
                             return (
                               <span className={`font-bold text-lg ${
                                 isNegative 
-                                  ? myWallet.allowNegativeBalance 
+                                  ? allowNegative 
                                     ? 'text-orange-600' 
                                     : 'text-red-600'
                                   : 'text-green-600'
@@ -2958,17 +2974,23 @@ export default function RadiusUsers() {
                           })()}
                         </div>
                         {(() => {
+                          const currentBalance = isOnBehalfActivation 
+                            ? (selectedPayerWallet?.currentBalance || 0) 
+                            : (myWallet?.currentBalance || 0)
+                          const allowNegative = isOnBehalfActivation 
+                            ? (selectedPayerWallet?.allowNegativeBalance ?? false) 
+                            : (myWallet?.allowNegativeBalance ?? false)
                           const deduction = selectedBillingProfile.price || 0
                           const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
-                          const finalBalance = (myWallet.currentBalance || 0) - deduction + cashback
+                          const finalBalance = currentBalance - deduction + cashback
                           if (finalBalance < 0) {
                             return (
                               <div className={`mt-2 p-2 rounded text-xs ${
-                                myWallet.allowNegativeBalance 
+                                allowNegative 
                                   ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
                                   : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
                               }`}>
-                                {myWallet.allowNegativeBalance 
+                                {allowNegative 
                                   ? '⚠️ Warning: This will result in a negative balance' 
                                   : '❌ Error: Insufficient balance. Negative balance not allowed.'}
                               </div>
@@ -2980,14 +3002,14 @@ export default function RadiusUsers() {
                     </div>
                   )}
 
-                  {/* No Wallet Warning */}
-                  {!myWallet?.hasWallet && (
+                  {/* No Wallet Warning - only show when not using on-behalf */}
+                  {!isOnBehalfActivation && !myWallet?.hasWallet && (
                     <div className="rounded-lg border bg-yellow-50 dark:bg-yellow-950/20 p-4">
                       <div className="flex items-start gap-2">
                         <div className="text-yellow-600 dark:text-yellow-400">⚠️</div>
                         <div className="text-sm text-yellow-700 dark:text-yellow-300">
                           <p className="font-medium mb-1">No Wallet Found</p>
-                          <p>You don't have a wallet yet. Please contact an administrator to create a wallet for you before activating users.</p>
+                          <p>You don't have a wallet yet. You can use "Activate on behalf of user" to pay from another user's wallet, or contact an administrator to create a wallet for you.</p>
                         </div>
                       </div>
                     </div>
@@ -3130,10 +3152,25 @@ export default function RadiusUsers() {
               disabled={
                 !activationFormData.billingProfileId || 
                 activationMutation.isPending ||
-                !myWallet?.hasWallet ||
-                (myWallet?.hasWallet && 
-                  !myWallet.allowNegativeBalance && 
-                  (myWallet.currentBalance || 0) < (selectedBillingProfile?.price || 0)) ||
+                // Check wallet availability based on activation mode
+                (isOnBehalfActivation 
+                  ? !selectedPayerWallet // Must have selected payer for on-behalf
+                  : !myWallet?.hasWallet // Must have own wallet for regular activation
+                ) ||
+                // Check balance sufficiency
+                (() => {
+                  const wallet = isOnBehalfActivation ? selectedPayerWallet : myWallet
+                  if (!wallet) return true
+                  const currentBalance = isOnBehalfActivation 
+                    ? (selectedPayerWallet?.currentBalance || 0)
+                    : (myWallet?.currentBalance || 0)
+                  const allowNegative = isOnBehalfActivation
+                    ? (selectedPayerWallet?.allowNegativeBalance ?? false)
+                    : (myWallet?.allowNegativeBalance ?? false)
+                  const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
+                  const finalBalance = currentBalance - (selectedBillingProfile?.price || 0) + cashback
+                  return !allowNegative && finalBalance < 0
+                })() ||
                 !confirmActivation
               }
               className="bg-green-600 hover:bg-green-700"

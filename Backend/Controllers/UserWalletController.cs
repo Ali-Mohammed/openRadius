@@ -79,7 +79,7 @@ public class UserWalletController : ControllerBase
 
             if (!string.IsNullOrEmpty(status))
             {
-                query = query.Where(uw => uw.Status == status);
+                query = query.Where(uw => uw.Status.ToLower() == status.ToLower());
             }
 
             if (!string.IsNullOrEmpty(search))
