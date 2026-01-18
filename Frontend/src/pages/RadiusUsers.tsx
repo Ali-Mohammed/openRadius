@@ -2943,8 +2943,8 @@ export default function RadiusUsers() {
                             - {currencySymbol} {formatCurrency(selectedBillingProfile.price || 0)}
                           </span>
                         </div>
-                        {/* Cashback display - only for on-behalf activations */}
-                        {isOnBehalfActivation && applyCashback && cashbackData && cashbackData.cashbackAmount > 0 && (
+                        {/* Cashback display - for both on-behalf and normal activations */}
+                        {applyCashback && cashbackData && cashbackData.cashbackAmount > 0 && (
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">
                               Cashback ({cashbackData.source}):
@@ -2957,7 +2957,7 @@ export default function RadiusUsers() {
                         <Separator />
                         <div className="flex justify-between items-center pt-2">
                           <span className="text-muted-foreground font-medium">
-                            {isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount ? 'Final Balance:' : 'Remaining Balance:'}
+                            {applyCashback && cashbackData?.cashbackAmount ? 'Final Balance:' : 'Remaining Balance:'}
                           </span>
                           {(() => {
                             const currentBalance = isOnBehalfActivation 
@@ -2967,7 +2967,7 @@ export default function RadiusUsers() {
                               ? (selectedPayerWallet?.allowNegativeBalance ?? false) 
                               : (myWallet?.allowNegativeBalance ?? false)
                             const deduction = selectedBillingProfile.price || 0
-                            const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
+                            const cashback = (applyCashback && cashbackData?.cashbackAmount) || 0
                             const finalBalance = currentBalance - deduction + cashback
                             const isNegative = finalBalance < 0
                             return (
@@ -2991,7 +2991,7 @@ export default function RadiusUsers() {
                             ? (selectedPayerWallet?.allowNegativeBalance ?? false) 
                             : (myWallet?.allowNegativeBalance ?? false)
                           const deduction = selectedBillingProfile.price || 0
-                          const cashback = (isOnBehalfActivation && applyCashback && cashbackData?.cashbackAmount) || 0
+                          const cashback = (applyCashback && cashbackData?.cashbackAmount) || 0
                           const finalBalance = currentBalance - deduction + cashback
                           if (finalBalance < 0) {
                             return (
@@ -3109,8 +3109,10 @@ export default function RadiusUsers() {
                     </div>
                   </div>
 
-                  {/* Cashback Info for Selected Payer */}
-                  {isOnBehalfActivation && selectedPayerWallet && cashbackData && (
+                  {/* Cashback Info - Shows for both on-behalf and normal activation */}
+                  {cashbackData && (
+                    (isOnBehalfActivation && selectedPayerWallet) || (!isOnBehalfActivation && myWallet?.hasWallet)
+                  ) && (
                     <div className="rounded-lg border bg-emerald-50 dark:bg-emerald-950/20 p-4">
                       <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -3118,8 +3120,15 @@ export default function RadiusUsers() {
                       </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Payer:</span>
-                          <span className="font-medium">{selectedPayerWallet.userName || selectedPayerWallet.userEmail}</span>
+                          <span className="text-muted-foreground">
+                            {isOnBehalfActivation ? 'Payer:' : 'Your Wallet:'}
+                          </span>
+                          <span className="font-medium">
+                            {isOnBehalfActivation 
+                              ? (selectedPayerWallet?.userName || selectedPayerWallet?.userEmail)
+                              : (myWallet?.userName || myWallet?.userEmail || 'Your Wallet')
+                            }
+                          </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Cashback Source:</span>
@@ -3156,7 +3165,7 @@ export default function RadiusUsers() {
                                 htmlFor="apply-cashback-checkbox"
                                 className="text-sm cursor-pointer"
                               >
-                                Apply cashback to payer's wallet
+                                Apply cashback to {isOnBehalfActivation ? "payer's" : 'your'} wallet
                               </label>
                             </div>
                           </>
