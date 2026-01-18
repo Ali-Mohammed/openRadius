@@ -863,9 +863,9 @@ public class UserManagementController : ControllerBase
         return attributes;
     }
 
-    // POST: api/keycloak/users/{userId}/assign-zones
-    [HttpPost("{userId}/assign-zones")]
-    public async Task<IActionResult> AssignZonesToUser(string userId, [FromBody] AssignZonesToUserDto dto)
+    // POST: api/keycloak/users/workspace/{workspaceId}/{userId}/assign-zones
+    [HttpPost("workspace/{workspaceId}/{userId}/assign-zones")]
+    public async Task<IActionResult> AssignZonesToUser(int workspaceId, string userId, [FromBody] AssignZonesToUserDto dto)
     {
         try
         {
@@ -910,9 +910,9 @@ public class UserManagementController : ControllerBase
         }
     }
 
-    // GET: api/keycloak/users/{userId}/zones
-    [HttpGet("{userId}/zones")]
-    public async Task<IActionResult> GetUserZones(string userId)
+    // GET: api/keycloak/users/workspace/{workspaceId}/{userId}/zones
+    [HttpGet("workspace/{workspaceId}/{userId}/zones")]
+    public async Task<IActionResult> GetUserZones(int workspaceId, string userId)
     {
         try
         {
