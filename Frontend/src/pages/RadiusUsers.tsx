@@ -233,6 +233,7 @@ export default function RadiusUsers() {
   // On-behalf activation state
   const [isOnBehalfActivation, setIsOnBehalfActivation] = useState(false)
   const [applyCashback, setApplyCashback] = useState(true)
+  const [selectedPayerWalletId, setSelectedPayerWalletId] = useState<string>('')
 
 
   // Helper to get currency symbol
@@ -273,6 +274,19 @@ export default function RadiusUsers() {
     queryFn: () => userWalletApi.getMyWallet(),
     enabled: !!currentWorkspaceId && activationDialogOpen,
   })
+
+  // Get all user wallets for on-behalf activation payer selection
+  const { data: allUserWalletsData } = useQuery({
+    queryKey: ['all-user-wallets', currentWorkspaceId],
+    queryFn: () => userWalletApi.getAll({ pageSize: 999999, status: 'Active' }),
+    enabled: !!currentWorkspaceId && activationDialogOpen && isOnBehalfActivation,
+  })
+
+  // Get selected payer wallet details
+  const selectedPayerWallet = useMemo(() => {
+    if (!selectedPayerWalletId || !allUserWalletsData?.data) return null
+    return allUserWalletsData.data.find(w => w.id?.toString() === selectedPayerWalletId)
+  }, [selectedPayerWalletId, allUserWalletsData?.data])
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
@@ -328,11 +342,11 @@ export default function RadiusUsers() {
     return billingProfilesData?.data?.find(bp => bp.id.toString() === activationFormData.billingProfileId)
   }, [activationFormData.billingProfileId, billingProfilesData?.data])
 
-  // Calculate cashback when on-behalf activation is enabled
+  // Calculate cashback when on-behalf activation is enabled (uses selected payer's userId)
   const { data: cashbackData } = useQuery({
-    queryKey: ['cashback', 'calculate', myWallet?.userId, selectedBillingProfileForCashback?.id],
-    queryFn: () => userCashbackApi.calculateCashback(myWallet!.userId!, selectedBillingProfileForCashback!.id),
-    enabled: !!myWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && applyCashback && activationDialogOpen,
+    queryKey: ['cashback', 'calculate', selectedPayerWallet?.userId, selectedBillingProfileForCashback?.id],
+    queryFn: () => userCashbackApi.calculateCashback(selectedPayerWallet!.userId!, selectedBillingProfileForCashback!.id),
+    enabled: !!selectedPayerWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && applyCashback && activationDialogOpen,
   })
 
   // Flatten zones for dropdown display
@@ -853,6 +867,7 @@ export default function RadiusUsers() {
     // Reset on-behalf state
     setIsOnBehalfActivation(false)
     setApplyCashback(true)
+    setSelectedPayerWalletId('')
     setActivationDialogOpen(true)
     
     // Refetch wallet balance when dialog opens
@@ -904,8 +919,8 @@ export default function RadiusUsers() {
       notes: activationFormData.notes || undefined,
       // On-behalf activation parameters
       isActionBehalf: isOnBehalfActivation,
-      payerUserId: isOnBehalfActivation && myWallet?.userId ? myWallet.userId : undefined,
-      payerUsername: isOnBehalfActivation && myWallet?.userName ? myWallet.userName : undefined,
+      payerUserId: isOnBehalfActivation && selectedPayerWallet?.userId ? selectedPayerWallet.userId : undefined,
+      payerUsername: isOnBehalfActivation && selectedPayerWallet?.userName ? selectedPayerWallet.userName : undefined,
       applyCashback: isOnBehalfActivation && applyCashback,
     }
 
@@ -2810,7 +2825,7 @@ export default function RadiusUsers() {
                   )}
 
                   {/* On-Behalf Activation Options */}
-                  {selectedBillingProfile && myWallet?.hasWallet && (
+                  {selectedBillingProfile && (
                     <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
@@ -2818,38 +2833,72 @@ export default function RadiusUsers() {
                             Activate on behalf of user
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            Pay from your wallet and receive cashback
+                            Pay from a selected user's wallet and receive cashback
                           </p>
                         </div>
                         <Switch
                           id="on-behalf-toggle"
                           checked={isOnBehalfActivation}
-                          onCheckedChange={setIsOnBehalfActivation}
+                          onCheckedChange={(checked) => {
+                            setIsOnBehalfActivation(checked)
+                            if (!checked) {
+                              setSelectedPayerWalletId('')
+                            }
+                          }}
                         />
                       </div>
                       {isOnBehalfActivation && (
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <div>
-                            <Label htmlFor="cashback-toggle" className="text-sm font-medium">
-                              Apply Cashback
-                            </Label>
-                            {cashbackData && cashbackData.cashbackAmount > 0 ? (
-                              <p className="text-xs text-green-600">
-                                You'll receive {currencySymbol} {formatCurrency(cashbackData.cashbackAmount)} ({cashbackData.source})
-                              </p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                No cashback configured for this profile
-                              </p>
-                            )}
+                        <>
+                          {/* Payer User Selection */}
+                          <div className="pt-2 border-t space-y-2">
+                            <Label className="text-sm font-medium">Select Payer</Label>
+                            <Select
+                              value={selectedPayerWalletId}
+                              onValueChange={setSelectedPayerWalletId}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a user with wallet" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {allUserWalletsData?.data?.map((wallet) => (
+                                  <SelectItem key={wallet.id} value={wallet.id!.toString()}>
+                                    <div className="flex items-center justify-between w-full gap-4">
+                                      <span>{wallet.userName || wallet.userEmail || `User #${wallet.userId}`}</span>
+                                      <span className="text-muted-foreground text-xs">
+                                        {currencySymbol} {formatCurrency(wallet.currentBalance)}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
-                          <Switch
-                            id="cashback-toggle"
-                            checked={applyCashback}
-                            onCheckedChange={setApplyCashback}
-                            disabled={!cashbackData || cashbackData.cashbackAmount <= 0}
-                          />
-                        </div>
+                          {/* Cashback Toggle */}
+                          {selectedPayerWallet && (
+                            <div className="flex items-center justify-between pt-2 border-t">
+                              <div>
+                                <Label htmlFor="cashback-toggle" className="text-sm font-medium">
+                                  Apply Cashback
+                                </Label>
+                                {cashbackData && cashbackData.cashbackAmount > 0 ? (
+                                  <p className="text-xs text-green-600">
+                                    {selectedPayerWallet.userName || 'Payer'} will receive {currencySymbol} {formatCurrency(cashbackData.cashbackAmount)} ({cashbackData.source})
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">
+                                    No cashback configured for this profile
+                                  </p>
+                                )}
+                              </div>
+                              <Switch
+                                id="cashback-toggle"
+                                checked={applyCashback}
+                                onCheckedChange={setApplyCashback}
+                                disabled={!cashbackData || cashbackData.cashbackAmount <= 0}
+                              />
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
