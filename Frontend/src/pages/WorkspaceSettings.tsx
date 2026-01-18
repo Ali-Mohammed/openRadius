@@ -85,6 +85,16 @@ export default function WorkspaceSettings() {
     description: '',
   })
 
+  // Cleanup SignalR connection on unmount
+  useEffect(() => {
+    return () => {
+      if (hubConnectionRef.current) {
+        hubConnectionRef.current.stop()
+        hubConnectionRef.current = null
+      }
+    }
+  }, [])
+
   const { data: workspace, isLoading } = useQuery({
     queryKey: ['workspace', currentWorkspaceId],
     queryFn: () => workspaceApi.getById(Number(currentWorkspaceId)),
@@ -182,18 +192,64 @@ export default function WorkspaceSettings() {
   })
 
   const syncManagersMutation = useMutation({
-    mutationFn: (integrationId: number) => sasRadiusApi.syncManagers(Number(currentWorkspaceId), integrationId),
+    mutationFn: async (integrationId: number) => {
+      setSyncingIntegrationId(integrationId)
+      setManagerSyncProgress({ phase: 'Starting', current: 0, total: 100, percentComplete: 0, message: 'Initializing...' })
+      setIsManagerSyncDialogOpen(true)
+      
+      // Connect to SignalR hub for progress updates
+      const connection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/sas-sync')
+        .withAutomaticReconnect()
+        .build()
+      
+      hubConnectionRef.current = connection
+      
+      connection.on('ManagerSyncProgress', (progress: ManagerSyncProgress) => {
+        setManagerSyncProgress(progress)
+      })
+      
+      await connection.start()
+      await connection.invoke('JoinManagerSyncSession', integrationId)
+      
+      return sasRadiusApi.syncManagers(Number(currentWorkspaceId), integrationId)
+    },
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['keycloak-users'] })
-      toast.success(
-        `Manager sync completed: ${response.newUsersCreated} new users created, ` +
-        `${response.existingUsersUpdated} updated, ${response.keycloakUsersCreated} Keycloak users created`
-      )
-      if (response.errors && response.errors.length > 0) {
-        response.errors.forEach(error => toast.error(error))
+      // Disconnect SignalR
+      if (hubConnectionRef.current) {
+        hubConnectionRef.current.stop()
+        hubConnectionRef.current = null
       }
+      
+      queryClient.invalidateQueries({ queryKey: ['keycloak-users'] })
+      setManagerSyncProgress({ phase: 'Complete', current: 100, total: 100, percentComplete: 100, message: 'Sync completed!' })
+      
+      setTimeout(() => {
+        setIsManagerSyncDialogOpen(false)
+        setManagerSyncProgress(null)
+        setSyncingIntegrationId(null)
+        
+        toast.success(
+          `Manager sync completed: ${response.newUsersCreated} new users, ` +
+          `${response.existingUsersUpdated} updated, ${response.keycloakUsersCreated} Keycloak users, ` +
+          `${response.zonesAssigned} zones assigned`
+        )
+        if (response.errors && response.errors.length > 0) {
+          response.errors.forEach(error => toast.error(error))
+        }
+      }, 1500)
     },
     onError: (error: any) => {
+      // Disconnect SignalR
+      if (hubConnectionRef.current) {
+        hubConnectionRef.current.stop()
+        hubConnectionRef.current = null
+      }
+      
+      setIsManagerSyncDialogOpen(false)
+      setManagerSyncProgress(null)
+      setSyncingIntegrationId(null)
+      
       const errorMessage = error?.response?.data?.details || formatApiError(error) || 'Failed to sync managers'
       toast.error(errorMessage)
     },
@@ -897,6 +953,49 @@ export default function WorkspaceSettings() {
           queryClient.invalidateQueries({ queryKey: ['recent-syncs', currentWorkspaceId] })
         }}
       />
+
+      {/* Manager Sync Progress Dialog */}
+      <Dialog open={isManagerSyncDialogOpen} onOpenChange={(open) => {
+        if (!open && !syncManagersMutation.isPending) {
+          setIsManagerSyncDialogOpen(false)
+          setManagerSyncProgress(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Syncing Managers
+            </DialogTitle>
+            <DialogDescription>
+              Syncing managers from SAS to users and assigning zones...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{managerSyncProgress?.phase || 'Initializing'}</span>
+                <span className="text-muted-foreground">{managerSyncProgress?.percentComplete || 0}%</span>
+              </div>
+              <Progress value={managerSyncProgress?.percentComplete || 0} className="h-2" />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {managerSyncProgress?.phase !== 'Complete' && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              {managerSyncProgress?.phase === 'Complete' && (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              )}
+              <span>{managerSyncProgress?.message || 'Preparing...'}</span>
+            </div>
+            {managerSyncProgress?.total && managerSyncProgress.total > 0 && managerSyncProgress.phase !== 'Complete' && (
+              <div className="text-xs text-muted-foreground">
+                {managerSyncProgress.current} of {managerSyncProgress.total}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Sync Confirmation Dialog */}
       <AlertDialog open={syncConfirmOpen} onOpenChange={setSyncConfirmOpen}>
