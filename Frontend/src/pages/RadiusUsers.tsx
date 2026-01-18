@@ -26,6 +26,7 @@ import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/r
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
 import { zoneApi, type Zone } from '@/services/zoneApi'
 import userWalletApi from '@/api/userWallets'
+import { userCashbackApi } from '@/api/userCashbackApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -228,6 +229,10 @@ export default function RadiusUsers() {
   })
   const [confirmActivation, setConfirmActivation] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  
+  // On-behalf activation state
+  const [isOnBehalfActivation, setIsOnBehalfActivation] = useState(false)
+  const [applyCashback, setApplyCashback] = useState(true)
 
 
   // Helper to get currency symbol
@@ -267,6 +272,19 @@ export default function RadiusUsers() {
     queryKey: ['my-wallet', currentWorkspaceId],
     queryFn: () => userWalletApi.getMyWallet(),
     enabled: !!currentWorkspaceId && activationDialogOpen,
+  })
+
+  // Get selected billing profile for activation
+  const selectedBillingProfileForCashback = useMemo(() => {
+    if (!activationFormData.billingProfileId) return null
+    return billingProfilesData?.data?.find(bp => bp.id.toString() === activationFormData.billingProfileId)
+  }, [activationFormData.billingProfileId, billingProfilesData?.data])
+
+  // Calculate cashback when on-behalf activation is enabled
+  const { data: cashbackData } = useQuery({
+    queryKey: ['cashback', 'calculate', myWallet?.userId, selectedBillingProfileForCashback?.id],
+    queryFn: () => userCashbackApi.calculateCashback(myWallet!.userId!, selectedBillingProfileForCashback!.id),
+    enabled: !!myWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && applyCashback && activationDialogOpen,
   })
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
@@ -832,6 +850,9 @@ export default function RadiusUsers() {
       durationDays: '30',
       notes: '',
     })
+    // Reset on-behalf state
+    setIsOnBehalfActivation(false)
+    setApplyCashback(true)
     setActivationDialogOpen(true)
     
     // Refetch wallet balance when dialog opens
