@@ -76,6 +76,7 @@ const userWalletApi = {
     hasWallet: boolean; 
     id?: number; 
     userId?: number;
+    userName?: string;
     customWalletId?: number;
     customWalletName?: string;
     currentBalance?: number; 
