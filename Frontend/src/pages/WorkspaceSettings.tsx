@@ -44,6 +44,7 @@ import { SyncProgressDialog } from '../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../utils/errorHandler'
 import { useWorkspace } from '../contexts/WorkspaceContext'
+import { appConfig } from '../config/app.config'
 import * as signalR from '@microsoft/signalr'
 
 export default function WorkspaceSettings() {
@@ -199,7 +200,7 @@ export default function WorkspaceSettings() {
       
       // Connect to SignalR hub for progress updates
       const connection = new signalR.HubConnectionBuilder()
-        .withUrl('/hubs/sas-sync')
+        .withUrl(`${appConfig.api.baseUrl}/hubs/sassync`)
         .withAutomaticReconnect()
         .build()
       
