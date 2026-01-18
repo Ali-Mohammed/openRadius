@@ -1,13 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Receipt,
   Plus,
   Trash2,
-  Filter,
   TrendingUp,
-  TrendingDown,
-  DollarSign,
   ArrowUpCircle,
   ArrowDownCircle,
   RefreshCw,
@@ -18,7 +15,6 @@ import {
   Percent,
   AlertCircle,
   RotateCcw,
-  Search,
   Archive,
   ChevronLeft,
   ChevronRight,
@@ -32,13 +28,6 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -206,51 +195,6 @@ export default function Transactions() {
   const transactions = transactionsData?.data || []
   const totalCount = transactionsData?.totalCount || 0
   const totalPages = transactionsData?.totalPages || 1
-
-  // Generate pagination page numbers (same as RadiusUsers)
-  const getPaginationPages = useCallback((current: number, total: number) => {
-    const pages: (number | string)[] = []
-    const maxVisible = 7 // Total number of page buttons to show
-    
-    if (total <= maxVisible) {
-      // Show all pages if total is small
-      for (let i = 1; i <= total; i++) {
-        pages.push(i)
-      }
-    } else {
-      // Always show first page
-      pages.push(1)
-      
-      if (current > 3) {
-        pages.push('...')
-      }
-      
-      // Show pages around current
-      const start = Math.max(2, current - 1)
-      const end = Math.min(total - 1, current + 1)
-      
-      for (let i = start; i <= end; i++) {
-        if (!pages.includes(i)) {
-          pages.push(i)
-        }
-      }
-      
-      if (current < total - 2) {
-        pages.push('...')
-      }
-      
-      // Always show last page
-      if (!pages.includes(total)) {
-        pages.push(total)
-      }
-    }
-    
-    return pages
-  }, [])
-
-  const formatNumber = (num: number) => {
-    return num.toLocaleString()
-  }
 
   // Mutations
   const createMutation = useMutation({
