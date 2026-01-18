@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
+using Backend.Hubs;
 using Backend.Models;
 using Backend.Services;
 
@@ -13,17 +15,20 @@ public class SasRadiusIntegrationController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly MasterDbContext _masterContext;
     private readonly ISasSyncService _syncService;
+    private readonly IHubContext<SasSyncHub> _hubContext;
     private readonly ILogger<SasRadiusIntegrationController> _logger;
 
     public SasRadiusIntegrationController(
         ApplicationDbContext context,
         MasterDbContext masterContext,
         ISasSyncService syncService,
+        IHubContext<SasSyncHub> hubContext,
         ILogger<SasRadiusIntegrationController> logger)
     {
         _context = context;
         _masterContext = masterContext;
         _syncService = syncService;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -269,11 +274,18 @@ public class SasRadiusIntegrationController : ControllerBase
 
         try
         {
-            var result = await _syncService.SyncManagersAsync(id);
+            // Progress callback to send updates via SignalR
+            var syncGroup = $"manager-sync-{id}";
+            void OnProgress(ManagerSyncProgress progress)
+            {
+                _hubContext.Clients.Group(syncGroup).SendAsync("ManagerSyncProgress", progress);
+            }
+            
+            var result = await _syncService.SyncManagersAsync(id, OnProgress);
             
             _logger.LogInformation(
-                "Manager sync completed for integration {Name}: {Total} total, {New} new, {Updated} updated, {Failed} failed",
-                integration.Name, result.TotalManagers, result.NewUsersCreated, result.ExistingUsersUpdated, result.Failed);
+                "Manager sync completed for integration {Name}: {Total} total, {New} new, {Updated} updated, {Zones} zones assigned, {Failed} failed",
+                integration.Name, result.TotalManagers, result.NewUsersCreated, result.ExistingUsersUpdated, result.ZonesAssigned, result.Failed);
 
             return Ok(new
             {
@@ -284,6 +296,7 @@ public class SasRadiusIntegrationController : ControllerBase
                 newUsersCreated = result.NewUsersCreated,
                 existingUsersUpdated = result.ExistingUsersUpdated,
                 keycloakUsersCreated = result.KeycloakUsersCreated,
+                zonesAssigned = result.ZonesAssigned,
                 failed = result.Failed,
                 errors = result.Errors
             });

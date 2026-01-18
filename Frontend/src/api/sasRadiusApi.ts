@@ -84,8 +84,17 @@ export interface ManagerSyncResult {
   newUsersCreated: number
   existingUsersUpdated: number
   keycloakUsersCreated: number
+  zonesAssigned: number
   failed: number
   errors: string[]
+}
+
+export interface ManagerSyncProgress {
+  phase: string
+  current: number
+  total: number
+  percentComplete: number
+  message: string
 }
 
 export const sasRadiusApi = {
