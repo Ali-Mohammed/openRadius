@@ -64,6 +64,11 @@ export interface CreateRadiusActivationRequest {
   isActionBehalf?: boolean
   actionForId?: number
   actionForUsername?: string
+  // For on-behalf activations: whose wallet to deduct from
+  payerUserId?: number
+  payerUsername?: string
+  // Whether to apply cashback to payer's wallet
+  applyCashback?: boolean
 }
 
 export interface UpdateActivationStatusRequest {

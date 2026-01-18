@@ -354,14 +354,22 @@ public class RadiusActivationController : ControllerBase
                     return BadRequest(new { error = "Current user not found" });
                 }
 
-                // Check if user has a wallet
+                // Determine which user's wallet to use
+                // If PayerUserId is specified (on-behalf activation), use that user's wallet
+                // Otherwise use the current user's wallet
+                int walletOwnerId = request.PayerUserId ?? currentUser.Id;
+                string walletOwnerUsername = request.PayerUsername ?? currentUser.Email ?? "unknown";
+
+                // Check if target user has a wallet
                 var userWallet = await _context.UserWallets
                     .Include(uw => uw.CustomWallet)
-                    .FirstOrDefaultAsync(uw => uw.UserId == currentUser.Id && !uw.IsDeleted);
+                    .FirstOrDefaultAsync(uw => uw.UserId == walletOwnerId && !uw.IsDeleted);
 
                 if (userWallet == null)
                 {
-                    return BadRequest(new { error = "User does not have a wallet. Please create a wallet first." });
+                    return BadRequest(new { error = request.PayerUserId.HasValue 
+                        ? $"Payer user {walletOwnerUsername} does not have a wallet." 
+                        : "User does not have a wallet. Please create a wallet first." });
                 }
 
                 // Check if wallet status is active
@@ -390,18 +398,22 @@ public class RadiusActivationController : ControllerBase
                 userWallet.UpdatedAt = DateTime.UtcNow;
                 userWallet.UpdatedBy = userEmail;
 
+                var onBehalfText = request.IsActionBehalf && request.PayerUserId.HasValue 
+                    ? $" (on behalf of {walletOwnerUsername})" 
+                    : "";
+
                 var transaction = new Transaction
                 {
                     WalletType = "user",
                     UserWalletId = userWallet.Id,
-                    UserId = currentUser.Id,
+                    UserId = walletOwnerId,
                     TransactionType = TransactionType.Payment,
                     AmountType = "debit",
                     Amount = activationAmount,
                     Status = "completed",
                     BalanceBefore = balanceBefore,
                     BalanceAfter = balanceAfter,
-                    Description = $"RADIUS user activation for {radiusUser.Username}",
+                    Description = $"RADIUS user activation for {radiusUser.Username}{onBehalfText}",
                     Reference = $"ACTIVATION-{radiusUser.Id}",
                     PaymentMethod = "Wallet",
                     CreatedAt = DateTime.UtcNow,
@@ -419,13 +431,13 @@ public class RadiusActivationController : ControllerBase
                 {
                     WalletType = "user",
                     UserWalletId = userWallet.Id,
-                    UserId = currentUser.Id,
+                    UserId = walletOwnerId,
                     TransactionType = TransactionType.Payment,
                     AmountType = "debit",
                     Amount = activationAmount,
                     BalanceBefore = balanceBefore,
                     BalanceAfter = balanceAfter,
-                    Description = $"RADIUS user activation for {radiusUser.Username}",
+                    Description = $"RADIUS user activation for {radiusUser.Username}{onBehalfText}",
                     Reference = $"ACTIVATION-{radiusUser.Id}",
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = userEmail
@@ -436,7 +448,107 @@ public class RadiusActivationController : ControllerBase
 
                 transactionId = transaction.Id;
 
-                _logger.LogInformation($"Created wallet transaction {transaction.Id} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
+                _logger.LogInformation($"Created wallet transaction {transaction.Id} for user {walletOwnerId} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
+
+                // Process cashback if enabled and this is an on-behalf activation
+                if (request.ApplyCashback && request.PayerUserId.HasValue && request.BillingProfileId.HasValue)
+                {
+                    // Calculate cashback amount for the payer user
+                    decimal cashbackAmount = 0;
+                    string cashbackSource = "none";
+
+                    // First check for individual user cashback
+                    var userCashback = await _context.UserCashbacks
+                        .Where(uc => uc.UserId == walletOwnerId && uc.BillingProfileId == request.BillingProfileId.Value && uc.DeletedAt == null)
+                        .FirstOrDefaultAsync();
+
+                    if (userCashback != null && userCashback.Amount > 0)
+                    {
+                        cashbackAmount = userCashback.Amount;
+                        cashbackSource = "individual";
+                    }
+                    else
+                    {
+                        // Check if user belongs to a cashback group
+                        var userGroup = await _context.CashbackGroupUsers
+                            .Where(cgu => cgu.UserId == walletOwnerId)
+                            .Include(cgu => cgu.CashbackGroup)
+                            .Where(cgu => cgu.CashbackGroup != null && cgu.CashbackGroup.DeletedAt == null)
+                            .FirstOrDefaultAsync();
+
+                        if (userGroup != null)
+                        {
+                            // Get the cashback amount for this group and billing profile
+                            var groupCashback = await _context.CashbackProfileAmounts
+                                .Where(cpa => cpa.CashbackGroupId == userGroup.CashbackGroupId && cpa.BillingProfileId == request.BillingProfileId.Value)
+                                .FirstOrDefaultAsync();
+
+                            if (groupCashback != null && groupCashback.Amount > 0)
+                            {
+                                cashbackAmount = groupCashback.Amount;
+                                cashbackSource = "group";
+                            }
+                        }
+                    }
+
+                    // Apply cashback to payer's wallet if amount > 0
+                    if (cashbackAmount > 0)
+                    {
+                        var cashbackBalanceBefore = userWallet.CurrentBalance;
+                        userWallet.CurrentBalance += cashbackAmount;
+                        userWallet.UpdatedAt = DateTime.UtcNow;
+                        userWallet.UpdatedBy = userEmail;
+
+                        // Create cashback transaction
+                        var cashbackTransaction = new Transaction
+                        {
+                            WalletType = "user",
+                            UserWalletId = userWallet.Id,
+                            UserId = walletOwnerId,
+                            TransactionType = TransactionType.Reward,
+                            AmountType = "credit",
+                            Amount = cashbackAmount,
+                            Status = "completed",
+                            BalanceBefore = cashbackBalanceBefore,
+                            BalanceAfter = userWallet.CurrentBalance,
+                            Description = $"Cashback for activating {radiusUser.Username} ({cashbackSource})",
+                            Reference = $"CASHBACK-{radiusUser.Id}",
+                            PaymentMethod = "Cashback",
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userEmail,
+                            RadiusUserId = radiusUser.Id,
+                            RadiusUsername = radiusUser.Username,
+                            RadiusProfileId = radiusProfileId,
+                            RadiusProfileName = radiusProfileName,
+                            BillingProfileId = request.BillingProfileId,
+                            BillingProfileName = (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name
+                        };
+
+                        _context.Transactions.Add(cashbackTransaction);
+
+                        // Create wallet history for cashback
+                        var cashbackHistory = new WalletHistory
+                        {
+                            WalletType = "user",
+                            UserWalletId = userWallet.Id,
+                            UserId = walletOwnerId,
+                            TransactionType = TransactionType.Reward,
+                            AmountType = "credit",
+                            Amount = cashbackAmount,
+                            BalanceBefore = cashbackBalanceBefore,
+                            BalanceAfter = userWallet.CurrentBalance,
+                            Description = $"Cashback for activating {radiusUser.Username} ({cashbackSource})",
+                            Reference = $"CASHBACK-{radiusUser.Id}",
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userEmail
+                        };
+
+                        _context.WalletHistories.Add(cashbackHistory);
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogInformation($"Applied cashback of {cashbackAmount:F2} to user {walletOwnerId} wallet for activation. Balance: {cashbackBalanceBefore:F2} -> {userWallet.CurrentBalance:F2}");
+                    }
+                }
             }
 
             // Process custom wallet deposits from RADIUS profile FIRST (before billing profile)

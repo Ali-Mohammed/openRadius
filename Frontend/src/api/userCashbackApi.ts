@@ -66,4 +66,17 @@ export const userCashbackApi = {
   deleteByUser: async (userId: number): Promise<void> => {
     await apiClient.delete(`/api/UserCashback/user/${userId}`);
   },
+
+  // Calculate the effective cashback amount for a user and billing profile
+  calculateCashback: async (userId: number, billingProfileId: number): Promise<{
+    userId: number;
+    billingProfileId: number;
+    cashbackAmount: number;
+    source: 'none' | 'individual' | 'group';
+  }> => {
+    const response = await apiClient.get('/api/UserCashback/calculate', {
+      params: { userId, billingProfileId }
+    });
+    return response.data;
+  },
 };

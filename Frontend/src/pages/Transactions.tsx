@@ -23,11 +23,16 @@ import {
   Columns3,
   MessageSquare,
   History,
+  Users,
+  Package,
+  DollarSign,
+  Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -66,10 +71,16 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import transactionApi, { type CreateTransactionRequest } from '@/api/transactions'
 import { customWalletApi } from '@/api/customWallets'
 import userWalletApi from '@/api/userWallets'
 import { workspaceApi } from '@/lib/api'
+import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
+import { getProfiles as getBillingProfiles, type BillingProfile } from '@/api/billingProfiles'
+import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
+import { userCashbackApi } from '@/api/userCashbackApi'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { TRANSACTION_TYPES, TRANSACTION_TYPE_INFO, type TransactionType } from '@/constants/transactionTypes'
@@ -132,6 +143,19 @@ export default function Transactions() {
   const [restoringTransaction, setRestoringTransaction] = useState<any>(null)
   const [deleteReason, setDeleteReason] = useState('')
 
+  // Activation dialog state
+  const [isActivationDialogOpen, setIsActivationDialogOpen] = useState(false)
+  const [radiusUserSearch, setRadiusUserSearch] = useState('')
+  const [payerSearch, setPayerSearch] = useState('')
+  const [radiusUserOpen, setRadiusUserOpen] = useState(false)
+  const [payerOpen, setPayerOpen] = useState(false)
+  const [selectedRadiusUser, setSelectedRadiusUser] = useState<RadiusUser | null>(null)
+  const [selectedPayerWallet, setSelectedPayerWallet] = useState<{ id: number; userId: number; userName: string; currentBalance: number; allowNegativeBalance?: boolean } | null>(null)
+  const [selectedBillingProfile, setSelectedBillingProfile] = useState<BillingProfile | null>(null)
+  const [activationDuration, setActivationDuration] = useState('30')
+  const [activationNotes, setActivationNotes] = useState('')
+  const [applyCashback, setApplyCashback] = useState(true)
+
   const [formData, setFormData] = useState<CreateTransactionRequest>({
     walletType: 'custom',
     transactionType: TRANSACTION_TYPES.TOP_UP,
@@ -191,6 +215,36 @@ export default function Transactions() {
     queryFn: () => userWalletApi.getAll({ pageSize: 100 }),
     enabled: formData.walletType === 'user' && isDialogOpen,
   })
+
+  // Queries for activation dialog
+  const { data: radiusUsersData } = useQuery({
+    queryKey: ['radiusUsers', 'activation', radiusUserSearch],
+    queryFn: () => radiusUserApi.getAll(1, 50, radiusUserSearch),
+    enabled: isActivationDialogOpen,
+  })
+
+  const { data: payerWalletsData } = useQuery({
+    queryKey: ['userWallets', 'activation', payerSearch],
+    queryFn: () => userWalletApi.getAll({ pageSize: 100, search: payerSearch }),
+    enabled: isActivationDialogOpen,
+  })
+
+  const { data: billingProfilesData } = useQuery({
+    queryKey: ['billingProfiles', 'activation'],
+    queryFn: () => getBillingProfiles({ pageSize: 100, isActive: true }),
+    enabled: isActivationDialogOpen,
+  })
+
+  // Calculate cashback when payer and billing profile are selected
+  const { data: cashbackData } = useQuery({
+    queryKey: ['cashback', 'calculate', selectedPayerWallet?.userId, selectedBillingProfile?.id],
+    queryFn: () => userCashbackApi.calculateCashback(selectedPayerWallet!.userId, selectedBillingProfile!.id),
+    enabled: !!selectedPayerWallet?.userId && !!selectedBillingProfile?.id && applyCashback,
+  })
+
+  const radiusUsers = radiusUsersData?.data || []
+  const payerWallets = payerWalletsData?.data || []
+  const billingProfiles = billingProfilesData?.data || []
 
   const transactions = transactionsData?.data || []
   const totalCount = transactionsData?.totalCount || 0
@@ -321,6 +375,87 @@ export default function Transactions() {
       toast.error(errorMessage)
     },
   })
+
+  // Activation mutation
+  const activationMutation = useMutation({
+    mutationFn: (request: CreateRadiusActivationRequest) => radiusActivationApi.create(request),
+    onSuccess: async () => {
+      toast.success('User activated successfully')
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['userWallets'] })
+      await queryClient.invalidateQueries({ queryKey: ['radiusUsers'] })
+      await queryClient.invalidateQueries({ queryKey: ['radiusActivations'] })
+      resetActivationForm()
+      setIsActivationDialogOpen(false)
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        'Failed to activate user'
+      toast.error(errorMessage)
+    },
+  })
+
+  const resetActivationForm = () => {
+    setSelectedRadiusUser(null)
+    setSelectedPayerWallet(null)
+    setSelectedBillingProfile(null)
+    setActivationDuration('30')
+    setActivationNotes('')
+    setApplyCashback(true)
+    setRadiusUserSearch('')
+    setPayerSearch('')
+  }
+
+  const handleSubmitActivation = () => {
+    if (!selectedRadiusUser) {
+      toast.error('Please select a RADIUS user to activate')
+      return
+    }
+    if (!selectedPayerWallet) {
+      toast.error('Please select a payer wallet')
+      return
+    }
+    if (!selectedBillingProfile) {
+      toast.error('Please select a billing profile')
+      return
+    }
+
+    const durationDays = parseInt(activationDuration) || 30
+    const now = new Date()
+    let baseDate = now
+
+    // If user has a current expiration date and it's in the future, use it as base
+    if (selectedRadiusUser.expiration) {
+      const currentExpireDate = new Date(selectedRadiusUser.expiration)
+      if (currentExpireDate > now) {
+        baseDate = currentExpireDate
+      }
+    }
+
+    const nextExpireDate = new Date(baseDate)
+    nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
+
+    const request: CreateRadiusActivationRequest = {
+      radiusUserId: selectedRadiusUser.id!,
+      radiusProfileId: selectedBillingProfile.radiusProfileId,
+      billingProfileId: selectedBillingProfile.id,
+      nextExpireDate: nextExpireDate.toISOString(),
+      amount: selectedBillingProfile.price || 0,
+      type: 'Activation',
+      paymentMethod: 'Wallet',
+      durationDays: durationDays,
+      source: 'Web',
+      notes: activationNotes || undefined,
+      isActionBehalf: true,
+      payerUserId: selectedPayerWallet.userId,
+      payerUsername: selectedPayerWallet.userName,
+      applyCashback: applyCashback,
+    }
+
+    activationMutation.mutate(request)
+  }
 
   const resetForm = () => {
     setFormData({
@@ -454,10 +589,21 @@ export default function Transactions() {
           )}
 
           {!showTrash && (
-            <Button onClick={() => setIsDialogOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Transaction
-            </Button>
+            <>
+              <Button 
+                onClick={() => setIsActivationDialogOpen(true)} 
+                size="sm"
+                variant="outline"
+                className="gap-2"
+              >
+                <Zap className="h-4 w-4" />
+                Activate User
+              </Button>
+              <Button onClick={() => setIsDialogOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Transaction
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -1040,6 +1186,374 @@ export default function Transactions() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activation Dialog - On Behalf */}
+      <Dialog open={isActivationDialogOpen} onOpenChange={(open) => {
+        setIsActivationDialogOpen(open)
+        if (!open) resetActivationForm()
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-green-600" />
+              Activate User (On Behalf)
+            </DialogTitle>
+            <DialogDescription>
+              Activate a RADIUS user and deduct the cost from a selected user's wallet
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 space-y-6">
+            {/* RADIUS User Selection */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Select RADIUS User to Activate</h3>
+              </div>
+              
+              <Popover open={radiusUserOpen} onOpenChange={setRadiusUserOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={radiusUserOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedRadiusUser 
+                      ? `${selectedRadiusUser.username} ${selectedRadiusUser.firstname ? `(${selectedRadiusUser.firstname} ${selectedRadiusUser.lastname || ''})` : ''}`
+                      : "Select RADIUS user..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search users..." 
+                      value={radiusUserSearch}
+                      onValueChange={setRadiusUserSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No users found.</CommandEmpty>
+                      <CommandGroup>
+                        {radiusUsers.map((user) => (
+                          <CommandItem
+                            key={user.id}
+                            value={user.username}
+                            onSelect={() => {
+                              setSelectedRadiusUser(user)
+                              setRadiusUserOpen(false)
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.username}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {user.firstname || user.lastname 
+                                  ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
+                                  : 'No name'} | Balance: {currencySymbol} {formatCurrency(user.balance || 0)}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* Selected RADIUS User Info */}
+              {selectedRadiusUser && (
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Username:</span>
+                      <span className="ml-2 font-medium">{selectedRadiusUser.username}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Profile:</span>
+                      <span className="ml-2 font-medium">{selectedRadiusUser.profileName || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Expiration:</span>
+                      <span className="ml-2 font-medium">
+                        {selectedRadiusUser.expiration 
+                          ? new Date(selectedRadiusUser.expiration).toLocaleDateString()
+                          : '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Status:</span>
+                      <Badge 
+                        variant={selectedRadiusUser.enabled ? 'default' : 'secondary'} 
+                        className="ml-2"
+                      >
+                        {selectedRadiusUser.enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Payer Wallet Selection */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Select Payer Wallet</h3>
+              </div>
+              
+              <Popover open={payerOpen} onOpenChange={setPayerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={payerOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedPayerWallet 
+                      ? `${selectedPayerWallet.userName} - ${currencySymbol} ${formatCurrency(selectedPayerWallet.currentBalance)}`
+                      : "Select payer wallet..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search users..." 
+                      value={payerSearch}
+                      onValueChange={setPayerSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No wallets found.</CommandEmpty>
+                      <CommandGroup>
+                        {payerWallets.map((wallet) => (
+                          <CommandItem
+                            key={wallet.id}
+                            value={wallet.userName || ''}
+                            onSelect={() => {
+                              setSelectedPayerWallet({
+                                id: wallet.id!,
+                                userId: wallet.userId!,
+                                userName: wallet.userName || 'Unknown',
+                                currentBalance: wallet.currentBalance,
+                                allowNegativeBalance: wallet.allowNegativeBalance ?? undefined,
+                              })
+                              setPayerOpen(false)
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">{wallet.userName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                Balance: {currencySymbol} {formatCurrency(wallet.currentBalance)}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <Separator />
+
+            {/* Billing Profile Selection */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Select Billing Profile</h3>
+              </div>
+              
+              <Select
+                value={selectedBillingProfile?.id.toString() || ''}
+                onValueChange={(value) => {
+                  const profile = billingProfiles.find(bp => bp.id.toString() === value)
+                  setSelectedBillingProfile(profile || null)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a billing profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {billingProfiles.map((bp) => (
+                    <SelectItem key={bp.id} value={bp.id.toString()}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{bp.name}</span>
+                        <span className="ml-2 text-muted-foreground">
+                          {currencySymbol} {formatCurrency(bp.price || 0)}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Selected Profile Details */}
+              {selectedBillingProfile && (
+                <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-sm">Profile Details</h4>
+                    <div className="flex items-center gap-1 text-lg font-bold text-green-600">
+                      <DollarSign className="h-5 w-5" />
+                      {currencySymbol} {formatCurrency(selectedBillingProfile.price || 0)}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Profile Name:</span>
+                      <span className="ml-2 font-medium">{selectedBillingProfile.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Description:</span>
+                      <span className="ml-2">{selectedBillingProfile.description || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Wallet Balance Preview */}
+              {selectedBillingProfile && selectedPayerWallet && (
+                <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4">
+                  <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    Wallet Balance Preview
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Current Balance:</span>
+                      <span className="font-semibold text-lg text-green-600">
+                        {currencySymbol} {formatCurrency(selectedPayerWallet.currentBalance)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Deduction Amount:</span>
+                      <span className="font-medium text-red-600">
+                        - {currencySymbol} {formatCurrency(selectedBillingProfile.price || 0)}
+                      </span>
+                    </div>
+                    {applyCashback && cashbackData && cashbackData.cashbackAmount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          Cashback ({cashbackData.source}):
+                        </span>
+                        <span className="font-medium text-green-600">
+                          + {currencySymbol} {formatCurrency(cashbackData.cashbackAmount)}
+                        </span>
+                      </div>
+                    )}
+                    <Separator />
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-muted-foreground font-medium">Final Balance:</span>
+                      {(() => {
+                        const deduction = selectedBillingProfile.price || 0
+                        const cashback = (applyCashback && cashbackData?.cashbackAmount) || 0
+                        const finalBalance = selectedPayerWallet.currentBalance - deduction + cashback
+                        const isNegative = finalBalance < 0
+                        return (
+                          <span className={`font-bold text-lg ${
+                            isNegative 
+                              ? selectedPayerWallet.allowNegativeBalance 
+                                ? 'text-orange-600' 
+                                : 'text-red-600'
+                              : 'text-green-600'
+                          }`}>
+                            {currencySymbol} {formatCurrency(finalBalance)}
+                          </span>
+                        )
+                      })()}
+                    </div>
+                    {(() => {
+                      const deduction = selectedBillingProfile.price || 0
+                      const cashback = (applyCashback && cashbackData?.cashbackAmount) || 0
+                      const finalBalance = selectedPayerWallet.currentBalance - deduction + cashback
+                      if (finalBalance < 0) {
+                        return (
+                          <div className={`mt-2 p-2 rounded text-xs ${
+                            selectedPayerWallet.allowNegativeBalance 
+                              ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                              : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                          }`}>
+                            {selectedPayerWallet.allowNegativeBalance 
+                              ? '⚠️ Warning: This will result in a negative balance' 
+                              : '❌ Error: Insufficient balance. Negative balance not allowed.'}
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Cashback Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="applyCashback">Apply Cashback</Label>
+                <p className="text-xs text-muted-foreground">
+                  Return cashback to payer's wallet if applicable
+                </p>
+              </div>
+              <Checkbox
+                id="applyCashback"
+                checked={applyCashback}
+                onCheckedChange={(checked) => setApplyCashback(checked as boolean)}
+              />
+            </div>
+
+            {/* Duration and Notes */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duration (days)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  value={activationDuration}
+                  onChange={(e) => setActivationDuration(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Input
+                  id="notes"
+                  value={activationNotes}
+                  onChange={(e) => setActivationNotes(e.target.value)}
+                  placeholder="Optional notes..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsActivationDialogOpen(false)
+                resetActivationForm()
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitActivation} 
+              disabled={
+                activationMutation.isPending || 
+                !selectedRadiusUser || 
+                !selectedPayerWallet || 
+                !selectedBillingProfile
+              }
+            >
+              {activationMutation.isPending ? 'Activating...' : 'Activate User'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

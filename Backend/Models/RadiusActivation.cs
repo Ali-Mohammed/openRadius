@@ -218,4 +218,11 @@ public class CreateRadiusActivationRequest
     public bool IsActionBehalf { get; set; } = false;
     public int? ActionForId { get; set; }
     public string? ActionForUsername { get; set; }
+    
+    // For on-behalf activations: whose wallet to deduct from
+    public int? PayerUserId { get; set; }
+    public string? PayerUsername { get; set; }
+    
+    // Whether to apply cashback to payer's wallet
+    public bool ApplyCashback { get; set; } = false;
 }
