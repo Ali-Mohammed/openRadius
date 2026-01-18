@@ -322,6 +322,19 @@ export default function RadiusUsers() {
   const zones = useMemo(() => zonesData || [], [zonesData])
   const billingProfiles = useMemo(() => billingProfilesData?.data || [], [billingProfilesData?.data])
 
+  // Get selected billing profile for cashback calculation
+  const selectedBillingProfileForCashback = useMemo(() => {
+    if (!activationFormData.billingProfileId) return null
+    return billingProfilesData?.data?.find(bp => bp.id.toString() === activationFormData.billingProfileId)
+  }, [activationFormData.billingProfileId, billingProfilesData?.data])
+
+  // Calculate cashback when on-behalf activation is enabled
+  const { data: cashbackData } = useQuery({
+    queryKey: ['cashback', 'calculate', myWallet?.userId, selectedBillingProfileForCashback?.id],
+    queryFn: () => userCashbackApi.calculateCashback(myWallet!.userId!, selectedBillingProfileForCashback!.id),
+    enabled: !!myWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && applyCashback && activationDialogOpen,
+  })
+
   // Flatten zones for dropdown display
   const flatZones = useMemo(() => {
     const flatten = (zones: Zone[], level = 0): (Zone & { level: number })[] => {
