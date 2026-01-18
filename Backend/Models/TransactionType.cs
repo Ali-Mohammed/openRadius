@@ -10,6 +10,7 @@ public static class TransactionType
     public const string Refund = "refund";
     public const string Payment = "payment";
     public const string Reward = "reward";
+    public const string Cashback = "cashback";
     public const string Fee = "fee";
     public const string Commission = "commission";
 
@@ -23,6 +24,7 @@ public static class TransactionType
         Refund,
         Payment,
         Reward,
+        Cashback,
         Fee,
         Commission
     };
@@ -34,6 +36,7 @@ public static class TransactionType
             TopUp => "credit",
             Refund => "credit",
             Reward => "credit",
+            Cashback => "credit",
             Adjustment => "credit", // Can be either, but default to credit
             Withdrawal => "debit",
             Transfer => "debit",
@@ -67,6 +70,7 @@ public static class TransactionType
             Refund => "Refund",
             Payment => "Payment",
             Reward => "Reward",
+            Cashback => "Cashback",
             Fee => "Fee",
             Commission => "Commission",
             _ => transactionType
