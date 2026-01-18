@@ -349,7 +349,9 @@ public class UserWalletController : ControllerBase
                 hasWallet = true,
                 id = userWallet.Id,
                 userId = userWallet.UserId,
-                userName = currentUser.Name ?? currentUser.Email,
+                userName = !string.IsNullOrEmpty(currentUser.FirstName) || !string.IsNullOrEmpty(currentUser.LastName) 
+                    ? $"{currentUser.FirstName} {currentUser.LastName}".Trim() 
+                    : currentUser.Email,
                 customWalletId = userWallet.CustomWalletId,
                 customWalletName = userWallet.CustomWallet?.Name,
                 currentBalance = userWallet.CurrentBalance,
