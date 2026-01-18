@@ -4,7 +4,7 @@ public interface ISasSyncService
 {
     Task<Guid> SyncAsync(int integrationId, bool fullSync = false);
     Task<bool> CancelSyncAsync(Guid syncId);
-    Task<ManagerSyncResult> SyncManagersAsync(int integrationId);
+    Task<ManagerSyncResult> SyncManagersAsync(int integrationId, Action<ManagerSyncProgress>? onProgress = null);
 }
 
 public class ManagerSyncResult
@@ -13,8 +13,18 @@ public class ManagerSyncResult
     public int NewUsersCreated { get; set; }
     public int ExistingUsersUpdated { get; set; }
     public int KeycloakUsersCreated { get; set; }
+    public int ZonesAssigned { get; set; }
     public int Failed { get; set; }
     public List<string> Errors { get; set; } = new();
+}
+
+public class ManagerSyncProgress
+{
+    public string Phase { get; set; } = "";
+    public int Current { get; set; }
+    public int Total { get; set; }
+    public int PercentComplete { get; set; }
+    public string Message { get; set; } = "";
 }
 
 

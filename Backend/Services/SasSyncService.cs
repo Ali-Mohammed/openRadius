@@ -136,9 +136,22 @@ public class SasSyncService : ISasSyncService
         return true;
     }
 
-    public async Task<ManagerSyncResult> SyncManagersAsync(int integrationId)
+    public async Task<ManagerSyncResult> SyncManagersAsync(int integrationId, Action<ManagerSyncProgress>? onProgress = null)
     {
         var result = new ManagerSyncResult();
+        
+        void ReportProgress(string phase, int current, int total, string message)
+        {
+            var percent = total > 0 ? (int)((current * 100.0) / total) : 0;
+            onProgress?.Invoke(new ManagerSyncProgress
+            {
+                Phase = phase,
+                Current = current,
+                Total = total,
+                PercentComplete = percent,
+                Message = message
+            });
+        }
         
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -155,8 +168,13 @@ public class SasSyncService : ISasSyncService
             return result;
         }
 
+        // Track username to keycloakUserId for zone assignment
+        var usernameToKeycloakId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         try
         {
+            ReportProgress("Authenticating", 0, 100, "Authenticating with SAS server...");
+            
             // Authenticate
             var token = await AuthenticateAsync(integration);
             
@@ -174,8 +192,13 @@ public class SasSyncService : ISasSyncService
             var sasIdToUserId = new Dictionary<int, int>();
             // Track managers that need supervisor updates (SAS ID -> Parent SAS ID)
             var pendingSupervisors = new Dictionary<int, int>();
+            
+            // All managers collected from all pages
+            var allManagers = new List<SasManager>();
 
-            // First pass: Create/update all users
+            ReportProgress("Fetching", 0, 100, "Fetching managers from SAS...");
+
+            // First: Fetch all managers from all pages
             while (hasMorePages)
             {
                 // Prepare request payload
@@ -205,96 +228,116 @@ public class SasSyncService : ISasSyncService
                 if (apiResponse == null || apiResponse.Data == null || apiResponse.Data.Count == 0)
                     break;
 
-                result.TotalManagers += apiResponse.Data.Count;
-
-                foreach (var sasManager in apiResponse.Data)
-                {
-                    try
-                    {
-                        // Check if user already exists in master DB by username (email format)
-                        var email = sasManager.Username?.Contains("@") == true 
-                            ? sasManager.Username 
-                            : $"{sasManager.Username}@local";
-                        
-                        var existingUser = await masterContext.Users
-                            .FirstOrDefaultAsync(u => u.Email == email);
-
-                        string? keycloakUserId = null;
-
-                        if (existingUser == null)
-                        {
-                            // Create user in Keycloak first
-                            keycloakUserId = await CreateUserInKeycloakAsync(
-                                httpClientFactory, 
-                                configuration, 
-                                sasManager);
-
-                            if (!string.IsNullOrEmpty(keycloakUserId))
-                            {
-                                result.KeycloakUsersCreated++;
-                            }
-
-                            // Create user in master database
-                            var newUser = new User
-                            {
-                                Email = email,
-                                FirstName = sasManager.Firstname ?? sasManager.Username ?? "",
-                                LastName = sasManager.Lastname ?? "",
-                                KeycloakUserId = keycloakUserId,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            
-                            masterContext.Users.Add(newUser);
-                            await masterContext.SaveChangesAsync();
-                            result.NewUsersCreated++;
-                            
-                            // Track mapping for supervisor relationships
-                            sasIdToUserId[sasManager.Id] = newUser.Id;
-                            
-                            // Track if this manager has a parent (supervisor)
-                            if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
-                            {
-                                pendingSupervisors[sasManager.Id] = sasManager.ParentId.Value;
-                            }
-                            
-                            _logger.LogInformation("Created new user from SAS Manager: {Username} (ID: {UserId})", sasManager.Username, newUser.Id);
-                        }
-                        else
-                        {
-                            // Update existing user
-                            existingUser.FirstName = sasManager.Firstname ?? existingUser.FirstName;
-                            existingUser.LastName = sasManager.Lastname ?? existingUser.LastName;
-                            await masterContext.SaveChangesAsync();
-                            result.ExistingUsersUpdated++;
-                            
-                            // Track mapping for supervisor relationships
-                            sasIdToUserId[sasManager.Id] = existingUser.Id;
-                            
-                            // Track if this manager has a parent (supervisor)
-                            if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
-                            {
-                                pendingSupervisors[sasManager.Id] = sasManager.ParentId.Value;
-                            }
-                            
-                            _logger.LogInformation("Updated existing user from SAS Manager: {Username} (ID: {UserId})", sasManager.Username, existingUser.Id);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to sync manager: {Username}", sasManager.Username);
-                        result.Failed++;
-                        result.Errors.Add($"Failed to sync manager {sasManager.Username}: {ex.Message}");
-                    }
-                }
+                allManagers.AddRange(apiResponse.Data);
+                
+                var fetchPercent = apiResponse.LastPage > 0 ? (int)((currentPage * 100.0) / apiResponse.LastPage) : 100;
+                ReportProgress("Fetching", currentPage, apiResponse.LastPage, $"Fetching page {currentPage} of {apiResponse.LastPage}...");
 
                 hasMorePages = currentPage < apiResponse.LastPage;
                 currentPage++;
             }
             
-            // Second pass: Update supervisor relationships
+            result.TotalManagers = allManagers.Count;
+            
+            // Second: Process all managers (create/update users)
+            int processed = 0;
+            foreach (var sasManager in allManagers)
+            {
+                processed++;
+                ReportProgress("Processing", processed, allManagers.Count, $"Processing manager {sasManager.Username}...");
+                
+                try
+                {
+                    // Check if user already exists in master DB by username (email format)
+                    var email = sasManager.Username?.Contains("@") == true 
+                        ? sasManager.Username 
+                        : $"{sasManager.Username}@local";
+                    
+                    var existingUser = await masterContext.Users
+                        .FirstOrDefaultAsync(u => u.Email == email);
+
+                    string? keycloakUserId = null;
+
+                    if (existingUser == null)
+                    {
+                        // Create user in Keycloak first
+                        keycloakUserId = await CreateUserInKeycloakAsync(
+                            httpClientFactory, 
+                            configuration, 
+                            sasManager);
+
+                        if (!string.IsNullOrEmpty(keycloakUserId))
+                        {
+                            result.KeycloakUsersCreated++;
+                            usernameToKeycloakId[sasManager.Username ?? ""] = keycloakUserId;
+                        }
+
+                        // Create user in master database
+                        var newUser = new User
+                        {
+                            Email = email,
+                            FirstName = sasManager.Firstname ?? sasManager.Username ?? "",
+                            LastName = sasManager.Lastname ?? "",
+                            KeycloakUserId = keycloakUserId,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        
+                        masterContext.Users.Add(newUser);
+                        await masterContext.SaveChangesAsync();
+                        result.NewUsersCreated++;
+                        
+                        // Track mapping for supervisor relationships
+                        sasIdToUserId[sasManager.Id] = newUser.Id;
+                        
+                        // Track if this manager has a parent (supervisor)
+                        if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
+                        {
+                            pendingSupervisors[sasManager.Id] = sasManager.ParentId.Value;
+                        }
+                        
+                        _logger.LogInformation("Created new user from SAS Manager: {Username} (ID: {UserId})", sasManager.Username, newUser.Id);
+                    }
+                    else
+                    {
+                        // Update existing user
+                        existingUser.FirstName = sasManager.Firstname ?? existingUser.FirstName;
+                        existingUser.LastName = sasManager.Lastname ?? existingUser.LastName;
+                        await masterContext.SaveChangesAsync();
+                        result.ExistingUsersUpdated++;
+                        
+                        // Track Keycloak ID for zone assignment
+                        if (!string.IsNullOrEmpty(existingUser.KeycloakUserId))
+                        {
+                            usernameToKeycloakId[sasManager.Username ?? ""] = existingUser.KeycloakUserId;
+                        }
+                        
+                        // Track mapping for supervisor relationships
+                        sasIdToUserId[sasManager.Id] = existingUser.Id;
+                        
+                        // Track if this manager has a parent (supervisor)
+                        if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
+                        {
+                            pendingSupervisors[sasManager.Id] = sasManager.ParentId.Value;
+                        }
+                        
+                        _logger.LogInformation("Updated existing user from SAS Manager: {Username} (ID: {UserId})", sasManager.Username, existingUser.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to sync manager: {Username}", sasManager.Username);
+                    result.Failed++;
+                    result.Errors.Add($"Failed to sync manager {sasManager.Username}: {ex.Message}");
+                }
+            }
+            
+            // Third: Update supervisor relationships
+            ReportProgress("Supervisors", 0, pendingSupervisors.Count, "Updating supervisor relationships...");
             _logger.LogInformation("Updating supervisor relationships for {Count} managers", pendingSupervisors.Count);
+            int supervisorIndex = 0;
             foreach (var (sasManagerId, sasParentId) in pendingSupervisors)
             {
+                supervisorIndex++;
                 try
                 {
                     if (sasIdToUserId.TryGetValue(sasManagerId, out var userId) && 
@@ -313,7 +356,55 @@ public class SasSyncService : ISasSyncService
                 {
                     _logger.LogError(ex, "Failed to set supervisor for SAS Manager ID {SasManagerId}", sasManagerId);
                 }
+                ReportProgress("Supervisors", supervisorIndex, pendingSupervisors.Count, $"Updated {supervisorIndex} of {pendingSupervisors.Count} supervisor relationships");
             }
+            
+            // Fourth: Assign zones to users based on matching zone name to username
+            ReportProgress("Zones", 0, 100, "Assigning zones to users...");
+            _logger.LogInformation("Assigning zones to users based on matching names");
+            
+            // Get all zones in the workspace
+            var zones = await context.Zones
+                .Where(z => !z.IsDeleted)
+                .ToListAsync();
+            
+            int zoneIndex = 0;
+            foreach (var zone in zones)
+            {
+                zoneIndex++;
+                // Check if there's a user with username matching this zone's name (case-insensitive)
+                if (usernameToKeycloakId.TryGetValue(zone.Name, out var keycloakUserId))
+                {
+                    try
+                    {
+                        // Check if zone assignment already exists
+                        var existingAssignment = await context.UserZones
+                            .FirstOrDefaultAsync(uz => uz.UserId == keycloakUserId && uz.ZoneId == zone.Id);
+                        
+                        if (existingAssignment == null)
+                        {
+                            var userZone = new UserZone
+                            {
+                                UserId = keycloakUserId,
+                                ZoneId = zone.Id,
+                                CreatedAt = DateTime.UtcNow,
+                                CreatedBy = "sync"
+                            };
+                            context.UserZones.Add(userZone);
+                            await context.SaveChangesAsync();
+                            result.ZonesAssigned++;
+                            _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user with Keycloak ID {KeycloakUserId}", zone.Name, zone.Id, keycloakUserId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to assign zone {ZoneName} to user", zone.Name);
+                    }
+                }
+                ReportProgress("Zones", zoneIndex, zones.Count, $"Processed {zoneIndex} of {zones.Count} zones");
+            }
+            
+            ReportProgress("Complete", 100, 100, "Manager sync completed!");
         }
         catch (Exception ex)
         {
