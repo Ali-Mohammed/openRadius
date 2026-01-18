@@ -931,7 +931,8 @@ export default function RadiusUsers() {
       isActionBehalf: isOnBehalfActivation,
       payerUserId: isOnBehalfActivation && selectedPayerWallet?.userId ? selectedPayerWallet.userId : undefined,
       payerUsername: isOnBehalfActivation && selectedPayerWallet?.userName ? selectedPayerWallet.userName : undefined,
-      applyCashback: isOnBehalfActivation && applyCashback,
+      // Apply cashback for both on-behalf and normal activations (when user has wallet with cashback)
+      applyCashback: applyCashback && cashbackData && cashbackData.cashbackAmount > 0,
     }
 
     activationMutation.mutate(activationRequest)
@@ -3126,7 +3127,7 @@ export default function RadiusUsers() {
                           <span className="font-medium">
                             {isOnBehalfActivation 
                               ? (selectedPayerWallet?.userName || selectedPayerWallet?.userEmail)
-                              : (myWallet?.userName || myWallet?.userEmail || 'Your Wallet')
+                              : (myWallet?.userName || myWallet?.customWalletName || 'Your Wallet')
                             }
                           </span>
                         </div>
