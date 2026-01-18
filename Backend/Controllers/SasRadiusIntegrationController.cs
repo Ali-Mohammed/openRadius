@@ -251,6 +251,50 @@ public class SasRadiusIntegrationController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/sync-managers")]
+    public async Task<ActionResult> SyncManagers(int id)
+    {
+        var integration = await _context.SasRadiusIntegrations
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (integration == null)
+        {
+            return NotFound();
+        }
+
+        if (!integration.IsActive)
+        {
+            return BadRequest(new { error = "Cannot sync inactive integration. Please activate the integration first." });
+        }
+
+        try
+        {
+            var result = await _syncService.SyncManagersAsync(id);
+            
+            _logger.LogInformation(
+                "Manager sync completed for integration {Name}: {Total} total, {New} new, {Updated} updated, {Failed} failed",
+                integration.Name, result.TotalManagers, result.NewUsersCreated, result.ExistingUsersUpdated, result.Failed);
+
+            return Ok(new
+            {
+                message = "Manager sync completed",
+                integrationId = id,
+                integrationName = integration.Name,
+                totalManagers = result.TotalManagers,
+                newUsersCreated = result.NewUsersCreated,
+                existingUsersUpdated = result.ExistingUsersUpdated,
+                keycloakUsersCreated = result.KeycloakUsersCreated,
+                failed = result.Failed,
+                errors = result.Errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync managers for integration {Name}", integration.Name);
+            return StatusCode(500, new { error = "Failed to sync managers", details = ex.Message });
+        }
+    }
+
     [HttpGet("syncs/active")]
     public async Task<ActionResult<IEnumerable<SyncProgress>>> GetActiveSyncs(int WorkspaceId)
     {

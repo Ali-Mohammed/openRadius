@@ -136,6 +136,302 @@ public class SasSyncService : ISasSyncService
         return true;
     }
 
+    public async Task<ManagerSyncResult> SyncManagersAsync(int integrationId)
+    {
+        var result = new ManagerSyncResult();
+        
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var masterContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+        var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        
+        var integration = await context.SasRadiusIntegrations
+            .FirstOrDefaultAsync(i => i.Id == integrationId);
+
+        if (integration == null)
+        {
+            result.Errors.Add($"Integration {integrationId} not found");
+            return result;
+        }
+
+        try
+        {
+            // Authenticate
+            var token = await AuthenticateAsync(integration);
+            
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            
+            var uri = new Uri(integration.Url.TrimEnd('/'));
+            var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/manager";
+
+            int currentPage = 1;
+            int pageSize = integration.MaxItemInPagePerRequest > 0 ? integration.MaxItemInPagePerRequest : 100;
+            bool hasMorePages = true;
+            
+            // Track SAS Manager ID to local User ID mapping for supervisor relationships
+            var sasIdToUserId = new Dictionary<int, int>();
+            // Track managers that need supervisor updates (SAS ID -> Parent SAS ID)
+            var pendingSupervisors = new Dictionary<int, int>();
+
+            // First pass: Create/update all users
+            while (hasMorePages)
+            {
+                // Prepare request payload
+                var requestData = new
+                {
+                    page = currentPage,
+                    count = pageSize,
+                    sortBy = "username",
+                    direction = "asc",
+                    search = "",
+                    columns = new[]
+                    {
+                        "username", "firstname", "lastname", "balance", "loan_balance",
+                        "name", "users_count", "phone", "enabled", "parent_id"
+                    }
+                };
+                
+                var requestJson = System.Text.Json.JsonSerializer.Serialize(requestData);
+                var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
+                var requestBody = new { payload = encryptedPayload };
+                
+                var response = await client.PostAsJsonAsync(url, requestBody);
+                response.EnsureSuccessStatusCode();
+
+                var apiResponse = await response.Content.ReadFromJsonAsync<SasManagerApiResponse>();
+                
+                if (apiResponse == null || apiResponse.Data == null || apiResponse.Data.Count == 0)
+                    break;
+
+                result.TotalManagers += apiResponse.Data.Count;
+
+                foreach (var sasManager in apiResponse.Data)
+                {
+                    try
+                    {
+                        // Check if user already exists in master DB by username (email format)
+                        var email = sasManager.Username?.Contains("@") == true 
+                            ? sasManager.Username 
+                            : $"{sasManager.Username}@local";
+                        
+                        var existingUser = await masterContext.Users
+                            .FirstOrDefaultAsync(u => u.Email == email);
+
+                        string? keycloakUserId = null;
+
+                        if (existingUser == null)
+                        {
+                            // Create user in Keycloak first
+                            keycloakUserId = await CreateUserInKeycloakAsync(
+                                httpClientFactory, 
+                                configuration, 
+                                sasManager);
+
+                            if (!string.IsNullOrEmpty(keycloakUserId))
+                            {
+                                result.KeycloakUsersCreated++;
+                            }
+
+                            // Create user in master database
+                            var newUser = new User
+                            {
+                                Email = email,
+                                FirstName = sasManager.Firstname ?? sasManager.Username ?? "",
+                                LastName = sasManager.Lastname ?? "",
+                                KeycloakUserId = keycloakUserId,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            
+                            masterContext.Users.Add(newUser);
+                            await masterContext.SaveChangesAsync();
+                            result.NewUsersCreated++;
+                            
+                            // Track mapping for supervisor relationships
+                            sasIdToUserId[sasManager.Id] = newUser.Id;
+                            
+                            // Track if this manager has a parent (supervisor)
+                            if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
+                            {
+                                pendingSupervisors[sasManager.Id] = sasManager.ParentId.Value;
+                            }
+                            
+                            _logger.LogInformation("Created new user from SAS Manager: {Username} (ID: {UserId})", sasManager.Username, newUser.Id);
+                        }
+                        else
+                        {
+                            // Update existing user
+                            existingUser.FirstName = sasManager.Firstname ?? existingUser.FirstName;
+                            existingUser.LastName = sasManager.Lastname ?? existingUser.LastName;
+                            await masterContext.SaveChangesAsync();
+                            result.ExistingUsersUpdated++;
+                            
+                            // Track mapping for supervisor relationships
+                            sasIdToUserId[sasManager.Id] = existingUser.Id;
+                            
+                            // Track if this manager has a parent (supervisor)
+                            if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
+                            {
+                                pendingSupervisors[sasManager.Id] = sasManager.ParentId.Value;
+                            }
+                            
+                            _logger.LogInformation("Updated existing user from SAS Manager: {Username} (ID: {UserId})", sasManager.Username, existingUser.Id);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to sync manager: {Username}", sasManager.Username);
+                        result.Failed++;
+                        result.Errors.Add($"Failed to sync manager {sasManager.Username}: {ex.Message}");
+                    }
+                }
+
+                hasMorePages = currentPage < apiResponse.LastPage;
+                currentPage++;
+            }
+            
+            // Second pass: Update supervisor relationships
+            _logger.LogInformation("Updating supervisor relationships for {Count} managers", pendingSupervisors.Count);
+            foreach (var (sasManagerId, sasParentId) in pendingSupervisors)
+            {
+                try
+                {
+                    if (sasIdToUserId.TryGetValue(sasManagerId, out var userId) && 
+                        sasIdToUserId.TryGetValue(sasParentId, out var supervisorId))
+                    {
+                        var user = await masterContext.Users.FindAsync(userId);
+                        if (user != null && user.SupervisorId != supervisorId)
+                        {
+                            user.SupervisorId = supervisorId;
+                            await masterContext.SaveChangesAsync();
+                            _logger.LogInformation("Set supervisor for user {UserId} to {SupervisorId}", userId, supervisorId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to set supervisor for SAS Manager ID {SasManagerId}", sasManagerId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Manager sync failed for integration {IntegrationId}", integrationId);
+            result.Errors.Add($"Sync failed: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    private async Task<string?> CreateUserInKeycloakAsync(
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        SasManager manager)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient();
+            var authority = configuration["Oidc:Authority"];
+            if (string.IsNullOrEmpty(authority))
+            {
+                _logger.LogWarning("Oidc:Authority configuration is missing, skipping Keycloak user creation");
+                return null;
+            }
+            
+            var realm = authority.Split("/").Last();
+            
+            // Get admin token
+            var tokenUrl = $"{authority}/protocol/openid-connect/token";
+            var tokenContent = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("client_id", configuration["KeycloakAdmin:ClientId"] ?? "openradius-admin"),
+                new KeyValuePair<string, string>("client_secret", configuration["KeycloakAdmin:ClientSecret"] ?? "")
+            });
+
+            var tokenResponse = await client.PostAsync(tokenUrl, tokenContent);
+            if (!tokenResponse.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get Keycloak admin token: {StatusCode}", tokenResponse.StatusCode);
+                return null;
+            }
+
+            var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var adminToken = tokenResult.GetProperty("access_token").GetString();
+            
+            client.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            
+            // Check if user already exists
+            var email = manager.Username?.Contains("@") == true 
+                ? manager.Username 
+                : $"{manager.Username}@local";
+            
+            var searchUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users?email={Uri.EscapeDataString(email)}";
+            var searchResponse = await client.GetAsync(searchUrl);
+            
+            if (searchResponse.IsSuccessStatusCode)
+            {
+                var existingUsers = await searchResponse.Content.ReadFromJsonAsync<List<JsonElement>>();
+                if (existingUsers != null && existingUsers.Count > 0)
+                {
+                    // User already exists in Keycloak, return their ID
+                    return existingUsers[0].GetProperty("id").GetString();
+                }
+            }
+            
+            // Create user in Keycloak
+            var usersUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users";
+            
+            var userPayload = new
+            {
+                username = manager.Username,
+                email = email,
+                firstName = manager.Firstname ?? manager.Username,
+                lastName = manager.Lastname ?? "",
+                enabled = manager.Enabled == 1,
+                emailVerified = true,
+                credentials = new[]
+                {
+                    new
+                    {
+                        type = "password",
+                        value = "Temp@1234", // Temporary password
+                        temporary = true
+                    }
+                }
+            };
+
+            var content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(userPayload), 
+                System.Text.Encoding.UTF8, 
+                "application/json");
+            
+            var createResponse = await client.PostAsync(usersUrl, content);
+            
+            if (createResponse.IsSuccessStatusCode)
+            {
+                // Get the created user's ID from the Location header
+                var location = createResponse.Headers.Location?.ToString();
+                var userId = location?.Split('/').Last();
+                _logger.LogInformation("Created Keycloak user for manager: {Username}, ID: {UserId}", manager.Username, userId);
+                return userId;
+            }
+            else
+            {
+                var errorContent = await createResponse.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to create Keycloak user for {Username}: {Error}", manager.Username, errorContent);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating Keycloak user for manager: {Username}", manager.Username);
+            return null;
+        }
+    }
+
     private async Task ExecuteSyncAsync(Guid syncId, SasRadiusIntegration integration, bool fullSync, CancellationToken cancellationToken)
     {
         try
@@ -1562,4 +1858,92 @@ internal record SasProfileCustomAttribute
     
     [System.Text.Json.Serialization.JsonPropertyName("created_by")]
     public string? CreatedBy { get; init; }
+}
+
+// Helper class for SAS Manager API response
+internal record SasManagerApiResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("current_page")]
+    public int CurrentPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
+    public List<SasManager> Data { get; init; } = new();
+    
+    [System.Text.Json.Serialization.JsonPropertyName("first_page_url")]
+    public string? FirstPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("from")]
+    public int From { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page")]
+    public int LastPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page_url")]
+    public string? LastPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("next_page_url")]
+    public string? NextPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("path")]
+    public string? Path { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("per_page")]
+    public int PerPage { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("prev_page_url")]
+    public string? PrevPageUrl { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("to")]
+    public int To { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("total")]
+    public int Total { get; init; }
+}
+
+internal record SasManager
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public int Id { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("username")]
+    public string? Username { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("firstname")]
+    public string? Firstname { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("lastname")]
+    public string? Lastname { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("phone")]
+    public string? Phone { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("balance")]
+    public JsonElement? Balance { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("loan_balance")]
+    public JsonElement? LoanBalance { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+    public int Enabled { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("users_count")]
+    public int UsersCount { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("parent_id")]
+    public int? ParentId { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acl_group_id")]
+    public int? AclGroupId { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acl_group_details")]
+    public SasAclGroupDetails? AclGroupDetails { get; init; }
+}
+
+internal record SasAclGroupDetails
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public int Id { get; init; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("name")]
+    public string? Name { get; init; }
 }

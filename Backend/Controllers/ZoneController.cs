@@ -28,6 +28,32 @@ public class ZoneController : ControllerBase
         return _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
     }
 
+    // GET: api/workspace/{workspaceId}/zone/flat - Returns flat list of all zones (for dropdowns/selections)
+    [HttpGet("flat")]
+    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZonesFlat(int workspaceId)
+    {
+        var allZones = await _context.Zones
+            .Where(z => !z.IsDeleted)
+            .Include(z => z.ParentZone)
+            .OrderBy(z => z.Name)
+            .Select(z => new ZoneResponse
+            {
+                Id = z.Id,
+                Name = z.Name,
+                Description = z.Description,
+                Color = z.Color,
+                Icon = z.Icon,
+                ParentZoneId = z.ParentZoneId,
+                ParentZoneName = z.ParentZone != null ? z.ParentZone.Name : null,
+                CreatedAt = z.CreatedAt,
+                UserCount = z.UserZones.Count,
+                RadiusUserCount = z.RadiusUsers.Count(ru => !ru.IsDeleted)
+            })
+            .ToListAsync();
+
+        return Ok(allZones);
+    }
+
     // GET: api/workspace/{workspaceId}/zone
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZones(int workspaceId)

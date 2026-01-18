@@ -46,9 +46,15 @@ export interface AssignRadiusUsersToZoneDto {
 }
 
 export const zoneApi = {
-  // Get all zones
+  // Get all zones (hierarchical)
   getZones: async (workspaceId: number): Promise<Zone[]> => {
     const response = await apiClient.get(`/api/workspace/${workspaceId}/zone`)
+    return response.data
+  },
+
+  // Get all zones as flat list (for dropdowns/selections)
+  getZonesFlat: async (workspaceId: number): Promise<Zone[]> => {
+    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/flat`)
     return response.data
   },
 

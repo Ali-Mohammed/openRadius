@@ -76,6 +76,18 @@ export interface PaginatedSyncResponse {
   }
 }
 
+export interface ManagerSyncResult {
+  message: string
+  integrationId: number
+  integrationName: string
+  totalManagers: number
+  newUsersCreated: number
+  existingUsersUpdated: number
+  keycloakUsersCreated: number
+  failed: number
+  errors: string[]
+}
+
 export const sasRadiusApi = {
   getAll: async (workspaceId: number): Promise<SasRadiusIntegration[]> => {
     const response = await apiClient.get(`/api/workspaces/${workspaceId}/sas-radius`)
@@ -111,6 +123,11 @@ export const sasRadiusApi = {
 
   sync: async (workspaceId: number, id: number, fullSync: boolean = false): Promise<{ syncId: string; message: string; integrationId: number; integrationName: string; workspaceId: number }> => {
     const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/${id}/sync?fullSync=${fullSync}`)
+    return response.data
+  },
+
+  syncManagers: async (workspaceId: number, id: number): Promise<ManagerSyncResult> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/${id}/sync-managers`)
     return response.data
   },
 

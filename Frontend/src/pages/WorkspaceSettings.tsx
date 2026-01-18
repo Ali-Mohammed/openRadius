@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -172,6 +172,24 @@ export default function WorkspaceSettings() {
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.details || formatApiError(error) || 'Failed to start sync'
+      toast.error(errorMessage)
+    },
+  })
+
+  const syncManagersMutation = useMutation({
+    mutationFn: (integrationId: number) => sasRadiusApi.syncManagers(Number(currentWorkspaceId), integrationId),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['keycloak-users'] })
+      toast.success(
+        `Manager sync completed: ${response.newUsersCreated} new users created, ` +
+        `${response.existingUsersUpdated} updated, ${response.keycloakUsersCreated} Keycloak users created`
+      )
+      if (response.errors && response.errors.length > 0) {
+        response.errors.forEach(error => toast.error(error))
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.details || formatApiError(error) || 'Failed to sync managers'
       toast.error(errorMessage)
     },
   })
@@ -629,9 +647,22 @@ export default function WorkspaceSettings() {
                                   setSyncConfirmOpen(true)
                                 }}
                                 disabled={syncMutation.isPending || !integration.isActive}
-                                title={integration.isActive ? "Start Sync" : "Activate integration to sync"}
+                                title={integration.isActive ? "Sync RADIUS Data" : "Activate integration to sync"}
                               >
                                 <Play className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (integration.id) {
+                                    syncManagersMutation.mutate(integration.id)
+                                  }
+                                }}
+                                disabled={syncManagersMutation.isPending || !integration.isActive}
+                                title={integration.isActive ? "Sync Managers to Users" : "Activate integration to sync managers"}
+                              >
+                                <Users className="h-4 w-4 text-blue-600" />
                               </Button>
                               <Button
                                 variant="ghost"

@@ -78,10 +78,10 @@ export default function UserManagement() {
     queryFn: () => userManagementApi.getRoles(),
   })
 
-  // Fetch zones for current workspace
+  // Fetch zones for current workspace (flat list for assignment)
   const { data: zones = [] } = useQuery({
-    queryKey: ['zones', workspaceIdNum],
-    queryFn: () => zoneApi.getZones(workspaceIdNum),
+    queryKey: ['zones-flat', workspaceIdNum],
+    queryFn: () => zoneApi.getZonesFlat(workspaceIdNum),
     enabled: !!workspaceIdNum,
   })
 
