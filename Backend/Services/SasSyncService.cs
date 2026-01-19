@@ -168,8 +168,8 @@ public class SasSyncService : ISasSyncService
             return result;
         }
 
-        // Track username to keycloakUserId for zone assignment
-        var usernameToKeycloakId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Track username to local User.Id for zone assignment (using User.Id instead of Keycloak ID)
+        var usernameToUserId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -269,7 +269,6 @@ public class SasSyncService : ISasSyncService
                         if (!string.IsNullOrEmpty(keycloakUserId))
                         {
                             result.KeycloakUsersCreated++;
-                            usernameToKeycloakId[sasManager.Username ?? ""] = keycloakUserId;
                         }
 
                         // Create user in master database with workspace assignment
@@ -344,6 +343,10 @@ public class SasSyncService : ISasSyncService
                         // Track mapping for supervisor relationships
                         sasIdToUserId[sasManager.Id] = newUser.Id;
                         
+                        // Track username to local User.Id for zone assignment
+                        usernameToUserId[sasManager.Username ?? ""] = newUser.Id.ToString();
+                        _logger.LogDebug("Added to usernameToUserId: {Username} -> {UserId}", sasManager.Username, newUser.Id);
+                        
                         // Track if this manager has a parent (supervisor)
                         if (sasManager.ParentId.HasValue && sasManager.ParentId.Value > 0)
                         {
@@ -413,16 +416,9 @@ public class SasSyncService : ISasSyncService
                             _logger.LogError(workspaceEx, "Failed to assign workspace to existing user: {Username}", sasManager.Username);
                         }
                         
-                        // Track Keycloak ID for zone assignment
-                        if (!string.IsNullOrEmpty(existingUser.KeycloakUserId))
-                        {
-                            usernameToKeycloakId[sasManager.Username ?? ""] = existingUser.KeycloakUserId;
-                            _logger.LogDebug("Added to usernameToKeycloakId: {Username} -> {KeycloakUserId}", sasManager.Username, existingUser.KeycloakUserId);
-                        }
-                        else
-                        {
-                            _logger.LogWarning("User {Username} still has no Keycloak ID after sync attempt", sasManager.Username);
-                        }
+                        // Track local User.Id for zone assignment (regardless of Keycloak status)
+                        usernameToUserId[sasManager.Username ?? ""] = existingUser.Id.ToString();
+                        _logger.LogDebug("Added to usernameToUserId: {Username} -> {UserId}", sasManager.Username, existingUser.Id);
                         
                         // Track mapping for supervisor relationships
                         sasIdToUserId[sasManager.Id] = existingUser.Id;
@@ -475,7 +471,7 @@ public class SasSyncService : ISasSyncService
             // Fourth: Assign zones to users based on matching zone name to username
             ReportProgress("Zones", 0, 100, "Checking zones...");
             _logger.LogInformation("Assigning zones to users based on matching names");
-            _logger.LogInformation("usernameToKeycloakId has {Count} entries", usernameToKeycloakId.Count);
+            _logger.LogInformation("usernameToUserId has {Count} entries", usernameToUserId.Count);
             
             // Get all zones in the workspace
             var zones = await context.Zones
@@ -519,20 +515,20 @@ public class SasSyncService : ISasSyncService
                 _logger.LogDebug("Checking zone '{ZoneName}' (ID: {ZoneId}, SasUserId: {SasUserId})", zone.Name, zone.Id, zone.SasUserId);
                 
                 // Check if there's a user with username matching this zone's name (case-insensitive)
-                if (usernameToKeycloakId.TryGetValue(zone.Name, out var keycloakUserId))
+                if (usernameToUserId.TryGetValue(zone.Name, out var localUserId))
                 {
-                    _logger.LogInformation("Found matching user for zone '{ZoneName}' -> KeycloakUserId: {KeycloakUserId}", zone.Name, keycloakUserId);
+                    _logger.LogInformation("Found matching user for zone '{ZoneName}' -> UserId: {UserId}", zone.Name, localUserId);
                     try
                     {
                         // Check if zone assignment already exists
                         var existingAssignment = await context.UserZones
-                            .FirstOrDefaultAsync(uz => uz.UserId == keycloakUserId && uz.ZoneId == zone.Id);
+                            .FirstOrDefaultAsync(uz => uz.UserId == localUserId && uz.ZoneId == zone.Id);
                         
                         if (existingAssignment == null)
                         {
                             var userZone = new UserZone
                             {
-                                UserId = keycloakUserId,
+                                UserId = localUserId,
                                 ZoneId = zone.Id,
                                 CreatedAt = DateTime.UtcNow,
                                 CreatedBy = "sync"
@@ -540,11 +536,11 @@ public class SasSyncService : ISasSyncService
                             context.UserZones.Add(userZone);
                             await context.SaveChangesAsync();
                             result.ZonesAssigned++;
-                            _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user with Keycloak ID {KeycloakUserId}", zone.Name, zone.Id, keycloakUserId);
+                            _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user ID {UserId}", zone.Name, zone.Id, localUserId);
                         }
                         else
                         {
-                            _logger.LogInformation("Zone '{ZoneName}' already assigned to user {KeycloakUserId}", zone.Name, keycloakUserId);
+                            _logger.LogInformation("Zone '{ZoneName}' already assigned to user {UserId}", zone.Name, localUserId);
                         }
                     }
                     catch (Exception ex)
