@@ -54,6 +54,10 @@ public class RadiusUserController : ControllerBase
         public List<string>? GetValueList()
         {
             if (Values != null && Values.Count > 0) return Values;
+            if (Value is List<string> stringList)
+            {
+                return stringList;
+            }
             if (Value is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
                 return element.EnumerateArray().Select(e => e.ToString()).ToList();
