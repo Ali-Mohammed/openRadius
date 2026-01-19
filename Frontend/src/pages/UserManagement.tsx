@@ -18,12 +18,15 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { 
   Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog, MapPin, 
   Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
-  FileText, Building2, MoreVertical
+  FileText, Building2, MoreVertical, ChevronsUpDown, Check
 } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { zoneApi } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 
 // Column definitions
 const COLUMN_DEFINITIONS = {
@@ -88,6 +91,7 @@ export default function UserManagement() {
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
+  const [supervisorSearchOpen, setSupervisorSearchOpen] = useState(false)
   const [supervisorSearchQuery, setSupervisorSearchQuery] = useState('')
   const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<number[]>([])
@@ -1101,79 +1105,87 @@ export default function UserManagement() {
             
             <div className="grid gap-2">
               <Label htmlFor="supervisor">Supervisor</Label>
-              <Input
-                placeholder="Search supervisor by name or email..."
-                value={supervisorSearchQuery}
-                onChange={(e) => setSupervisorSearchQuery(e.target.value)}
-                className="h-9"
-              />
-              <div className="border rounded-md max-h-60 overflow-y-auto">
-                <div className="p-2 space-y-1">
-                  {users
-                    .filter(u => u.id !== editingUser?.id)
-                    .filter(u => 
-                      u.email?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
-                      u.firstName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
-                      u.lastName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
-                      `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(supervisorSearchQuery.toLowerCase())
-                    )
-                    .length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No supervisors found
-                    </div>
-                  ) : (
-                    users
-                      .filter(u => u.id !== editingUser?.id)
-                      .filter(u => 
-                        u.email?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
-                        u.firstName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
-                        u.lastName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
-                        `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(supervisorSearchQuery.toLowerCase())
-                      )
-                      .map((user) => (
-                        <div
-                          key={user.id}
-                          className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
-                          onClick={() => {
-                            setSelectedSupervisorId(user.id)
-                            setSupervisorSearchQuery('')
-                          }}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm">
-                              {user.firstName || user.lastName
-                                ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
-                                : 'Unknown'}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              {user.email}
-                            </div>
-                          </div>
-                          {selectedSupervisorId === user.id && (
-                            <div className="ml-2 h-4 w-4 rounded-full bg-primary" />
-                          )}
-                        </div>
-                      ))
-                  )}
-                </div>
-              </div>
-              {selectedSupervisorId && (
-                <div className="flex items-center justify-between p-2 bg-muted rounded-md">
-                  <div className="text-sm font-medium">
-                    {users.find(u => u.id === selectedSupervisorId)?.firstName || users.find(u => u.id === selectedSupervisorId)?.lastName
-                      ? `${users.find(u => u.id === selectedSupervisorId)?.firstName || ''} ${users.find(u => u.id === selectedSupervisorId)?.lastName || ''}`.trim()
-                      : 'Unknown'}
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSelectedSupervisorId(undefined)}
-                    className="text-xs"
+              <Popover open={supervisorSearchOpen} onOpenChange={setSupervisorSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={supervisorSearchOpen}
+                    className="w-full justify-between"
                   >
-                    <X className="h-3 w-3" />
+                    {selectedSupervisorId
+                      ? (() => {
+                          const supervisor = users.find(u => u.id === selectedSupervisorId);
+                          return supervisor
+                            ? `${supervisor.firstName || ''} ${supervisor.lastName || ''}`.trim() || supervisor.email
+                            : 'Select a supervisor...'
+                        })()
+                      : 'Select a supervisor (optional)'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
-                </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search by name or email..."
+                      value={supervisorSearchQuery}
+                      onValueChange={setSupervisorSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No supervisor found.</CommandEmpty>
+                      <CommandGroup>
+                        {users
+                          .filter(u => u.id !== editingUser?.id)
+                          .filter(u => {
+                            const searchLower = supervisorSearchQuery.toLowerCase();
+                            return (
+                              u.email?.toLowerCase().includes(searchLower) ||
+                              u.firstName?.toLowerCase().includes(searchLower) ||
+                              u.lastName?.toLowerCase().includes(searchLower)
+                            );
+                          })
+                          .map((user) => (
+                            <CommandItem
+                              key={user.id}
+                              value={`${user.firstName || ''} ${user.lastName || ''} ${user.email}`}
+                              onSelect={() => {
+                                setSelectedSupervisorId(user.id);
+                                setSupervisorSearchOpen(false);
+                                setSupervisorSearchQuery('');
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  selectedSupervisorId === user.id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-sm">
+                                  {user.firstName || user.lastName
+                                    ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                                    : 'Unknown'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedSupervisorId && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSelectedSupervisorId(undefined)}
+                  className="text-xs w-fit"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear supervisor
+                </Button>
               )}
             </div>
 
