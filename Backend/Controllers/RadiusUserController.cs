@@ -291,7 +291,7 @@ public class RadiusUserController : ControllerBase
     }
 
     private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildDecimalPredicate(
-        System.Linq.Expressions.Expression<Func<RadiusUser, decimal?>> selector, string? op, string? value)
+        System.Linq.Expressions.Expression<Func<RadiusUser, decimal?>> selector, string? op, string? value, string? value2 = null)
     {
         if (string.IsNullOrEmpty(op)) return null;
         var propName = GetPropertyName(selector);
@@ -300,8 +300,17 @@ public class RadiusUserController : ControllerBase
         if (!string.IsNullOrEmpty(value) && decimal.TryParse(value, out var parsed))
             decValue = parsed;
 
+        decimal? decValue2 = null;
+        if (!string.IsNullOrEmpty(value2) && decimal.TryParse(value2, out var parsed2))
+            decValue2 = parsed2;
+
         return op switch
         {
+            "between" => decValue != null && decValue2 != null 
+                ? u => EF.Property<decimal?>(u, propName) != null && 
+                       EF.Property<decimal?>(u, propName) >= decValue && 
+                       EF.Property<decimal?>(u, propName) <= decValue2
+                : null,
             "equals" => u => EF.Property<decimal?>(u, propName) == decValue,
             "not_equals" => u => EF.Property<decimal?>(u, propName) != decValue,
             "greater_than" => u => EF.Property<decimal?>(u, propName) > decValue,
@@ -329,7 +338,7 @@ public class RadiusUserController : ControllerBase
     }
 
     private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildDatePredicate(
-        System.Linq.Expressions.Expression<Func<RadiusUser, DateTime?>> selector, string? op, string? value)
+        System.Linq.Expressions.Expression<Func<RadiusUser, DateTime?>> selector, string? op, string? value, string? value2 = null)
     {
         if (string.IsNullOrEmpty(op)) return null;
         var propName = GetPropertyName(selector);
@@ -338,10 +347,19 @@ public class RadiusUserController : ControllerBase
         if (!string.IsNullOrEmpty(value) && DateTime.TryParse(value, out var parsed))
             dateValue = parsed;
 
+        DateTime? dateValue2 = null;
+        if (!string.IsNullOrEmpty(value2) && DateTime.TryParse(value2, out var parsed2))
+            dateValue2 = parsed2;
+
         var now = DateTime.UtcNow;
 
         return op switch
         {
+            "between" => dateValue != null && dateValue2 != null 
+                ? u => EF.Property<DateTime?>(u, propName) != null && 
+                       EF.Property<DateTime?>(u, propName)!.Value.Date >= dateValue.Value.Date && 
+                       EF.Property<DateTime?>(u, propName)!.Value.Date <= dateValue2.Value.Date
+                : null,
             "equals" or "is" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName)!.Value.Date == (dateValue ?? now).Date,
             "not_equals" or "is_not" => u => EF.Property<DateTime?>(u, propName) == null || EF.Property<DateTime?>(u, propName)!.Value.Date != (dateValue ?? now).Date,
             "before" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) < dateValue,
