@@ -729,119 +729,119 @@ export default function UserWallets() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header and Toolbar */}
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">User Wallets</h1>
           <p className="text-muted-foreground">Manage user-specific wallet instances and balances</p>
         </div>
-      </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1">
-          {/* Search */}
-          <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by user name or email..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-4"
-            />
-          </form>
-          
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearchQuery('')
-                setSearchInput('')
-              }}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          )}
-
-          {/* Status Filter */}
-          <Select value={filterStatus} onValueChange={(value) => {
-            setFilterStatus(value === 'all' ? '' : value)
-            setCurrentPage(1)
-          }}>
-            <SelectTrigger className="w-35">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              {statuses.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
-                  {status.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Export */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title="Export">
-                <Download className="h-4 w-4" />
+        {/* Toolbar */}
+        <div className="flex items-center justify-end gap-4">
+          <div className="flex items-center gap-2 flex-1">
+            {/* Search */}
+            <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user name or email..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 pr-4"
+              />
+            </form>
+            
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSearchInput('')
+                }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem onClick={handleExportCsv}>
-                <FileText className="h-4 w-4 mr-2" />
-                Export as CSV
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
 
-          {/* Column Visibility */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title="Toggle columns">
-                <Columns3 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {Object.entries(COLUMN_DEFINITIONS).map(([key, def]) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={columnVisibility[key as keyof typeof columnVisibility]}
-                  onCheckedChange={(checked) => 
-                    setColumnVisibility(prev => ({ ...prev, [key]: checked }))
-                  }
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  {def.label}
+            {/* Status Filter */}
+            <Select value={filterStatus} onValueChange={(value) => {
+              setFilterStatus(value === 'all' ? '' : value)
+              setCurrentPage(1)
+            }}>
+              <SelectTrigger className="w-35">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {statuses.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Export */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Export">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem onClick={handleExportCsv}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as CSV
                 </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          {/* Refresh */}
-          <Button 
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['userWallets'] })} 
-            variant="outline" 
-            size="icon"
-            title="Refresh"
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          </Button>
+            {/* Column Visibility */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Toggle columns">
+                  <Columns3 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.entries(COLUMN_DEFINITIONS).map(([key, def]) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={columnVisibility[key as keyof typeof columnVisibility]}
+                    onCheckedChange={(checked) => 
+                      setColumnVisibility(prev => ({ ...prev, [key]: checked }))
+                    }
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {def.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          {/* Add Wallet */}
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Assign Wallet
-          </Button>
+            {/* Refresh */}
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['userWallets'] })} 
+              variant="outline" 
+              size="icon"
+              title="Refresh"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            </Button>
+
+            {/* Add Wallet */}
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Assign Wallet
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -894,7 +894,7 @@ export default function UserWallets() {
               )}
             </div>
           ) : (
-            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+            <div className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 232px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
