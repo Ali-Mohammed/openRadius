@@ -541,7 +541,7 @@ export default function UserManagement() {
     if (column === 'actions') {
       return (
         <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background z-10">
-          <div className="flex justify-end gap-1">
+          <div className="flex justify-end -space-x-1">
             <Button
               onClick={() => handleOpenDialog(user)}
               variant="ghost"
