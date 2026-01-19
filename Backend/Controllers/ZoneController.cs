@@ -94,7 +94,9 @@ public class ZoneController : ControllerBase
             .Select(u => new { u.KeycloakUserId, u.FirstName, u.LastName, u.Email })
             .ToListAsync();
 
-        var userDict = users.ToDictionary(u => u.KeycloakUserId!);
+        var userDict = users
+            .GroupBy(u => u.KeycloakUserId!)
+            .ToDictionary(g => g.Key, g => g.First());
 
         // Populate user information for each zone
         foreach (var zone in allZones)

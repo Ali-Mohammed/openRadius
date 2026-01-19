@@ -307,6 +307,14 @@ public class UserManagementDbController : ControllerBase
                 .Select(u => new { id = u.Id, firstName = u.FirstName, lastName = u.LastName, email = u.Email })
                 .ToListAsync();
 
+            // Load default workspaces separately (in case user has DefaultWorkspaceId but no UserWorkspace entry)
+            var defaultWorkspaceIds = users.Where(u => u.DefaultWorkspaceId.HasValue).Select(u => u.DefaultWorkspaceId!.Value).Distinct().ToList();
+            var defaultWorkspaces = await _context.Workspaces
+                .AsNoTracking()
+                .Where(w => defaultWorkspaceIds.Contains(w.Id) && w.DeletedAt == null)
+                .Select(w => new { id = w.Id, title = w.Title, name = w.Name, color = w.Color, icon = w.Icon })
+                .ToListAsync();
+
             // Fetch zones from workspace database
             var keycloakUserIds = users.Where(u => !string.IsNullOrEmpty(u.KeycloakUserId)).Select(u => u.KeycloakUserId!).ToList();
             var userZonesMap = new Dictionary<string, List<object>>();
@@ -407,7 +415,7 @@ public class UserManagementDbController : ControllerBase
                     : null,
                 defaultWorkspaceId = u.DefaultWorkspaceId,
                 defaultWorkspace = u.DefaultWorkspaceId.HasValue
-                    ? u.Workspaces.FirstOrDefault(w => w.id == u.DefaultWorkspaceId.Value)
+                    ? defaultWorkspaces.FirstOrDefault(w => w.id == u.DefaultWorkspaceId.Value)
                     : null,
                 roles = u.Roles,
                 groups = u.Groups,
