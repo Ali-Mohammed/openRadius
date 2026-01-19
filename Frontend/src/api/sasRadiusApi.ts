@@ -85,6 +85,7 @@ export interface ManagerSyncResult {
   existingUsersUpdated: number
   keycloakUsersCreated: number
   walletsCreated: number
+  workspacesAssigned: number
   zonesAssigned: number
   failed: number
   errors: string[]
