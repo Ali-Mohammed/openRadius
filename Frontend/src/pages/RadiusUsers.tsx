@@ -56,8 +56,9 @@ export default function RadiusUsers() {
   const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc')
 
-  // Advanced filters state
-  const [advancedFilters, setAdvancedFilters] = useState<FilterGroup | null>(null)
+  // Advanced filters state - pendingFilters for editing, appliedFilters for actual query
+  const [pendingFilters, setPendingFilters] = useState<FilterGroup | null>(null)
+  const [appliedFilters, setAppliedFilters] = useState<FilterGroup | null>(null)
 
   // Update URL params when state changes
   useEffect(() => {
@@ -295,10 +296,10 @@ export default function RadiusUsers() {
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: usersData, isLoading, isFetching } = useQuery({
-    queryKey: ['radius-users', currentWorkspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection, advancedFilters],
+    queryKey: ['radius-users', currentWorkspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection, appliedFilters],
     queryFn: () => showTrash 
       ? radiusUserApi.getTrash(currentPage, pageSize)
-      : radiusUserApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection, advancedFilters),
+      : radiusUserApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection, appliedFilters),
     enabled: !!currentWorkspaceId,
   })
 
@@ -1617,13 +1618,11 @@ export default function RadiusUsers() {
           </Tabs>
           <QueryBuilder
             columns={filterColumns}
-            value={advancedFilters}
-            onChange={setAdvancedFilters}
+            value={pendingFilters}
+            onChange={setPendingFilters}
             onFetchSuggestions={fetchFilterSuggestions}
             onApply={(filters) => {
-              setAdvancedFilters(filters)
-              // Trigger a refetch with the new filters
-              queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+              setAppliedFilters(filters)
             }}
             showLabel={false}
           />

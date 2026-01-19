@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -8,9 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { 
-  Filter, Plus, X, Trash2, ChevronDown, Check, 
+  Filter, Plus, X, Trash2, ChevronDown, ChevronUp, Check, 
   Type, Hash, Calendar, ToggleLeft, List, AtSign,
-  Copy, Parentheses
+  Copy, Parentheses, ArrowUp, ArrowDown
 } from 'lucide-react'
 
 // Filter condition types
@@ -169,6 +170,10 @@ interface ConditionRowProps {
   onChange: (condition: FilterCondition) => void
   onRemove: () => void
   onDuplicate: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  canMoveUp: boolean
+  canMoveDown: boolean
   isFirst: boolean
   logic: FilterLogic
   onLogicChange?: (logic: FilterLogic) => void
@@ -181,6 +186,10 @@ function ConditionRow({
   onChange, 
   onRemove, 
   onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
   isFirst,
   logic,
   onLogicChange,
