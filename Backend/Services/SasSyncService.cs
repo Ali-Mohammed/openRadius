@@ -335,7 +335,6 @@ public class SasSyncService : ISasSyncService
                                 result.WalletsCreated++;
                                 _logger.LogInformation("Created wallet for user: {Username} (ID: {UserId})", sasManager.Username, newUser.Id);
                             }
-                            }
                         }
                         catch (Exception walletEx)
                         {

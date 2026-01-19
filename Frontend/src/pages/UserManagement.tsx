@@ -34,6 +34,7 @@ const COLUMN_DEFINITIONS = {
   groups: { label: 'Groups', sortable: false, defaultWidth: 180 },
   roles: { label: 'Roles', sortable: false, defaultWidth: 180 },
   zones: { label: 'Zones', sortable: false, defaultWidth: 200 },
+  defaultWorkspace: { label: 'Default Workspace', sortable: true, defaultWidth: 180 },
   workspaces: { label: 'Workspaces', sortable: false, defaultWidth: 200 },
 }
 
@@ -45,10 +46,11 @@ const DEFAULT_COLUMN_VISIBILITY = {
   groups: true,
   roles: true,
   zones: true,
+  defaultWorkspace: true,
   workspaces: true,
 }
 
-const DEFAULT_COLUMN_ORDER = ['name', 'email', 'status', 'supervisor', 'groups', 'roles', 'zones', 'workspaces', 'actions']
+const DEFAULT_COLUMN_ORDER = ['name', 'email', 'status', 'supervisor', 'groups', 'roles', 'zones', 'defaultWorkspace', 'workspaces', 'actions']
 
 export default function UserManagement() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -187,6 +189,10 @@ export default function UserManagement() {
           case 'supervisor':
             aVal = a.supervisor ? `${a.supervisor.firstName || ''} ${a.supervisor.lastName || ''}`.toLowerCase() : ''
             bVal = b.supervisor ? `${b.supervisor.firstName || ''} ${b.supervisor.lastName || ''}`.toLowerCase() : ''
+            break
+          case 'defaultWorkspace':
+            aVal = a.defaultWorkspace?.title?.toLowerCase() || ''
+            bVal = b.defaultWorkspace?.title?.toLowerCase() || ''
             break
           default:
             return 0
@@ -459,7 +465,7 @@ export default function UserManagement() {
   }
 
   const handleExportCsv = () => {
-    const headers = ['Name', 'Email', 'Status', 'Supervisor', 'Groups', 'Roles', 'Zones', 'Workspaces']
+    const headers = ['Name', 'Email', 'Status', 'Supervisor', 'Groups', 'Roles', 'Zones', 'Default Workspace', 'Workspaces']
     const rows = filteredUsers.map(user => [
       `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
       user.email || '',
@@ -468,6 +474,7 @@ export default function UserManagement() {
       user.groups?.map(g => g.name).join(', ') || '',
       user.roles?.map(r => r.name).join(', ') || '',
       user.zones?.map(z => z.name).join(', ') || '',
+      user.defaultWorkspace?.title || '',
       user.workspaces?.map(w => w.title).join(', ') || '',
     ])
     
@@ -708,6 +715,20 @@ export default function UserManagement() {
                 </Badge>
               )) : <span className="text-muted-foreground text-sm">-</span>}
             </div>
+          </TableCell>
+        )
+      case 'defaultWorkspace':
+        return (
+          <TableCell key={column} className="h-12 px-4">
+            {user.defaultWorkspace ? (
+              <Badge variant="secondary" className="flex items-center gap-1.5 text-xs w-fit">
+                <div
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: user.defaultWorkspace.color || '#3b82f6' }}
+                />
+                <span>{user.defaultWorkspace.title}</span>
+              </Badge>
+            ) : <span className="text-muted-foreground text-sm">-</span>}
           </TableCell>
         )
       case 'workspaces':

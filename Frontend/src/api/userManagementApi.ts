@@ -14,6 +14,14 @@ export interface User {
     lastName?: string
     email?: string
   }
+  defaultWorkspaceId?: number
+  defaultWorkspace?: {
+    id: number
+    title: string
+    name: string
+    color?: string
+    icon?: string
+  }
   roles?: Role[]
   groups?: Group[]
   zones?: Array<{

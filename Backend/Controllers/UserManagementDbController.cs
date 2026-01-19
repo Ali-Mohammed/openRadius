@@ -275,6 +275,7 @@ public class UserManagementDbController : ControllerBase
                     u.LastName,
                     u.Email,
                     u.SupervisorId,
+                    u.DefaultWorkspaceId,
                     Roles = u.UserRoles.Select(ur => new
                     {
                         id = ur.Role.Id,
@@ -403,6 +404,10 @@ public class UserManagementDbController : ControllerBase
                 supervisorId = u.SupervisorId,
                 supervisor = u.SupervisorId.HasValue
                     ? supervisors.FirstOrDefault(s => s.id == u.SupervisorId.Value)
+                    : null,
+                defaultWorkspaceId = u.DefaultWorkspaceId,
+                defaultWorkspace = u.DefaultWorkspaceId.HasValue
+                    ? u.Workspaces.FirstOrDefault(w => w.id == u.DefaultWorkspaceId.Value)
                     : null,
                 roles = u.Roles,
                 groups = u.Groups,
