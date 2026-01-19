@@ -118,4 +118,26 @@ export const workspaceApi = {
     })
     return response.data
   },
+
+  exportJson: async () => {
+    const response = await apiClient.get('/api/workspace/export-json', {
+      responseType: 'blob'
+    })
+    return response.data
+  },
+
+  importJson: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const { data } = await apiClient.post<{ message: string; imported: number; skipped: number; errors: string[] }>(
+      '/api/workspace/import-json',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return data
+  },
 }

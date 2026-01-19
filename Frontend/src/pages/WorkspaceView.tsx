@@ -58,7 +58,7 @@ import {
   TabsTrigger,
 } from '../components/ui/tabs'
 import { 
-  Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, Archive
+  Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Upload, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, Archive, FileJson
 } from 'lucide-react'
 import { workspaceApi, usersApi } from '../lib/api'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -212,6 +212,22 @@ export default function WorkspaceView() {
     },
     onError: () => {
       toast.error('Failed to restore Workspace')
+    },
+  })
+
+  // JSON Import mutation
+  const importJsonMutation = useMutation({
+    mutationFn: workspaceApi.importJson,
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      toast.success(response.message)
+      if (response.errors && response.errors.length > 0) {
+        response.errors.forEach(error => toast.error(error))
+      }
+    },
+    onError: () => {
+      toast.error('Failed to import workspaces')
     },
   })
 
@@ -669,6 +685,41 @@ export default function WorkspaceView() {
         id: loadingToast,
         description: 'Please try again'
       })
+    }
+  }
+
+  const handleExportJson = async () => {
+    const loadingToast = toast.loading('Preparing JSON export...', {
+      description: 'Gathering data and generating JSON file'
+    })
+    
+    try {
+      const blob = await workspaceApi.exportJson()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `workspaces_${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success('JSON export completed successfully', {
+        id: loadingToast,
+        description: 'Your file has been downloaded'
+      })
+    } catch (error) {
+      toast.error('Failed to export JSON', {
+        id: loadingToast,
+        description: 'Please try again'
+      })
+    }
+  }
+
+  const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      importJsonMutation.mutate(file)
+      event.target.value = ''
     }
   }
 

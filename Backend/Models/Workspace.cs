@@ -34,4 +34,17 @@ public class WorkspaceDto
     public string Icon { get; set; } = "Building2";
 }
 
+public class WorkspaceImportDto
+{
+    public string? Title { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Location { get; set; }
+    public string? Description { get; set; }
+    public string? Comments { get; set; }
+    public string? Status { get; set; }
+    public string? Color { get; set; }
+    public string? Icon { get; set; }
+    public string? Currency { get; set; }
+}
+
 

@@ -376,6 +376,148 @@ public class WorkspaceController : ControllerBase
         );
     }
 
+    [HttpGet("export-json")]
+    public async Task<IActionResult> ExportToJson()
+    {
+        var workspaces = await _masterContext.Workspaces
+            .Where(w => w.DeletedAt == null)
+            .OrderByDescending(i => i.CreatedAt)
+            .Select(w => new
+            {
+                w.Title,
+                w.Name,
+                w.Location,
+                w.Description,
+                w.Comments,
+                w.Status,
+                w.Color,
+                w.Icon,
+                w.Currency
+            })
+            .ToListAsync();
+        
+        var json = System.Text.Json.JsonSerializer.Serialize(workspaces, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        
+        return File(
+            bytes,
+            "application/json",
+            $"workspaces_{DateTime.UtcNow:yyyy-MM-dd}.json"
+        );
+    }
+
+    [HttpPost("import-json")]
+    public async Task<IActionResult> ImportFromJson(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded" });
+        }
+
+        if (!file.FileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "File must be a JSON file" });
+        }
+
+        try
+        {
+            using var stream = new StreamReader(file.OpenReadStream());
+            var json = await stream.ReadToEndAsync();
+            
+            var workspaceDtos = System.Text.Json.JsonSerializer.Deserialize<List<WorkspaceImportDto>>(json, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (workspaceDtos == null || workspaceDtos.Count == 0)
+            {
+                return BadRequest(new { message = "No workspaces found in file" });
+            }
+
+            var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
+            var imported = 0;
+            var skipped = 0;
+            var errors = new List<string>();
+
+            foreach (var dto in workspaceDtos)
+            {
+                // Check if workspace with same name already exists
+                var exists = await _masterContext.Workspaces.AnyAsync(w => w.Name == dto.Name && w.DeletedAt == null);
+                if (exists)
+                {
+                    skipped++;
+                    errors.Add($"Workspace '{dto.Name}' already exists");
+                    continue;
+                }
+
+                var workspace = new Workspace
+                {
+                    Title = dto.Title ?? dto.Name,
+                    Name = dto.Name,
+                    Location = dto.Location ?? "",
+                    Description = dto.Description ?? "",
+                    Comments = dto.Comments ?? "",
+                    Status = dto.Status ?? "active",
+                    Color = dto.Color ?? "#3b82f6",
+                    Icon = dto.Icon ?? "Building2",
+                    Currency = dto.Currency ?? "USD",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    CreatedBy = userName,
+                    UpdatedBy = userName
+                };
+
+                _masterContext.Workspaces.Add(workspace);
+                await _masterContext.SaveChangesAsync();
+
+                // Create tenant database
+                try
+                {
+                    var tenantConnectionString = GetTenantConnectionString(workspace.Id);
+                    var tenantDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+                        .UseNpgsql(tenantConnectionString)
+                        .Options;
+                    
+                    using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
+                    await tenantContext.Database.MigrateAsync();
+                    await SeedDefaultRadiusTags(tenantContext);
+                    await SeedDefaultCustomWallets(tenantContext);
+                    
+                    imported++;
+                    _logger.LogInformation($"✓ Imported workspace: {workspace.Title} (ID: {workspace.Id})");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"✗ Failed to create tenant database for imported workspace {workspace.Title}: {ex.Message}");
+                    _masterContext.Workspaces.Remove(workspace);
+                    await _masterContext.SaveChangesAsync();
+                    errors.Add($"Failed to create database for '{dto.Name}': {ex.Message}");
+                }
+            }
+
+            return Ok(new 
+            { 
+                message = $"Import completed: {imported} imported, {skipped} skipped",
+                imported,
+                skipped,
+                errors
+            });
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            return BadRequest(new { message = "Invalid JSON format", error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Import failed: {ex.Message}");
+            return StatusCode(500, new { message = "Import failed", error = ex.Message });
+        }
+    }
+
     private async Task SeedDefaultRadiusTags(ApplicationDbContext context)
     {
         // Check if tags already exist
