@@ -74,6 +74,7 @@ export interface QueryBuilderProps {
   maxDepth?: number  // Maximum nesting depth for groups
   showGrouping?: boolean  // Allow creating nested groups
   placeholder?: string
+  showLabel?: boolean  // Show "Filter" text label
 }
 
 // Operator definitions by column type
@@ -539,7 +540,8 @@ export function QueryBuilder({
   className,
   maxDepth: _maxDepth = 2,
   showGrouping = true,
-  placeholder = "No filters applied"
+  placeholder = "No filters applied",
+  showLabel = true
 }: QueryBuilderProps) {
   // maxDepth can be used for nested group depth limiting
   void _maxDepth
@@ -772,13 +774,14 @@ export function QueryBuilder({
           variant="outline" 
           size="sm" 
           className={cn(
-            "h-9 gap-2",
+            "h-9",
+            showLabel && "gap-2",
             activeFilterCount > 0 && "border-primary text-primary",
             className
           )}
         >
           <Filter className="h-4 w-4" />
-          <span>Filter</span>
+          {showLabel && <span>Filter</span>}
           {activeFilterCount > 0 && (
             <Badge variant="secondary" className="h-5 px-1.5 text-xs font-medium">
               {activeFilterCount}
