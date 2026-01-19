@@ -691,7 +691,7 @@ export default function UserManagement() {
       case 'groups':
         return (
           <TableCell key={column} className="h-12 px-4">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 items-center">
               {user.groups?.length ? (
                 <>
                   {user.groups.slice(0, 2).map((group) => (
@@ -700,9 +700,31 @@ export default function UserManagement() {
                     </Badge>
                   ))}
                   {user.groups.length > 2 && (
-                    <Badge variant="secondary" className="text-xs bg-muted-foreground/10">
-                      +{user.groups.length - 2} more
-                    </Badge>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs bg-muted-foreground/10 cursor-pointer hover:bg-muted-foreground/20 transition-colors"
+                        >
+                          +{user.groups.length - 2} more
+                        </Badge>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-3" align="start">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            All Groups ({user.groups.length})
+                          </h4>
+                          <div className="flex flex-wrap gap-1">
+                            {user.groups.map((group) => (
+                              <Badge key={group.id} variant="secondary" className="text-xs">
+                                {group.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 </>
               ) : <span className="text-muted-foreground text-sm">-</span>}
@@ -712,7 +734,7 @@ export default function UserManagement() {
       case 'roles':
         return (
           <TableCell key={column} className="h-12 px-4">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 items-center">
               {user.roles?.length ? (
                 <>
                   {user.roles.slice(0, 2).map((role) => (
@@ -721,9 +743,31 @@ export default function UserManagement() {
                     </Badge>
                   ))}
                   {user.roles.length > 2 && (
-                    <Badge variant="outline" className="text-xs text-muted-foreground">
-                      +{user.roles.length - 2} more
-                    </Badge>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs text-muted-foreground cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
+                        >
+                          +{user.roles.length - 2} more
+                        </Badge>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-3" align="start">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            All Roles ({user.roles.length})
+                          </h4>
+                          <div className="flex flex-wrap gap-1">
+                            {user.roles.map((role) => (
+                              <Badge key={role.id} variant="outline" className="text-xs">
+                                {role.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 </>
               ) : <span className="text-muted-foreground text-sm">-</span>}
