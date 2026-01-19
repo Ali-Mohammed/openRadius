@@ -25,7 +25,6 @@ import { zoneApi } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 
 // Column definitions
@@ -1109,7 +1108,7 @@ export default function UserManagement() {
             
             <div className="grid gap-2">
               <Label htmlFor="supervisor">Supervisor</Label>
-              <Popover open={supervisorSearchOpen} onOpenChange={setSupervisorSearchOpen}>
+              <Popover open={supervisorSearchOpen} onOpenChange={setSupervisorSearchOpen} modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -1129,18 +1128,32 @@ export default function UserManagement() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search by name or email..."
-                      value={supervisorSearchQuery}
-                      onValueChange={setSupervisorSearchQuery}
-                    />
-                    <CommandList>
-                      <CommandEmpty>No supervisor found.</CommandEmpty>
-                      <CommandGroup>
-                        {users
-                          .filter(u => u.id !== editingUser?.id)
+                  <div className="flex flex-col">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Search by name or email..."
+                        value={supervisorSearchQuery}
+                        onChange={(e) => setSupervisorSearchQuery(e.target.value)}
+                        className="h-11 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-scroll p-1" style={{ overflowY: 'scroll' }}>
+                      {users
+                        .filter(u => u.id !== editingUser?.id)
                           .filter(u => {
+                          const searchLower = supervisorSearchQuery.toLowerCase();
+                          return (
+                            u.email?.toLowerCase().includes(searchLower) ||
+                            u.firstName?.toLowerCase().includes(searchLower) ||
+                            u.lastName?.toLowerCase().includes(searchLower)
+                          );
+                        }).length === 0 ? (
+                        <div className="py-6 text-center text-sm">No supervisor found.</div>
+                      ) : (
+                        users
+                          .filter(u => u.id !== editingUser?.id)
+                            .filter(u => {
                             const searchLower = supervisorSearchQuery.toLowerCase();
                             return (
                               u.email?.toLowerCase().includes(searchLower) ||
@@ -1149,10 +1162,10 @@ export default function UserManagement() {
                             );
                           })
                           .map((user) => (
-                            <CommandItem
+                            <div
                               key={user.id}
-                              value={`${user.firstName || ''} ${user.lastName || ''} ${user.email}`}
-                              onSelect={() => {
+                              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                              onClick={() => {
                                 setSelectedSupervisorId(user.id);
                                 setSupervisorSearchOpen(false);
                                 setSupervisorSearchQuery('');
@@ -1172,11 +1185,11 @@ export default function UserManagement() {
                                 </span>
                                 <span className="text-xs text-muted-foreground">{user.email}</span>
                               </div>
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
               {selectedSupervisorId && (
@@ -1198,7 +1211,7 @@ export default function UserManagement() {
                 <Users className="h-4 w-4" />
                 Groups
               </Label>
-              <Popover open={groupsSearchOpen} onOpenChange={setGroupsSearchOpen}>
+              <Popover open={groupsSearchOpen} onOpenChange={setGroupsSearchOpen} modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -1213,22 +1226,29 @@ export default function UserManagement() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search groups..."
-                      value={groupsSearchQuery}
-                      onValueChange={setGroupsSearchQuery}
-                    />
-                    <CommandList>
-                      <CommandEmpty>No groups found.</CommandEmpty>
-                      <CommandGroup>
-                        {groups
+                  <div className="flex flex-col">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Search groups..."
+                        value={groupsSearchQuery}
+                        onChange={(e) => setGroupsSearchQuery(e.target.value)}
+                        className="h-11 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-scroll p-1" style={{ overflowY: 'scroll' }}>
+                      {groups
+                        .filter(g => g.name.toLowerCase().includes(groupsSearchQuery.toLowerCase()))
+                        .length === 0 ? (
+                        <div className="py-6 text-center text-sm">No groups found.</div>
+                      ) : (
+                        groups
                           .filter(g => g.name.toLowerCase().includes(groupsSearchQuery.toLowerCase()))
                           .map((group) => (
-                            <CommandItem
+                            <div
                               key={group.id}
-                              value={group.name}
-                              onSelect={() => {
+                              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                              onClick={() => {
                                 setSelectedGroupIds(
                                   selectedGroupIds.includes(group.id)
                                     ? selectedGroupIds.filter(id => id !== group.id)
@@ -1243,11 +1263,11 @@ export default function UserManagement() {
                                 )}
                               />
                               {group.name}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
               {selectedGroupIds.length > 0 && (
@@ -1276,7 +1296,7 @@ export default function UserManagement() {
                 <Shield className="h-4 w-4" />
                 Roles
               </Label>
-              <Popover open={rolesSearchOpen} onOpenChange={setRolesSearchOpen}>
+              <Popover open={rolesSearchOpen} onOpenChange={setRolesSearchOpen} modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -1291,22 +1311,29 @@ export default function UserManagement() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search roles..."
-                      value={rolesSearchQuery}
-                      onValueChange={setRolesSearchQuery}
-                    />
-                    <CommandList>
-                      <CommandEmpty>No roles found.</CommandEmpty>
-                      <CommandGroup>
-                        {roles
+                  <div className="flex flex-col">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Search roles..."
+                        value={rolesSearchQuery}
+                        onChange={(e) => setRolesSearchQuery(e.target.value)}
+                        className="h-11 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-scroll p-1" style={{ overflowY: 'scroll' }}>
+                      {roles
+                        .filter(r => r.name.toLowerCase().includes(rolesSearchQuery.toLowerCase()))
+                        .length === 0 ? (
+                        <div className="py-6 text-center text-sm">No roles found.</div>
+                      ) : (
+                        roles
                           .filter(r => r.name.toLowerCase().includes(rolesSearchQuery.toLowerCase()))
                           .map((role) => (
-                            <CommandItem
+                            <div
                               key={role.id}
-                              value={role.name}
-                              onSelect={() => {
+                              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                              onClick={() => {
                                 setSelectedRoleIds(
                                   selectedRoleIds.includes(role.id)
                                     ? selectedRoleIds.filter(id => id !== role.id)
@@ -1321,11 +1348,11 @@ export default function UserManagement() {
                                 )}
                               />
                               {role.name}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
               {selectedRoleIds.length > 0 && (
