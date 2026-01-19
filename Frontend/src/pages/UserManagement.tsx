@@ -692,11 +692,20 @@ export default function UserManagement() {
         return (
           <TableCell key={column} className="h-12 px-4">
             <div className="flex flex-wrap gap-1">
-              {user.groups?.length ? user.groups.map((group) => (
-                <Badge key={group.id} variant="secondary" className="text-xs">
-                  {group.name}
-                </Badge>
-              )) : <span className="text-muted-foreground text-sm">-</span>}
+              {user.groups?.length ? (
+                <>
+                  {user.groups.slice(0, 2).map((group) => (
+                    <Badge key={group.id} variant="secondary" className="text-xs">
+                      {group.name}
+                    </Badge>
+                  ))}
+                  {user.groups.length > 2 && (
+                    <Badge variant="secondary" className="text-xs bg-muted-foreground/10">
+                      +{user.groups.length - 2} more
+                    </Badge>
+                  )}
+                </>
+              ) : <span className="text-muted-foreground text-sm">-</span>}
             </div>
           </TableCell>
         )
@@ -704,11 +713,20 @@ export default function UserManagement() {
         return (
           <TableCell key={column} className="h-12 px-4">
             <div className="flex flex-wrap gap-1">
-              {user.roles?.length ? user.roles.map((role) => (
-                <Badge key={role.id} variant="outline" className="text-xs">
-                  {role.name}
-                </Badge>
-              )) : <span className="text-muted-foreground text-sm">-</span>}
+              {user.roles?.length ? (
+                <>
+                  {user.roles.slice(0, 2).map((role) => (
+                    <Badge key={role.id} variant="outline" className="text-xs">
+                      {role.name}
+                    </Badge>
+                  ))}
+                  {user.roles.length > 2 && (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      +{user.roles.length - 2} more
+                    </Badge>
+                  )}
+                </>
+              ) : <span className="text-muted-foreground text-sm">-</span>}
             </div>
           </TableCell>
         )
