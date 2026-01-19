@@ -161,8 +161,11 @@ const isNoValueOperator = (operator: FilterOperator) =>
 // Check if operator requires two values (between)
 const isBetweenOperator = (operator: FilterOperator) => operator === 'between'
 
-// Check if operator requires multiple values (in, not_in)
+// Check if operator requires multiple values (in, not_in, equals, not_equals with select/suggestions)
 const isMultiValueOperator = (operator: FilterOperator) => ['in', 'not_in'].includes(operator)
+
+// Check if operator supports both single and multiple value selection
+const isFlexibleValueOperator = (operator: FilterOperator) => ['equals', 'not_equals', 'in', 'not_in'].includes(operator)
 
 interface ConditionRowProps {
   condition: FilterCondition
@@ -300,25 +303,17 @@ function ConditionRow({
       return null
     }
 
-    if (columnType === 'select' && !isMultiValueOperator(condition.operator)) {
-      return (
-        <Select value={condition.value as string || ''} onValueChange={handleValueChange}>
-          <SelectTrigger className="h-8 w-36 text-xs">
-            <SelectValue placeholder="Select..." />
-          </SelectTrigger>
-          <SelectContent className="z-[9999]">
-            {selectOptions.map(option => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )
-    }
+    // For select type with equals/not_equals or any flexible operator, show multi-select
+    const hasSelectOptions = selectOptions.length > 0
+    const shouldShowMultiSelect = (isMultiValueOperator(condition.operator) || 
+      (isFlexibleValueOperator(condition.operator) && hasSelectOptions) || 
+      columnType === 'array' || 
+      columnType === 'select')
 
-    if (isMultiValueOperator(condition.operator) || (columnType === 'array')) {
-      const selectedValues = Array.isArray(condition.value) ? condition.value : []
+    if (shouldShowMultiSelect && hasSelectOptions) {
+      const selectedValues = Array.isArray(condition.value) 
+        ? condition.value 
+        : (condition.value ? [condition.value as string] : [])
       return (
         <Popover>
           <PopoverTrigger asChild>
