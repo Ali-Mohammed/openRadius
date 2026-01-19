@@ -296,7 +296,7 @@ function ConditionRow({
           <SelectTrigger className="h-8 w-36 text-xs">
             <SelectValue placeholder="Select..." />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[9999]">
             {selectOptions.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -321,7 +321,7 @@ function ConditionRow({
               <ChevronDown className="ml-auto h-3 w-3 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-52 p-0" align="start">
+          <PopoverContent className="w-52 p-0 z-[9999]" align="start">
             <Command>
               <CommandInput placeholder="Search..." className="h-8 text-xs" />
               <CommandList>
@@ -442,7 +442,7 @@ function ConditionRow({
             <SelectTrigger className="h-7 w-[56px] text-xs border-dashed">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[9999]">
               <SelectItem value="and">AND</SelectItem>
               <SelectItem value="or">OR</SelectItem>
             </SelectContent>
@@ -461,7 +461,7 @@ function ConditionRow({
             <ChevronDown className="ml-auto h-3 w-3 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[220px] p-0" align="start">
+        <PopoverContent className="w-[220px] p-0 z-[9999]" align="start">
           <Command>
             <CommandInput placeholder="Search fields..." className="h-8 text-xs" />
             <CommandList>
@@ -492,7 +492,7 @@ function ConditionRow({
         <SelectTrigger className="h-8 w-[130px] text-xs">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-[9999]">
           {operators.map(op => (
             <SelectItem key={op.value} value={op.value} className="text-xs">
               {op.label}
@@ -726,7 +726,7 @@ export function QueryBuilder({
                     <SelectTrigger className="h-6 w-[60px] text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[9999]">
                       <SelectItem value="and">AND</SelectItem>
                       <SelectItem value="or">OR</SelectItem>
                     </SelectContent>
