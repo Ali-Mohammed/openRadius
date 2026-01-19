@@ -1625,6 +1625,7 @@ export default function RadiusUsers() {
               // Trigger a refetch with the new filters
               queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
             }}
+            showLabel={false}
           />
           <div className="flex items-center gap-1">
             <Input
