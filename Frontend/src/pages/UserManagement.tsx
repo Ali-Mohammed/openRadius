@@ -93,6 +93,10 @@ export default function UserManagement() {
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
   const [supervisorSearchOpen, setSupervisorSearchOpen] = useState(false)
   const [supervisorSearchQuery, setSupervisorSearchQuery] = useState('')
+  const [groupsSearchOpen, setGroupsSearchOpen] = useState(false)
+  const [groupsSearchQuery, setGroupsSearchQuery] = useState('')
+  const [rolesSearchOpen, setRolesSearchOpen] = useState(false)
+  const [rolesSearchQuery, setRolesSearchQuery] = useState('')
   const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<number[]>([])
   const [zoneSearchQuery, setZoneSearchQuery] = useState('')
@@ -1194,33 +1198,77 @@ export default function UserManagement() {
                 <Users className="h-4 w-4" />
                 Groups
               </Label>
-              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                {groups.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No groups available</p>
-                ) : (
-                  groups.map((group) => (
-                    <div key={group.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`group-${group.id}`}
-                        checked={selectedGroupIds.includes(group.id)}
-                        onCheckedChange={(checked) => {
-                          setSelectedGroupIds(
-                            checked
-                              ? [...selectedGroupIds, group.id]
-                              : selectedGroupIds.filter(id => id !== group.id)
-                          )
-                        }}
-                      />
-                      <label
-                        htmlFor={`group-${group.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
+              <Popover open={groupsSearchOpen} onOpenChange={setGroupsSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={groupsSearchOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedGroupIds.length > 0
+                      ? `${selectedGroupIds.length} group${selectedGroupIds.length > 1 ? 's' : ''} selected`
+                      : 'Select groups...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search groups..."
+                      value={groupsSearchQuery}
+                      onValueChange={setGroupsSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No groups found.</CommandEmpty>
+                      <CommandGroup>
+                        {groups
+                          .filter(g => g.name.toLowerCase().includes(groupsSearchQuery.toLowerCase()))
+                          .map((group) => (
+                            <CommandItem
+                              key={group.id}
+                              value={group.name}
+                              onSelect={() => {
+                                setSelectedGroupIds(
+                                  selectedGroupIds.includes(group.id)
+                                    ? selectedGroupIds.filter(id => id !== group.id)
+                                    : [...selectedGroupIds, group.id]
+                                );
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  selectedGroupIds.includes(group.id) ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {group.name}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedGroupIds.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedGroupIds.map(id => {
+                    const group = groups.find(g => g.id === id);
+                    return group ? (
+                      <Badge key={id} variant="secondary" className="text-xs">
                         {group.name}
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
+                        <button
+                          type="button"
+                          className="ml-1 hover:text-destructive"
+                          onClick={() => setSelectedGroupIds(selectedGroupIds.filter(gid => gid !== id))}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -1228,33 +1276,77 @@ export default function UserManagement() {
                 <Shield className="h-4 w-4" />
                 Roles
               </Label>
-              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                {roles.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No roles available</p>
-                ) : (
-                  roles.map((role) => (
-                    <div key={role.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`role-${role.id}`}
-                        checked={selectedRoleIds.includes(role.id)}
-                        onCheckedChange={(checked) => {
-                          setSelectedRoleIds(
-                            checked
-                              ? [...selectedRoleIds, role.id]
-                              : selectedRoleIds.filter(id => id !== role.id)
-                          )
-                        }}
-                      />
-                      <label
-                        htmlFor={`role-${role.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
+              <Popover open={rolesSearchOpen} onOpenChange={setRolesSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={rolesSearchOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedRoleIds.length > 0
+                      ? `${selectedRoleIds.length} role${selectedRoleIds.length > 1 ? 's' : ''} selected`
+                      : 'Select roles...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search roles..."
+                      value={rolesSearchQuery}
+                      onValueChange={setRolesSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No roles found.</CommandEmpty>
+                      <CommandGroup>
+                        {roles
+                          .filter(r => r.name.toLowerCase().includes(rolesSearchQuery.toLowerCase()))
+                          .map((role) => (
+                            <CommandItem
+                              key={role.id}
+                              value={role.name}
+                              onSelect={() => {
+                                setSelectedRoleIds(
+                                  selectedRoleIds.includes(role.id)
+                                    ? selectedRoleIds.filter(id => id !== role.id)
+                                    : [...selectedRoleIds, role.id]
+                                );
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  selectedRoleIds.includes(role.id) ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {role.name}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedRoleIds.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedRoleIds.map(id => {
+                    const role = roles.find(r => r.id === id);
+                    return role ? (
+                      <Badge key={id} variant="secondary" className="text-xs">
                         {role.name}
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
+                        <button
+                          type="button"
+                          className="ml-1 hover:text-destructive"
+                          onClick={() => setSelectedRoleIds(selectedRoleIds.filter(rid => rid !== id))}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
