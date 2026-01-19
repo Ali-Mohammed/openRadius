@@ -25,6 +25,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function RadiusGroups() {
   const { t } = useTranslation()
@@ -181,6 +182,12 @@ export default function RadiusGroups() {
 
   const groups = useMemo(() => groupsData?.data || [], [groupsData?.data])
   const pagination = groupsData?.pagination
+
+  // Calculate max users count for mini chart scaling
+  const maxUsersCount = useMemo(() => {
+    if (!groups.length) return 1
+    return Math.max(...groups.map(g => g.usersCount || 0), 1)
+  }, [groups])
 
   // Virtual scrolling
   const rowVirtualizer = useVirtualizer({
@@ -595,9 +602,34 @@ export default function RadiusGroups() {
           </TableCell>
         )
       case 'users':
+        const usersCount = group.usersCount || 0
+        const usersPercentage = maxUsersCount > 0 ? (usersCount / maxUsersCount) * 100 : 0
+        const barColor = usersCount === 0 ? 'bg-muted' : 
+          usersPercentage > 75 ? 'bg-emerald-500' : 
+          usersPercentage > 50 ? 'bg-blue-500' : 
+          usersPercentage > 25 ? 'bg-amber-500' : 'bg-slate-400'
         return (
-          <TableCell key={columnKey} className="h-12 px-4 text-right" style={baseStyle}>
-            {(group.usersCount || 0).toLocaleString()}
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-end gap-2 min-w-[80px]">
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden max-w-[60px]">
+                      <div 
+                        className={`h-full ${barColor} rounded-full transition-all duration-300`}
+                        style={{ width: `${Math.max(usersPercentage, usersCount > 0 ? 5 : 0)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium tabular-nums min-w-[40px] text-right">
+                      {usersCount.toLocaleString()}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="text-xs">
+                  <p>{usersCount.toLocaleString()} users ({usersPercentage.toFixed(1)}% of max)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </TableCell>
         )
       case 'actions':

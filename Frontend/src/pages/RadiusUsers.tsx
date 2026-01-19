@@ -39,6 +39,7 @@ import { workspaceApi } from '@/lib/api'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { settingsApi } from '@/api/settingsApi'
+import { QueryBuilder, type FilterGroup, type FilterColumn, filtersToQueryString } from '@/components/QueryBuilder'
 
 export default function RadiusUsers() {
   const { t, i18n } = useTranslation()
@@ -54,6 +55,9 @@ export default function RadiusUsers() {
   const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
   const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc')
+
+  // Advanced filters state
+  const [advancedFilters, setAdvancedFilters] = useState<FilterGroup | null>(null)
 
   // Update URL params when state changes
   useEffect(() => {
@@ -291,12 +295,18 @@ export default function RadiusUsers() {
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
   const { data: usersData, isLoading, isFetching } = useQuery({
-    queryKey: ['radius-users', currentWorkspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection],
+    queryKey: ['radius-users', currentWorkspaceId, currentPage, pageSize, searchQuery, showTrash, sortField, sortDirection, advancedFilters],
     queryFn: () => showTrash 
       ? radiusUserApi.getTrash(currentPage, pageSize)
-      : radiusUserApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection),
+      : radiusUserApi.getAll(currentPage, pageSize, searchQuery, sortField, sortDirection, advancedFilters),
     enabled: !!currentWorkspaceId,
   })
+
+  // Fetch suggestions for filter fields
+  const fetchFilterSuggestions = useCallback(async (field: string, search?: string) => {
+    const result = await radiusUserApi.getSuggestions(field, search)
+    return result.suggestions
+  }, [])
 
   const { data: profilesData } = useQuery({
     queryKey: ['radius-profiles'],
@@ -335,6 +345,7 @@ export default function RadiusUsers() {
   const tags = useMemo(() => tagsData || [], [tagsData])
   const zones = useMemo(() => zonesData || [], [zonesData])
   const billingProfiles = useMemo(() => billingProfilesData?.data || [], [billingProfilesData?.data])
+  const groups = useMemo(() => groupsData?.data || [], [groupsData?.data])
 
   // Get selected billing profile for cashback calculation
   const selectedBillingProfileForCashback = useMemo(() => {
@@ -384,6 +395,69 @@ export default function RadiusUsers() {
       zone.name.toLowerCase().includes(query)
     )
   }, [flatZones, zoneSearchQuery])
+
+  // Define filter columns for QueryBuilder
+  const filterColumns = useMemo<FilterColumn[]>(() => [
+    { key: 'username', label: 'Username', type: 'text' },
+    { key: 'firstName', label: 'First Name', type: 'text' },
+    { key: 'lastName', label: 'Last Name', type: 'text' },
+    { key: 'email', label: 'Email', type: 'email' },
+    { key: 'phoneNumber', label: 'Phone Number', type: 'text' },
+    { 
+      key: 'radiusProfileId', 
+      label: 'Profile', 
+      type: 'select',
+      options: profiles.filter(p => p.id !== undefined).map(p => ({ value: p.id!.toString(), label: p.name }))
+    },
+    { 
+      key: 'radiusGroupId', 
+      label: 'Group', 
+      type: 'select',
+      options: groups.filter(g => g.id !== undefined).map(g => ({ value: g.id!.toString(), label: g.name }))
+    },
+    { 
+      key: 'zoneId', 
+      label: 'Zone', 
+      type: 'select',
+      options: flatZones.map(z => ({ value: z.id.toString(), label: '  '.repeat(z.level) + z.name }))
+    },
+    { 
+      key: 'isActive', 
+      label: 'Status', 
+      type: 'boolean'
+    },
+    { 
+      key: 'balance', 
+      label: 'Balance', 
+      type: 'number',
+      suggestions: ['0', '100', '500', '1000', '5000']
+    },
+    { 
+      key: 'expirationDate', 
+      label: 'Expiration Date', 
+      type: 'date'
+    },
+    { 
+      key: 'activationDate', 
+      label: 'Activation Date', 
+      type: 'date'
+    },
+    { 
+      key: 'createdAt', 
+      label: 'Created At', 
+      type: 'date'
+    },
+    { 
+      key: 'tags', 
+      label: 'Tags', 
+      type: 'array',
+      options: tags.map(t => ({ value: t.id.toString(), label: t.title }))
+    },
+    { key: 'address', label: 'Address', type: 'text' },
+    { key: 'city', label: 'City', type: 'text' },
+    { key: 'company', label: 'Company', type: 'text' },
+    { key: 'notes', label: 'Notes', type: 'text' },
+  ], [profiles, groups, flatZones, tags])
 
   // Track if preferences have been loaded
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
@@ -1552,6 +1626,17 @@ export default function RadiusUsers() {
             <Button onClick={handleSearch} variant="outline" size="icon">
               <Search className="h-4 w-4" />
             </Button>
+            <QueryBuilder
+              columns={filterColumns}
+              value={advancedFilters}
+              onChange={setAdvancedFilters}
+              onFetchSuggestions={fetchFilterSuggestions}
+              onApply={(filters) => {
+                setAdvancedFilters(filters)
+                // Trigger a refetch with the new filters
+                queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+              }}
+            />
             <Button 
               onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })} 
               variant="outline" 

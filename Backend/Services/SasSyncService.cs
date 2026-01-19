@@ -154,10 +154,23 @@ public class SasSyncService : ISasSyncService
         }
         
         using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var masterContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
         var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        
+        // Create ApplicationDbContext with the correct workspace connection string
+        // (the scoped context won't have tenant info since we're in a background service)
+        var baseConnectionString = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+        var workspaceConnectionString = baseConnectionString.Replace(
+            GetDatabaseNameFromConnectionString(baseConnectionString), 
+            $"openradius_workspace_{workspaceId}"
+        );
+        
+        _logger.LogInformation($"SyncManagersAsync: Creating ApplicationDbContext for workspace {workspaceId} with connection: {workspaceConnectionString}");
+        
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        optionsBuilder.UseNpgsql(workspaceConnectionString);
+        using var context = new ApplicationDbContext(optionsBuilder.Options);
         
         var integration = await context.SasRadiusIntegrations
             .FirstOrDefaultAsync(i => i.Id == integrationId);
@@ -2004,6 +2017,22 @@ public class SasSyncService : ISasSyncService
         };
 
         await _hubContext.Clients.Group(progress.SyncId.ToString()).SendAsync("SyncProgress", update);
+    }
+
+    /// <summary>
+    /// Extracts the database name from a PostgreSQL connection string.
+    /// </summary>
+    private static string GetDatabaseNameFromConnectionString(string connectionString)
+    {
+        var parts = connectionString.Split(';');
+        foreach (var part in parts)
+        {
+            if (part.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
+            {
+                return part.Split('=')[1].Trim();
+            }
+        }
+        return "openradius";
     }
 }
 

@@ -1,4 +1,5 @@
 import { apiClient } from '../lib/api'
+import type { FilterGroup } from '@/components/QueryBuilder'
 
 export interface RadiusTag {
   id: number
@@ -73,13 +74,21 @@ export interface PaginatedUsersResponse {
   }
 }
 
+export interface FieldSuggestion {
+  value: string
+  label: string
+  color?: string
+  icon?: string
+}
+
 export const radiusUserApi = {
   getAll: async (
     page: number = 1, 
     pageSize: number = 50,
     search?: string,
     sortField?: string,
-    sortDirection?: 'asc' | 'desc'
+    sortDirection?: 'asc' | 'desc',
+    filters?: FilterGroup | null
   ): Promise<PaginatedUsersResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -94,7 +103,18 @@ export const radiusUserApi = {
     if (sortDirection) {
       params.append('sortDirection', sortDirection)
     }
+    if (filters && filters.conditions && filters.conditions.length > 0) {
+      params.append('filters', JSON.stringify(filters))
+    }
     const response = await apiClient.get(`/api/radius/users?${params.toString()}`)
+    return response.data
+  },
+
+  getSuggestions: async (field: string, search?: string, limit: number = 20): Promise<{ field: string; suggestions: string[] | FieldSuggestion[] }> => {
+    const params = new URLSearchParams({ field })
+    if (search) params.append('search', search)
+    if (limit) params.append('limit', limit.toString())
+    const response = await apiClient.get(`/api/radius/users/suggestions?${params.toString()}`)
     return response.data
   },
 

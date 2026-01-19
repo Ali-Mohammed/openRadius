@@ -31,6 +31,262 @@ public class RadiusUserController : ControllerBase
         return days < 0 ? 0 : days;
     }
 
+    // Filter condition model for advanced filtering
+    public class FilterCondition
+    {
+        public string? Id { get; set; }
+        public string? Field { get; set; }
+        public string? Operator { get; set; }
+        public string? Value { get; set; }
+        public List<string>? Values { get; set; }
+    }
+
+    public class FilterGroup
+    {
+        public string? Id { get; set; }
+        public string Logic { get; set; } = "and";
+        public List<object>? Conditions { get; set; }
+    }
+
+    // Apply advanced filters to query
+    private IQueryable<RadiusUser> ApplyAdvancedFilters(IQueryable<RadiusUser> query, FilterGroup? filterGroup)
+    {
+        if (filterGroup == null || filterGroup.Conditions == null || filterGroup.Conditions.Count == 0)
+            return query;
+
+        var conditions = new List<System.Linq.Expressions.Expression<Func<RadiusUser, bool>>>();
+
+        foreach (var item in filterGroup.Conditions)
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(item);
+            
+            // Try to parse as FilterCondition first
+            if (json.Contains("\"field\""))
+            {
+                var condition = System.Text.Json.JsonSerializer.Deserialize<FilterCondition>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (condition != null && !string.IsNullOrEmpty(condition.Field))
+                {
+                    var predicate = BuildConditionPredicate(condition);
+                    if (predicate != null)
+                        conditions.Add(predicate);
+                }
+            }
+            // Otherwise it's a nested group
+            else if (json.Contains("\"conditions\""))
+            {
+                var nestedGroup = System.Text.Json.JsonSerializer.Deserialize<FilterGroup>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                // For nested groups, we'd need to recursively build - for simplicity, flatten for now
+            }
+        }
+
+        if (conditions.Count == 0)
+            return query;
+
+        // Apply conditions based on logic (AND/OR)
+        if (filterGroup.Logic?.ToLower() == "or")
+        {
+            // OR logic - combine predicates
+            var parameter = System.Linq.Expressions.Expression.Parameter(typeof(RadiusUser), "u");
+            System.Linq.Expressions.Expression? combined = null;
+
+            foreach (var cond in conditions)
+            {
+                var body = System.Linq.Expressions.Expression.Invoke(cond, parameter);
+                combined = combined == null ? body : System.Linq.Expressions.Expression.OrElse(combined, body);
+            }
+
+            if (combined != null)
+            {
+                var lambda = System.Linq.Expressions.Expression.Lambda<Func<RadiusUser, bool>>(combined, parameter);
+                query = query.Where(lambda);
+            }
+        }
+        else
+        {
+            // AND logic - chain Where clauses
+            foreach (var cond in conditions)
+            {
+                query = query.Where(cond);
+            }
+        }
+
+        return query;
+    }
+
+    private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildConditionPredicate(FilterCondition condition)
+    {
+        var field = condition.Field?.ToLower();
+        var op = condition.Operator?.ToLower();
+        var value = condition.Value;
+        var values = condition.Values;
+
+        return field switch
+        {
+            "username" => BuildStringPredicate(u => u.Username, op, value),
+            "firstname" => BuildStringPredicate(u => u.Firstname, op, value),
+            "lastname" => BuildStringPredicate(u => u.Lastname, op, value),
+            "email" => BuildStringPredicate(u => u.Email, op, value),
+            "phonenumber" or "phone" => BuildStringPredicate(u => u.Phone, op, value),
+            "city" => BuildStringPredicate(u => u.City, op, value),
+            "address" => BuildStringPredicate(u => u.Address, op, value),
+            "company" => BuildStringPredicate(u => u.Company, op, value),
+            "notes" => BuildStringPredicate(u => u.Notes, op, value),
+            "radiusprofileid" or "profileid" => BuildIntPredicate(u => u.ProfileId, op, value, values),
+            "radiusgroupid" or "groupid" => BuildIntPredicate(u => u.GroupId, op, value, values),
+            "zoneid" => BuildIntPredicate(u => u.ZoneId, op, value, values),
+            "isactive" or "enabled" => BuildBoolPredicate(u => u.Enabled, op),
+            "balance" => BuildDecimalPredicate(u => u.Balance, op, value),
+            "loanbalance" => BuildDecimalPredicate(u => u.LoanBalance, op, value),
+            "expirationdate" or "expiration" => BuildDatePredicate(u => u.Expiration, op, value),
+            "activationdate" => BuildDatePredicate(u => u.ActivationDate, op, value),
+            "createdat" => BuildDatePredicate(u => u.CreatedAt, op, value),
+            "updatedat" => BuildDatePredicate(u => u.UpdatedAt, op, value),
+            "lastonline" => BuildDatePredicate(u => u.LastOnline, op, value),
+            "tags" => BuildTagsPredicate(op, values),
+            _ => null
+        };
+    }
+
+    private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildStringPredicate(
+        System.Linq.Expressions.Expression<Func<RadiusUser, string?>> selector, string? op, string? value)
+    {
+        if (string.IsNullOrEmpty(op)) return null;
+
+        return op switch
+        {
+            "equals" => u => EF.Property<string>(u, GetPropertyName(selector)) == value,
+            "not_equals" => u => EF.Property<string>(u, GetPropertyName(selector)) != value,
+            "contains" => u => EF.Property<string>(u, GetPropertyName(selector)) != null && EF.Property<string>(u, GetPropertyName(selector))!.ToLower().Contains((value ?? "").ToLower()),
+            "not_contains" => u => EF.Property<string>(u, GetPropertyName(selector)) == null || !EF.Property<string>(u, GetPropertyName(selector))!.ToLower().Contains((value ?? "").ToLower()),
+            "starts_with" => u => EF.Property<string>(u, GetPropertyName(selector)) != null && EF.Property<string>(u, GetPropertyName(selector))!.ToLower().StartsWith((value ?? "").ToLower()),
+            "ends_with" => u => EF.Property<string>(u, GetPropertyName(selector)) != null && EF.Property<string>(u, GetPropertyName(selector))!.ToLower().EndsWith((value ?? "").ToLower()),
+            "is_empty" => u => string.IsNullOrEmpty(EF.Property<string>(u, GetPropertyName(selector))),
+            "is_not_empty" => u => !string.IsNullOrEmpty(EF.Property<string>(u, GetPropertyName(selector))),
+            _ => null
+        };
+    }
+
+    private static string GetPropertyName<T>(System.Linq.Expressions.Expression<Func<RadiusUser, T>> selector)
+    {
+        if (selector.Body is System.Linq.Expressions.MemberExpression member)
+            return member.Member.Name;
+        throw new ArgumentException("Invalid selector");
+    }
+
+    private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildIntPredicate(
+        System.Linq.Expressions.Expression<Func<RadiusUser, int?>> selector, string? op, string? value, List<string>? values)
+    {
+        if (string.IsNullOrEmpty(op)) return null;
+        var propName = GetPropertyName(selector);
+
+        // Parse single value
+        int? intValue = null;
+        if (!string.IsNullOrEmpty(value) && int.TryParse(value, out var parsed))
+            intValue = parsed;
+
+        // Parse multiple values for in/not_in
+        var intValues = values?.Where(v => int.TryParse(v, out _)).Select(v => int.Parse(v)).ToList() ?? new List<int>();
+
+        return op switch
+        {
+            "equals" or "is" => u => EF.Property<int?>(u, propName) == intValue,
+            "not_equals" or "is_not" => u => EF.Property<int?>(u, propName) != intValue,
+            "is_any_of" or "in" => u => EF.Property<int?>(u, propName) != null && intValues.Contains(EF.Property<int?>(u, propName)!.Value),
+            "is_none_of" or "not_in" => u => EF.Property<int?>(u, propName) == null || !intValues.Contains(EF.Property<int?>(u, propName)!.Value),
+            "is_empty" => u => EF.Property<int?>(u, propName) == null,
+            "is_not_empty" => u => EF.Property<int?>(u, propName) != null,
+            _ => null
+        };
+    }
+
+    private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildDecimalPredicate(
+        System.Linq.Expressions.Expression<Func<RadiusUser, decimal?>> selector, string? op, string? value)
+    {
+        if (string.IsNullOrEmpty(op)) return null;
+        var propName = GetPropertyName(selector);
+
+        decimal? decValue = null;
+        if (!string.IsNullOrEmpty(value) && decimal.TryParse(value, out var parsed))
+            decValue = parsed;
+
+        return op switch
+        {
+            "equals" => u => EF.Property<decimal?>(u, propName) == decValue,
+            "not_equals" => u => EF.Property<decimal?>(u, propName) != decValue,
+            "greater_than" => u => EF.Property<decimal?>(u, propName) > decValue,
+            "less_than" => u => EF.Property<decimal?>(u, propName) < decValue,
+            "greater_equal" => u => EF.Property<decimal?>(u, propName) >= decValue,
+            "less_equal" => u => EF.Property<decimal?>(u, propName) <= decValue,
+            "is_empty" => u => EF.Property<decimal?>(u, propName) == null,
+            "is_not_empty" => u => EF.Property<decimal?>(u, propName) != null,
+            _ => null
+        };
+    }
+
+    private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildBoolPredicate(
+        System.Linq.Expressions.Expression<Func<RadiusUser, bool?>> selector, string? op)
+    {
+        if (string.IsNullOrEmpty(op)) return null;
+        var propName = GetPropertyName(selector);
+
+        return op switch
+        {
+            "is_true" => u => EF.Property<bool?>(u, propName) == true,
+            "is_false" => u => EF.Property<bool?>(u, propName) == false || EF.Property<bool?>(u, propName) == null,
+            _ => null
+        };
+    }
+
+    private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildDatePredicate(
+        System.Linq.Expressions.Expression<Func<RadiusUser, DateTime?>> selector, string? op, string? value)
+    {
+        if (string.IsNullOrEmpty(op)) return null;
+        var propName = GetPropertyName(selector);
+
+        DateTime? dateValue = null;
+        if (!string.IsNullOrEmpty(value) && DateTime.TryParse(value, out var parsed))
+            dateValue = parsed;
+
+        var now = DateTime.UtcNow;
+
+        return op switch
+        {
+            "equals" or "is" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName)!.Value.Date == (dateValue ?? now).Date,
+            "not_equals" or "is_not" => u => EF.Property<DateTime?>(u, propName) == null || EF.Property<DateTime?>(u, propName)!.Value.Date != (dateValue ?? now).Date,
+            "before" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) < dateValue,
+            "after" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) > dateValue,
+            "on_or_before" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) <= dateValue,
+            "on_or_after" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) >= dateValue,
+            "is_empty" => u => EF.Property<DateTime?>(u, propName) == null,
+            "is_not_empty" => u => EF.Property<DateTime?>(u, propName) != null,
+            "within_last_week" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) >= now.AddDays(-7),
+            "within_last_month" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) >= now.AddMonths(-1),
+            "within_last_year" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) >= now.AddYears(-1),
+            "is_today" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName)!.Value.Date == now.Date,
+            "is_tomorrow" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName)!.Value.Date == now.AddDays(1).Date,
+            "is_yesterday" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName)!.Value.Date == now.AddDays(-1).Date,
+            "is_this_week" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName) >= now.AddDays(-(int)now.DayOfWeek) && EF.Property<DateTime?>(u, propName) < now.AddDays(7 - (int)now.DayOfWeek),
+            "is_this_month" => u => EF.Property<DateTime?>(u, propName) != null && EF.Property<DateTime?>(u, propName)!.Value.Year == now.Year && EF.Property<DateTime?>(u, propName)!.Value.Month == now.Month,
+            _ => null
+        };
+    }
+
+    private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildTagsPredicate(string? op, List<string>? values)
+    {
+        if (string.IsNullOrEmpty(op)) return null;
+
+        var tagIds = values?.Where(v => int.TryParse(v, out _)).Select(v => int.Parse(v)).ToList() ?? new List<int>();
+
+        return op switch
+        {
+            "contains_any" or "is_any_of" => u => u.RadiusUserTags.Any(t => tagIds.Contains(t.RadiusTagId)),
+            "contains_all" => u => tagIds.All(tagId => u.RadiusUserTags.Any(t => t.RadiusTagId == tagId)),
+            "is_empty" => u => !u.RadiusUserTags.Any(),
+            "is_not_empty" => u => u.RadiusUserTags.Any(),
+            _ => null
+        };
+    }
+
     // GET: api/radius/users
     [HttpGet]
     public async Task<ActionResult<object>> GetUsers(
@@ -39,14 +295,30 @@ public class RadiusUserController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? sortField = null,
         [FromQuery] string? sortDirection = "asc",
-        [FromQuery] bool includeDeleted = false)
+        [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? filters = null)
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
             .Include(u => u.RadiusGroup)
+            .Include(u => u.Zone)
             .Include(u => u.RadiusUserTags)
                 .ThenInclude(ut => ut.RadiusTag)
             .Where(u => includeDeleted || !u.IsDeleted);
+
+        // Apply advanced filters
+        if (!string.IsNullOrEmpty(filters))
+        {
+            try
+            {
+                var filterGroup = System.Text.Json.JsonSerializer.Deserialize<FilterGroup>(filters, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                query = ApplyAdvancedFilters(query, filterGroup);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Failed to parse filters: {Error}", ex.Message);
+            }
+        }
 
         // Get IP reservations for users
         var ipReservations = await _context.RadiusIpReservations
@@ -180,6 +452,100 @@ public class RadiusUserController : ControllerBase
                 totalPages = totalPages
             }
         });
+    }
+
+    // GET: api/radius/users/suggestions
+    // Returns unique values for a field to use in filter suggestions
+    [HttpGet("suggestions")]
+    public async Task<ActionResult<object>> GetFieldSuggestions(
+        [FromQuery] string field,
+        [FromQuery] string? search = null,
+        [FromQuery] int limit = 20)
+    {
+        if (string.IsNullOrEmpty(field))
+            return BadRequest(new { message = "Field parameter is required" });
+
+        var query = _context.RadiusUsers.Where(u => !u.IsDeleted);
+        var searchLower = search?.ToLower() ?? "";
+
+        object suggestions = field.ToLower() switch
+        {
+            "username" => await query
+                .Where(u => u.Username != null && (string.IsNullOrEmpty(searchLower) || u.Username.ToLower().Contains(searchLower)))
+                .Select(u => u.Username)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "firstname" => await query
+                .Where(u => u.Firstname != null && (string.IsNullOrEmpty(searchLower) || u.Firstname.ToLower().Contains(searchLower)))
+                .Select(u => u.Firstname)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "lastname" => await query
+                .Where(u => u.Lastname != null && (string.IsNullOrEmpty(searchLower) || u.Lastname.ToLower().Contains(searchLower)))
+                .Select(u => u.Lastname)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "email" => await query
+                .Where(u => u.Email != null && (string.IsNullOrEmpty(searchLower) || u.Email.ToLower().Contains(searchLower)))
+                .Select(u => u.Email)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "phonenumber" or "phone" => await query
+                .Where(u => u.Phone != null && (string.IsNullOrEmpty(searchLower) || u.Phone.ToLower().Contains(searchLower)))
+                .Select(u => u.Phone)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "city" => await query
+                .Where(u => u.City != null && (string.IsNullOrEmpty(searchLower) || u.City.ToLower().Contains(searchLower)))
+                .Select(u => u.City)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "address" => await query
+                .Where(u => u.Address != null && (string.IsNullOrEmpty(searchLower) || u.Address.ToLower().Contains(searchLower)))
+                .Select(u => u.Address)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "company" => await query
+                .Where(u => u.Company != null && (string.IsNullOrEmpty(searchLower) || u.Company.ToLower().Contains(searchLower)))
+                .Select(u => u.Company)
+                .Distinct()
+                .Take(limit)
+                .ToListAsync(),
+            "radiusprofileid" or "profileid" => await _context.RadiusProfiles
+                .Where(p => !p.IsDeleted)
+                .Select(p => new { value = p.Id.ToString(), label = p.Name })
+                .ToListAsync(),
+            "radiusgroupid" or "groupid" => await _context.RadiusGroups
+                .Where(g => !g.IsDeleted)
+                .Select(g => new { value = g.Id.ToString(), label = g.Name })
+                .ToListAsync(),
+            "zoneid" => await _context.Zones
+                .Where(z => z.DeletedAt == null)
+                .Select(z => new { value = z.Id.ToString(), label = z.Name })
+                .ToListAsync(),
+            "tags" => await _context.RadiusTags
+                .Where(t => !t.IsDeleted)
+                .Select(t => new { value = t.Id.ToString(), label = t.Title, color = t.Color, icon = t.Icon })
+                .ToListAsync(),
+            "balance" => await query
+                .Where(u => u.Balance != null)
+                .Select(u => u.Balance)
+                .Distinct()
+                .OrderBy(b => b)
+                .Take(limit)
+                .Select(b => b.ToString())
+                .ToListAsync(),
+            _ => new List<string>()
+        };
+
+        return Ok(new { field, suggestions });
     }
 
     // GET: api/radius/users/{id}

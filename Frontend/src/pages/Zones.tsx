@@ -28,6 +28,7 @@ import { formatApiError } from '@/utils/errorHandler'
 import type { ZoneCreateDto, ZoneUpdateDto } from '@/services/zoneApi'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function Zones() {
   const { t } = useTranslation()
@@ -79,6 +80,19 @@ export default function Zones() {
     staleTime: 30 * 1000,
     enabled: !!workspaceIdNum,
   })
+
+  // Calculate max user counts for mini chart scaling
+  const maxUserCount = useMemo(() => {
+    if (!zones.length) return 1
+    const flatZones = zones.flatMap((z: Zone) => [z, ...(z.children || [])])
+    return Math.max(...flatZones.map((z: Zone) => z.userCount || 0), 1)
+  }, [zones])
+
+  const maxRadiusUserCount = useMemo(() => {
+    if (!zones.length) return 1
+    const flatZones = zones.flatMap((z: Zone) => [z, ...(z.children || [])])
+    return Math.max(...flatZones.map((z: Zone) => z.radiusUserCount || 0), 1)
+  }, [zones])
 
   // Function to count total descendants
   const countDescendants = (zone: Zone): number => {
@@ -478,12 +492,35 @@ export default function Zones() {
     {
       accessorKey: 'userCount',
       header: 'Users',
-      cell: ({ row }) => (
-        <div className='flex items-center gap-1'>
-          <Users className='h-3 w-3 text-muted-foreground' />
-          <span className='text-sm'>{row.original.userCount.toLocaleString()}</span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const count = row.original.userCount || 0
+        const percentage = maxUserCount > 0 ? (count / maxUserCount) * 100 : 0
+        const barColor = count === 0 ? 'bg-muted' : 
+          percentage > 75 ? 'bg-emerald-500' : 
+          percentage > 50 ? 'bg-blue-500' : 
+          percentage > 25 ? 'bg-amber-500' : 'bg-slate-400'
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='flex items-center gap-2 min-w-[90px]'>
+                  <Users className='h-3 w-3 text-muted-foreground flex-shrink-0' />
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden max-w-[50px]">
+                    <div 
+                      className={`h-full ${barColor} rounded-full transition-all duration-300`}
+                      style={{ width: `${Math.max(percentage, count > 0 ? 5 : 0)}%` }}
+                    />
+                  </div>
+                  <span className='text-sm font-medium tabular-nums min-w-[35px] text-right'>{count.toLocaleString()}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="text-xs">
+                <p>{count.toLocaleString()} users ({percentage.toFixed(1)}% of max)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
+      },
     },
     {
       accessorKey: 'users',
@@ -509,12 +546,35 @@ export default function Zones() {
     {
       accessorKey: 'radiusUserCount',
       header: 'Radius Users',
-      cell: ({ row }) => (
-        <div className='flex items-center gap-1'>
-          <Radio className='h-3 w-3 text-muted-foreground' />
-          <span className='text-sm'>{row.original.radiusUserCount.toLocaleString()}</span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const count = row.original.radiusUserCount || 0
+        const percentage = maxRadiusUserCount > 0 ? (count / maxRadiusUserCount) * 100 : 0
+        const barColor = count === 0 ? 'bg-muted' : 
+          percentage > 75 ? 'bg-emerald-500' : 
+          percentage > 50 ? 'bg-blue-500' : 
+          percentage > 25 ? 'bg-amber-500' : 'bg-slate-400'
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='flex items-center gap-2 min-w-[90px]'>
+                  <Radio className='h-3 w-3 text-muted-foreground flex-shrink-0' />
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden max-w-[50px]">
+                    <div 
+                      className={`h-full ${barColor} rounded-full transition-all duration-300`}
+                      style={{ width: `${Math.max(percentage, count > 0 ? 5 : 0)}%` }}
+                    />
+                  </div>
+                  <span className='text-sm font-medium tabular-nums min-w-[35px] text-right'>{count.toLocaleString()}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="text-xs">
+                <p>{count.toLocaleString()} radius users ({percentage.toFixed(1)}% of max)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
+      },
     },
     {
       id: 'actions',
