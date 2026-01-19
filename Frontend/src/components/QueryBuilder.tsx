@@ -707,6 +707,34 @@ export function QueryBuilder({
     onChange?.(newFilters)
   }, [filters, onChange])
 
+  const handleMoveCondition = useCallback((id: string, direction: 'up' | 'down') => {
+    const moveInGroup = (group: FilterGroup): FilterGroup => {
+      const index = group.conditions.findIndex(c => c.id === id)
+      if (index !== -1) {
+        const newConditions = [...group.conditions]
+        const newIndex = direction === 'up' ? index - 1 : index + 1
+        if (newIndex >= 0 && newIndex < newConditions.length) {
+          [newConditions[index], newConditions[newIndex]] = [newConditions[newIndex], newConditions[index]]
+        }
+        return { ...group, conditions: newConditions }
+      }
+      // Search in nested groups
+      return {
+        ...group,
+        conditions: group.conditions.map(item => {
+          if ('conditions' in item) {
+            return moveInGroup(item)
+          }
+          return item
+        })
+      }
+    }
+
+    const newFilters = moveInGroup(filters)
+    setFilters(newFilters)
+    onChange?.(newFilters)
+  }, [filters, onChange])
+
   const handleLogicChange = useCallback((logic: FilterLogic) => {
     const newFilters = { ...filters, logic }
     setFilters(newFilters)
@@ -795,6 +823,10 @@ export function QueryBuilder({
               onChange={(updated) => handleUpdateCondition(item.id, updated)}
               onRemove={() => handleRemoveCondition(item.id)}
               onDuplicate={() => handleDuplicateCondition(item)}
+              onMoveUp={() => handleMoveCondition(item.id, 'up')}
+              onMoveDown={() => handleMoveCondition(item.id, 'down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < group.conditions.length - 1}
               isFirst={index === 0}
               logic={group.logic}
               onLogicChange={index === 1 ? handleLogicChange : undefined}
