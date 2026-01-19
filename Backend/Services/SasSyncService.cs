@@ -453,17 +453,21 @@ public class SasSyncService : ISasSyncService
             // Fourth: Assign zones to users based on matching zone name to username
             ReportProgress("Zones", 0, 100, "Checking zones...");
             _logger.LogInformation("Assigning zones to users based on matching names");
+            _logger.LogInformation("usernameToKeycloakId has {Count} entries", usernameToKeycloakId.Count);
             
             // Get all zones in the workspace
             var zones = await context.Zones
                 .Where(z => !z.IsDeleted)
                 .ToListAsync();
             
-            // If no zones exist, sync zones from SAS first
-            if (zones.Count == 0)
+            _logger.LogInformation("Found {Count} existing zones in workspace", zones.Count);
+            
+            // If no zones exist OR zones don't have SasUserId (not properly synced), sync zones from SAS
+            if (zones.Count == 0 || zones.All(z => z.SasUserId == null))
             {
-                ReportProgress("Zones", 0, 100, "No zones found, syncing zones from SAS...");
-                _logger.LogInformation("No zones found in workspace, triggering zone sync from SAS");
+                ReportProgress("Zones", 0, 100, "Syncing zones from SAS...");
+                _logger.LogInformation("Zones need to be synced from SAS (count={Count}, allMissingSasUserId={AllMissing})", 
+                    zones.Count, zones.All(z => z.SasUserId == null));
                 
                 try
                 {
@@ -484,14 +488,18 @@ public class SasSyncService : ISasSyncService
             }
             
             ReportProgress("Zones", 0, zones.Count, "Assigning zones to users...");
+            _logger.LogInformation("Starting zone assignment for {Count} zones", zones.Count);
             
             int zoneIndex = 0;
             foreach (var zone in zones)
             {
                 zoneIndex++;
+                _logger.LogDebug("Checking zone '{ZoneName}' (ID: {ZoneId}, SasUserId: {SasUserId})", zone.Name, zone.Id, zone.SasUserId);
+                
                 // Check if there's a user with username matching this zone's name (case-insensitive)
                 if (usernameToKeycloakId.TryGetValue(zone.Name, out var keycloakUserId))
                 {
+                    _logger.LogInformation("Found matching user for zone '{ZoneName}' -> KeycloakUserId: {KeycloakUserId}", zone.Name, keycloakUserId);
                     try
                     {
                         // Check if zone assignment already exists
@@ -512,11 +520,19 @@ public class SasSyncService : ISasSyncService
                             result.ZonesAssigned++;
                             _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user with Keycloak ID {KeycloakUserId}", zone.Name, zone.Id, keycloakUserId);
                         }
+                        else
+                        {
+                            _logger.LogInformation("Zone '{ZoneName}' already assigned to user {KeycloakUserId}", zone.Name, keycloakUserId);
+                        }
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Failed to assign zone {ZoneName} to user", zone.Name);
                     }
+                }
+                else
+                {
+                    _logger.LogDebug("No matching user found for zone '{ZoneName}'", zone.Name);
                 }
                 ReportProgress("Zones", zoneIndex, zones.Count, $"Processed {zoneIndex} of {zones.Count} zones");
             }
