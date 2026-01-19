@@ -88,7 +88,15 @@ public class RadiusUserController : ControllerBase
                 var list = new List<string>();
                 while (reader.Read() && reader.TokenType != System.Text.Json.JsonTokenType.EndArray)
                 {
-                    list.Add(reader.GetString() ?? "");
+                    // Handle different types in the array (string, number, etc.)
+                    if (reader.TokenType == System.Text.Json.JsonTokenType.String)
+                        list.Add(reader.GetString() ?? "");
+                    else if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+                        list.Add(reader.GetDecimal().ToString());
+                    else if (reader.TokenType == System.Text.Json.JsonTokenType.True || reader.TokenType == System.Text.Json.JsonTokenType.False)
+                        list.Add(reader.GetBoolean().ToString());
+                    else if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+                        list.Add("");
                 }
                 return list;
             }
@@ -183,15 +191,15 @@ public class RadiusUserController : ControllerBase
 
         return field switch
         {
-            "username" => BuildStringPredicate(u => u.Username, op, value),
-            "firstname" => BuildStringPredicate(u => u.Firstname, op, value),
-            "lastname" => BuildStringPredicate(u => u.Lastname, op, value),
-            "email" => BuildStringPredicate(u => u.Email, op, value),
-            "phonenumber" or "phone" => BuildStringPredicate(u => u.Phone, op, value),
-            "city" => BuildStringPredicate(u => u.City, op, value),
-            "address" => BuildStringPredicate(u => u.Address, op, value),
-            "company" => BuildStringPredicate(u => u.Company, op, value),
-            "notes" => BuildStringPredicate(u => u.Notes, op, value),
+            "username" => BuildStringPredicate(u => u.Username, op, value, values),
+            "firstname" => BuildStringPredicate(u => u.Firstname, op, value, values),
+            "lastname" => BuildStringPredicate(u => u.Lastname, op, value, values),
+            "email" => BuildStringPredicate(u => u.Email, op, value, values),
+            "phonenumber" or "phone" => BuildStringPredicate(u => u.Phone, op, value, values),
+            "city" => BuildStringPredicate(u => u.City, op, value, values),
+            "address" => BuildStringPredicate(u => u.Address, op, value, values),
+            "company" => BuildStringPredicate(u => u.Company, op, value, values),
+            "notes" => BuildStringPredicate(u => u.Notes, op, value, values),
             "radiusprofileid" or "profileid" => BuildIntPredicate(u => u.ProfileId, op, value, values),
             "radiusgroupid" or "groupid" => BuildIntPredicate(u => u.GroupId, op, value, values),
             "zoneid" => BuildIntPredicate(u => u.ZoneId, op, value, values),
@@ -208,20 +216,33 @@ public class RadiusUserController : ControllerBase
     }
 
     private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildStringPredicate(
-        System.Linq.Expressions.Expression<Func<RadiusUser, string?>> selector, string? op, string? value)
+        System.Linq.Expressions.Expression<Func<RadiusUser, string?>> selector, string? op, string? value, List<string>? values)
     {
         if (string.IsNullOrEmpty(op)) return null;
+        var propName = GetPropertyName(selector);
 
         return op switch
         {
-            "equals" => u => EF.Property<string>(u, GetPropertyName(selector)) == value,
-            "not_equals" => u => EF.Property<string>(u, GetPropertyName(selector)) != value,
-            "contains" => u => EF.Property<string>(u, GetPropertyName(selector)) != null && EF.Property<string>(u, GetPropertyName(selector))!.ToLower().Contains((value ?? "").ToLower()),
-            "not_contains" => u => EF.Property<string>(u, GetPropertyName(selector)) == null || !EF.Property<string>(u, GetPropertyName(selector))!.ToLower().Contains((value ?? "").ToLower()),
-            "starts_with" => u => EF.Property<string>(u, GetPropertyName(selector)) != null && EF.Property<string>(u, GetPropertyName(selector))!.ToLower().StartsWith((value ?? "").ToLower()),
-            "ends_with" => u => EF.Property<string>(u, GetPropertyName(selector)) != null && EF.Property<string>(u, GetPropertyName(selector))!.ToLower().EndsWith((value ?? "").ToLower()),
-            "is_empty" => u => string.IsNullOrEmpty(EF.Property<string>(u, GetPropertyName(selector))),
-            "is_not_empty" => u => !string.IsNullOrEmpty(EF.Property<string>(u, GetPropertyName(selector))),
+            // For equals: if multiple values provided, treat as "in" (any match), otherwise single comparison
+            "equals" => values != null && values.Count > 0
+                ? (u => EF.Property<string>(u, propName) != null && values.Contains(EF.Property<string>(u, propName)!))
+                : (u => EF.Property<string>(u, propName) == value),
+            // For not_equals: if multiple values provided, treat as "not in", otherwise single comparison
+            "not_equals" => values != null && values.Count > 0
+                ? (u => EF.Property<string>(u, propName) == null || !values.Contains(EF.Property<string>(u, propName)!))
+                : (u => EF.Property<string>(u, propName) != value),
+            "in" or "is_any_of" => values != null && values.Count > 0
+                ? (u => EF.Property<string>(u, propName) != null && values.Contains(EF.Property<string>(u, propName)!))
+                : null,
+            "not_in" or "is_none_of" => values != null && values.Count > 0
+                ? (u => EF.Property<string>(u, propName) == null || !values.Contains(EF.Property<string>(u, propName)!))
+                : null,
+            "contains" => u => EF.Property<string>(u, propName) != null && EF.Property<string>(u, propName)!.ToLower().Contains((value ?? "").ToLower()),
+            "not_contains" => u => EF.Property<string>(u, propName) == null || !EF.Property<string>(u, propName)!.ToLower().Contains((value ?? "").ToLower()),
+            "starts_with" => u => EF.Property<string>(u, propName) != null && EF.Property<string>(u, propName)!.ToLower().StartsWith((value ?? "").ToLower()),
+            "ends_with" => u => EF.Property<string>(u, propName) != null && EF.Property<string>(u, propName)!.ToLower().EndsWith((value ?? "").ToLower()),
+            "is_empty" => u => string.IsNullOrEmpty(EF.Property<string>(u, propName)),
+            "is_not_empty" => u => !string.IsNullOrEmpty(EF.Property<string>(u, propName)),
             _ => null
         };
     }
@@ -244,13 +265,19 @@ public class RadiusUserController : ControllerBase
         if (!string.IsNullOrEmpty(value) && int.TryParse(value, out var parsed))
             intValue = parsed;
 
-        // Parse multiple values for in/not_in
+        // Parse multiple values for in/not_in and multi-select equals/not_equals
         var intValues = values?.Where(v => int.TryParse(v, out _)).Select(v => int.Parse(v)).ToList() ?? new List<int>();
 
         return op switch
         {
-            "equals" or "is" => u => EF.Property<int?>(u, propName) == intValue,
-            "not_equals" or "is_not" => u => EF.Property<int?>(u, propName) != intValue,
+            // For equals: if multiple values provided, treat as "in", otherwise single comparison
+            "equals" or "is" => intValues.Count > 0 
+                ? (u => EF.Property<int?>(u, propName) != null && intValues.Contains(EF.Property<int?>(u, propName)!.Value))
+                : (u => EF.Property<int?>(u, propName) == intValue),
+            // For not_equals: if multiple values provided, treat as "not in", otherwise single comparison
+            "not_equals" or "is_not" => intValues.Count > 0
+                ? (u => EF.Property<int?>(u, propName) == null || !intValues.Contains(EF.Property<int?>(u, propName)!.Value))
+                : (u => EF.Property<int?>(u, propName) != intValue),
             "is_any_of" or "in" => u => EF.Property<int?>(u, propName) != null && intValues.Contains(EF.Property<int?>(u, propName)!.Value),
             "is_none_of" or "not_in" => u => EF.Property<int?>(u, propName) == null || !intValues.Contains(EF.Property<int?>(u, propName)!.Value),
             "is_empty" => u => EF.Property<int?>(u, propName) == null,
