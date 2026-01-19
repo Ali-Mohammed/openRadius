@@ -69,7 +69,9 @@ export default function WorkspaceSettings() {
   const [activeSyncId, setActiveSyncId] = useState<string | null>(null)
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
   const [syncConfirmOpen, setSyncConfirmOpen] = useState(false)
+  const [managerSyncConfirmOpen, setManagerSyncConfirmOpen] = useState(false)
   const [integrationToSync, setIntegrationToSync] = useState<SasRadiusIntegration | null>(null)
+  const [integrationToSyncManagers, setIntegrationToSyncManagers] = useState<SasRadiusIntegration | null>(null)
   const [managerSyncProgress, setManagerSyncProgress] = useState<ManagerSyncProgress | null>(null)
   const [isManagerSyncDialogOpen, setIsManagerSyncDialogOpen] = useState(false)
   const [syncingIntegrationId, setSyncingIntegrationId] = useState<number | null>(null)
@@ -718,9 +720,8 @@ export default function WorkspaceSettings() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  if (integration.id) {
-                                    syncManagersMutation.mutate(integration.id)
-                                  }
+                                  setIntegrationToSyncManagers(integration)
+                                  setManagerSyncConfirmOpen(true)
                                 }}
                                 disabled={syncManagersMutation.isPending || !integration.isActive}
                                 title={integration.isActive ? "Sync Managers to Users" : "Activate integration to sync managers"}
@@ -1022,6 +1023,43 @@ export default function WorkspaceSettings() {
             >
               <Play className="h-4 w-4 mr-2" />
               Start Sync
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Manager Sync Confirmation Dialog */}
+      <AlertDialog open={managerSyncConfirmOpen} onOpenChange={setManagerSyncConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sync Managers to Users?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will synchronize managers from "{integrationToSyncManagers?.name}" and create corresponding users in the system.
+              <br /><br />
+              <strong>This process will:</strong>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Create new users in Keycloak for each manager</li>
+                <li>Create user records in the database</li>
+                <li>Create wallets for new users</li>
+                <li>Assign workspace access to users</li>
+                <li>Sync zones if none exist</li>
+                <li>Assign zones to users based on matching names</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (integrationToSyncManagers?.id) {
+                  syncManagersMutation.mutate(integrationToSyncManagers.id)
+                }
+                setManagerSyncConfirmOpen(false)
+              }}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Sync Managers
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
