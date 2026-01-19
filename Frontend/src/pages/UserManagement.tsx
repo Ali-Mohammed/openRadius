@@ -1283,14 +1283,26 @@ export default function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <Input
+              placeholder="Search zones..."
+              value={zoneSearchQuery}
+              onChange={(e) => setZoneSearchQuery(e.target.value)}
+              className="h-9"
+            />
             <div className="border rounded-md max-h-100 overflow-y-auto">
               <div className="p-2 space-y-1">
-                {zones.length === 0 ? (
+                {zones.filter(z => 
+                  z.name.toLowerCase().includes(zoneSearchQuery.toLowerCase()) ||
+                  z.description?.toLowerCase().includes(zoneSearchQuery.toLowerCase())
+                ).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No zones found
                   </div>
                 ) : (
-                  zones.map((zone) => (
+                  zones.filter(z => 
+                    z.name.toLowerCase().includes(zoneSearchQuery.toLowerCase()) ||
+                    z.description?.toLowerCase().includes(zoneSearchQuery.toLowerCase())
+                  ).map((zone) => (
                     <div
                       key={zone.id}
                       className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer"
@@ -1351,6 +1363,7 @@ export default function UserManagement() {
                 setIsZoneDialogOpen(false)
                 setZoneAssignUser(null)
                 setSelectedZoneIds([])
+                setZoneSearchQuery('')
               }}
             >
               Cancel
@@ -1382,14 +1395,26 @@ export default function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <Input
+              placeholder="Search workspaces..."
+              value={workspaceSearchQuery}
+              onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
+              className="h-9"
+            />
             <div className="border rounded-md max-h-100 overflow-y-auto">
               <div className="p-2 space-y-1">
-                {availableWorkspaces.length === 0 ? (
+                {availableWorkspaces.filter(w => 
+                  w.title.toLowerCase().includes(workspaceSearchQuery.toLowerCase()) ||
+                  w.location?.toLowerCase().includes(workspaceSearchQuery.toLowerCase())
+                ).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No workspaces found
                   </div>
                 ) : (
-                  availableWorkspaces.map((workspace) => (
+                  availableWorkspaces.filter(w => 
+                    w.title.toLowerCase().includes(workspaceSearchQuery.toLowerCase()) ||
+                    w.location?.toLowerCase().includes(workspaceSearchQuery.toLowerCase())
+                  ).map((workspace) => (
                     <div
                       key={workspace.id}
                       className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer"
@@ -1450,6 +1475,7 @@ export default function UserManagement() {
                 setIsWorkspaceDialogOpen(false)
                 setWorkspaceAssignUser(null)
                 setSelectedWorkspaceIds([])
+                setWorkspaceSearchQuery('')
               }}
             >
               Cancel
