@@ -137,6 +137,12 @@ export default function UserManagement() {
     enabled: !!workspaceIdNum,
   })
 
+  // Fetch available workspaces for assignment
+  const { data: availableWorkspaces = [] } = useQuery({
+    queryKey: ['available-workspaces'],
+    queryFn: () => userManagementApi.getAvailableWorkspaces(),
+  })
+
   // Fetch user zones when dialog opens
   const { data: userZoneIds = [] } = useQuery({
     queryKey: ['user-zones', workspaceIdNum, zoneAssignUser?.keycloakUserId],
@@ -210,6 +216,15 @@ export default function UserManagement() {
     }
   }, [isZoneDialogOpen])
 
+  // Reset workspaces when dialog closes
+  useEffect(() => {
+    if (!isWorkspaceDialogOpen) {
+      setSelectedWorkspaceIds([])
+      hasSetInitialWorkspaces.current = false
+      setWorkspaceAssignUser(null)
+    }
+  }, [isWorkspaceDialogOpen])
+
   // Set selected zones when dialog opens or data loads
   useEffect(() => {
     if (isZoneDialogOpen && zoneAssignUser && !hasSetInitialZones.current) {
@@ -218,6 +233,15 @@ export default function UserManagement() {
       hasSetInitialZones.current = true
     }
   }, [isZoneDialogOpen, zoneAssignUser, userZoneIds])
+
+  // Set selected workspaces when dialog opens
+  useEffect(() => {
+    if (isWorkspaceDialogOpen && workspaceAssignUser && !hasSetInitialWorkspaces.current) {
+      const workspacesToSet = workspaceAssignUser.workspaces?.map(w => w.id) || []
+      setSelectedWorkspaceIds(workspacesToSet)
+      hasSetInitialWorkspaces.current = true
+    }
+  }, [isWorkspaceDialogOpen, workspaceAssignUser])
 
   // Mutations
   const syncUsersMutation = useMutation({
