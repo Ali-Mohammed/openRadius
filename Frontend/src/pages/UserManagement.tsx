@@ -962,6 +962,8 @@ export default function UserManagement() {
                       <SelectItem value="25">25</SelectItem>
                       <SelectItem value="50">50</SelectItem>
                       <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="999999">All</SelectItem>
+
                     </SelectContent>
                   </Select>
                 </div>
