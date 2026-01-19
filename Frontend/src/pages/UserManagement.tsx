@@ -753,12 +753,12 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Users</h1>
-          <p className="text-muted-foreground">Manage users and assign roles, groups, and supervisors</p>
+          <h1 className="text-2xl font-bold">Users</h1>
+          <p className="text-sm text-muted-foreground">Manage users and assign roles, groups, and supervisors</p>
         </div>
       </div>
 
