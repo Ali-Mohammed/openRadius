@@ -4,6 +4,8 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { AppSidebar } from '@/components/app-sidebar'
 import { useState, useEffect } from 'react'
 import { dashboardApi } from '@/api/dashboardApi'
+import { CommandPalette } from '@/components/CommandPalette'
+import { useCommandPalette } from '@/hooks/useCommandPalette'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -135,8 +137,12 @@ export function AppLayout({ children }: AppLayoutProps) {
     document.documentElement.lang = lng
   }
 
+  // Command palette state
+  const { open: commandPaletteOpen, setOpen: setCommandPaletteOpen } = useCommandPalette()
+
   return (
     <SidebarProvider>
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
       <AppSidebar side={i18n.language === 'ar' ? 'right' : 'left'} />
       <SidebarInset className="overflow-x-hidden">
         <header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
