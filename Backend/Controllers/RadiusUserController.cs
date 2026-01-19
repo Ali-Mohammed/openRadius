@@ -345,11 +345,11 @@ public class RadiusUserController : ControllerBase
 
         DateTime? dateValue = null;
         if (!string.IsNullOrEmpty(value) && DateTime.TryParse(value, out var parsed))
-            dateValue = parsed;
+            dateValue = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
 
         DateTime? dateValue2 = null;
         if (!string.IsNullOrEmpty(value2) && DateTime.TryParse(value2, out var parsed2))
-            dateValue2 = parsed2;
+            dateValue2 = DateTime.SpecifyKind(parsed2, DateTimeKind.Utc);
 
         var now = DateTime.UtcNow;
 

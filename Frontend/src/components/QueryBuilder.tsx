@@ -504,7 +504,7 @@ function ConditionRow({
 
       {/* Operator selector */}
       <Select value={condition.operator} onValueChange={handleOperatorChange}>
-        <SelectTrigger className="h-8 w-[130px] text-xs">
+        <SelectTrigger className="h-8 w-[150px] text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="z-[9999]">
