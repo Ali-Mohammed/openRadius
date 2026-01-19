@@ -14,11 +14,11 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { 
   Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog, MapPin, 
   Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
-  FileText, Building2
+  FileText, Building2, MoreVertical
 } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { zoneApi } from '@/services/zoneApi'
@@ -541,98 +541,99 @@ export default function UserManagement() {
     if (column === 'actions') {
       return (
         <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background z-10">
-          <div className="flex justify-end -space-x-1">
-            <Button
-              onClick={() => handleOpenDialog(user)}
-              variant="ghost"
-              size="icon"
-              title="Edit user"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={() => {
-                setResetPasswordUser(user)
-                setIsPasswordDialogOpen(true)
-                setNewPassword('')
-                setTemporaryPassword(true)
-              }}
-              variant="ghost"
-              size="icon"
-              title="Reset password"
-            >
-              <Key className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={() => {
-                setZoneAssignUser(user)
-                setIsZoneDialogOpen(true)
-              }}
-              variant="ghost"
-              size="icon"
-              title="Assign zones"
-            >
-              <MapPin className="h-4 w-4 text-purple-600" />
-            </Button>
-            <Button
-              onClick={() => {
-                setWorkspaceAssignUser(user)
-                setIsWorkspaceDialogOpen(true)
-              }}
-              variant="ghost"
-              size="icon"
-              title="Assign workspaces"
-            >
-              <Building2 className="h-4 w-4 text-green-600" />
-            </Button>
-            <Button
-              onClick={() => {
-                if (user.keycloakUserId) {
-                  userManagementApi.impersonateUser(user.keycloakUserId)
-                    .then((response) => {
-                      if (response.impersonationUrl) {
-                        window.open(response.impersonationUrl, '_blank')
-                        toast.success(`Impersonating ${user.firstName} ${user.lastName}`)
-                      }
-                    })
-                    .catch((error) => {
-                      toast.error(formatApiError(error))
-                    })
-                }
-              }}
-              variant="ghost"
-              size="icon"
-              title="Impersonate user"
-            >
-              <UserCog className="h-4 w-4 text-blue-600" />
-            </Button>
-            <Button
-              onClick={() => {
-                if (user.keycloakUserId) {
-                  if (user.enabled === false) {
-                    toggleUserStatusMutation.mutate({
-                      userId: user.keycloakUserId,
-                      enabled: true,
-                    })
-                  } else {
-                    setUserToToggle(user)
-                    setDisableReason('')
-                    setIsDisableDialogOpen(true)
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" title="More actions">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => handleOpenDialog(user)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit User
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setResetPasswordUser(user)
+                  setIsPasswordDialogOpen(true)
+                  setNewPassword('')
+                  setTemporaryPassword(true)
+                }}
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Reset Password
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setZoneAssignUser(user)
+                  setIsZoneDialogOpen(true)
+                }}
+              >
+                <MapPin className="h-4 w-4 mr-2 text-purple-600" />
+                Assign Zones
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setWorkspaceAssignUser(user)
+                  setIsWorkspaceDialogOpen(true)
+                }}
+              >
+                <Building2 className="h-4 w-4 mr-2 text-green-600" />
+                Assign Workspaces
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  if (user.keycloakUserId) {
+                    userManagementApi.impersonateUser(user.keycloakUserId)
+                      .then((response) => {
+                        if (response.impersonationUrl) {
+                          window.open(response.impersonationUrl, '_blank')
+                          toast.success(`Impersonating ${user.firstName} ${user.lastName}`)
+                        }
+                      })
+                      .catch((error) => {
+                        toast.error(formatApiError(error))
+                      })
                   }
-                }
-              }}
-              variant="ghost"
-              size="icon"
-              title={user.enabled !== false ? 'Disable user' : 'Enable user'}
-              disabled={toggleUserStatusMutation.isPending}
-            >
-              {user.enabled !== false ? (
-                <UserX className="h-4 w-4 text-red-600" />
-              ) : (
-                <UserCheck className="h-4 w-4 text-green-600" />
-              )}
-            </Button>
-          </div>
+                }}
+              >
+                <UserCog className="h-4 w-4 mr-2 text-blue-600" />
+                Impersonate User
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  if (user.keycloakUserId) {
+                    if (user.enabled === false) {
+                      toggleUserStatusMutation.mutate({
+                        userId: user.keycloakUserId,
+                        enabled: true,
+                      })
+                    } else {
+                      setUserToToggle(user)
+                      setDisableReason('')
+                      setIsDisableDialogOpen(true)
+                    }
+                  }
+                }}
+                disabled={toggleUserStatusMutation.isPending}
+                className={user.enabled !== false ? 'text-red-600' : 'text-green-600'}
+              >
+                {user.enabled !== false ? (
+                  <>
+                    <UserX className="h-4 w-4 mr-2" />
+                    Disable User
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Enable User
+                  </>
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </TableCell>
       )
     }
