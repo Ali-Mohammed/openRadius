@@ -30,6 +30,7 @@ public class User
     public ICollection<User> Subordinates { get; set; } = new List<User>();
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
+    public ICollection<UserWorkspace> UserWorkspaces { get; set; } = new List<UserWorkspace>();
 }
 
 public class Role
@@ -105,4 +106,16 @@ public class RolePermission
     public Permission Permission { get; set; } = null!;
     
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class UserWorkspace
+{
+    public int UserId { get; set; }
+    public User User { get; set; } = null!;
+    
+    public int WorkspaceId { get; set; }
+    public Workspace Workspace { get; set; } = null!;
+    
+    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+    public string? AssignedBy { get; set; }
 }

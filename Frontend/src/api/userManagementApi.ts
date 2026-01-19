@@ -21,6 +21,13 @@ export interface User {
     name: string
     color?: string
   }>
+  workspaces?: Array<{
+    id: number
+    title: string
+    name: string
+    color?: string
+    icon?: string
+  }>
 }
 
 export interface Role {
@@ -253,6 +260,22 @@ export const userManagementApi = {
 
   getUserZones: async (workspaceId: number, userId: string): Promise<number[]> => {
     const response = await apiClient.get(`/api/keycloak/users/workspace/${workspaceId}/${userId}/zones`)
+    return response.data
+  },
+
+  // Workspace access endpoints
+  getAvailableWorkspaces: async (): Promise<Array<{ id: number; title: string; name: string; location?: string; color?: string; icon?: string }>> => {
+    const response = await apiClient.get('/api/user-management/workspaces/available')
+    return response.data
+  },
+
+  getUserWorkspaces: async (userId: number): Promise<Array<{ id: number; title: string; name: string; color?: string; icon?: string }>> => {
+    const response = await apiClient.get(`/api/user-management/${userId}/workspaces`)
+    return response.data
+  },
+
+  assignWorkspacesToUser: async (userId: number, workspaceIds: number[]): Promise<{ message: string; count: number }> => {
+    const response = await apiClient.post(`/api/user-management/${userId}/workspaces`, workspaceIds)
     return response.data
   },
 

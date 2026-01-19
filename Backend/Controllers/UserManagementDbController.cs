@@ -286,6 +286,14 @@ public class UserManagementDbController : ControllerBase
                         id = ug.Group.Id,
                         name = ug.Group.Name,
                         description = ug.Group.Description
+                    }).ToList(),
+                    Workspaces = u.UserWorkspaces.Where(uw => uw.Workspace.DeletedAt == null).Select(uw => new
+                    {
+                        id = uw.Workspace.Id,
+                        title = uw.Workspace.Title,
+                        name = uw.Workspace.Name,
+                        color = uw.Workspace.Color,
+                        icon = uw.Workspace.Icon
                     }).ToList()
                 })
                 .ToListAsync();
@@ -400,7 +408,8 @@ public class UserManagementDbController : ControllerBase
                 groups = u.Groups,
                 zones = !string.IsNullOrEmpty(u.KeycloakUserId) && userZonesMap.ContainsKey(u.KeycloakUserId)
                     ? userZonesMap[u.KeycloakUserId]
-                    : new List<object>()
+                    : new List<object>(),
+                workspaces = u.Workspaces
             }).ToList();
 
             _logger.LogInformation($"Returning {userResponses.Count} users with roles and groups");
@@ -1120,6 +1129,119 @@ public class UserManagementDbController : ControllerBase
         {
             _logger.LogError(ex, "Error assigning permissions to role {RoleId}", roleId);
             return StatusCode(500, new { message = "Failed to assign permissions", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/{id}/workspaces
+    [HttpGet("{id}/workspaces")]
+    public async Task<IActionResult> GetUserWorkspaces(int id)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            var workspaces = await _context.UserWorkspaces
+                .Include(uw => uw.Workspace)
+                .Where(uw => uw.UserId == id && uw.Workspace.DeletedAt == null)
+                .Select(uw => new
+                {
+                    uw.Workspace.Id,
+                    uw.Workspace.Title,
+                    uw.Workspace.Name,
+                    uw.Workspace.Location,
+                    uw.Workspace.Color,
+                    uw.Workspace.Icon,
+                    uw.AssignedAt,
+                    uw.AssignedBy
+                })
+                .ToListAsync();
+
+            return Ok(workspaces);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching workspaces for user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to fetch user workspaces", error = ex.Message });
+        }
+    }
+
+    // POST: api/user-management/{id}/workspaces
+    [HttpPost("{id}/workspaces")]
+    public async Task<IActionResult> AssignWorkspacesToUser(int id, [FromBody] List<int> workspaceIds)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            var currentUserName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
+
+            // Remove existing workspace assignments
+            var existing = await _context.UserWorkspaces
+                .Where(uw => uw.UserId == id)
+                .ToListAsync();
+            _context.UserWorkspaces.RemoveRange(existing);
+
+            // Add new workspace assignments
+            foreach (var workspaceId in workspaceIds)
+            {
+                var workspace = await _context.Workspaces.FindAsync(workspaceId);
+                if (workspace != null && workspace.DeletedAt == null)
+                {
+                    _context.UserWorkspaces.Add(new UserWorkspace
+                    {
+                        UserId = id,
+                        WorkspaceId = workspaceId,
+                        AssignedAt = DateTime.UtcNow,
+                        AssignedBy = currentUserName
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Workspaces assigned successfully", count = workspaceIds.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning workspaces to user {UserId}", id);
+            return StatusCode(500, new { message = "Failed to assign workspaces", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/workspaces/available
+    [HttpGet("workspaces/available")]
+    public async Task<IActionResult> GetAvailableWorkspaces()
+    {
+        try
+        {
+            var workspaces = await _context.Workspaces
+                .Where(w => w.DeletedAt == null && w.Status == "active")
+                .OrderBy(w => w.Title)
+                .Select(w => new
+                {
+                    w.Id,
+                    w.Title,
+                    w.Name,
+                    w.Location,
+                    w.Color,
+                    w.Icon
+                })
+                .ToListAsync();
+
+            return Ok(workspaces);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching available workspaces");
+            return StatusCode(500, new { message = "Failed to fetch workspaces", error = ex.Message });
         }
     }
 }

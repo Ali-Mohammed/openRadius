@@ -23,6 +23,7 @@ public class MasterDbContext : DbContext
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<UserGroup> UserGroups { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<UserWorkspace> UserWorkspaces { get; set; }
     public DbSet<BackupHistory> BackupHistories { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -116,6 +117,21 @@ public class MasterDbContext : DbContext
             entity.HasOne(rp => rp.Permission)
                   .WithMany(p => p.RolePermissions)
                   .HasForeignKey(rp => rp.PermissionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserWorkspace>(entity =>
+        {
+            entity.HasKey(uw => new { uw.UserId, uw.WorkspaceId });
+            
+            entity.HasOne(uw => uw.User)
+                  .WithMany(u => u.UserWorkspaces)
+                  .HasForeignKey(uw => uw.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(uw => uw.Workspace)
+                  .WithMany()
+                  .HasForeignKey(uw => uw.WorkspaceId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

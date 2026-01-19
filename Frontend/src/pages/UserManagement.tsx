@@ -34,6 +34,7 @@ const COLUMN_DEFINITIONS = {
   groups: { label: 'Groups', sortable: false, defaultWidth: 180 },
   roles: { label: 'Roles', sortable: false, defaultWidth: 180 },
   zones: { label: 'Zones', sortable: false, defaultWidth: 200 },
+  workspaces: { label: 'Workspaces', sortable: false, defaultWidth: 200 },
 }
 
 const DEFAULT_COLUMN_VISIBILITY = {
@@ -44,9 +45,10 @@ const DEFAULT_COLUMN_VISIBILITY = {
   groups: true,
   roles: true,
   zones: true,
+  workspaces: true,
 }
 
-const DEFAULT_COLUMN_ORDER = ['name', 'email', 'status', 'supervisor', 'groups', 'roles', 'zones', 'actions']
+const DEFAULT_COLUMN_ORDER = ['name', 'email', 'status', 'supervisor', 'groups', 'roles', 'zones', 'workspaces', 'actions']
 
 export default function UserManagement() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -70,10 +72,12 @@ export default function UserManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const [isZoneDialogOpen, setIsZoneDialogOpen] = useState(false)
+  const [isWorkspaceDialogOpen, setIsWorkspaceDialogOpen] = useState(false)
   const [isDisableDialogOpen, setIsDisableDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null)
   const [zoneAssignUser, setZoneAssignUser] = useState<User | null>(null)
+  const [workspaceAssignUser, setWorkspaceAssignUser] = useState<User | null>(null)
   const [userToToggle, setUserToToggle] = useState<User | null>(null)
   const [disableReason, setDisableReason] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -83,7 +87,9 @@ export default function UserManagement() {
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
   const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<number[]>([])
   const hasSetInitialZones = useRef(false)
+  const hasSetInitialWorkspaces = useRef(false)
   
   // Form fields for creating a new user
   const [firstName, setFirstName] = useState('')
