@@ -532,6 +532,104 @@ public class SasSyncService : ISasSyncService
         return result;
     }
 
+    /// <summary>
+    /// Syncs zones from SAS during manager sync (simplified version without progress tracking)
+    /// </summary>
+    private async Task<int> SyncZonesForManagerSyncAsync(SasRadiusIntegration integration, string token, ApplicationDbContext context)
+    {
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        
+        var uri = new Uri(integration.Url.TrimEnd('/'));
+        var url = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/manager/tree";
+
+        _logger.LogInformation("Fetching manager tree for zones from {Url}", url);
+
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var treeNodes = await response.Content.ReadFromJsonAsync<List<SasTreeNode>>();
+        
+        if (treeNodes == null || treeNodes.Count == 0)
+        {
+            _logger.LogWarning("No tree nodes received from SAS API");
+            return 0;
+        }
+
+        _logger.LogInformation("Received {Count} tree nodes from SAS", treeNodes.Count);
+
+        int zonesCreated = 0;
+        var sasIdToZoneId = new Dictionary<int, int>();
+
+        // First pass: Create or update all zones without parent relationships
+        foreach (var node in treeNodes)
+        {
+            try
+            {
+                var existingZone = await context.Zones
+                    .FirstOrDefaultAsync(z => z.SasUserId == node.Id);
+
+                if (existingZone != null)
+                {
+                    // Update existing zone
+                    existingZone.Name = node.Username;
+                    existingZone.UpdatedAt = DateTime.UtcNow;
+                    sasIdToZoneId[node.Id] = existingZone.Id;
+                }
+                else
+                {
+                    // Create new zone
+                    var newZone = new Zone
+                    {
+                        Name = node.Username,
+                        SasUserId = node.Id,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    
+                    context.Zones.Add(newZone);
+                    await context.SaveChangesAsync();
+                    sasIdToZoneId[node.Id] = newZone.Id;
+                    zonesCreated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create/update zone for SAS User ID {SasUserId}", node.Id);
+            }
+        }
+
+        await context.SaveChangesAsync();
+
+        // Second pass: Update parent relationships
+        foreach (var node in treeNodes)
+        {
+            if (node.ParentId.HasValue && node.ParentId.Value > 0)
+            {
+                try
+                {
+                    if (sasIdToZoneId.TryGetValue(node.Id, out var zoneId) && 
+                        sasIdToZoneId.TryGetValue(node.ParentId.Value, out var parentZoneId))
+                    {
+                        var zone = await context.Zones.FindAsync(zoneId);
+                        if (zone != null && zone.ParentZoneId != parentZoneId)
+                        {
+                            zone.ParentZoneId = parentZoneId;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to set parent for zone with SAS ID {SasId}", node.Id);
+                }
+            }
+        }
+
+        await context.SaveChangesAsync();
+        _logger.LogInformation("Zone sync completed: {Created} new zones created", zonesCreated);
+
+        return zonesCreated;
+    }
+
     private async Task<string?> CreateUserInKeycloakAsync(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,

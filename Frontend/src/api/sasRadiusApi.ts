@@ -87,6 +87,7 @@ export interface ManagerSyncResult {
   walletsCreated: number
   workspacesAssigned: number
   zonesAssigned: number
+  zonesSynced: number
   failed: number
   errors: string[]
 }
