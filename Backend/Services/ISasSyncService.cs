@@ -16,6 +16,7 @@ public class ManagerSyncResult
     public int WalletsCreated { get; set; }
     public int WorkspacesAssigned { get; set; }
     public int ZonesAssigned { get; set; }
+    public int ZonesSynced { get; set; }
     public int Failed { get; set; }
     public List<string> Errors { get; set; } = new();
 }
