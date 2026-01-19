@@ -24,13 +24,13 @@ Set-Location $ProjectDir
 
 # Step 1: Start PostgreSQL first
 Write-Host "[1/6] Starting PostgreSQL..." -ForegroundColor Green
-docker-compose up -d postgres
+docker compose up -d postgres
 Write-Host "Waiting for PostgreSQL to be healthy..."
 Start-Sleep -Seconds 5
 
 # Wait for PostgreSQL to be ready
 for ($i = 1; $i -le 30; $i++) {
-    $ready = docker-compose exec -T postgres pg_isready -U admin -d openradius 2>$null
+    $ready = docker compose exec -T postgres pg_isready -U admin -d openradius 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "PostgreSQL is ready!" -ForegroundColor Green
         break
@@ -58,17 +58,17 @@ Write-Host "  [OK] openradius database ready" -ForegroundColor Green
 # List all databases
 Write-Host ""
 Write-Host "  Available databases:"
-docker-compose exec -T postgres psql -U admin -d postgres -c "\l" 2>$null | Select-String -Pattern "openradius|keycloak"
+docker compose exec -T postgres psql -U admin -d postgres -c "\l" 2>$null | Select-String -Pattern "openradius|keycloak"
 
 # Step 3: Start Keycloak
 Write-Host ""
 Write-Host "[3/6] Starting Keycloak..." -ForegroundColor Green
-docker-compose up -d keycloak
+docker compose up -d keycloak
 
 Write-Host "Waiting for Keycloak to be healthy..."
 for ($i = 1; $i -le 60; $i++) {
     try {
-        $health = docker-compose exec -T keycloak curl -s http://localhost:8080/health/ready 2>$null
+        $health = docker compose exec -T keycloak curl -s http://localhost:8080/health/ready 2>$null
         if ($health -match "UP") {
             Write-Host "Keycloak is ready!" -ForegroundColor Green
             break
@@ -81,20 +81,20 @@ for ($i = 1; $i -le 60; $i++) {
 # Step 4: Start Redpanda (Kafka)
 Write-Host ""
 Write-Host "[4/6] Starting Redpanda (Kafka)..." -ForegroundColor Green
-docker-compose up -d redpanda redpanda-console
+docker compose up -d redpanda redpanda-console
 Start-Sleep -Seconds 5
 
 # Step 5: Start Debezium Connect
 Write-Host ""
 Write-Host "[5/6] Starting Debezium Connect..." -ForegroundColor Green
-docker-compose up -d connect_cloud
+docker compose up -d connect_cloud
 Start-Sleep -Seconds 5
 
 # Step 6: Show status
 Write-Host ""
 Write-Host "[6/6] Checking service status..." -ForegroundColor Green
 Write-Host ""
-docker-compose ps
+docker compose ps
 
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Green
