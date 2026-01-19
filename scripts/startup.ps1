@@ -47,18 +47,12 @@ $env:PGPASSWORD = $DbPassword
 
 # Create keycloak database
 Write-Host "  Creating keycloak database..."
-$exists = docker-compose exec -T postgres psql -U admin -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'keycloak'" 2>$null
-if ($exists -ne "1") {
-    docker-compose exec -T postgres psql -U admin -d postgres -c "CREATE DATABASE keycloak;" 2>$null
-}
+docker compose exec -T postgres psql -U admin -d postgres -c "CREATE DATABASE keycloak;" 2>$null
 Write-Host "  [OK] keycloak database ready" -ForegroundColor Green
 
 # Create openradius database (should already exist, but just in case)
 Write-Host "  Creating openradius database..."
-$exists = docker-compose exec -T postgres psql -U admin -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'openradius'" 2>$null
-if ($exists -ne "1") {
-    docker-compose exec -T postgres psql -U admin -d postgres -c "CREATE DATABASE openradius;" 2>$null
-}
+docker compose exec -T postgres psql -U admin -d postgres -c "CREATE DATABASE openradius;" 2>$null
 Write-Host "  [OK] openradius database ready" -ForegroundColor Green
 
 # List all databases
