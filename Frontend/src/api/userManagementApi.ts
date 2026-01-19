@@ -266,7 +266,7 @@ export const userManagementApi = {
     return response.data
   },
 
-  getUserZones: async (workspaceId: number, userId: string): Promise<number[]> => {
+  getUserZones: async (workspaceId: number, userId: number): Promise<number[]> => {
     const response = await apiClient.get(`/api/keycloak/users/workspace/${workspaceId}/${userId}/zones`)
     return response.data
   },

@@ -147,9 +147,9 @@ export default function UserManagement() {
 
   // Fetch user zones when dialog opens
   const { data: userZoneIds = [] } = useQuery({
-    queryKey: ['user-zones', workspaceIdNum, zoneAssignUser?.keycloakUserId],
-    queryFn: () => zoneAssignUser?.keycloakUserId && workspaceIdNum
-      ? userManagementApi.getUserZones(workspaceIdNum, zoneAssignUser.keycloakUserId)
+    queryKey: ['user-zones', workspaceIdNum, zoneAssignUser?.id],
+    queryFn: () => zoneAssignUser?.id && workspaceIdNum
+      ? userManagementApi.getUserZones(workspaceIdNum, zoneAssignUser.id)
       : Promise.resolve([]),
     enabled: !!zoneAssignUser && isZoneDialogOpen && !!workspaceIdNum,
   })
