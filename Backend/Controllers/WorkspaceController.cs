@@ -566,8 +566,23 @@ public class WorkspaceController : ControllerBase
         {
             new CustomWallet 
             { 
-                Name = "Ministry Wallet", 
-                Description = "Collection wallet for ministry payments",
+                Name = "Company Master Account", 
+                Description = "Main company account for overall funds management",
+                Type = "collection",
+                Status = "active",
+                Color = "#06b6d4",
+                Icon = "Wallet",
+                MaxFillLimit = 0,
+                DailySpendingLimit = 0,
+                CurrentBalance = 0,
+                AllowNegativeBalance = false,
+                SortOrder = 1,
+                CreatedAt = DateTime.UtcNow
+            },
+            new CustomWallet 
+            { 
+                Name = "Partner Revenue Wallet", 
+                Description = "Collection wallet for partner revenue payments",
                 Type = "collection",
                 Status = "active",
                 Color = "#8b5cf6",
@@ -576,7 +591,7 @@ public class WorkspaceController : ControllerBase
                 DailySpendingLimit = 0,
                 CurrentBalance = 0,
                 AllowNegativeBalance = false,
-                SortOrder = 1,
+                SortOrder = 2,
                 CreatedAt = DateTime.UtcNow
             },
             new CustomWallet 
@@ -591,7 +606,7 @@ public class WorkspaceController : ControllerBase
                 DailySpendingLimit = 0,
                 CurrentBalance = 0,
                 AllowNegativeBalance = false,
-                SortOrder = 2,
+                SortOrder = 3,
                 CreatedAt = DateTime.UtcNow
             }
         };
