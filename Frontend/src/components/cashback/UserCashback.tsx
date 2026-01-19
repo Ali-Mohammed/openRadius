@@ -329,7 +329,7 @@ export default function UserCashback() {
 
       {selectedUserId && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base">Cashback Configuration</CardTitle>
@@ -337,26 +337,27 @@ export default function UserCashback() {
                   Set direct cashback amounts for each billing profile
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <Button 
                   variant="outline" 
+                  size="sm"
                   onClick={handleReset} 
                   disabled={resetMutation.isPending || !Object.keys(cashbackAmounts).some(key => cashbackAmounts[parseInt(key)] > 0)}
                 >
                   {resetMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                   ) : (
-                    <RotateCcw className="h-4 w-4 mr-2" />
+                    <RotateCcw className="h-4 w-4 mr-1" />
                   )}
                   Reset
                 </Button>
-                <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
                   {saveMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                   ) : (
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4 mr-1" />
                   )}
-                  Save Changes
+                  Save
                 </Button>
               </div>
             </div>
@@ -442,13 +443,13 @@ export default function UserCashback() {
 
       {!selectedUserId && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="rounded-full bg-muted p-4 mb-3">
-              <DollarSign className="h-10 w-10 text-muted-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <div className="rounded-full bg-muted p-3 mb-2">
+              <DollarSign className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">No User Selected</h3>
+            <h3 className="text-base font-semibold mb-1">No User Selected</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Please select a user to configure direct cashback amounts for billing profiles
+              Select a user to configure cashback amounts
             </p>
           </CardContent>
         </Card>
