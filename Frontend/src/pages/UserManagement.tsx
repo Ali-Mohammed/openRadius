@@ -88,6 +88,7 @@ export default function UserManagement() {
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
+  const [supervisorSearchQuery, setSupervisorSearchQuery] = useState('')
   const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<number[]>([])
   const [zoneSearchQuery, setZoneSearchQuery] = useState('')
@@ -757,48 +758,47 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-2 overflow-x-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header and Toolbar */}
+      <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">Users</h1>
           <p className="text-sm text-muted-foreground">Manage users and assign roles, groups, and supervisors</p>
         </div>
-      </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1">
-          {/* Search */}
-          <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or email..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-4"
-            />
-          </form>
-          
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearchQuery('')
-                setSearchInput('')
-              }}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          )}
-        </div>
+        {/* Toolbar */}
+        <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-1 flex-1">
+            {/* Search */}
+            <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 pr-4 h-8 text-xs"
+              />
+            </form>
+            
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSearchInput('')
+                }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
           {/* Export */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title="Export">
+              <Button variant="outline" size="icon" className="h-8 w-8" title="Export">
                 <Download className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -815,7 +815,7 @@ export default function UserManagement() {
           {/* Column Visibility */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title="Toggle columns">
+              <Button variant="outline" size="icon" className="h-8 w-8" title="Toggle columns">
                 <Columns3 className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -841,10 +841,11 @@ export default function UserManagement() {
           <Button 
             onClick={() => syncUsersMutation.mutate()} 
             variant="outline"
+            size="sm"
             disabled={syncUsersMutation.isPending}
           >
-            <Download className="h-4 w-4 mr-2" />
-            {syncUsersMutation.isPending ? 'Syncing...' : 'Sync Keycloak'}
+            <Download className="h-4 w-4 mr-1" />
+            {syncUsersMutation.isPending ? 'Syncing...' : 'Sync'}
           </Button>
 
           {/* Refresh */}
@@ -854,16 +855,18 @@ export default function UserManagement() {
             }} 
             variant="outline" 
             size="icon"
+            className="h-8 w-8"
             title="Refresh"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
 
           {/* Add User */}
-          <Button onClick={() => handleOpenDialog()}>
-            <UserPlus className="h-4 w-4 mr-2" />
+          <Button onClick={() => handleOpenDialog()} size="sm">
+            <UserPlus className="h-4 w-4 mr-1" />
             Add User
           </Button>
+        </div>
         </div>
       </div>
 
@@ -922,7 +925,7 @@ export default function UserManagement() {
               )}
             </div>
           ) : (
-            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 270px)' }}>
+            <div className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 220px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -1098,36 +1101,79 @@ export default function UserManagement() {
             
             <div className="grid gap-2">
               <Label htmlFor="supervisor">Supervisor</Label>
-              <Select
-                value={selectedSupervisorId?.toString()}
-                onValueChange={(value) => setSelectedSupervisorId(value ? parseInt(value) : undefined)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a supervisor (optional)" />
-                </SelectTrigger>
-                <SelectContent>
+              <Input
+                placeholder="Search supervisor by name or email..."
+                value={supervisorSearchQuery}
+                onChange={(e) => setSupervisorSearchQuery(e.target.value)}
+                className="h-9"
+              />
+              <div className="border rounded-md max-h-60 overflow-y-auto">
+                <div className="p-2 space-y-1">
                   {users
                     .filter(u => u.id !== editingUser?.id)
-                    .map((user) => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.firstName || user.lastName 
-                          ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
-                          : user.email || 'Unknown'}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                    .filter(u => 
+                      u.email?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
+                      u.firstName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
+                      u.lastName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
+                      `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(supervisorSearchQuery.toLowerCase())
+                    )
+                    .length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No supervisors found
+                    </div>
+                  ) : (
+                    users
+                      .filter(u => u.id !== editingUser?.id)
+                      .filter(u => 
+                        u.email?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
+                        u.firstName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
+                        u.lastName?.toLowerCase().includes(supervisorSearchQuery.toLowerCase()) ||
+                        `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(supervisorSearchQuery.toLowerCase())
+                      )
+                      .map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
+                          onClick={() => {
+                            setSelectedSupervisorId(user.id)
+                            setSupervisorSearchQuery('')
+                          }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">
+                              {user.firstName || user.lastName
+                                ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                                : 'Unknown'}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {user.email}
+                            </div>
+                          </div>
+                          {selectedSupervisorId === user.id && (
+                            <div className="ml-2 h-4 w-4 rounded-full bg-primary" />
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
               {selectedSupervisorId && (
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSelectedSupervisorId(undefined)}
-                  className="text-xs w-fit"
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Clear supervisor
-                </Button>
+                <div className="flex items-center justify-between p-2 bg-muted rounded-md">
+                  <div className="text-sm font-medium">
+                    {users.find(u => u.id === selectedSupervisorId)?.firstName || users.find(u => u.id === selectedSupervisorId)?.lastName
+                      ? `${users.find(u => u.id === selectedSupervisorId)?.firstName || ''} ${users.find(u => u.id === selectedSupervisorId)?.lastName || ''}`.trim()
+                      : 'Unknown'}
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedSupervisorId(undefined)}
+                    className="text-xs"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               )}
             </div>
 
