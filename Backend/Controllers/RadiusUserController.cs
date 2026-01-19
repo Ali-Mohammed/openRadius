@@ -38,11 +38,64 @@ public class RadiusUserController : ControllerBase
         public string? Field { get; set; }
         public string? Column { get; set; }  // Support both "field" and "column" from frontend
         public string? Operator { get; set; }
-        public string? Value { get; set; }
+        
+        // Value can be a single value (string) or an array of values
+        [System.Text.Json.Serialization.JsonConverter(typeof(ValueConverter))]
+        public object? Value { get; set; }
         public List<string>? Values { get; set; }
         
         // Helper to get the field name (supports both "field" and "column" properties)
         public string? GetFieldName() => !string.IsNullOrEmpty(Field) ? Field : Column;
+        
+        // Helper to get value as string
+        public string? GetValueString() => Value?.ToString();
+        
+        // Helper to get value as list of strings (for in/not_in operators)
+        public List<string>? GetValueList()
+        {
+            if (Values != null && Values.Count > 0) return Values;
+            if (Value is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                return element.EnumerateArray().Select(e => e.ToString()).ToList();
+            }
+            if (Value is List<object> objList)
+            {
+                return objList.Select(o => o?.ToString() ?? "").ToList();
+            }
+            return null;
+        }
+    }
+    
+    // Custom JSON converter to handle value being either string or array
+    public class ValueConverter : System.Text.Json.Serialization.JsonConverter<object?>
+    {
+        public override object? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        {
+            if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+                return null;
+            if (reader.TokenType == System.Text.Json.JsonTokenType.String)
+                return reader.GetString();
+            if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+                return reader.GetDecimal().ToString();
+            if (reader.TokenType == System.Text.Json.JsonTokenType.True || reader.TokenType == System.Text.Json.JsonTokenType.False)
+                return reader.GetBoolean().ToString();
+            if (reader.TokenType == System.Text.Json.JsonTokenType.StartArray)
+            {
+                var list = new List<string>();
+                while (reader.Read() && reader.TokenType != System.Text.Json.JsonTokenType.EndArray)
+                {
+                    list.Add(reader.GetString() ?? "");
+                }
+                return list;
+            }
+            // Return as JsonElement for complex types
+            return System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(ref reader, options);
+        }
+        
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, object? value, System.Text.Json.JsonSerializerOptions options)
+        {
+            System.Text.Json.JsonSerializer.Serialize(writer, value, options);
+        }
     }
 
     public class FilterGroup
@@ -121,8 +174,8 @@ public class RadiusUserController : ControllerBase
     {
         var field = condition.GetFieldName()?.ToLower();
         var op = condition.Operator?.ToLower();
-        var value = condition.Value;
-        var values = condition.Values;
+        var value = condition.GetValueString();
+        var values = condition.GetValueList();
 
         return field switch
         {
