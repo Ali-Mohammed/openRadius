@@ -345,6 +345,21 @@ export default function UserManagement() {
     },
   })
 
+  const assignWorkspacesMutation = useMutation({
+    mutationFn: ({ userId, workspaceIds }: { userId: number; workspaceIds: number[] }) =>
+      userManagementApi.assignWorkspacesToUser(userId, workspaceIds),
+    onSuccess: () => {
+      toast.success('Workspaces assigned successfully')
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setIsWorkspaceDialogOpen(false)
+      setWorkspaceAssignUser(null)
+      setSelectedWorkspaceIds([])
+    },
+    onError: (error: Error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
   // Handlers
   const handleOpenDialog = (user?: User) => {
     if (user) {
