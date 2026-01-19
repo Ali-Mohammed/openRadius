@@ -380,7 +380,7 @@ function ConditionRow({
           className="h-8 w-36 text-xs"
         />
         {showSuggestions && hasSuggestions && (
-          <div className="absolute top-full left-0 z-50 mt-1 w-full bg-popover border rounded-md shadow-md max-h-52 overflow-auto">
+          <div className="absolute top-full left-0 z-[9999] mt-1 w-full bg-popover border rounded-md shadow-md max-h-52 overflow-auto">
             {isLoadingSuggestions ? (
               <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
             ) : (
