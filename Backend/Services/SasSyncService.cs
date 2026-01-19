@@ -368,6 +368,23 @@ public class SasSyncService : ISasSyncService
                             existingUser.CurrentWorkspaceId = workspaceId;
                         }
                         
+                        // If existing user doesn't have a Keycloak ID, try to create one
+                        if (string.IsNullOrEmpty(existingUser.KeycloakUserId))
+                        {
+                            _logger.LogInformation("Existing user {Username} has no Keycloak ID, attempting to create one", sasManager.Username);
+                            var newKeycloakUserId = await CreateUserInKeycloakAsync(
+                                httpClientFactory, 
+                                configuration, 
+                                sasManager);
+                            
+                            if (!string.IsNullOrEmpty(newKeycloakUserId))
+                            {
+                                existingUser.KeycloakUserId = newKeycloakUserId;
+                                result.KeycloakUsersCreated++;
+                                _logger.LogInformation("Created Keycloak user for existing user {Username}: {KeycloakUserId}", sasManager.Username, newKeycloakUserId);
+                            }
+                        }
+                        
                         await masterContext.SaveChangesAsync();
                         result.ExistingUsersUpdated++;
                         
@@ -400,6 +417,11 @@ public class SasSyncService : ISasSyncService
                         if (!string.IsNullOrEmpty(existingUser.KeycloakUserId))
                         {
                             usernameToKeycloakId[sasManager.Username ?? ""] = existingUser.KeycloakUserId;
+                            _logger.LogDebug("Added to usernameToKeycloakId: {Username} -> {KeycloakUserId}", sasManager.Username, existingUser.KeycloakUserId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("User {Username} still has no Keycloak ID after sync attempt", sasManager.Username);
                         }
                         
                         // Track mapping for supervisor relationships
