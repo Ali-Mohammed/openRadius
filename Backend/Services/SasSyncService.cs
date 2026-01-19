@@ -286,6 +286,34 @@ public class SasSyncService : ISasSyncService
                         await masterContext.SaveChangesAsync();
                         result.NewUsersCreated++;
                         
+                        // Create wallet for the new user with AllowOverdraft = false
+                        try
+                        {
+                            var existingWallet = await context.UserWallets
+                                .FirstOrDefaultAsync(uw => uw.UserId == newUser.Id && !uw.IsDeleted);
+                            
+                            if (existingWallet == null)
+                            {
+                                var userWallet = new UserWallet
+                                {
+                                    UserId = newUser.Id,
+                                    CurrentBalance = 0,
+                                    Status = "active",
+                                    AllowNegativeBalance = false, // Allow Overdraft = false
+                                    CreatedAt = DateTime.UtcNow,
+                                    CreatedBy = "sync"
+                                };
+                                context.UserWallets.Add(userWallet);
+                                await context.SaveChangesAsync();
+                                result.WalletsCreated++;
+                                _logger.LogInformation("Created wallet for user: {Username} (ID: {UserId})", sasManager.Username, newUser.Id);
+                            }
+                        }
+                        catch (Exception walletEx)
+                        {
+                            _logger.LogError(walletEx, "Failed to create wallet for user: {Username}", sasManager.Username);
+                        }
+                        
                         // Track mapping for supervisor relationships
                         sasIdToUserId[sasManager.Id] = newUser.Id;
                         

@@ -13,6 +13,7 @@ public class ManagerSyncResult
     public int NewUsersCreated { get; set; }
     public int ExistingUsersUpdated { get; set; }
     public int KeycloakUsersCreated { get; set; }
+    public int WalletsCreated { get; set; }
     public int ZonesAssigned { get; set; }
     public int Failed { get; set; }
     public List<string> Errors { get; set; } = new();
