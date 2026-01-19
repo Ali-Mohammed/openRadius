@@ -90,6 +90,8 @@ export default function UserManagement() {
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | undefined>(undefined)
   const [selectedZoneIds, setSelectedZoneIds] = useState<number[]>([])
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<number[]>([])
+  const [zoneSearchQuery, setZoneSearchQuery] = useState('')
+  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('')
   const hasSetInitialZones = useRef(false)
   const hasSetInitialWorkspaces = useRef(false)
   
