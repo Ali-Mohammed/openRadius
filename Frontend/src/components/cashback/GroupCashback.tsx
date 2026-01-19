@@ -207,17 +207,17 @@ export default function GroupCashback() {
   const IconComponent = selectedGroupIcon ? getIconComponent(selectedGroupIcon) : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Group Selection Card */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">Select Cashback Group</CardTitle>
           <CardDescription className="text-sm">
             Choose a cashback group to configure amounts for its billing profiles
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
+        <CardContent className="space-y-2">
+          <div className="space-y-1">
             <Label>Cashback Group *</Label>
             <Select
               value={selectedGroupId?.toString() || ''}
@@ -253,30 +253,30 @@ export default function GroupCashback() {
           </div>
 
           {selectedGroup && (
-            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
+            <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
               {IconComponent && (
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-lg shadow-sm"
+                  className="flex h-8 w-8 items-center justify-center rounded-md shadow-sm"
                   style={{ backgroundColor: selectedGroup.color + '20', color: selectedGroup.color }}
                 >
-                  <IconComponent className="h-6 w-6" />
+                  <IconComponent className="h-4 w-4" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="font-semibold text-base">{selectedGroup.name}</h3>
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-sm">{selectedGroup.name}</h3>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
                     {groupUsers?.length || 0} {groupUsers?.length === 1 ? 'User' : 'Users'}
                   </span>
                 </div>
                 {groupUsers && groupUsers.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm flex-wrap">
-                    <span className="text-muted-foreground text-xs shrink-0">Members:</span>
+                  <div className="flex items-center gap-1.5 text-xs flex-wrap">
+                    <span className="text-muted-foreground shrink-0">Members:</span>
                     <div className="flex flex-wrap gap-1">
                       {groupUsers.slice(0, 3).map((user: User) => (
                         <span
                           key={user.id}
-                          className="inline-flex items-center rounded-md bg-background border px-1.5 py-0.5 text-xs"
+                          className="inline-flex items-center rounded-md bg-background border px-1 py-0.5 text-xs"
                         >
                           {user.firstName && user.lastName
                             ? `${user.firstName} ${user.lastName}`
@@ -284,7 +284,7 @@ export default function GroupCashback() {
                         </span>
                       ))}
                       {groupUsers.length > 3 && (
-                        <span className="inline-flex items-center rounded-md bg-background border px-1.5 py-0.5 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center rounded-md bg-background border px-1 py-0.5 text-xs text-muted-foreground">
                           +{groupUsers.length - 3} more
                         </span>
                       )}
@@ -302,7 +302,7 @@ export default function GroupCashback() {
 
       {selectedGroupId && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base">Cashback Configuration</CardTitle>
@@ -313,13 +313,13 @@ export default function GroupCashback() {
               <div className="flex items-center gap-2">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" disabled={resetMutation.isPending}>
+                    <Button variant="outline" size="sm" disabled={resetMutation.isPending}>
                       {resetMutation.isPending ? (
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                       ) : (
-                        <RotateCcw className="h-4 w-4 mr-2" />
+                        <RotateCcw className="h-4 w-4 mr-1" />
                       )}
-                      Reset All
+                      Reset
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -336,13 +336,13 @@ export default function GroupCashback() {
                   </AlertDialogContent>
                 </AlertDialog>
                 
-                <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                <Button onClick={handleSave} size="sm" disabled={saveMutation.isPending}>
                   {saveMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                   ) : (
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4 mr-1" />
                   )}
-                  Save Changes
+                  Save
                 </Button>
               </div>
             </div>
@@ -428,11 +428,11 @@ export default function GroupCashback() {
 
       {!selectedGroupId && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="rounded-full bg-muted p-4 mb-3">
-              <DollarSign className="h-10 w-10 text-muted-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <div className="rounded-full bg-muted p-3 mb-2">
+              <DollarSign className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">No Group Selected</h3>
+            <h3 className="text-base font-semibold mb-1">No Group Selected</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
               Please select a cashback group to configure cashback amounts for billing profiles
             </p>

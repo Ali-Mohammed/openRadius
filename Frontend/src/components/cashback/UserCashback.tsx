@@ -193,17 +193,17 @@ export default function UserCashback() {
   const selectedUser = usersData?.data?.find((u: User) => u.id === selectedUserId);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* User Selection Card */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">Select User</CardTitle>
           <CardDescription className="text-sm">
             Choose a user to configure direct cashback amounts
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
+        <CardContent className="space-y-2">
+          <div className="space-y-1">
             <Label>User *</Label>
             <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
               <PopoverTrigger asChild>
@@ -298,19 +298,19 @@ export default function UserCashback() {
           </div>
 
           {selectedUser && (
-            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg shadow-sm bg-primary/10">
-                <span className="text-xl font-semibold text-primary">
+            <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-muted/50 to-muted rounded-lg border">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md shadow-sm bg-primary/10">
+                <span className="text-sm font-semibold text-primary">
                   {(selectedUser.firstName?.[0] || selectedUser.email?.[0] || 'U').toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base">
+                <h3 className="font-semibold text-sm">
                   {selectedUser.firstName && selectedUser.lastName
                     ? `${selectedUser.firstName} ${selectedUser.lastName}`
                     : 'User'}
                 </h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {selectedUser.email && (
                     <span className="truncate">{selectedUser.email}</span>
                   )}

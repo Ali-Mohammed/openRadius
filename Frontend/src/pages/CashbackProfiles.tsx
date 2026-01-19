@@ -8,7 +8,7 @@ export default function CashbackProfiles() {
   const [activeTab, setActiveTab] = useState('group');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -32,11 +32,11 @@ export default function CashbackProfiles() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="group" className="mt-4">
+        <TabsContent value="group" className="mt-2">
           <GroupCashback />
         </TabsContent>
 
-        <TabsContent value="user" className="mt-4">
+        <TabsContent value="user" className="mt-2">
           <UserCashback />
         </TabsContent>
       </Tabs>
