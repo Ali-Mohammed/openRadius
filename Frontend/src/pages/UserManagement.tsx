@@ -1354,9 +1354,9 @@ export default function UserManagement() {
             </Button>
             <Button
               onClick={() => {
-                if (zoneAssignUser?.keycloakUserId) {
+                if (zoneAssignUser?.id) {
                   assignZonesMutation.mutate({
-                    userId: zoneAssignUser.keycloakUserId,
+                    userId: zoneAssignUser.id.toString(),
                     zoneIds: selectedZoneIds,
                   })
                 }
