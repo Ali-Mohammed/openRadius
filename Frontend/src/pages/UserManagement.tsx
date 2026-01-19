@@ -510,7 +510,7 @@ export default function UserManagement() {
   const renderColumnHeader = (column: string) => {
     if (column === 'actions') {
       return (
-        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-20" style={{ width: 180 }}>
+        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-[16]" style={{ width: 180 }}>
           Actions
         </TableHead>
       )
@@ -932,7 +932,7 @@ export default function UserManagement() {
                 </div>
               )}
               <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10">
+                <TableHeader className="sticky top-0 bg-muted z-[15]">
                   <TableRow className="hover:bg-muted">
                     {columnOrder.map(column => renderColumnHeader(column))}
                   </TableRow>
