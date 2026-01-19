@@ -257,7 +257,7 @@ public class SasRadiusIntegrationController : ControllerBase
     }
 
     [HttpPost("{id}/sync-managers")]
-    public async Task<ActionResult> SyncManagers(int id)
+    public async Task<ActionResult> SyncManagers(int WorkspaceId, int id)
     {
         var integration = await _context.SasRadiusIntegrations
             .FirstOrDefaultAsync(i => i.Id == id);
@@ -281,11 +281,11 @@ public class SasRadiusIntegrationController : ControllerBase
                 _hubContext.Clients.Group(syncGroup).SendAsync("ManagerSyncProgress", progress);
             }
             
-            var result = await _syncService.SyncManagersAsync(id, OnProgress);
+            var result = await _syncService.SyncManagersAsync(id, WorkspaceId, OnProgress);
             
             _logger.LogInformation(
-                "Manager sync completed for integration {Name}: {Total} total, {New} new, {Updated} updated, {Zones} zones assigned, {Failed} failed",
-                integration.Name, result.TotalManagers, result.NewUsersCreated, result.ExistingUsersUpdated, result.ZonesAssigned, result.Failed);
+                "Manager sync completed for integration {Name}: {Total} total, {New} new, {Updated} updated, {Workspaces} workspaces, {Zones} zones assigned, {Failed} failed",
+                integration.Name, result.TotalManagers, result.NewUsersCreated, result.ExistingUsersUpdated, result.WorkspacesAssigned, result.ZonesAssigned, result.Failed);
 
             return Ok(new
             {
@@ -296,7 +296,9 @@ public class SasRadiusIntegrationController : ControllerBase
                 newUsersCreated = result.NewUsersCreated,
                 existingUsersUpdated = result.ExistingUsersUpdated,
                 keycloakUsersCreated = result.KeycloakUsersCreated,
+                workspacesAssigned = result.WorkspacesAssigned,
                 zonesAssigned = result.ZonesAssigned,
+                walletsCreated = result.WalletsCreated,
                 failed = result.Failed,
                 errors = result.Errors
             });

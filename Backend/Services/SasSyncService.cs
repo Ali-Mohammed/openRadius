@@ -136,7 +136,7 @@ public class SasSyncService : ISasSyncService
         return true;
     }
 
-    public async Task<ManagerSyncResult> SyncManagersAsync(int integrationId, Action<ManagerSyncProgress>? onProgress = null)
+    public async Task<ManagerSyncResult> SyncManagersAsync(int integrationId, int workspaceId, Action<ManagerSyncProgress>? onProgress = null)
     {
         var result = new ManagerSyncResult();
         
@@ -272,19 +272,46 @@ public class SasSyncService : ISasSyncService
                             usernameToKeycloakId[sasManager.Username ?? ""] = keycloakUserId;
                         }
 
-                        // Create user in master database
+                        // Create user in master database with workspace assignment
                         var newUser = new User
                         {
                             Email = email,
                             FirstName = sasManager.Firstname ?? sasManager.Username ?? "",
                             LastName = sasManager.Lastname ?? "",
                             KeycloakUserId = keycloakUserId,
+                            DefaultWorkspaceId = workspaceId,
+                            CurrentWorkspaceId = workspaceId,
                             CreatedAt = DateTime.UtcNow
                         };
                         
                         masterContext.Users.Add(newUser);
                         await masterContext.SaveChangesAsync();
                         result.NewUsersCreated++;
+                        
+                        // Assign workspace access to user (UserWorkspace table)
+                        try
+                        {
+                            var existingUserWorkspace = await masterContext.UserWorkspaces
+                                .FirstOrDefaultAsync(uw => uw.UserId == newUser.Id && uw.WorkspaceId == workspaceId);
+                            
+                            if (existingUserWorkspace == null)
+                            {
+                                masterContext.UserWorkspaces.Add(new UserWorkspace
+                                {
+                                    UserId = newUser.Id,
+                                    WorkspaceId = workspaceId,
+                                    AssignedAt = DateTime.UtcNow,
+                                    AssignedBy = "sync"
+                                });
+                                await masterContext.SaveChangesAsync();
+                                result.WorkspacesAssigned++;
+                                _logger.LogInformation("Assigned workspace {WorkspaceId} to user: {Username} (ID: {UserId})", workspaceId, sasManager.Username, newUser.Id);
+                            }
+                        }
+                        catch (Exception workspaceEx)
+                        {
+                            _logger.LogError(workspaceEx, "Failed to assign workspace to user: {Username}", sasManager.Username);
+                        }
                         
                         // Create wallet for the new user with AllowOverdraft = false
                         try
@@ -308,6 +335,7 @@ public class SasSyncService : ISasSyncService
                                 result.WalletsCreated++;
                                 _logger.LogInformation("Created wallet for user: {Username} (ID: {UserId})", sasManager.Username, newUser.Id);
                             }
+                            }
                         }
                         catch (Exception walletEx)
                         {
@@ -330,8 +358,44 @@ public class SasSyncService : ISasSyncService
                         // Update existing user
                         existingUser.FirstName = sasManager.Firstname ?? existingUser.FirstName;
                         existingUser.LastName = sasManager.Lastname ?? existingUser.LastName;
+                        
+                        // Set default workspace if not already set
+                        if (!existingUser.DefaultWorkspaceId.HasValue)
+                        {
+                            existingUser.DefaultWorkspaceId = workspaceId;
+                        }
+                        if (!existingUser.CurrentWorkspaceId.HasValue)
+                        {
+                            existingUser.CurrentWorkspaceId = workspaceId;
+                        }
+                        
                         await masterContext.SaveChangesAsync();
                         result.ExistingUsersUpdated++;
+                        
+                        // Assign workspace access to user if not already assigned (UserWorkspace table)
+                        try
+                        {
+                            var existingUserWorkspace = await masterContext.UserWorkspaces
+                                .FirstOrDefaultAsync(uw => uw.UserId == existingUser.Id && uw.WorkspaceId == workspaceId);
+                            
+                            if (existingUserWorkspace == null)
+                            {
+                                masterContext.UserWorkspaces.Add(new UserWorkspace
+                                {
+                                    UserId = existingUser.Id,
+                                    WorkspaceId = workspaceId,
+                                    AssignedAt = DateTime.UtcNow,
+                                    AssignedBy = "sync"
+                                });
+                                await masterContext.SaveChangesAsync();
+                                result.WorkspacesAssigned++;
+                                _logger.LogInformation("Assigned workspace {WorkspaceId} to existing user: {Username} (ID: {UserId})", workspaceId, sasManager.Username, existingUser.Id);
+                            }
+                        }
+                        catch (Exception workspaceEx)
+                        {
+                            _logger.LogError(workspaceEx, "Failed to assign workspace to existing user: {Username}", sasManager.Username);
+                        }
                         
                         // Track Keycloak ID for zone assignment
                         if (!string.IsNullOrEmpty(existingUser.KeycloakUserId))

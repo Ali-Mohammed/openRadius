@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { 
   Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog, MapPin, 
   Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
-  FileText
+  FileText, Building2
 } from 'lucide-react'
 import { userManagementApi, type User } from '@/api/userManagementApi'
 import { zoneApi } from '@/services/zoneApi'
@@ -459,7 +459,7 @@ export default function UserManagement() {
   }
 
   const handleExportCsv = () => {
-    const headers = ['Name', 'Email', 'Status', 'Supervisor', 'Groups', 'Roles', 'Zones']
+    const headers = ['Name', 'Email', 'Status', 'Supervisor', 'Groups', 'Roles', 'Zones', 'Workspaces']
     const rows = filteredUsers.map(user => [
       `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
       user.email || '',
@@ -468,6 +468,7 @@ export default function UserManagement() {
       user.groups?.map(g => g.name).join(', ') || '',
       user.roles?.map(r => r.name).join(', ') || '',
       user.zones?.map(z => z.name).join(', ') || '',
+      user.workspaces?.map(w => w.title).join(', ') || '',
     ])
     
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n')
@@ -565,6 +566,17 @@ export default function UserManagement() {
               title="Assign zones"
             >
               <MapPin className="h-4 w-4 text-purple-600" />
+            </Button>
+            <Button
+              onClick={() => {
+                setWorkspaceAssignUser(user)
+                setIsWorkspaceDialogOpen(true)
+              }}
+              variant="ghost"
+              size="icon"
+              title="Assign workspaces"
+            >
+              <Building2 className="h-4 w-4 text-green-600" />
             </Button>
             <Button
               onClick={() => {
@@ -693,6 +705,22 @@ export default function UserManagement() {
                     style={{ backgroundColor: zone.color || '#3b82f6' }}
                   />
                   <span>{zone.name}</span>
+                </Badge>
+              )) : <span className="text-muted-foreground text-sm">-</span>}
+            </div>
+          </TableCell>
+        )
+      case 'workspaces':
+        return (
+          <TableCell key={column} className="h-12 px-4">
+            <div className="flex flex-wrap gap-1">
+              {user.workspaces?.length ? user.workspaces.map((workspace) => (
+                <Badge key={workspace.id} variant="outline" className="flex items-center gap-1.5 text-xs">
+                  <div
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: workspace.color || '#3b82f6' }}
+                  />
+                  <span>{workspace.title}</span>
                 </Badge>
               )) : <span className="text-muted-foreground text-sm">-</span>}
             </div>
@@ -1313,6 +1341,105 @@ export default function UserManagement() {
               disabled={assignZonesMutation.isPending}
             >
               {assignZonesMutation.isPending ? 'Assigning...' : 'Assign Zones'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workspace Assignment Dialog */}
+      <Dialog open={isWorkspaceDialogOpen} onOpenChange={setIsWorkspaceDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Assign Workspaces to User</DialogTitle>
+            <DialogDescription>
+              Select which workspaces <strong>{workspaceAssignUser?.firstName} {workspaceAssignUser?.lastName}</strong> can access
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="border rounded-md max-h-100 overflow-y-auto">
+              <div className="p-2 space-y-1">
+                {availableWorkspaces.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No workspaces found
+                  </div>
+                ) : (
+                  availableWorkspaces.map((workspace) => (
+                    <div
+                      key={workspace.id}
+                      className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer"
+                      onClick={() => {
+                        setSelectedWorkspaceIds(prev =>
+                          prev.includes(workspace.id)
+                            ? prev.filter(id => id !== workspace.id)
+                            : [...prev, workspace.id]
+                        )
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedWorkspaceIds.includes(workspace.id)}
+                        onCheckedChange={() => {
+                          setSelectedWorkspaceIds(prev =>
+                            prev.includes(workspace.id)
+                              ? prev.filter(id => id !== workspace.id)
+                              : [...prev, workspace.id]
+                          )
+                        }}
+                      />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div
+                          className="h-4 w-4 rounded-full shrink-0"
+                          style={{ backgroundColor: workspace.color || '#3b82f6' }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{workspace.title}</div>
+                          {workspace.location && (
+                            <div className="text-sm text-muted-foreground truncate">
+                              {workspace.location}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{selectedWorkspaceIds.length} workspace(s) selected</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedWorkspaceIds([])}
+                disabled={selectedWorkspaceIds.length === 0}
+              >
+                Clear selection
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsWorkspaceDialogOpen(false)
+                setWorkspaceAssignUser(null)
+                setSelectedWorkspaceIds([])
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (workspaceAssignUser) {
+                  assignWorkspacesMutation.mutate({
+                    userId: workspaceAssignUser.id,
+                    workspaceIds: selectedWorkspaceIds,
+                  })
+                }
+              }}
+              disabled={assignWorkspacesMutation.isPending}
+            >
+              {assignWorkspacesMutation.isPending ? 'Assigning...' : 'Assign Workspaces'}
             </Button>
           </DialogFooter>
         </DialogContent>
