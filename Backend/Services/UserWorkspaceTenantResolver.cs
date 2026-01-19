@@ -26,6 +26,30 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
         if (context is not HttpContext httpContext)
             return null;
 
+        // Priority 1: Check for WorkspaceId in route values (from URL like /api/workspaces/{WorkspaceId}/...)
+        if (httpContext.Request.RouteValues.TryGetValue("WorkspaceId", out var routeWorkspaceId) ||
+            httpContext.Request.RouteValues.TryGetValue("workspaceId", out routeWorkspaceId))
+        {
+            var workspaceIdStr = routeWorkspaceId?.ToString();
+            if (!string.IsNullOrEmpty(workspaceIdStr))
+            {
+                _logger.LogInformation($"Using WorkspaceId from route: {workspaceIdStr}");
+                return workspaceIdStr;
+            }
+        }
+
+        // Priority 2: Check for X-Workspace-Id header
+        if (httpContext.Request.Headers.TryGetValue("X-Workspace-Id", out var headerWorkspaceId))
+        {
+            var workspaceIdStr = headerWorkspaceId.FirstOrDefault();
+            if (!string.IsNullOrEmpty(workspaceIdStr))
+            {
+                _logger.LogInformation($"Using WorkspaceId from header: {workspaceIdStr}");
+                return workspaceIdStr;
+            }
+        }
+
+        // Priority 3: Fall back to user's current/default workspace from JWT claims
         // Log all available claims for debugging (don't require IsAuthenticated)
         var claims = httpContext.User.Claims.ToList();
         if (claims.Any())

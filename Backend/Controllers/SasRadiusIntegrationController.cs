@@ -426,6 +426,10 @@ public class SasRadiusIntegrationController : ControllerBase
     {
         try
         {
+            // Get workspace name for the filename
+            var workspace = await _masterContext.Workspaces.FindAsync(WorkspaceId);
+            var workspaceName = workspace?.Name?.Replace(" ", "-").ToLower() ?? $"workspace-{WorkspaceId}";
+            
             var integrations = await _context.SasRadiusIntegrations
                 .Where(i => !i.IsDeleted)
                 .Select(i => new
@@ -447,7 +451,7 @@ public class SasRadiusIntegrationController : ControllerBase
                 WriteIndented = true
             });
 
-            var fileName = $"sas-radius-integrations-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+            var fileName = $"sas-radius-integrations-{workspaceName}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
             return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
         }
         catch (Exception ex)
