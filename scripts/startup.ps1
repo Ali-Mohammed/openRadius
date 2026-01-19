@@ -51,7 +51,7 @@ $exists = docker-compose exec -T postgres psql -U admin -d postgres -tAc "SELECT
 if ($exists -ne "1") {
     docker-compose exec -T postgres psql -U admin -d postgres -c "CREATE DATABASE keycloak;" 2>$null
 }
-Write-Host "  ✓ keycloak database ready" -ForegroundColor Green
+Write-Host "  [OK] keycloak database ready" -ForegroundColor Green
 
 # Create openradius database (should already exist, but just in case)
 Write-Host "  Creating openradius database..."
@@ -59,7 +59,7 @@ $exists = docker-compose exec -T postgres psql -U admin -d postgres -tAc "SELECT
 if ($exists -ne "1") {
     docker-compose exec -T postgres psql -U admin -d postgres -c "CREATE DATABASE openradius;" 2>$null
 }
-Write-Host "  ✓ openradius database ready" -ForegroundColor Green
+Write-Host "  [OK] openradius database ready" -ForegroundColor Green
 
 # List all databases
 Write-Host ""
