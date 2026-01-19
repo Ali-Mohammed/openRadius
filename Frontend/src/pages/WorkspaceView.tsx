@@ -755,9 +755,28 @@ export default function WorkspaceView() {
             <Button onClick={handleRefresh} variant="outline" size="icon" title="Refresh">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button onClick={handleExport} variant="outline" size="icon" title="Export data">
+            <Button onClick={handleExport} variant="outline" size="icon" title="Export Excel">
               <Download className="h-4 w-4" />
             </Button>
+            <Button onClick={handleExportJson} variant="outline" size="icon" title="Export JSON">
+              <FileJson className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              title="Import JSON"
+              onClick={() => document.getElementById('import-json-file')?.click()}
+              disabled={importJsonMutation.isPending}
+            >
+              <Upload className="h-4 w-4" />
+            </Button>
+            <input
+              id="import-json-file"
+              type="file"
+              accept=".json"
+              onChange={handleImportJson}
+              style={{ display: 'none' }}
+            />
           </div>
           <Dialog open={open} onOpenChange={(isOpen) => {
             // Prevent closing if this is the first workspace prompt
