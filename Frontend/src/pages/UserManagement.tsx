@@ -919,7 +919,7 @@ export default function UserManagement() {
               )}
             </div>
           ) : (
-            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 270px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
