@@ -572,7 +572,7 @@ export default function UserWallets() {
   const renderColumnHeader = (column: string) => {
     if (column === 'actions') {
       return (
-        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-20" style={{ width: 100 }}>
+        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 top-0 bg-muted z-30" style={{ width: 100 }}>
           Actions
         </TableHead>
       )
@@ -728,17 +728,17 @@ export default function UserWallets() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 overflow-x-hidden">
       {/* Header and Toolbar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-bold">User Wallets</h1>
-          <p className="text-muted-foreground">Manage user-specific wallet instances and balances</p>
+          <h1 className="text-2xl font-bold">User Wallets</h1>
+          <p className="text-sm text-muted-foreground">Manage user-specific wallet instances and balances</p>
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center justify-end gap-4">
-          <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-1 flex-1">
             {/* Search */}
             <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -746,7 +746,7 @@ export default function UserWallets() {
                 placeholder="Search by user name or email..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 pr-4"
+                className="pl-9 pr-4 h-8 text-xs"
               />
             </form>
             
@@ -769,7 +769,7 @@ export default function UserWallets() {
               setFilterStatus(value === 'all' ? '' : value)
               setCurrentPage(1)
             }}>
-              <SelectTrigger className="w-35">
+              <SelectTrigger className="w-32 h-8 text-xs">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -783,7 +783,7 @@ export default function UserWallets() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {/* Export */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -874,27 +874,27 @@ export default function UserWallets() {
               </Table>
             </div>
           ) : filteredWallets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <WalletIcon className="h-12 w-12 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-muted p-4 mb-3">
+                <WalletIcon className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-sm font-semibold mb-1">
                 {searchQuery || filterStatus ? 'No wallets found' : 'No user wallets yet'}
               </h3>
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-xs text-muted-foreground mb-4">
                 {searchQuery || filterStatus
                   ? 'Try adjusting your search or filter criteria' 
                   : 'Get started by assigning a wallet to a user'}
               </p>
               {!searchQuery && !filterStatus && (
-                <Button onClick={() => handleOpenDialog()}>
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button onClick={() => handleOpenDialog()} size="sm">
+                  <Plus className="mr-1 h-4 w-4" />
                   Assign Wallet
                 </Button>
               )}
             </div>
           ) : (
-            <div className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 232px)' }}>
+            <div className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 212px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
@@ -924,12 +924,12 @@ export default function UserWallets() {
 
           {/* Pagination */}
           {filteredWallets.length > 0 && (
-            <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+            <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground whitespace-nowrap">Per page</span>
                   <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                    <SelectTrigger className="h-8 w-18 text-sm">
+                    <SelectTrigger className="h-7 w-16 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -941,17 +941,17 @@ export default function UserWallets() {
                   </Select>
                 </div>
                 <div className="h-4 w-px bg-border" />
-                <div className="text-sm text-muted-foreground font-medium">
+                <div className="text-muted-foreground font-medium">
                   Showing {totalCount === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} wallets
                 </div>
               </div>
               
               {totalPages > 1 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
                   >
@@ -960,7 +960,7 @@ export default function UserWallets() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
@@ -973,20 +973,20 @@ export default function UserWallets() {
                         key={index}
                         variant={currentPage === page ? 'default' : 'outline'}
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7 p-0 text-xs"
                         onClick={() => setCurrentPage(page)}
                       >
                         {page}
                       </Button>
                     ) : (
-                      <span key={index} className="px-2 text-muted-foreground">...</span>
+                      <span key={index} className="px-1 text-muted-foreground">...</span>
                     )
                   ))}
                   
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                   >
@@ -995,7 +995,7 @@ export default function UserWallets() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
                   >
