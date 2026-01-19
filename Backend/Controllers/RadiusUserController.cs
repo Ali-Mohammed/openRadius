@@ -42,6 +42,10 @@ public class RadiusUserController : ControllerBase
         // Value can be a single value (string) or an array of values
         [System.Text.Json.Serialization.JsonConverter(typeof(ValueConverter))]
         public object? Value { get; set; }
+        
+        // Second value for between operator
+        public string? Value2 { get; set; }
+        
         public List<string>? Values { get; set; }
         
         // Helper to get the field name (supports both "field" and "column" properties)
@@ -204,12 +208,12 @@ public class RadiusUserController : ControllerBase
             "radiusgroupid" or "groupid" => BuildIntPredicate(u => u.GroupId, op, value, values),
             "zoneid" => BuildIntPredicate(u => u.ZoneId, op, value, values),
             "isactive" or "enabled" => BuildBoolPredicate(u => u.Enabled, op),
-            "balance" => BuildDecimalPredicate(u => u.Balance, op, value),
-            "loanbalance" => BuildDecimalPredicate(u => u.LoanBalance, op, value),
-            "expirationdate" or "expiration" => BuildDatePredicate(u => u.Expiration, op, value),
-            "createdat" => BuildDatePredicate(u => u.CreatedAt, op, value),
-            "updatedat" => BuildDatePredicate(u => u.UpdatedAt, op, value),
-            "lastonline" => BuildDatePredicate(u => u.LastOnline, op, value),
+            "balance" => BuildDecimalPredicate(u => u.Balance, op, value, condition.Value2),
+            "loanbalance" => BuildDecimalPredicate(u => u.LoanBalance, op, value, condition.Value2),
+            "expirationdate" or "expiration" => BuildDatePredicate(u => u.Expiration, op, value, condition.Value2),
+            "createdat" => BuildDatePredicate(u => u.CreatedAt, op, value, condition.Value2),
+            "updatedat" => BuildDatePredicate(u => u.UpdatedAt, op, value, condition.Value2),
+            "lastonline" => BuildDatePredicate(u => u.LastOnline, op, value, condition.Value2),
             "tags" => BuildTagsPredicate(op, values),
             _ => null
         };
