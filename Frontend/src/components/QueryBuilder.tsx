@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { 
-  Filter, Plus, X, Trash2, ChevronDown, ChevronUp, Check, 
+  Filter, Plus, X, Trash2, ChevronDown, Check, 
   Type, Hash, Calendar, ToggleLeft, List, AtSign,
   Copy, Parentheses, ArrowUp, ArrowDown
 } from 'lucide-react'
