@@ -28,11 +28,18 @@ export type FilterLogic = 'and' | 'or'
 
 export type ColumnType = 'text' | 'number' | 'boolean' | 'date' | 'select' | 'email' | 'array'
 
+export interface FilterColumnOption {
+  value: string
+  label: string
+  color?: string
+  icon?: string
+}
+
 export interface FilterColumn {
   key: string
   label: string
   type: ColumnType
-  options?: { value: string; label: string }[]  // For select type
+  options?: FilterColumnOption[]  // For select type
   suggestions?: string[]  // Dynamic suggestions
 }
 

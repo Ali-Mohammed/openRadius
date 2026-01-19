@@ -438,8 +438,8 @@ export default function RadiusUsers() {
       type: 'date'
     },
     { 
-      key: 'activationDate', 
-      label: 'Activation Date', 
+      key: 'lastOnline', 
+      label: 'Last Online', 
       type: 'date'
     },
     { 
@@ -451,7 +451,7 @@ export default function RadiusUsers() {
       key: 'tags', 
       label: 'Tags', 
       type: 'array',
-      options: tags.map(t => ({ value: t.id.toString(), label: t.title }))
+      options: tags.map(t => ({ value: t.id.toString(), label: t.title, color: t.color }))
     },
     { key: 'address', label: 'Address', type: 'text' },
     { key: 'city', label: 'City', type: 'text' },

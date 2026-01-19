@@ -36,9 +36,13 @@ public class RadiusUserController : ControllerBase
     {
         public string? Id { get; set; }
         public string? Field { get; set; }
+        public string? Column { get; set; }  // Support both "field" and "column" from frontend
         public string? Operator { get; set; }
         public string? Value { get; set; }
         public List<string>? Values { get; set; }
+        
+        // Helper to get the field name (supports both "field" and "column" properties)
+        public string? GetFieldName() => !string.IsNullOrEmpty(Field) ? Field : Column;
     }
 
     public class FilterGroup
@@ -60,11 +64,11 @@ public class RadiusUserController : ControllerBase
         {
             var json = System.Text.Json.JsonSerializer.Serialize(item);
             
-            // Try to parse as FilterCondition first
-            if (json.Contains("\"field\""))
+            // Try to parse as FilterCondition first (support both "field" and "column" from frontend)
+            if (json.Contains("\"field\"") || json.Contains("\"column\""))
             {
                 var condition = System.Text.Json.JsonSerializer.Deserialize<FilterCondition>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (condition != null && !string.IsNullOrEmpty(condition.Field))
+                if (condition != null && !string.IsNullOrEmpty(condition.GetFieldName()))
                 {
                     var predicate = BuildConditionPredicate(condition);
                     if (predicate != null)
@@ -115,7 +119,7 @@ public class RadiusUserController : ControllerBase
 
     private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildConditionPredicate(FilterCondition condition)
     {
-        var field = condition.Field?.ToLower();
+        var field = condition.GetFieldName()?.ToLower();
         var op = condition.Operator?.ToLower();
         var value = condition.Value;
         var values = condition.Values;
@@ -138,7 +142,6 @@ public class RadiusUserController : ControllerBase
             "balance" => BuildDecimalPredicate(u => u.Balance, op, value),
             "loanbalance" => BuildDecimalPredicate(u => u.LoanBalance, op, value),
             "expirationdate" or "expiration" => BuildDatePredicate(u => u.Expiration, op, value),
-            "activationdate" => BuildDatePredicate(u => u.ActivationDate, op, value),
             "createdat" => BuildDatePredicate(u => u.CreatedAt, op, value),
             "updatedat" => BuildDatePredicate(u => u.UpdatedAt, op, value),
             "lastonline" => BuildDatePredicate(u => u.LastOnline, op, value),
@@ -531,11 +534,10 @@ public class RadiusUserController : ControllerBase
                 .Select(z => new { value = z.Id.ToString(), label = z.Name })
                 .ToListAsync(),
             "tags" => await _context.RadiusTags
-                .Where(t => !t.IsDeleted)
+                .Where(t => t.DeletedAt == null)
                 .Select(t => new { value = t.Id.ToString(), label = t.Title, color = t.Color, icon = t.Icon })
                 .ToListAsync(),
             "balance" => await query
-                .Where(u => u.Balance != null)
                 .Select(u => u.Balance)
                 .Distinct()
                 .OrderBy(b => b)
