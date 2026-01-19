@@ -77,6 +77,7 @@ public class ApplicationDbContext : DbContext
         // Ignore User navigation properties for auth system (managed in MasterDbContext)
         modelBuilder.Entity<User>().Ignore(u => u.UserRoles);
         modelBuilder.Entity<User>().Ignore(u => u.UserGroups);
+        modelBuilder.Entity<User>().Ignore(u => u.UserWorkspaces);
 
         // UserCashback: Ignore User navigation property since Users table is in MasterDbContext
         modelBuilder.Entity<UserCashback>(entity =>
