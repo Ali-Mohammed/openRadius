@@ -45,6 +45,7 @@ export default function RadiusTags() {
   const [deletingTag, setDeletingTag] = useState<RadiusTag | null>(null)
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
   const [restoringTag, setRestoringTag] = useState<RadiusTag | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const { data: tags = [], isLoading, isFetching } = useQuery({
     queryKey: ['radiusTags', showTrash],
@@ -186,6 +187,14 @@ export default function RadiusTags() {
           <p className="text-muted-foreground mt-1">Organize and manage your RADIUS users with custom tags</p>
         </div>
         <div className="flex items-center gap-2">
+          {!showTrash && (
+            <Input
+              placeholder="Search tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 w-48"
+            />
+          )}
           <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
             <TabsList className="grid w-fit grid-cols-2">
               <TabsTrigger value="active">
@@ -212,6 +221,7 @@ export default function RadiusTags() {
           )}
         </div>
       </div>
+
 
       <Card className="overflow-hidden">
         <CardContent className="p-0">
@@ -241,30 +251,36 @@ export default function RadiusTags() {
               )}
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-6">
-              {tags.map((tag: RadiusTag) => {
+            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 p-4">
+              {tags.filter((tag: RadiusTag) => {
+                const query = searchQuery.toLowerCase()
+                return (
+                  tag.title.toLowerCase().includes(query) ||
+                  tag.description?.toLowerCase().includes(query)
+                )
+              }).map((tag: RadiusTag) => {
                 const IconComponent = getIconComponent(tag.icon)
                 return (
                   <Card 
                     key={tag.id} 
                     className={`transition-all hover:shadow-lg ${showTrash ? 'opacity-75' : 'hover:border-primary/50'}`}
                   >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
                           <div 
-                            className="rounded-lg p-2.5 flex-shrink-0"
+                            className="rounded-md p-1.5 shrink-0"
                             style={{ 
                               backgroundColor: `${tag.color}15`,
                               color: tag.color 
                             }}
                           >
-                            <IconComponent className="w-5 h-5" />
+                            <IconComponent className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <CardTitle className="text-lg mb-1 truncate">{tag.title}</CardTitle>
+                            <CardTitle className="text-sm mb-0.5 truncate">{tag.title}</CardTitle>
                             {tag.description && (
-                              <CardDescription className="line-clamp-2">{tag.description}</CardDescription>
+                              <CardDescription className="line-clamp-1 text-xs">{tag.description}</CardDescription>
                             )}
                           </div>
                         </div>
@@ -272,49 +288,49 @@ export default function RadiusTags() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary flex-shrink-0"
+                            className="h-6 w-6 hover:bg-primary/10 hover:text-primary shrink-0"
                             onClick={() => {
                               setRestoringTag(tag)
                               setShowRestoreDialog(true)
                             }}
                           >
-                            <RotateCcw className="h-4 w-4" />
+                            <RotateCcw className="h-3 w-3" />
                           </Button>
                         ) : (
-                          <div className="flex gap-1 flex-shrink-0">
+                          <div className="flex gap-0.5 shrink-0">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                              className="h-6 w-6 hover:bg-primary/10 hover:text-primary"
                               onClick={() => handleEdit(tag)}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                              className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => {
                                 setDeletingTag(tag)
                                 setShowDeleteDialog(true)
                               }}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         )}
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <Badge 
                           variant={showTrash ? 'secondary' : (tag.status === 'active' ? 'default' : 'secondary')}
-                          className="font-medium"
+                          className="font-medium text-xs"
                         >
                           {tag.status}
                         </Badge>
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Users className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
                           <span className="font-medium">{tag.usersCount ?? 0}</span>
                         </div>
                       </div>
