@@ -1166,11 +1166,26 @@ public class RadiusUserController : ControllerBase
     public async Task<IActionResult> ExportToCsv(
         [FromQuery] string? search = null,
         [FromQuery] string? sortField = null,
-        [FromQuery] string? sortDirection = "asc")
+        [FromQuery] string? sortDirection = "asc",
+        [FromQuery] string? filters = null)
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
             .Where(u => !u.IsDeleted);
+
+        // Apply advanced filters
+        if (!string.IsNullOrEmpty(filters))
+        {
+            try
+            {
+                var filterGroup = System.Text.Json.JsonSerializer.Deserialize<FilterGroup>(filters, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                query = ApplyAdvancedFilters(query, filterGroup);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Failed to parse filters in export: {Error}", ex.Message);
+            }
+        }
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
@@ -1278,11 +1293,26 @@ public class RadiusUserController : ControllerBase
     public async Task<IActionResult> ExportToExcel(
         [FromQuery] string? search = null,
         [FromQuery] string? sortField = null,
-        [FromQuery] string? sortDirection = "asc")
+        [FromQuery] string? sortDirection = "asc",
+        [FromQuery] string? filters = null)
     {
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
             .Where(u => !u.IsDeleted);
+
+        // Apply advanced filters
+        if (!string.IsNullOrEmpty(filters))
+        {
+            try
+            {
+                var filterGroup = System.Text.Json.JsonSerializer.Deserialize<FilterGroup>(filters, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                query = ApplyAdvancedFilters(query, filterGroup);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Failed to parse filters in export: {Error}", ex.Message);
+            }
+        }
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))

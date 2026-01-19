@@ -383,7 +383,7 @@ function ConditionRow({
           }}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder="Enter value..."
-          className="h-8 w-36 text-xs"
+          className={`h-8 text-xs ${columnType === 'date' ? 'w-[140px]' : 'w-36'}`}
         />
         {showSuggestions && hasSuggestions && inputRect && createPortal(
           <div 
@@ -434,13 +434,13 @@ function ConditionRow({
 
     return (
       <>
-        <span className="text-xs text-muted-foreground">and</span>
+        <span className="text-xs text-muted-foreground px-1">and</span>
         <Input
           type={columnType === 'number' ? 'number' : columnType === 'date' ? 'date' : 'text'}
           value={condition.value2 as string || ''}
           onChange={(e) => handleValue2Change(columnType === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
           placeholder="End value..."
-          className="h-8 w-36 text-xs"
+          className={`h-8 text-xs ${columnType === 'date' ? 'w-[140px]' : 'w-36'}`}
         />
       </>
     )
@@ -856,8 +856,8 @@ export function QueryBuilder({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto min-w-[500px] max-w-[700px] p-0" 
-        align="start"
+        className="w-auto min-w-[500px] max-w-[90vw] p-0" 
+        align="center"
         sideOffset={8}
       >
         <div className="p-3 border-b bg-muted/30">
@@ -885,6 +885,7 @@ export function QueryBuilder({
         </div>
 
         <div className="p-3 max-h-[400px] overflow-auto">
+          <div className="min-w-fit">
           {filters.conditions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -894,6 +895,7 @@ export function QueryBuilder({
           ) : (
             renderConditions(filters)
           )}
+          </div>
         </div>
 
         <Separator />

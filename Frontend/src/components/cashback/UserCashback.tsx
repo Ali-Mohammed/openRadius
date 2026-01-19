@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Save, RefreshCw, DollarSign, Users, RotateCcw } from 'lucide-react';
+import { Save, RefreshCw, DollarSign, Users, RotateCcw, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { userManagementApi, type User } from '@/api/userManagementApi';
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles';
 import { userCashbackApi } from '@/api/userCashbackApi';
@@ -26,6 +27,8 @@ export default function UserCashback() {
   const [cashbackAmounts, setCashbackAmounts] = useState<Record<number, number>>({});
   const [focusedInput, setFocusedInput] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
+  const [userSearchValue, setUserSearchValue] = useState('');
 
   // Fetch workspace for currency
   const { data: workspace } = useQuery({
@@ -202,52 +205,96 @@ export default function UserCashback() {
         <CardContent className="space-y-3">
           <div className="space-y-2">
             <Label>User *</Label>
-            <Select
-              value={selectedUserId?.toString() || ''}
-              onValueChange={(value) => setSelectedUserId(parseInt(value))}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a user" />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingUsers ? (
-                  <SelectItem value="loading" disabled>Loading...</SelectItem>
-                ) : usersData?.data && usersData.data.length > 0 ? (
-                  usersData.data.map((user: User) => {
-                    const isInGroup = assignedUserIds?.includes(user.id) || false;
-                    return (
-                      <SelectItem 
-                        key={user.id} 
-                        value={user.id.toString()}
-                        disabled={isInGroup}
-                        className={cn(
-                          isInGroup && "opacity-60"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          {isInGroup && (
-                            <Users className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                          )}
-                          <span className={cn(
-                            "flex-1",
-                            isInGroup && "line-through"
-                          )}>
-                            {user.firstName && user.lastName
-                              ? `${user.firstName} ${user.lastName} (${user.email})`
-                              : user.email || `User ${user.id}`}
-                          </span>
-                          {isInGroup && (
-                            <span className="text-xs text-blue-500 ml-auto">In group</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })
-                ) : (
-                  <SelectItem value="none" disabled>No users available</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={userSearchOpen}
+                  className="w-full justify-between"
+                  disabled={isLoadingUsers}
+                >
+                  {selectedUserId && usersData?.data
+                    ? (() => {
+                        const user = usersData.data.find((u: User) => u.id === selectedUserId);
+                        return user
+                          ? `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email} (${user.email})`
+                          : 'Select a user...'
+                      })()
+                    : 'Select a user...'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput
+                    placeholder="Search users..."
+                    value={userSearchValue}
+                    onValueChange={setUserSearchValue}
+                  />
+                  <CommandList>
+                    <CommandEmpty>No users found.</CommandEmpty>
+                    <CommandGroup>
+                      {usersData?.data
+                        ?.filter((user: User) => {
+                          const searchLower = userSearchValue.toLowerCase();
+                          return (
+                            user.email.toLowerCase().includes(searchLower) ||
+                            (user.firstName && user.firstName.toLowerCase().includes(searchLower)) ||
+                            (user.lastName && user.lastName.toLowerCase().includes(searchLower))
+                          );
+                        })
+                        .map((user: User) => {
+                          const isInGroup = assignedUserIds?.includes(user.id) || false;
+                          return (
+                            <CommandItem
+                              key={user.id}
+                              value={user.id.toString()}
+                              onSelect={() => {
+                                if (!isInGroup) {
+                                  setSelectedUserId(user.id);
+                                  setUserSearchOpen(false);
+                                  setUserSearchValue('');
+                                }
+                              }}
+                              disabled={isInGroup}
+                              className={cn(isInGroup && 'opacity-50')}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  selectedUserId === user.id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              <div className="flex items-center gap-2 flex-1">
+                                {isInGroup && (
+                                  <Users className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                )}
+                                <div className="flex flex-col gap-0.5">
+                                  <span
+                                    className={cn(
+                                      'text-sm',
+                                      isInGroup && 'line-through'
+                                    )}
+                                  >
+                                    {user.firstName && user.lastName
+                                      ? `${user.firstName} ${user.lastName}`
+                                      : user.email}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                                </div>
+                                {isInGroup && (
+                                  <span className="text-xs text-blue-500 ml-auto">In group</span>
+                                )}
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {selectedUser && (

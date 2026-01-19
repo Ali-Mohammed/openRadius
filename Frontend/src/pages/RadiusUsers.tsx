@@ -1175,10 +1175,12 @@ export default function RadiusUsers() {
   const handleExportCsv = async () => {
     setIsExporting(true)
     try {
+      const filtersJson = JSON.stringify(appliedFilters)
       const blob = await radiusUserApi.exportToCsv(
         searchQuery || undefined,
         sortField || undefined,
-        sortDirection
+        sortDirection,
+        filtersJson
       )
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -1190,6 +1192,7 @@ export default function RadiusUsers() {
       document.body.removeChild(a)
       toast.success('CSV exported successfully')
     } catch (error) {
+      console.error('Export CSV error:', error)
       toast.error('Failed to export CSV')
     } finally {
       setIsExporting(false)
@@ -1199,10 +1202,12 @@ export default function RadiusUsers() {
   const handleExportExcel = async () => {
     setIsExporting(true)
     try {
+      const filtersJson = JSON.stringify(appliedFilters)
       const blob = await radiusUserApi.exportToExcel(
         searchQuery || undefined,
         sortField || undefined,
-        sortDirection
+        sortDirection,
+        filtersJson
       )
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -1214,6 +1219,7 @@ export default function RadiusUsers() {
       document.body.removeChild(a)
       toast.success('Excel exported successfully')
     } catch (error) {
+      console.error('Export Excel error:', error)
       toast.error('Failed to export Excel')
     } finally {
       setIsExporting(false)

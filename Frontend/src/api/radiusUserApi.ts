@@ -161,12 +161,14 @@ export const radiusUserApi = {
   exportToCsv: async (
     search?: string,
     sortField?: string,
-    sortDirection?: 'asc' | 'desc'
+    sortDirection?: 'asc' | 'desc',
+    filters?: string
   ): Promise<Blob> => {
     const params = new URLSearchParams()
     if (search) params.append('search', search)
     if (sortField) params.append('sortField', sortField)
     if (sortDirection) params.append('sortDirection', sortDirection)
+    if (filters) params.append('filters', filters)
     
     const response = await apiClient.get(
       `/api/radius/users/export/csv?${params.toString()}`,
@@ -178,12 +180,14 @@ export const radiusUserApi = {
   exportToExcel: async (
     search?: string,
     sortField?: string,
-    sortDirection?: 'asc' | 'desc'
+    sortDirection?: 'asc' | 'desc',
+    filters?: string
   ): Promise<Blob> => {
     const params = new URLSearchParams()
     if (search) params.append('search', search)
     if (sortField) params.append('sortField', sortField)
     if (sortDirection) params.append('sortDirection', sortDirection)
+    if (filters) params.append('filters', filters)
     
     const response = await apiClient.get(
       `/api/radius/users/export/excel?${params.toString()}`,
