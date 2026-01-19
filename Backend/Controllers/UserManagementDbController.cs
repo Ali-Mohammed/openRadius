@@ -315,17 +315,17 @@ public class UserManagementDbController : ControllerBase
                 .Select(w => new { id = w.Id, title = w.Title, name = w.Name, color = w.Color, icon = w.Icon })
                 .ToListAsync();
 
-            // Fetch zones from workspace database
-            var keycloakUserIds = users.Where(u => !string.IsNullOrEmpty(u.KeycloakUserId)).Select(u => u.KeycloakUserId!).ToList();
+            // Fetch zones from workspace database using local User.Id (stored as string in UserZones)
+            var localUserIds = users.Select(u => u.Id.ToString()).ToList();
             var userZonesMap = new Dictionary<string, List<object>>();
             
-            if (keycloakUserIds.Any())
+            if (localUserIds.Any())
             {
                 try
                 {
                     var userZones = await _appContext.UserZones
                         .AsNoTracking()
-                        .Where(uz => keycloakUserIds.Contains(uz.UserId))
+                        .Where(uz => localUserIds.Contains(uz.UserId))
                         .Join(_appContext.Zones,
                             uz => uz.ZoneId,
                             z => z.Id,
@@ -419,8 +419,8 @@ public class UserManagementDbController : ControllerBase
                     : null,
                 roles = u.Roles,
                 groups = u.Groups,
-                zones = !string.IsNullOrEmpty(u.KeycloakUserId) && userZonesMap.ContainsKey(u.KeycloakUserId)
-                    ? userZonesMap[u.KeycloakUserId]
+                zones = userZonesMap.ContainsKey(u.Id.ToString())
+                    ? userZonesMap[u.Id.ToString()]
                     : new List<object>(),
                 workspaces = u.Workspaces
             }).ToList();
