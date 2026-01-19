@@ -451,13 +451,39 @@ public class SasSyncService : ISasSyncService
             }
             
             // Fourth: Assign zones to users based on matching zone name to username
-            ReportProgress("Zones", 0, 100, "Assigning zones to users...");
+            ReportProgress("Zones", 0, 100, "Checking zones...");
             _logger.LogInformation("Assigning zones to users based on matching names");
             
             // Get all zones in the workspace
             var zones = await context.Zones
                 .Where(z => !z.IsDeleted)
                 .ToListAsync();
+            
+            // If no zones exist, sync zones from SAS first
+            if (zones.Count == 0)
+            {
+                ReportProgress("Zones", 0, 100, "No zones found, syncing zones from SAS...");
+                _logger.LogInformation("No zones found in workspace, triggering zone sync from SAS");
+                
+                try
+                {
+                    var zonesSynced = await SyncZonesForManagerSyncAsync(integration, token, context);
+                    result.ZonesSynced = zonesSynced;
+                    _logger.LogInformation("Synced {Count} zones from SAS", zonesSynced);
+                    
+                    // Reload zones after sync
+                    zones = await context.Zones
+                        .Where(z => !z.IsDeleted)
+                        .ToListAsync();
+                }
+                catch (Exception zoneEx)
+                {
+                    _logger.LogError(zoneEx, "Failed to sync zones from SAS");
+                    result.Errors.Add($"Failed to sync zones: {zoneEx.Message}");
+                }
+            }
+            
+            ReportProgress("Zones", 0, zones.Count, "Assigning zones to users...");
             
             int zoneIndex = 0;
             foreach (var zone in zones)
