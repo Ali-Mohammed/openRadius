@@ -1615,6 +1615,17 @@ export default function RadiusUsers() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <QueryBuilder
+            columns={filterColumns}
+            value={advancedFilters}
+            onChange={setAdvancedFilters}
+            onFetchSuggestions={fetchFilterSuggestions}
+            onApply={(filters) => {
+              setAdvancedFilters(filters)
+              // Trigger a refetch with the new filters
+              queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+            }}
+          />
           <div className="flex items-center gap-1">
             <Input
               placeholder={t('radiusUsers.searchUsers')}
@@ -1626,17 +1637,6 @@ export default function RadiusUsers() {
             <Button onClick={handleSearch} variant="outline" size="icon">
               <Search className="h-4 w-4" />
             </Button>
-            <QueryBuilder
-              columns={filterColumns}
-              value={advancedFilters}
-              onChange={setAdvancedFilters}
-              onFetchSuggestions={fetchFilterSuggestions}
-              onApply={(filters) => {
-                setAdvancedFilters(filters)
-                // Trigger a refetch with the new filters
-                queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
-              }}
-            />
             <Button 
               onClick={() => queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })} 
               variant="outline" 
