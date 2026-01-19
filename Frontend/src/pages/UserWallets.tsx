@@ -572,7 +572,7 @@ export default function UserWallets() {
   const renderColumnHeader = (column: string) => {
     if (column === 'actions') {
       return (
-        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 top-0 bg-muted z-30" style={{ width: 100 }}>
+        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-10" style={{ width: 100 }}>
           Actions
         </TableHead>
       )
@@ -850,7 +850,7 @@ export default function UserWallets() {
         <CardContent className="p-0 overflow-hidden relative">
           {isLoading ? (
             <div className="overflow-auto">
-              <Table>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
                     {columnOrder.filter(c => c === 'actions' || columnVisibility[c as keyof typeof columnVisibility]).map(col => (
@@ -905,7 +905,7 @@ export default function UserWallets() {
                   </div>
                 </div>
               )}
-              <Table>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow className="hover:bg-muted">
                     {columnOrder.map(column => renderColumnHeader(column))}
