@@ -233,7 +233,7 @@ export default function WorkspaceSettings() {
         toast.success(
           `Manager sync completed: ${response.newUsersCreated} new users, ` +
           `${response.existingUsersUpdated} updated, ${response.keycloakUsersCreated} Keycloak users, ` +
-          `${response.zonesAssigned} zones assigned`
+          `${response.walletsCreated || 0} wallets created, ${response.zonesAssigned} zones assigned`
         )
         if (response.errors && response.errors.length > 0) {
           response.errors.forEach(error => toast.error(error))
