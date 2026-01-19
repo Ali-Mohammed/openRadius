@@ -372,6 +372,7 @@ function ConditionRow({
 
     // Text/Number/Date input with suggestions
     const hasSuggestions = allSuggestions.length > 0 || isLoadingSuggestions
+    const inputRect = inputRef.current?.getBoundingClientRect()
     return (
       <div className="relative">
         <Input
@@ -389,8 +390,16 @@ function ConditionRow({
           placeholder="Enter value..."
           className="h-8 w-36 text-xs"
         />
-        {showSuggestions && hasSuggestions && (
-          <div className="absolute top-full left-0 z-[9999] mt-1 w-full bg-popover border rounded-md shadow-md max-h-52 overflow-auto">
+        {showSuggestions && hasSuggestions && inputRect && createPortal(
+          <div 
+            className="fixed bg-popover border rounded-md shadow-md max-h-52 overflow-auto"
+            style={{
+              top: inputRect.bottom + 4,
+              left: inputRect.left,
+              width: inputRect.width,
+              zIndex: 99999,
+            }}
+          >
             {isLoadingSuggestions ? (
               <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
             ) : (
@@ -418,7 +427,8 @@ function ConditionRow({
                 )
               })
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     )
@@ -517,6 +527,26 @@ function ConditionRow({
 
       {/* Actions */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6"
+          onClick={onMoveUp}
+          disabled={!canMoveUp}
+          title="Move up"
+        >
+          <ArrowUp className="h-3 w-3" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6"
+          onClick={onMoveDown}
+          disabled={!canMoveDown}
+          title="Move down"
+        >
+          <ArrowDown className="h-3 w-3" />
+        </Button>
         <Button 
           variant="ghost" 
           size="icon" 
