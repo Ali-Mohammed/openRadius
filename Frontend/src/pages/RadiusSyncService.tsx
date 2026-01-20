@@ -359,21 +359,7 @@ export default function RadiusSyncServicePage() {
     }
   };
 
-  // Measure dashboard connection latency
-  const measureDashboardPing = useCallback(async () => {
-    if (connection?.state !== signalR.HubConnectionState.Connected) return;
-    
-    const start = Date.now();
-    try {
-      // Simple round-trip to measure connection latency
-      await connection.invoke('GetConnectedServices');
-      setDashboardPing(Date.now() - start);
-    } catch {
-      setDashboardPing(null);
-    }
-  }, [connection]);
-
-  // Measure dashboard ping every 10 seconds
+  // Measure dashboard ping every 5 seconds
   useEffect(() => {
     if (connectionState !== 'Connected') return;
     
