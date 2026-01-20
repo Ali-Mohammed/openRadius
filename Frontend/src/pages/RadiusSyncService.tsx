@@ -136,9 +136,13 @@ export default function RadiusSyncServicePage() {
       try {
         await connection.start();
         setConnectionState('Connected');
+        setLastUpdate(new Date());
         
         // Join the dashboard group to receive service updates
         await connection.invoke('JoinDashboard');
+        
+        // Measure initial ping
+        setTimeout(() => measureDashboardPing(), 500);
       } catch (err) {
         console.error('SignalR Connection Error:', err);
         setConnectionState('Error');
@@ -148,6 +152,7 @@ export default function RadiusSyncServicePage() {
 
     connection.onclose(() => {
       setConnectionState('Disconnected');
+      setDashboardPing(null);
     });
 
     connection.onreconnecting(() => {
@@ -156,7 +161,9 @@ export default function RadiusSyncServicePage() {
 
     connection.onreconnected(() => {
       setConnectionState('Connected');
+      setLastUpdate(new Date());
       connection.invoke('JoinDashboard').catch(console.error);
+      setTimeout(() => measureDashboardPing(), 500);
     });
 
     // Handle initial state
@@ -365,8 +372,11 @@ export default function RadiusSyncServicePage() {
   useEffect(() => {
     if (connectionState !== 'Connected') return;
     
-    measureDashboardPing();
-    const interval = setInterval(measureDashboardPing, 10000);
+    // Initial ping already done in connection setup
+    const interval = setInterval(() => {
+      measureDashboardPing();
+    }, 5000); // Every 5 seconds for more responsive updates
+    
     return () => clearInterval(interval);
   }, [connectionState, measureDashboardPing]);
 
