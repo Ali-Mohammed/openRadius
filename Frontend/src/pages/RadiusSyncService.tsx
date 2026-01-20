@@ -32,6 +32,8 @@ interface ServiceInfo {
   approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   connectedAt: string;
   lastHeartbeat: string;
+  ipAddress?: string;
+  userAgent?: string;
   currentActivity?: string;
   activityProgress?: number;
   healthReport?: {
@@ -402,48 +404,110 @@ export default function RadiusSyncServicePage() {
                   {services.filter(s => s.approvalStatus === 'Pending').map((service) => (
                     <div
                       key={service.serviceName}
-                      className="rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 p-4 flex items-center gap-4"
+                      className="rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 p-4"
                     >
-                      {/* Status Indicator */}
-                      <div className="h-3 w-3 rounded-full bg-orange-500 flex-shrink-0 animate-pulse" />
-                      
-                      {/* Service Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2">
-                          <h3 className="font-semibold text-lg">{service.serviceName}</h3>
-                          <span className="text-sm text-muted-foreground">v{service.version}</span>
+                      <div className="flex items-center gap-4 mb-4">
+                        {/* Status Indicator */}
+                        <div className="h-3 w-3 rounded-full bg-orange-500 flex-shrink-0 animate-pulse" />
+                        
+                        {/* Service Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <h3 className="font-semibold text-lg">{service.serviceName}</h3>
+                            <span className="text-sm text-muted-foreground">v{service.version}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Requested {formatUptime(service.connectedAt)} ago
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Requested {formatUptime(service.connectedAt)} ago
-                        </p>
+
+                        {/* Approval Actions */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-green-500 hover:bg-green-600 text-white border-green-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              approveService(service.serviceName);
+                            }}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-red-500 hover:bg-red-600 text-white border-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              rejectService(service.serviceName);
+                            }}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
                       </div>
 
-                      {/* Approval Actions */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-green-500 hover:bg-green-600 text-white border-green-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            approveService(service.serviceName);
-                          }}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-red-500 hover:bg-red-600 text-white border-red-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            rejectService(service.serviceName);
-                          }}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
+                      {/* Connection Details */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-3 rounded-md bg-white/50 dark:bg-black/20 border border-orange-100">
+                        {service.ipAddress && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">IP Address</p>
+                            <p className="text-sm font-mono">{service.ipAddress}</p>
+                          </div>
+                        )}
+                        {service.metadata?.machineName && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">Machine Name</p>
+                            <p className="text-sm font-mono">{service.metadata.machineName}</p>
+                          </div>
+                        )}
+                        {service.metadata?.platform && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">Platform</p>
+                            <p className="text-sm font-mono">{service.metadata.platform}</p>
+                          </div>
+                        )}
+                        {service.metadata?.osVersion && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">OS Version</p>
+                            <p className="text-sm font-mono truncate" title={service.metadata.osVersion}>
+                              {service.metadata.osVersion}
+                            </p>
+                          </div>
+                        )}
+                        {service.metadata?.dotnetVersion && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">.NET Version</p>
+                            <p className="text-sm font-mono">{service.metadata.dotnetVersion}</p>
+                          </div>
+                        )}
+                        {service.metadata?.userName && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">User</p>
+                            <p className="text-sm font-mono">{service.metadata.userName}</p>
+                          </div>
+                        )}
+                        {service.metadata?.workingDirectory && (
+                          <div className="space-y-1 md:col-span-2">
+                            <p className="text-xs text-muted-foreground font-medium">Working Directory</p>
+                            <p className="text-sm font-mono truncate" title={service.metadata.workingDirectory}>
+                              {service.metadata.workingDirectory}
+                            </p>
+                          </div>
+                        )}
+                        {service.metadata?.environment && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">Environment</p>
+                            <p className="text-sm">
+                              <Badge variant="outline" className="text-xs">
+                                {service.metadata.environment}
+                              </Badge>
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

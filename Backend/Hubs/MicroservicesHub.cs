@@ -61,6 +61,9 @@ public class MicroservicesHub : Hub
     public async Task RegisterService(string serviceName, string version, Dictionary<string, string>? metadata = null)
     {
         var connectionId = Context.ConnectionId;
+        var httpContext = Context.GetHttpContext();
+        var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString() ?? "Unknown";
+        var userAgent = httpContext?.Request?.Headers["User-Agent"].ToString() ?? "Unknown";
         
         var serviceInfo = new MicroserviceInfo
         {
@@ -70,6 +73,8 @@ public class MicroservicesHub : Hub
             ConnectedAt = DateTime.UtcNow,
             LastHeartbeat = DateTime.UtcNow,
             Status = ServiceStatus.Online,
+            IpAddress = ipAddress,
+            UserAgent = userAgent,
             Metadata = metadata ?? new Dictionary<string, string>()
         };
 
@@ -308,6 +313,8 @@ public class MicroservicesHub : Hub
         approvalStatus = info.ApprovalStatus.ToString(),
         connectedAt = info.ConnectedAt,
         lastHeartbeat = info.LastHeartbeat,
+        ipAddress = info.IpAddress,
+        userAgent = info.UserAgent,
         currentActivity = info.CurrentActivity,
         activityProgress = info.ActivityProgress,
         healthReport = info.HealthReport,
@@ -324,6 +331,8 @@ public class MicroserviceInfo
     public DateTime LastHeartbeat { get; set; }
     public ServiceStatus Status { get; set; }
     public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
+    public string IpAddress { get; set; } = string.Empty;
+    public string UserAgent { get; set; } = string.Empty;
     public string? CurrentActivity { get; set; }
     public double? ActivityProgress { get; set; }
     public ServiceHealthReport? HealthReport { get; set; }

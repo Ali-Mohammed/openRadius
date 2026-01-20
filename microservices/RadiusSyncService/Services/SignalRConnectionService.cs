@@ -243,7 +243,12 @@ public class SignalRConnectionService : BackgroundService
                 { "environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production" },
                 { "machineName", Environment.MachineName },
                 { "processId", Environment.ProcessId.ToString() },
-                { "startTime", Process.GetCurrentProcess().StartTime.ToUniversalTime().ToString("O") }
+                { "startTime", Process.GetCurrentProcess().StartTime.ToUniversalTime().ToString("O") },
+                { "osVersion", Environment.OSVersion.ToString() },
+                { "platform", Environment.OSVersion.Platform.ToString() },
+                { "dotnetVersion", Environment.Version.ToString() },
+                { "workingDirectory", Environment.CurrentDirectory },
+                { "userName", Environment.UserName }
             };
 
             await _hubConnection.InvokeAsync("RegisterService", _serviceName, _serviceVersion, metadata);

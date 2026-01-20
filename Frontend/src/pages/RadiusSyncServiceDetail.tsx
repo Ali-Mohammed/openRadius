@@ -31,8 +31,11 @@ interface ServiceInfo {
   version: string;
   connectionId: string;
   status: 'Online' | 'Offline' | 'Degraded' | 'Maintenance';
+  approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   connectedAt: string;
   lastHeartbeat: string;
+  ipAddress?: string;
+  userAgent?: string;
   currentActivity?: string;
   activityProgress?: number;
   healthReport?: {
