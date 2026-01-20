@@ -179,32 +179,17 @@ export default function RadiusSyncServiceDetailPage() {
     if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
     
     setIsPinging(true);
-    const pingId = crypto.randomUUID();
-    const pending: PendingPing = { serviceName, pingId, sentAt: Date.now() };
-    
-    setPendingPings(prev => new Map(prev).set(pingId, pending));
     
     try {
-      await connection.invoke('PingService', serviceName, pingId);
+      await connection.invoke('PingService', serviceName);
     } catch (err) {
       console.error('Ping failed:', err);
-      setPendingPings(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(pingId);
-        return newMap;
-      });
       setIsPinging(false);
     }
 
+    // Reset isPinging after 5 seconds if no response
     setTimeout(() => {
-      setPendingPings(prev => {
-        const newMap = new Map(prev);
-        if (newMap.has(pingId)) {
-          newMap.delete(pingId);
-          setIsPinging(false);
-        }
-        return newMap;
-      });
+      setIsPinging(false);
     }, 5000);
   };
 
