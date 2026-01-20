@@ -1,0 +1,6 @@
+@RadiusSyncService_HostAddress = http://localhost:5242
+
+GET {{RadiusSyncService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
