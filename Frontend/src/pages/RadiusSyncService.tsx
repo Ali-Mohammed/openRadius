@@ -169,6 +169,7 @@ export default function RadiusSyncServicePage() {
     // Handle initial state
     connection.on('InitialState', (data: { services: ServiceInfo[] }) => {
       setServices(data.services);
+      setLastUpdate(new Date());
       if (data.services.length > 0 && !selectedService) {
         setSelectedService(data.services[0].serviceName);
       }
@@ -185,6 +186,7 @@ export default function RadiusSyncServicePage() {
         }
         return [...prev, service];
       });
+      setLastUpdate(new Date());
       addLog({
         serviceName: service.serviceName,
         level: 'info',
@@ -196,6 +198,7 @@ export default function RadiusSyncServicePage() {
     // Handle service disconnected
     connection.on('ServiceDisconnected', (data: { serviceName: string; disconnectedAt: string }) => {
       setServices(prev => prev.filter(s => s.serviceName !== data.serviceName));
+      setLastUpdate(new Date());
       addLog({
         serviceName: data.serviceName,
         level: 'warning',
@@ -232,9 +235,6 @@ export default function RadiusSyncServicePage() {
           : s
       ));
       setLastUpdate(new Date());
-    });
-          : s
-      ));
     });
 
     // Handle service logs
