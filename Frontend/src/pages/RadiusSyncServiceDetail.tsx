@@ -129,12 +129,10 @@ export default function RadiusSyncServiceDetailPage() {
       }
     });
 
-    connection.on('PingResult', (data: { serviceName: string; pingId: string; responseTime: string }) => {
+    connection.on('PingResult', (data: { serviceName: string; pingId: string; latencyMs: number; responseTime: string }) => {
       if (data.serviceName !== serviceName) return;
 
-      // Calculate latency (this would need the original ping timestamp from service)
-      // For now, we'll use a mock latency - the microservice should calculate this
-      const latency = 50; // Placeholder - actual latency should come from the service
+      const latency = Math.round(data.latencyMs);
 
       setService(prev => {
         if (!prev) return null;
