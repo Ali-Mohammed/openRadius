@@ -29,6 +29,7 @@ interface ServiceInfo {
   version: string;
   connectionId: string;
   status: 'Online' | 'Offline' | 'Degraded' | 'Maintenance';
+  approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   connectedAt: string;
   lastHeartbeat: string;
   currentActivity?: string;
@@ -231,6 +232,20 @@ export default function RadiusSyncServicePage() {
       addLog(log);
     });
 
+    // Handle service approval
+    connection.on('ServiceApproved', (service: ServiceInfo) => {
+      setServices(prev => prev.map(s =>
+        s.serviceName === service.serviceName ? service : s
+      ));
+      setLastUpdate(new Date());
+    });
+
+    // Handle service rejection
+    connection.on('ServiceRejected', (serviceName: string) => {
+      setServices(prev => prev.filter(s => s.serviceName !== serviceName));
+      setLastUpdate(new Date());
+    });
+
     startConnection();
   }, [connection]);
 
@@ -281,6 +296,24 @@ export default function RadiusSyncServicePage() {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
+  };
+
+  const approveService = async (serviceName: string) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
+    try {
+      await connection.invoke('ApproveService', serviceName);
+    } catch (err) {
+      console.error('Failed to approve service:', err);
+    }
+  };
+
+  const rejectService = async (serviceName: string) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
+    try {
+      await connection.invoke('RejectService', serviceName);
+    } catch (err) {
+      console.error('Failed to reject service:', err);
+    }
   };
 
   return (
