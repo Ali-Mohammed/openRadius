@@ -216,6 +216,7 @@ export default function RadiusSyncServicePage() {
           ? { ...s, status: data.status as ServiceInfo['status'], lastHeartbeat: data.lastHeartbeat, healthReport: data.healthReport }
           : s
       ));
+      setLastUpdate(new Date());
     });
 
     // Handle activity updates
@@ -228,6 +229,10 @@ export default function RadiusSyncServicePage() {
       setServices(prev => prev.map(s => 
         s.serviceName === data.serviceName 
           ? { ...s, currentActivity: data.activity, activityProgress: data.progress }
+          : s
+      ));
+      setLastUpdate(new Date());
+    });
           : s
       ));
     });
@@ -444,28 +449,51 @@ export default function RadiusSyncServicePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Real-time clock */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="font-mono">{currentTime.toLocaleTimeString()}</span>
+          </div>
+          
           {/* Dashboard Connection Quality */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted">
+                <div 
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors",
+                    connectionState === 'Connected' ? "bg-muted hover:bg-muted/80" : "bg-destructive/10"
+                  )}
+                  onClick={() => measureDashboardPing()}
+                >
                   {connectionState === 'Connected' ? (
                     <Wifi className={cn("h-4 w-4", getPingQuality(dashboardPing ?? undefined).color)} />
                   ) : (
-                    <WifiOff className="h-4 w-4 text-muted-foreground" />
+                    <WifiOff className="h-4 w-4 text-destructive" />
                   )}
-                  <span className="text-sm font-medium">
+                  <span className={cn("text-sm font-bold tabular-nums", getPingQuality(dashboardPing ?? undefined).color)}>
                     {dashboardPing !== null ? `${dashboardPing}ms` : '--'}
                   </span>
+                  {dashboardPing !== null && (
+                    <div className={cn("h-2 w-2 rounded-full animate-pulse", getPingQuality(dashboardPing).bg)} />
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Dashboard connection latency</p>
-                {dashboardPing !== null && (
-                  <p className={cn("font-medium", getPingQuality(dashboardPing).color)}>
-                    {getPingQuality(dashboardPing).label}
-                  </p>
-                )}
+                <div className="space-y-1">
+                  <p className="font-medium">Dashboard Connection</p>
+                  <p className="text-xs text-muted-foreground">Click to refresh</p>
+                  {dashboardPing !== null && (
+                    <p className={cn("font-medium", getPingQuality(dashboardPing).color)}>
+                      Quality: {getPingQuality(dashboardPing).label}
+                    </p>
+                  )}
+                  {lastUpdate && (
+                    <p className="text-xs text-muted-foreground">
+                      Last update: {lastUpdate.toLocaleTimeString()}
+                    </p>
+                  )}
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
