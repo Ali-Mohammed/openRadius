@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using Backend.Data;
+using Backend.Models;
 
 namespace Backend.Hubs;
 
@@ -13,10 +16,12 @@ public class MicroservicesHub : Hub
     private static readonly ConcurrentDictionary<string, MicroserviceInfo> ConnectedServices = new();
     private static readonly ConcurrentDictionary<string, DateTime> PendingPings = new();
     private readonly ILogger<MicroservicesHub> _logger;
+    private readonly MasterDbContext _dbContext;
 
-    public MicroservicesHub(ILogger<MicroservicesHub> logger)
+    public MicroservicesHub(ILogger<MicroservicesHub> logger, MasterDbContext dbContext)
     {
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -243,20 +248,60 @@ public class MicroservicesHub : Hub
     /// <summary>
     /// Approve a pending microservice connection.
     /// </summary>
-    public async Task ApproveService(string serviceName)
+    public async Task ApproveService(string serviceName, string displayName)
     {
         if (ConnectedServices.TryGetValue(serviceName, out var serviceInfo))
         {
             serviceInfo.ApprovalStatus = ApprovalStatus.Approved;
             serviceInfo.Status = ServiceStatus.Online;
+            serviceInfo.DisplayName = displayName;
+            
+            // Save to database
+            try
+            {
+                var approvedService = await _dbContext.ApprovedMicroservices
+                    .FirstOrDefaultAsync(s => s.ServiceId == serviceName);
+                
+                if (approvedService == null)
+                {
+                    approvedService = new ApprovedMicroservice
+                    {
+                        ServiceId = serviceName,
+                        DisplayName = displayName,
+                        ApprovedAt = DateTime.UtcNow,
+                        ApprovedBy = Context.ConnectionId, // Could be improved with actual user context
+                        LastConnectedAt = serviceInfo.ConnectedAt,
+                        LastIpAddress = serviceInfo.IpAddress,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _dbContext.ApprovedMicroservices.Add(approvedService);
+                }
+                else
+                {
+                    approvedService.DisplayName = displayName;
+                    approvedService.LastConnectedAt = serviceInfo.ConnectedAt;
+                    approvedService.LastIpAddress = serviceInfo.IpAddress;
+                    approvedService.IsActive = true;
+                    approvedService.UpdatedAt = DateTime.UtcNow;
+                }
+                
+                await _dbContext.SaveChangesAsync();
+                
+                _logger.LogInformation("Service approved and saved to database: {ServiceName} as {DisplayName}", 
+                    serviceName, displayName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save approved service to database: {ServiceName}", serviceName);
+            }
             
             // Notify the service that it's been approved
             await Clients.Client(serviceInfo.ConnectionId).SendAsync("Approved");
             
             // Notify all dashboards
             await Clients.Group("dashboard").SendAsync("ServiceApproved", GetServiceStatus(serviceInfo));
-            
-            _logger.LogInformation("Service approved: {ServiceName}", serviceName);
         }
     }
 
@@ -307,6 +352,7 @@ public class MicroservicesHub : Hub
     private static object GetServiceStatus(MicroserviceInfo info) => new
     {
         serviceName = info.ServiceName,
+        displayName = info.DisplayName,
         version = info.Version,
         connectionId = info.ConnectionId,
         status = info.Status.ToString(),
@@ -325,6 +371,7 @@ public class MicroservicesHub : Hub
 public class MicroserviceInfo
 {
     public string ServiceName { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
     public string Version { get; set; } = string.Empty;
     public string ConnectionId { get; set; } = string.Empty;
     public DateTime ConnectedAt { get; set; }

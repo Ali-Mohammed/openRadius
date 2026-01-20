@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -20,12 +23,15 @@ import {
   Wifi,
   WifiOff,
   Signal,
-  ChevronRight
+  ChevronRight,
+  Check,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ServiceInfo {
   serviceName: string;
+  displayName?: string;
   version: string;
   connectionId: string;
   status: 'Online' | 'Offline' | 'Degraded' | 'Maintenance';
@@ -78,6 +84,9 @@ export default function RadiusSyncServicePage() {
   const [dashboardPing, setDashboardPing] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [serviceToApprove, setServiceToApprove] = useState<string | null>(null);
+  const [serviceName, setServiceName] = useState('');
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   // Real-time clock update
@@ -300,10 +309,30 @@ export default function RadiusSyncServicePage() {
     return `${hours}h ${minutes}m`;
   };
 
-  const approveService = async (serviceName: string) => {
-    if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
+  const getTimeAgo = (timestamp: string) => {
+    const diff = currentTime.getTime() - new Date(timestamp).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    if (hours > 0) return `${hours}h ${minutes}m ago`;
+    if (minutes > 0) return `${minutes}m ${seconds}s ago`;
+    return `${seconds}s ago`;
+  };
+
+  const openApprovalDialog = (svcName: string) => {
+    setServiceToApprove(svcName);
+    setServiceName('');
+    setApprovalDialogOpen(true);
+  };
+
+  const approveService = async () => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceToApprove || !serviceName.trim()) return;
     try {
-      await connection.invoke('ApproveService', serviceName);
+      await connection.invoke('ApproveService', serviceToApprove, serviceName.trim());
+      setApprovalDialogOpen(false);
+      setServiceToApprove(null);
+      setServiceName('');
     } catch (err) {
       console.error('Failed to approve service:', err);
     }
@@ -417,7 +446,7 @@ export default function RadiusSyncServicePage() {
                             <span className="text-sm text-muted-foreground">v{service.version}</span>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Requested {formatUptime(service.connectedAt)} ago
+                            Requested {getTimeAgo(service.connectedAt)}
                           </p>
                         </div>
 
@@ -429,10 +458,10 @@ export default function RadiusSyncServicePage() {
                             className="bg-green-500 hover:bg-green-600 text-white border-green-600"
                             onClick={(e) => {
                               e.stopPropagation();
-                              approveService(service.serviceName);
+                              openApprovalDialog(service.serviceName);
                             }}
                           >
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            <Check className="h-4 w-4 mr-1" />
                             Approve
                           </Button>
                           <Button
@@ -501,11 +530,11 @@ export default function RadiusSyncServicePage() {
                         {service.metadata?.environment && (
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground font-medium">Environment</p>
-                            <p className="text-sm">
+                            <div className="text-sm">
                               <Badge variant="outline" className="text-xs">
                                 {service.metadata.environment}
                               </Badge>
-                            </p>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -535,7 +564,7 @@ export default function RadiusSyncServicePage() {
                       {/* Service Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <h3 className="font-semibold text-lg">{service.serviceName}</h3>
+                          <h3 className="font-semibold text-lg">{service.displayName || service.serviceName}</h3>
                           <span className="text-sm text-muted-foreground">v{service.version}</span>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -570,6 +599,53 @@ export default function RadiusSyncServicePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Approval Dialog */}
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Microservice</DialogTitle>
+            <DialogDescription>
+              Please provide a friendly name for this microservice. This will be used to identify it in the dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="serviceName">Service Name</Label>
+              <Input
+                id="serviceName"
+                placeholder="e.g., Radius Sync Service - Production"
+                value={serviceName}
+                onChange={(e) => setServiceName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && serviceName.trim()) {
+                    approveService();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            {serviceToApprove && (
+              <div className="text-sm text-muted-foreground">
+                <p>Service ID: <span className="font-mono">{serviceToApprove}</span></p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={approveService}
+              disabled={!serviceName.trim()}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

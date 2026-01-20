@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 
 interface ServiceInfo {
   serviceName: string;
+  displayName?: string;
   version: string;
   connectionId: string;
   status: 'Online' | 'Offline' | 'Degraded' | 'Maintenance';

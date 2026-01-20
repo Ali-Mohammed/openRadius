@@ -25,6 +25,7 @@ public class MasterDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<UserWorkspace> UserWorkspaces { get; set; }
     public DbSet<BackupHistory> BackupHistories { get; set; }
+    public DbSet<ApprovedMicroservice> ApprovedMicroservices { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
