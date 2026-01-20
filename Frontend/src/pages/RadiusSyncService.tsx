@@ -391,48 +391,117 @@ export default function RadiusSyncServicePage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {services.map((service) => (
-                <div
-                  key={service.serviceName}
-                  className="rounded-lg border p-4 hover:border-primary/50 hover:bg-muted/50 cursor-pointer transition-all flex items-center gap-4"
-                  onClick={() => navigate(`/microservices/radius-sync/${encodeURIComponent(service.serviceName)}`)}
-                >
-                  {/* Status Indicator */}
-                  <div className={cn("h-3 w-3 rounded-full flex-shrink-0", getStatusColor(service.status))} />
-                  
-                  {/* Service Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="font-semibold text-lg">{service.serviceName}</h3>
-                      <span className="text-sm text-muted-foreground">v{service.version}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Connected {formatUptime(service.connectedAt)} ago
-                    </p>
-                  </div>
-
-                  {/* Health Metrics */}
-                  {service.healthReport && (
-                    <div className="flex items-center gap-6">
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{service.healthReport.cpuUsage.toFixed(1)}%</p>
-                        <p className="text-xs text-muted-foreground">CPU</p>
+            <div className="space-y-4">
+              {/* Pending Services Section */}
+              {services.filter(s => s.approvalStatus === 'Pending').length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-orange-500 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Pending Approval ({services.filter(s => s.approvalStatus === 'Pending').length})
+                  </h3>
+                  {services.filter(s => s.approvalStatus === 'Pending').map((service) => (
+                    <div
+                      key={service.serviceName}
+                      className="rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 p-4 flex items-center gap-4"
+                    >
+                      {/* Status Indicator */}
+                      <div className="h-3 w-3 rounded-full bg-orange-500 flex-shrink-0 animate-pulse" />
+                      
+                      {/* Service Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <h3 className="font-semibold text-lg">{service.serviceName}</h3>
+                          <span className="text-sm text-muted-foreground">v{service.version}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Requested {formatUptime(service.connectedAt)} ago
+                        </p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{service.healthReport.memoryUsageMb.toFixed(0)} MB</p>
-                        <p className="text-xs text-muted-foreground">Memory</p>
+
+                      {/* Approval Actions */}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-green-500 hover:bg-green-600 text-white border-green-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveService(service.serviceName);
+                          }}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-500 hover:bg-red-600 text-white border-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rejectService(service.serviceName);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
                       </div>
                     </div>
-                  )}
-
-                  {/* Status Badge */}
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(service.status)}
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {/* Approved Services Section */}
+              {services.filter(s => s.approvalStatus === 'Approved').length > 0 && (
+                <div className="space-y-2">
+                  {services.filter(s => s.approvalStatus === 'Pending').length > 0 && (
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Approved Services ({services.filter(s => s.approvalStatus === 'Approved').length})
+                    </h3>
+                  )}
+                  {services.filter(s => s.approvalStatus === 'Approved').map((service) => (
+                    <div
+                      key={service.serviceName}
+                      className="rounded-lg border p-4 hover:border-primary/50 hover:bg-muted/50 cursor-pointer transition-all flex items-center gap-4"
+                      onClick={() => navigate(`/microservices/radius-sync/${encodeURIComponent(service.serviceName)}`)}
+                    >
+                      {/* Status Indicator */}
+                      <div className={cn("h-3 w-3 rounded-full flex-shrink-0", getStatusColor(service.status))} />
+                      
+                      {/* Service Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <h3 className="font-semibold text-lg">{service.serviceName}</h3>
+                          <span className="text-sm text-muted-foreground">v{service.version}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Connected {formatUptime(service.connectedAt)} ago
+                        </p>
+                      </div>
+
+                      {/* Health Metrics */}
+                      {service.healthReport && (
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <p className="text-sm font-medium">{service.healthReport.cpuUsage.toFixed(1)}%</p>
+                            <p className="text-xs text-muted-foreground">CPU</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-medium">{service.healthReport.memoryUsageMb.toFixed(0)} MB</p>
+                            <p className="text-xs text-muted-foreground">Memory</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status Badge */}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(service.status)}
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
