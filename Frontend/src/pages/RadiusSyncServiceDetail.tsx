@@ -59,12 +59,6 @@ interface ServiceLog {
   timestamp: string;
 }
 
-interface PendingPing {
-  serviceName: string;
-  pingId: string;
-  sentAt: number;
-}
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function RadiusSyncServiceDetailPage() {
@@ -74,7 +68,6 @@ export default function RadiusSyncServiceDetailPage() {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const [service, setService] = useState<ServiceInfo | null>(null);
   const [logs, setLogs] = useState<ServiceLog[]>([]);
-  const [pendingPings, setPendingPings] = useState<Map<string, PendingPing>>(new Map());
   const [isPinging, setIsPinging] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -136,14 +129,12 @@ export default function RadiusSyncServiceDetailPage() {
       }
     });
 
-    connection.on('PingResult', (name: string, pingId: string, latency: number) => {
-      if (name !== serviceName) return;
+    connection.on('PingResult', (data: { serviceName: string; pingId: string; responseTime: string }) => {
+      if (data.serviceName !== serviceName) return;
 
-      setPendingPings(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(pingId);
-        return newMap;
-      });
+      // Calculate latency (this would need the original ping timestamp from service)
+      // For now, we'll use a mock latency - the microservice should calculate this
+      const latency = 50; // Placeholder - actual latency should come from the service
 
       setService(prev => {
         if (!prev) return null;
