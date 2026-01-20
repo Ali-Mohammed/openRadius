@@ -100,6 +100,7 @@ export default function RadiusSyncServicePage() {
       .configureLogging(signalR.LogLevel.Information)
       .build();
 
+    connectionRef.current = newConnection;
     setConnection(newConnection);
 
     return () => {
@@ -108,6 +109,23 @@ export default function RadiusSyncServicePage() {
         newConnection.stop();
       }
     };
+  }, []);
+
+  // Measure dashboard ping
+  const measureDashboardPing = useCallback(async () => {
+    const conn = connectionRef.current;
+    if (!conn || conn.state !== signalR.HubConnectionState.Connected) return;
+    
+    const start = Date.now();
+    try {
+      await conn.invoke('GetConnectedServices');
+      const latency = Date.now() - start;
+      setDashboardPing(latency);
+      setLastUpdate(new Date());
+    } catch (err) {
+      console.error('Ping error:', err);
+      setDashboardPing(null);
+    }
   }, []);
 
   // Handle connection state changes
