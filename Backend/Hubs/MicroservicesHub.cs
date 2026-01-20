@@ -236,6 +236,49 @@ public class MicroservicesHub : Hub
     }
 
     /// <summary>
+    /// Approve a pending microservice connection.
+    /// </summary>
+    public async Task ApproveService(string serviceName)
+    {
+        if (ConnectedServices.TryGetValue(serviceName, out var serviceInfo))
+        {
+            serviceInfo.ApprovalStatus = ApprovalStatus.Approved;
+            serviceInfo.Status = ServiceStatus.Online;
+            
+            // Notify the service that it's been approved
+            await Clients.Client(serviceInfo.ConnectionId).SendAsync("Approved");
+            
+            // Notify all dashboards
+            await Clients.Group("dashboard").SendAsync("ServiceApproved", GetServiceStatus(serviceInfo));
+            
+            _logger.LogInformation("Service approved: {ServiceName}", serviceName);
+        }
+    }
+
+    /// <summary>
+    /// Reject a pending microservice connection.
+    /// </summary>
+    public async Task RejectService(string serviceName)
+    {
+        if (ConnectedServices.TryGetValue(serviceName, out var serviceInfo))
+        {
+            serviceInfo.ApprovalStatus = ApprovalStatus.Rejected;
+            serviceInfo.Status = ServiceStatus.Offline;
+            
+            // Notify the service that it's been rejected
+            await Clients.Client(serviceInfo.ConnectionId).SendAsync("Rejected");
+            
+            // Disconnect the service
+            ConnectedServices.TryRemove(serviceName, out _);
+            
+            // Notify all dashboards
+            await Clients.Group("dashboard").SendAsync("ServiceRejected", serviceName);
+            
+            _logger.LogInformation("Service rejected: {ServiceName}", serviceName);
+        }
+    }
+
+    /// <summary>
     /// Response from a service after being pinged.
     /// </summary>
     public async Task Pong(string serviceName, string pingId)
@@ -262,6 +305,7 @@ public class MicroservicesHub : Hub
         version = info.Version,
         connectionId = info.ConnectionId,
         status = info.Status.ToString(),
+        approvalStatus = info.ApprovalStatus.ToString(),
         connectedAt = info.ConnectedAt,
         lastHeartbeat = info.LastHeartbeat,
         currentActivity = info.CurrentActivity,
@@ -279,6 +323,7 @@ public class MicroserviceInfo
     public DateTime ConnectedAt { get; set; }
     public DateTime LastHeartbeat { get; set; }
     public ServiceStatus Status { get; set; }
+    public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
     public string? CurrentActivity { get; set; }
     public double? ActivityProgress { get; set; }
     public ServiceHealthReport? HealthReport { get; set; }
@@ -301,4 +346,11 @@ public enum ServiceStatus
     Offline,
     Degraded,
     Maintenance
+}
+
+public enum ApprovalStatus
+{
+    Pending,
+    Approved,
+    Rejected
 }

@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Activity, 
-  ArrowLeft,
   Clock, 
   Cpu, 
   HardDrive, 
@@ -242,10 +241,6 @@ export default function RadiusSyncServiceDetailPage() {
   if (!service) {
     return (
       <div className="p-8">
-        <Button variant="ghost" onClick={() => navigate('/microservices/radius-sync')} className="mb-6">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Services
-        </Button>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mb-4" />
@@ -260,15 +255,9 @@ export default function RadiusSyncServiceDetailPage() {
     <div className="p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/microservices/radius-sync')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{service.serviceName}</h1>
-            <p className="text-muted-foreground">Version {service.version}</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">{service.serviceName}</h1>
+          <p className="text-muted-foreground">Version {service.version}</p>
         </div>
         <div className="flex gap-2">
           {getStatusBadge(service.status)}

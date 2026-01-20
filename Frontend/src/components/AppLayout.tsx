@@ -125,6 +125,15 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
       return { parent: null, current: 'Automations', icon: Settings }
     }
+    if (location.pathname.match(/\/microservices\/radius-sync\/[^\/]+$/)) {
+      const serviceName = location.pathname.split('/').pop() || 'Service';
+      return {
+        parent: { title: 'Connected Services', href: '/microservices/radius-sync', icon: Server },
+        current: decodeURIComponent(serviceName),
+        icon: Server
+      }
+    }
+    if (location.pathname === '/microservices/radius-sync') return { parent: null, current: 'Connected Services', icon: Server }
     return { parent: null, current: 'Dashboard', icon: Home }
   }
 
