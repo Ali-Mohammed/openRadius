@@ -362,8 +362,14 @@ export default function RadiusSyncServicePage() {
             <div className="flex gap-2">
               <Badge variant="outline" className="gap-1">
                 <Activity className="h-3 w-3" />
-                {services.filter(s => s.status === 'Online').length} Online
+                {services.filter(s => s.approvalStatus === 'Approved' && s.status === 'Online').length} Online
               </Badge>
+              {services.filter(s => s.approvalStatus === 'Pending').length > 0 && (
+                <Badge variant="outline" className="gap-1 text-orange-500">
+                  <AlertCircle className="h-3 w-3" />
+                  {services.filter(s => s.approvalStatus === 'Pending').length} Pending Approval
+                </Badge>
+              )}
               {services.filter(s => s.status === 'Degraded').length > 0 && (
                 <Badge variant="outline" className="gap-1 text-yellow-500">
                   <AlertCircle className="h-3 w-3" />
