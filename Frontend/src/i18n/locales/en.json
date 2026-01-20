@@ -60,7 +60,9 @@
     "connectors": "Connectors",
     "connectorList": "CDC Connectors",
     "cdcMonitor": "Event Monitor",
-    "connectorSettings": "Settings"
+    "connectorSettings": "Settings",
+    "microservices": "Microservices",
+    "radiusSyncService": "Radius Sync Service"
   },
   "dashboard": {
     "title": "Dashboard",

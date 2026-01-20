@@ -54,6 +54,7 @@ import DatabaseBackup from './pages/DatabaseBackup'
 import Zones from './pages/Zones'
 import FreeRadiusLogsViewer from './pages/FreeRadiusLogsViewer'
 import RadiusActivations from './pages/RadiusActivations'
+import RadiusSyncService from './pages/RadiusSyncService'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -127,6 +128,7 @@ function App() {
                           <Route path="/dashboards" element={<Dashboards />} />
                           <Route path="/dashboards/:id" element={<DashboardView />} />
                           <Route path="/dashboards/:id/edit" element={<DashboardView />} />
+                          <Route path="/microservices/radius-sync" element={<RadiusSyncService />} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>

@@ -270,6 +270,7 @@ app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
 app.MapHub<CdcHub>("/hubs/cdc");
 app.MapHub<LogsHub>("/hubs/logs");
+app.MapHub<MicroservicesHub>("/hubs/microservices");
 
 app.Run();
 

@@ -56,7 +56,9 @@
     "connectors": "الموصلات",
     "connectorList": "موصلات CDC",
     "cdcMonitor": "مراقبة الأحداث",
-    "connectorSettings": "الإعدادات"
+    "connectorSettings": "الإعدادات",
+    "microservices": "الخدمات المصغرة",
+    "radiusSyncService": "خدمة مزامنة Radius"
   },
   "dashboard": {
     "title": "لوحة التحكم",
