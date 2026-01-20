@@ -11,6 +11,7 @@ namespace Backend.Hubs;
 public class MicroservicesHub : Hub
 {
     private static readonly ConcurrentDictionary<string, MicroserviceInfo> ConnectedServices = new();
+    private static readonly ConcurrentDictionary<string, DateTime> PendingPings = new();
     private readonly ILogger<MicroservicesHub> _logger;
 
     public MicroservicesHub(ILogger<MicroservicesHub> logger)
@@ -224,6 +225,8 @@ public class MicroservicesHub : Hub
         if (ConnectedServices.TryGetValue(serviceName, out var serviceInfo))
         {
             var pingId = Guid.NewGuid().ToString();
+            PendingPings.TryAdd(pingId, DateTime.UtcNow);
+            
             await Clients.Client(serviceInfo.ConnectionId).SendAsync("Ping", new
             {
                 pingId,
@@ -237,10 +240,18 @@ public class MicroservicesHub : Hub
     /// </summary>
     public async Task Pong(string serviceName, string pingId)
     {
+        var latencyMs = 0.0;
+        
+        if (PendingPings.TryRemove(pingId, out var pingTime))
+        {
+            latencyMs = (DateTime.UtcNow - pingTime).TotalMilliseconds;
+        }
+        
         await Clients.Group("dashboard").SendAsync("PingResult", new
         {
             serviceName,
             pingId,
+            latencyMs,
             responseTime = DateTime.UtcNow
         });
     }
