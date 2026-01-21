@@ -152,6 +152,13 @@ public class MicroservicesHub : Hub
         // Add machine ID to metadata
         serviceInfo.Metadata["MachineId"] = machineId;
 
+        // Get and add approval ID
+        var approval = await _approvalService.GetApprovalByMachineAsync(serviceName, machineId);
+        if (approval != null)
+        {
+            serviceInfo.Metadata["ApprovalId"] = approval.Id.ToString();
+        }
+
         ConnectedServices.AddOrUpdate(serviceName, serviceInfo, (_, _) => serviceInfo);
         
         // Update last connected time
@@ -293,10 +300,30 @@ public class MicroservicesHub : Hub
     /// <summary>
     /// Get the current status of all connected services.
     /// </summary>
-    public Task<List<object>> GetConnectedServices()
+    public async Task<List<object>> GetConnectedServices()
     {
-        var services = ConnectedServices.Values.Select(GetServiceStatus).ToList();
-        return Task.FromResult(services);
+        var services = new List<object>();
+        
+        foreach (var serviceInfo in ConnectedServices.Values)
+        {
+            // Ensure approval ID is in metadata if not already there
+            if (!serviceInfo.Metadata.ContainsKey("ApprovalId"))
+            {
+                var machineId = serviceInfo.Metadata.GetValueOrDefault("MachineId");
+                if (!string.IsNullOrEmpty(machineId))
+                {
+                    var approval = await _approvalService.GetApprovalByMachineAsync(serviceInfo.ServiceName, machineId);
+                    if (approval != null)
+                    {
+                        serviceInfo.Metadata["ApprovalId"] = approval.Id.ToString();
+                    }
+                }
+            }
+            
+            services.Add(GetServiceStatus(serviceInfo));
+        }
+        
+        return services;
     }
 
     /// <summary>

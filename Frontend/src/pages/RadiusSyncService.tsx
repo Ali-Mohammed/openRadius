@@ -6,6 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,7 +41,8 @@ import {
   MemoryStick,
   RefreshCw,
   TrendingUp,
-  ShieldAlert
+  ShieldAlert,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -94,6 +105,8 @@ export default function RadiusSyncServicePage() {
   const [serviceToApprove, setServiceToApprove] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<ServiceInfo | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   // Real-time clock update
@@ -293,6 +306,22 @@ export default function RadiusSyncServicePage() {
       }
     });
 
+    // Handle approval deletion
+    connection.on('ApprovalDeleted', async (data: { serviceName: string }) => {
+      console.log('Approval deleted, removing service from list:', data);
+      try {
+        // Remove the service from the list since it's been deleted
+        setServices(prev => prev.filter(s => s.serviceName !== data.serviceName));
+        setLastUpdate(new Date());
+        
+        // Update pending count
+        const pending = await connection.invoke('GetPendingApprovals');
+        setPendingApprovalsCount(pending?.length || 0);
+      } catch (error) {
+        console.error('Failed to reload after approval deletion:', error);
+      }
+    });
+
     // Handle service approval
     connection.on('ServiceApproved', (service: ServiceInfo) => {
       setServices(prev => prev.map(s =>
@@ -394,6 +423,41 @@ export default function RadiusSyncServicePage() {
       await connection.invoke('RejectService', serviceName);
     } catch (err) {
       console.error('Failed to reject service:', err);
+    }
+  };
+
+  const handleDeleteService = async () => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceToDelete) return;
+    
+    try {
+      // Get the approval ID from metadata if available
+      const approvalId = serviceToDelete.metadata?.ApprovalId || serviceToDelete.metadata?.approvalId;
+      
+      if (approvalId) {
+        const result = await connection.invoke('DeleteConnection', parseInt(approvalId));
+        if (result) {
+          console.log('Service approval deleted:', serviceToDelete.serviceName);
+          // Reload services to show updated state
+          try {
+            const connectedServices = await connection.invoke('GetConnectedServices');
+            setServices(connectedServices || []);
+            setLastUpdate(new Date());
+            
+            // Update pending count
+            const pending = await connection.invoke('GetPendingApprovals');
+            setPendingApprovalsCount(pending?.length || 0);
+          } catch (error) {
+            console.error('Failed to reload after deletion:', error);
+          }
+        }
+      } else {
+        console.warn('No approval ID found for service:', serviceToDelete.serviceName);
+      }
+    } catch (err) {
+      console.error('Failed to delete service:', err);
+    } finally {
+      setDeleteDialogOpen(false);
+      setServiceToDelete(null);
     }
   };
 
@@ -790,6 +854,27 @@ export default function RadiusSyncServicePage() {
                           {/* Status Badge & Action */}
                           <div className="flex items-center gap-3">
                             {getStatusBadge(service.status)}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setServiceToDelete(service);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Delete Service
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-200" />
                           </div>
                         </div>
@@ -867,6 +952,31 @@ export default function RadiusSyncServicePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Service Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service Approval?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{serviceToDelete?.displayName || serviceToDelete?.serviceName}</strong>?
+              <br />
+              <br />
+              This will remove the service approval. The service will appear as pending again on next connection and will need to be re-approved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setServiceToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteService}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
