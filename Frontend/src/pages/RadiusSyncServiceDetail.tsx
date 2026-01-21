@@ -180,6 +180,8 @@ export default function RadiusSyncServiceDetailPage() {
   const [dockerError, setDockerError] = useState<string | null>(null);
   const [containerLogs, setContainerLogs] = useState<{ containerId: string; logs: string } | null>(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [isInstallingDocker, setIsInstallingDocker] = useState(false);
+  const [installProgress, setInstallProgress] = useState<{ message: string; progress: number } | null>(null);
 
   // Handle tab change and update URL
   const handleTabChange = (value: string) => {

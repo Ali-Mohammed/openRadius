@@ -370,6 +370,15 @@ public class MicroservicesHub : Hub
     }
 
     /// <summary>
+    /// Request to install Docker on a specific microservice.
+    /// </summary>
+    public async Task RequestDockerInstall(string serviceName)
+    {
+        await SendCommand(serviceName, "docker-install", null);
+        _logger.LogInformation("Docker installation requested on {ServiceName}", serviceName);
+    }
+
+    /// <summary>
     /// Request to start Docker on a specific microservice.
     /// </summary>
     public async Task RequestDockerStart(string serviceName)
@@ -467,6 +476,34 @@ public class MicroservicesHub : Hub
             reportedAt = DateTime.UtcNow
         });
         _logger.LogDebug("Docker installation guide reported from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Called by microservice to report Docker installation progress.
+    /// </summary>
+    public async Task ReportDockerInstallProgress(string serviceName, object progressData)
+    {
+        await Clients.Group("dashboard").SendAsync("DockerInstallProgress", new
+        {
+            serviceName,
+            progressData,
+            reportedAt = DateTime.UtcNow
+        });
+        _logger.LogDebug("Docker installation progress reported from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Called by microservice to report Docker installation result.
+    /// </summary>
+    public async Task ReportDockerInstallResult(string serviceName, object installResult)
+    {
+        await Clients.Group("dashboard").SendAsync("DockerInstallResult", new
+        {
+            serviceName,
+            installResult,
+            reportedAt = DateTime.UtcNow
+        });
+        _logger.LogInformation("Docker installation result reported from {ServiceName}", serviceName);
     }
 
     /// <summary>

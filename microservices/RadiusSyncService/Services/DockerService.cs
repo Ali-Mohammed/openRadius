@@ -931,4 +931,16 @@ public class CommandResult
     public int ExitCode { get; set; }
 }
 
+public class InstallationResult
+{
+    public bool Success { get; set; }
+    public string Platform { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? Error { get; set; }
+    public string? Output { get; set; }
+    public bool RequiresManualAction { get; set; }
+    public int Progress { get; set; }
+    public string? CurrentStep { get; set; }
+}
+
 #endregion

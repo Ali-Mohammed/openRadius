@@ -212,6 +212,9 @@ public class SignalRConnectionService : BackgroundService
                 case "docker-install-guide":
                     await ExecuteDockerInstallGuideCommand();
                     break;
+                case "docker-install":
+                    await ExecuteDockerInstallCommand();
+                    break;
                 case "docker-start":
                     await ExecuteDockerStartCommand();
                     break;
@@ -311,6 +314,61 @@ public class SignalRConnectionService : BackgroundService
         {
             _logger.LogError(ex, "Failed to get Docker installation guide");
             await SendLog("error", $"Failed to get installation guide: {ex.Message}");
+        }
+    }
+
+    private async Task ExecuteDockerInstallCommand()
+    {
+        _logger.LogInformation("Starting Docker installation...");
+        await ReportActivity("Starting Docker installation...", 0);
+        
+        try
+        {
+            var result = await _dockerService.InstallDockerAsync(async (message, progress) =>
+            {
+                await ReportActivity(message, progress);
+                await SendLog("info", message);
+                
+                // Report progress to dashboard
+                if (_hubConnection?.State == HubConnectionState.Connected)
+                {
+                    await _hubConnection.InvokeAsync("ReportDockerInstallProgress", _serviceName, new
+                    {
+                        message,
+                        progress,
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+            });
+            
+            if (result.Success)
+            {
+                await SendLog("info", $"Docker installation completed: {result.Message}");
+                await ReportActivity("Docker installation completed", 100);
+            }
+            else
+            {
+                await SendLog("error", $"Docker installation failed: {result.Message}");
+                await ReportActivity($"Installation failed: {result.Message}", 0);
+            }
+            
+            // Report final result to dashboard
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                await _hubConnection.InvokeAsync("ReportDockerInstallResult", _serviceName, result);
+            }
+            
+            // Refresh status after installation
+            var status = await _dockerService.GetStatusAsync(forceRefresh: true);
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                await _hubConnection.InvokeAsync("ReportDockerStatus", _serviceName, status);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Docker installation failed");
+            await SendLog("error", $"Docker installation failed: {ex.Message}");
         }
     }
 
