@@ -89,6 +89,21 @@ export function AppLayout({ children }: AppLayoutProps) {
   const exitImpersonationMutation = useMutation({
     mutationFn: usersApi.exitImpersonation,
     onSuccess: () => {
+      // Get impersonation data to restore original token
+      const impersonationData = sessionStorage.getItem('impersonation')
+      if (impersonationData) {
+        try {
+          const parsed = JSON.parse(impersonationData)
+          // Restore the original admin's token in keycloak
+          if (parsed.originalToken) {
+            // The token will be used by API interceptor after reload
+            // We just need to clear the impersonation data
+          }
+        } catch (error) {
+          console.error('Failed to parse impersonation data:', error)
+        }
+      }
+      
       sessionStorage.removeItem('impersonation')
       toast.success('Exited impersonation mode')
       window.location.reload()

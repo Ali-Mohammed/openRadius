@@ -143,7 +143,7 @@ ALL_ROLES=$(curl -s -X GET "$ROLES_URL" \
   -H "Content-Type: application/json")
 
 # Extract and assign required roles
-REQUIRED_ROLES=("manage-users" "query-users" "view-users" "view-realm" "query-groups")
+REQUIRED_ROLES=("manage-users" "query-users" "view-users" "view-realm" "query-groups" "impersonation")
 
 echo "📋 Available roles check..."
 

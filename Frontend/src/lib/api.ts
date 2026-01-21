@@ -15,6 +15,21 @@ export const apiClient = axios.create({
 // Add auth interceptor
 apiClient.interceptors.request.use(
   (config) => {
+    // Check if user is impersonating - use impersonated token
+    const impersonationData = sessionStorage.getItem('impersonation')
+    if (impersonationData) {
+      try {
+        const parsed = JSON.parse(impersonationData)
+        if (parsed.impersonatedToken) {
+          config.headers.Authorization = `Bearer ${parsed.impersonatedToken}`
+          return config
+        }
+      } catch (error) {
+        console.error('Failed to parse impersonation data:', error)
+      }
+    }
+
+    // Otherwise use the normal keycloak token
     if (keycloak.token) {
       config.headers.Authorization = `Bearer ${keycloak.token}`
     }

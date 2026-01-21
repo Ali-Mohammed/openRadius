@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace Backend.Controllers;
 
@@ -14,11 +15,19 @@ public class UsersController : ControllerBase
 {
     private readonly MasterDbContext _context;
     private readonly ILogger<UsersController> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public UsersController(MasterDbContext context, ILogger<UsersController> logger)
+    public UsersController(
+        MasterDbContext context, 
+        ILogger<UsersController> logger,
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _logger = logger;
+        _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     [HttpGet]
@@ -382,50 +391,76 @@ public class UsersController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
+        if (string.IsNullOrEmpty(targetUser.KeycloakUserId))
+        {
+            return BadRequest(new { message = "User does not have a Keycloak account" });
+        }
+
         // Get current user's email for audit
         var adminEmail = User.Claims.FirstOrDefault(c => 
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" ||
             c.Type == "email")?.Value;
 
-        // Log impersonation action
-        _logger.LogWarning(
-            "User impersonation: {AdminEmail} is impersonating user {TargetEmail} (ID: {TargetId})",
-            adminEmail,
-            targetUser.Email,
-            targetUser.Id
-        );
+        // Get current admin's token to store it
+        var currentToken = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-        // Return impersonated user data
-        return Ok(new
+        try
         {
-            success = true,
-            impersonatedUser = new
+            // Get impersonated user's token from Keycloak
+            var impersonatedToken = await GetImpersonatedTokenAsync(targetUser.KeycloakUserId);
+
+            if (string.IsNullOrEmpty(impersonatedToken))
             {
-                targetUser.Id,
+                return StatusCode(500, new { message = "Failed to generate impersonated token" });
+            }
+
+            // Log impersonation action
+            _logger.LogWarning(
+                "User impersonation: {AdminEmail} is impersonating user {TargetEmail} (ID: {TargetId})",
+                adminEmail,
                 targetUser.Email,
-                targetUser.FirstName,
-                targetUser.LastName,
-                targetUser.CurrentWorkspaceId,
-                targetUser.DefaultWorkspaceId,
-                CurrentWorkspace = targetUser.CurrentWorkspace != null ? new
+                targetUser.Id
+            );
+
+            // Return impersonated user data with new token
+            return Ok(new
+            {
+                success = true,
+                token = impersonatedToken, // New JWT token for the impersonated user
+                originalToken = currentToken, // Original admin's token to restore later
+                impersonatedUser = new
                 {
-                    targetUser.CurrentWorkspace.Id,
-                    targetUser.CurrentWorkspace.Title,
-                    targetUser.CurrentWorkspace.Name,
-                    targetUser.CurrentWorkspace.Location,
-                    targetUser.CurrentWorkspace.Color
-                } : null,
-                DefaultWorkspace = targetUser.DefaultWorkspace != null ? new
-                {
-                    targetUser.DefaultWorkspace.Id,
-                    targetUser.DefaultWorkspace.Title,
-                    targetUser.DefaultWorkspace.Name,
-                    targetUser.DefaultWorkspace.Location,
-                    targetUser.DefaultWorkspace.Color
-                } : null
-            },
-            originalAdmin = adminEmail
-        });
+                    targetUser.Id,
+                    targetUser.Email,
+                    targetUser.FirstName,
+                    targetUser.LastName,
+                    targetUser.CurrentWorkspaceId,
+                    targetUser.DefaultWorkspaceId,
+                    CurrentWorkspace = targetUser.CurrentWorkspace != null ? new
+                    {
+                        targetUser.CurrentWorkspace.Id,
+                        targetUser.CurrentWorkspace.Title,
+                        targetUser.CurrentWorkspace.Name,
+                        targetUser.CurrentWorkspace.Location,
+                        targetUser.CurrentWorkspace.Color
+                    } : null,
+                    DefaultWorkspace = targetUser.DefaultWorkspace != null ? new
+                    {
+                        targetUser.DefaultWorkspace.Id,
+                        targetUser.DefaultWorkspace.Title,
+                        targetUser.DefaultWorkspace.Name,
+                        targetUser.DefaultWorkspace.Location,
+                        targetUser.DefaultWorkspace.Color
+                    } : null
+                },
+                originalAdmin = adminEmail
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to impersonate user {UserId}", userId);
+            return StatusCode(500, new { message = "Failed to impersonate user", error = ex.Message });
+        }
     }
 
     [HttpPost("exit-impersonation")]
@@ -442,6 +477,82 @@ public class UsersController : ControllerBase
         );
 
         return Ok(new { success = true, message = "Exited impersonation mode" });
+    }
+
+    private async Task<string?> GetImpersonatedTokenAsync(string targetKeycloakUserId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            var authority = _configuration["Oidc:Authority"];
+            
+            if (string.IsNullOrEmpty(authority))
+            {
+                _logger.LogError("Oidc:Authority configuration is missing");
+                return null;
+            }
+
+            var realm = authority.Split("/").Last();
+            var clientId = _configuration["KeycloakAdmin:ClientId"];
+            var clientSecret = _configuration["KeycloakAdmin:ClientSecret"];
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+            {
+                _logger.LogError("KeycloakAdmin credentials are missing");
+                return null;
+            }
+
+            // First, get admin token
+            var tokenUrl = $"{authority}/protocol/openid-connect/token";
+            var tokenContent = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("client_id", clientId),
+                new KeyValuePair<string, string>("client_secret", clientSecret)
+            });
+
+            var tokenResponse = await client.PostAsync(tokenUrl, tokenContent);
+            if (!tokenResponse.IsSuccessStatusCode)
+            {
+                var error = await tokenResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to get admin token: {Error}", error);
+                return null;
+            }
+
+            var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var adminToken = tokenResult.GetProperty("access_token").GetString();
+
+            // Now use Keycloak's admin API to impersonate the user
+            var baseUrl = authority.Replace($"/realms/{realm}", "");
+            var impersonateUrl = $"{baseUrl}/admin/realms/{realm}/users/{targetKeycloakUserId}/impersonation";
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            
+            var impersonateResponse = await client.PostAsync(impersonateUrl, null);
+            
+            if (!impersonateResponse.IsSuccessStatusCode)
+            {
+                var error = await impersonateResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to impersonate user {UserId}: {Error}", targetKeycloakUserId, error);
+                return null;
+            }
+
+            var impersonateResult = await impersonateResponse.Content.ReadFromJsonAsync<JsonElement>();
+            
+            // The response should contain the access token for the impersonated user
+            if (impersonateResult.TryGetProperty("access_token", out var tokenElement))
+            {
+                return tokenElement.GetString();
+            }
+
+            _logger.LogError("Impersonation response did not contain access_token");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting impersonated token");
+            return null;
+        }
     }
 
     private bool UserExists(int id)

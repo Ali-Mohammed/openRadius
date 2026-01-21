@@ -55,12 +55,17 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
     onSuccess: (data) => {
       toast.success(`Now impersonating ${data.impersonatedUser.firstName} ${data.impersonatedUser.lastName}`)
       
-      // Store impersonation context in sessionStorage
+      // Store BOTH tokens and impersonation context in sessionStorage
       sessionStorage.setItem('impersonation', JSON.stringify({
         originalAdmin: data.originalAdmin,
+        originalToken: data.originalToken, // Admin's original JWT
+        impersonatedToken: data.token, // Impersonated user's JWT
         impersonatedUser: data.impersonatedUser,
         startedAt: new Date().toISOString(),
       }))
+
+      // Replace the current token with the impersonated user's token
+      keycloak.token = data.token
 
       // Reload the page to refresh all contexts with impersonated user
       window.location.reload()
