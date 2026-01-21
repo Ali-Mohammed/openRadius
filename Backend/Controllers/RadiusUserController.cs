@@ -15,11 +15,13 @@ namespace Backend.Controllers;
 public class RadiusUserController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusUserController> _logger;
 
-    public RadiusUserController(ApplicationDbContext context, ILogger<RadiusUserController> logger)
+    public RadiusUserController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusUserController> logger)
     {
         _context = context;
+        _masterContext = masterContext;
         _logger = logger;
     }
 
@@ -414,6 +416,55 @@ public class RadiusUserController : ControllerBase
             .Include(u => u.RadiusUserTags)
                 .ThenInclude(ut => ut.RadiusTag)
             .Where(u => includeDeleted || !u.IsDeleted);
+
+        // Zone-based filtering for non-admin users
+        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+        var isImpersonating = User.FindFirst("is_impersonating")?.Value == "true";
+        
+        // Get the actual user ID from master Users table
+        string? userKeycloakId = null;
+        if (!string.IsNullOrEmpty(claimKeycloakId))
+        {
+            var masterUser = await _masterContext.Users
+                .Where(u => u.KeycloakUserId == claimKeycloakId)
+                .Select(u => u.KeycloakUserId)
+                .FirstOrDefaultAsync();
+            userKeycloakId = masterUser;
+        }
+        
+        _logger.LogInformation("🔍 ZONE FILTER DEBUG - ClaimKeycloakId: {ClaimId}, MasterUserKeycloakId: {MasterId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
+            claimKeycloakId, userKeycloakId, isAdmin, isImpersonating);
+        
+        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        {
+            // Get zones managed by this user
+            var userZoneIds = await _context.UserZones
+                .Where(uz => uz.UserId == userKeycloakId)
+                .Select(uz => uz.ZoneId)
+                .ToListAsync();
+            
+            _logger.LogInformation("🔍 ZONE FILTER DEBUG - Found {Count} zones for user: [{Zones}]", 
+                userZoneIds.Count, string.Join(", ", userZoneIds));
+            
+            if (userZoneIds.Any())
+            {
+                // Filter RADIUS users to only show users in managed zones
+                query = query.Where(u => u.ZoneId.HasValue && userZoneIds.Contains(u.ZoneId.Value));
+                _logger.LogInformation("✅ ZONE FILTER APPLIED - Showing only zones: [{Zones}]", string.Join(", ", userZoneIds));
+            }
+            else
+            {
+                // User has no zones assigned, show no RADIUS users
+                query = query.Where(u => false);
+                _logger.LogWarning("⚠️ ZONE FILTER - No zones found, showing NO users");
+            }
+        }
+        else
+        {
+            _logger.LogInformation("ℹ️ ZONE FILTER SKIPPED - IsAdmin: {IsAdmin}, HasKeycloakId: {HasId}", 
+                isAdmin, !string.IsNullOrEmpty(userKeycloakId));
+        }
 
         // Apply advanced filters
         if (!string.IsNullOrEmpty(filters))
@@ -1049,6 +1100,41 @@ public class RadiusUserController : ControllerBase
             .Include(u => u.RadiusGroup)
             .Where(u => u.IsDeleted);
 
+        // Zone-based filtering for non-admin users
+        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+        
+        // Get the actual user ID from master Users table
+        string? userKeycloakId = null;
+        if (!string.IsNullOrEmpty(claimKeycloakId))
+        {
+            var masterUser = await _masterContext.Users
+                .Where(u => u.KeycloakUserId == claimKeycloakId)
+                .Select(u => u.KeycloakUserId)
+                .FirstOrDefaultAsync();
+            userKeycloakId = masterUser;
+        }
+        
+        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        {
+            // Get zones managed by this user
+            var userZoneIds = await _context.UserZones
+                .Where(uz => uz.UserId == userKeycloakId)
+                .Select(uz => uz.ZoneId)
+                .ToListAsync();
+            
+            if (userZoneIds.Any())
+            {
+                // Filter RADIUS users to only show users in managed zones
+                query = query.Where(u => u.ZoneId.HasValue && userZoneIds.Contains(u.ZoneId.Value));
+            }
+            else
+            {
+                // User has no zones assigned, show no RADIUS users
+                query = query.Where(u => false);
+            }
+        }
+
         var totalRecords = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
@@ -1172,6 +1258,41 @@ public class RadiusUserController : ControllerBase
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
             .Where(u => !u.IsDeleted);
+
+        // Zone-based filtering for non-admin users
+        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+        
+        // Get the actual user ID from master Users table
+        string? userKeycloakId = null;
+        if (!string.IsNullOrEmpty(claimKeycloakId))
+        {
+            var masterUser = await _masterContext.Users
+                .Where(u => u.KeycloakUserId == claimKeycloakId)
+                .Select(u => u.KeycloakUserId)
+                .FirstOrDefaultAsync();
+            userKeycloakId = masterUser;
+        }
+        
+        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        {
+            // Get zones managed by this user
+            var userZoneIds = await _context.UserZones
+                .Where(uz => uz.UserId == userKeycloakId)
+                .Select(uz => uz.ZoneId)
+                .ToListAsync();
+            
+            if (userZoneIds.Any())
+            {
+                // Filter RADIUS users to only show users in managed zones
+                query = query.Where(u => u.ZoneId.HasValue && userZoneIds.Contains(u.ZoneId.Value));
+            }
+            else
+            {
+                // User has no zones assigned, show no RADIUS users
+                query = query.Where(u => false);
+            }
+        }
 
         // Apply advanced filters
         if (!string.IsNullOrEmpty(filters))
@@ -1299,6 +1420,41 @@ public class RadiusUserController : ControllerBase
         var query = _context.RadiusUsers
             .Include(u => u.Profile)
             .Where(u => !u.IsDeleted);
+
+        // Zone-based filtering for non-admin users
+        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+        
+        // Get the actual user ID from master Users table
+        string? userKeycloakId = null;
+        if (!string.IsNullOrEmpty(claimKeycloakId))
+        {
+            var masterUser = await _masterContext.Users
+                .Where(u => u.KeycloakUserId == claimKeycloakId)
+                .Select(u => u.KeycloakUserId)
+                .FirstOrDefaultAsync();
+            userKeycloakId = masterUser;
+        }
+        
+        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        {
+            // Get zones managed by this user
+            var userZoneIds = await _context.UserZones
+                .Where(uz => uz.UserId == userKeycloakId)
+                .Select(uz => uz.ZoneId)
+                .ToListAsync();
+            
+            if (userZoneIds.Any())
+            {
+                // Filter RADIUS users to only show users in managed zones
+                query = query.Where(u => u.ZoneId.HasValue && userZoneIds.Contains(u.ZoneId.Value));
+            }
+            else
+            {
+                // User has no zones assigned, show no RADIUS users
+                query = query.Where(u => false);
+            }
+        }
 
         // Apply advanced filters
         if (!string.IsNullOrEmpty(filters))
