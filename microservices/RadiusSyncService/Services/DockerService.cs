@@ -511,7 +511,22 @@ public class DockerService
     /// </summary>
     public async Task<CommandResult> StopContainerAsync(string containerIdOrName)
     {
-        return await ExecuteCommandAsync("docker", $"stop {containerIdOrName}");
+        if (_dockerClient == null)
+            return new CommandResult { Success = false, Error = "Docker client not initialized" };
+
+        try
+        {
+            await _dockerClient.Containers.StopContainerAsync(containerIdOrName, new ContainerStopParameters
+            {
+                WaitBeforeKillSeconds = 10
+            });
+            return new CommandResult { Success = true, Output = $"Container {containerIdOrName} stopped" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to stop container {Container}", containerIdOrName);
+            return new CommandResult { Success = false, Error = ex.Message };
+        }
     }
 
     /// <summary>
@@ -519,8 +534,22 @@ public class DockerService
     /// </summary>
     public async Task<CommandResult> RemoveContainerAsync(string containerIdOrName, bool force = false)
     {
-        var forceFlag = force ? "-f " : "";
-        return await ExecuteCommandAsync("docker", $"rm {forceFlag}{containerIdOrName}");
+        if (_dockerClient == null)
+            return new CommandResult { Success = false, Error = "Docker client not initialized" };
+
+        try
+        {
+            await _dockerClient.Containers.RemoveContainerAsync(containerIdOrName, new ContainerRemoveParameters
+            {
+                Force = force
+            });
+            return new CommandResult { Success = true, Output = $"Container {containerIdOrName} removed" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove container {Container}", containerIdOrName);
+            return new CommandResult { Success = false, Error = ex.Message };
+        }
     }
 
     /// <summary>
@@ -528,7 +557,23 @@ public class DockerService
     /// </summary>
     public async Task<CommandResult> PullImageAsync(string image)
     {
-        return await ExecuteCommandAsync("docker", $"pull {image}", timeoutSeconds: 300);
+        if (_dockerClient == null)
+            return new CommandResult { Success = false, Error = "Docker client not initialized" };
+
+        try
+        {
+            await _dockerClient.Images.CreateImageAsync(
+                new ImagesCreateParameters { FromImage = image },
+                null,
+                new Progress<JSONMessage>()
+            );
+            return new CommandResult { Success = true, Output = $"Image {image} pulled successfully" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to pull image {Image}", image);
+            return new CommandResult { Success = false, Error = ex.Message };
+        }
     }
 
     /// <summary>
@@ -536,8 +581,29 @@ public class DockerService
     /// </summary>
     public async Task<CommandResult> GetContainerLogsAsync(string containerIdOrName, int? tail = null)
     {
-        var tailFlag = tail.HasValue ? $"--tail {tail.Value} " : "";
-        return await ExecuteCommandAsync("docker", $"logs {tailFlag}{containerIdOrName}");
+        if (_dockerClient == null)
+            return new CommandResult { Success = false, Error = "Docker client not initialized" };
+
+        try
+        {
+            var logsParams = new ContainerLogsParameters
+            {
+                ShowStdout = true,
+                ShowStderr = true,
+                Tail = tail?.ToString() ?? "all"
+            };
+
+            using var logsStream = await _dockerClient.Containers.GetContainerLogsAsync(containerIdOrName, false, logsParams, CancellationToken.None);
+            using var reader = new StreamReader(logsStream);
+            var logs = await reader.ReadToEndAsync();
+            
+            return new CommandResult { Success = true, Output = logs };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get logs for container {Container}", containerIdOrName);
+            return new CommandResult { Success = false, Error = ex.Message };
+        }
     }
 
     /// <summary>
