@@ -40,7 +40,11 @@ public class DockerService
         };
 
         // Check Docker
+        _logger.LogInformation("Checking if docker command is available...");
         var dockerResult = await ExecuteCommandAsync("docker", "--version");
+        _logger.LogInformation("Docker --version result: Success={Success}, Output={Output}, Error={Error}", 
+            dockerResult.Success, dockerResult.Output, dockerResult.Error);
+        
         status.DockerInstalled = dockerResult.Success;
         if (dockerResult.Success)
         {
@@ -572,15 +576,33 @@ public class DockerService
     {
         try
         {
-            // Resolve the full path to the command for better cross-platform support
-            var resolvedCommand = ResolveCommandPath(command);
+            // On macOS/Linux, use shell to execute commands for better PATH resolution
+            string fileName;
+            string shellArguments;
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Resolve the full path to the command for Windows
+                var resolvedCommand = ResolveCommandPath(command);
+                fileName = resolvedCommand;
+                shellArguments = arguments;
+                _logger.LogDebug("Executing command (Windows): {Command} {Arguments}", fileName, shellArguments);
+            }
+            else
+            {
+                // Use /bin/zsh or /bin/bash to execute commands on macOS/Linux
+                // This ensures proper PATH resolution and shell environment
+                fileName = "/bin/zsh";
+                shellArguments = $"-c \"{command} {arguments}\"";
+                _logger.LogDebug("Executing command (Unix shell): {Shell} -c \"{Command} {Arguments}\"", fileName, command, arguments);
+            }
             
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = resolvedCommand,
-                    Arguments = arguments,
+                    FileName = fileName,
+                    Arguments = shellArguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -588,19 +610,17 @@ public class DockerService
                 }
             };
 
-            // Add common paths to PATH environment variable for macOS/Linux
-            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
-            var additionalPaths = new[]
+            // For Windows, add common paths to PATH environment variable
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                "/usr/local/bin",
-                "/opt/homebrew/bin",
-                "/usr/bin",
-                "/bin",
-                "/usr/sbin",
-                "/sbin",
-                "/Applications/Docker.app/Contents/Resources/bin"
-            };
-            process.StartInfo.Environment["PATH"] = string.Join(":", additionalPaths) + ":" + currentPath;
+                var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+                var additionalPaths = new[]
+                {
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\\Docker\\Docker\\resources\\bin",
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\\Docker\\Docker\\resources"
+                };
+                process.StartInfo.Environment["PATH"] = string.Join(";", additionalPaths) + ";" + currentPath;
+            }
 
             process.Start();
 
