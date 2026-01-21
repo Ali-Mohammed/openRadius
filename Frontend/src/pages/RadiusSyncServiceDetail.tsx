@@ -368,7 +368,7 @@ export default function RadiusSyncServiceDetailPage() {
                 </div>
                 <div>
                   <div>Health Metrics</div>
-                  <CardDescription className="text-xs mt-1">Live performance monitoring and connectivity</CardDescription>
+                  <CardDescription className="text-xs mt-1">Live performance monitoring, connectivity and ping latency</CardDescription>
                 </div>
               </CardTitle>
             </CardHeader>
@@ -380,8 +380,8 @@ export default function RadiusSyncServiceDetailPage() {
                         <Gauge className="h-4 w-4 text-cyan-600" />
                         Ping
                       </div>
-                      <p className="text-2xl font-bold text-cyan-600">{service.lastPing ?? '--'}</p>
-                      <p className="text-xs text-cyan-600/70">Last (ms)</p>
+                      <p className="text-2xl font-bold text-cyan-600">{service.lastPing ? `${service.lastPing} MS` : '--'}</p>
+                      <p className="text-xs text-cyan-600/70">Last</p>
                     </div>
                   )}
                   {(service.avgPing !== undefined) && (
@@ -390,8 +390,8 @@ export default function RadiusSyncServiceDetailPage() {
                         <Signal className="h-4 w-4 text-indigo-600" />
                         Avg Ping
                       </div>
-                      <p className="text-2xl font-bold text-indigo-600">{service.avgPing?.toFixed(0) ?? '--'}</p>
-                      <p className="text-xs text-indigo-600/70">Avg (ms)</p>
+                      <p className="text-2xl font-bold text-indigo-600">{service.avgPing ? `${service.avgPing.toFixed(0)} MS` : '--'}</p>
+                      <p className="text-xs text-indigo-600/70">Average</p>
                     </div>
                   )}
                   <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -465,11 +465,11 @@ export default function RadiusSyncServiceDetailPage() {
                 <CardTitle>Metadata</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
                   {Object.entries(service.metadata).map(([key, value]) => (
-                    <div key={key} className="flex justify-between border-b pb-2">
-                      <span className="text-muted-foreground font-medium">{key}:</span>
-                      <span className="font-mono text-sm">{value}</span>
+                    <div key={key} className="border-b pb-1">
+                      <span className="text-muted-foreground font-medium text-xs">{key}:</span>
+                      <p className="font-mono text-xs break-all text-muted-foreground">{value}</p>
                     </div>
                   ))}
                 </div>
