@@ -58,11 +58,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     const checkImpersonation = () => {
       const data = sessionStorage.getItem('impersonation')
-      console.log('[AppLayout] Checking impersonation:', data)
       if (data) {
         try {
           const parsed = JSON.parse(data)
-          console.log('[AppLayout] Parsed impersonation data:', parsed)
           setImpersonationData(parsed)
         } catch (error) {
           console.error('[AppLayout] Error parsing impersonation data:', error)
@@ -75,8 +73,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Check on mount
     checkImpersonation()
 
-    // Poll for changes (needed because sessionStorage doesn't trigger events in same tab)
-    const interval = setInterval(checkImpersonation, 1000)
+    // Poll for changes every 5 seconds (reduced from 1s for better performance)
+    const interval = setInterval(checkImpersonation, 5000)
 
     // Listen for storage events from other tabs
     window.addEventListener('storage', checkImpersonation)
@@ -119,8 +117,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const isImpersonating = !!impersonationData
   const firstName = impersonationData?.impersonatedUser?.firstName || ''
-
-  console.log('[AppLayout] Render - isImpersonating:', isImpersonating, 'data:', impersonationData)
 
   // Load dashboard name when on a dashboard detail page
   useEffect(() => {
