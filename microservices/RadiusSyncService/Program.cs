@@ -11,6 +11,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.Configure<SignalRHubOptions>(
     builder.Configuration.GetSection("SignalR"));
 
+// Add Docker service for container management
+builder.Services.AddSingleton<DockerService>();
+
 // Add the SignalR connection service as a hosted service (runs in background)
 builder.Services.AddSingleton<SignalRConnectionService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalRConnectionService>());
