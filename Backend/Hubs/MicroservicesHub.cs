@@ -139,6 +139,7 @@ public class MicroservicesHub : Hub
             ConnectedAt = DateTime.UtcNow,
             LastHeartbeat = DateTime.UtcNow,
             Status = ServiceStatus.Online,
+            ApprovalStatus = ApprovalStatus.Approved, // Set to Approved since validation passed
             IpAddress = ipAddress,
             UserAgent = userAgent,
             Metadata = metadata ?? new Dictionary<string, string>()

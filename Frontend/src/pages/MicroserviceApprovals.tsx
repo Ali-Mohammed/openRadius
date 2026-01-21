@@ -72,7 +72,9 @@ export default function MicroserviceApprovals() {
       const result = await conn.invoke('ApproveConnection', approvalId, approverNameParam);
       
       if (result) {
-        toast.success(`Microservice connection approved by ${approverNameParam}`);
+        toast.success(`Microservice connection approved by ${approverNameParam}`, {
+          description: 'The microservice will connect automatically when it restarts.'
+        });
         await loadApprovals();
       } else {
         toast.error('Failed to approve connection');
