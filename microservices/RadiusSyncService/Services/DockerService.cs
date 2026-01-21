@@ -582,10 +582,21 @@ public class DockerService
             
             if (command == "docker" && RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                // Use the real Docker binary, not the symlink that might hang
-                fileName = "/Applications/Docker.app/Contents/Resources/bin/docker";
-                processArguments = arguments;
-                _logger.LogDebug("Executing Docker command (direct binary): {Command} {Arguments}", fileName, processArguments);
+                // Use wrapper script to avoid .NET Process spawning issues on macOS
+                var wrapperPath = Path.Combine(AppContext.BaseDirectory, "docker-wrapper.sh");
+                if (File.Exists(wrapperPath))
+                {
+                    fileName = wrapperPath;
+                    processArguments = arguments;
+                    _logger.LogDebug("Executing Docker command (via wrapper): {Command} {Arguments}", fileName, processArguments);
+                }
+                else
+                {
+                    // Fallback to direct binary
+                    fileName = "/Applications/Docker.app/Contents/Resources/bin/docker";
+                    processArguments = arguments;
+                    _logger.LogDebug("Executing Docker command (direct binary, no wrapper found): {Command} {Arguments}", fileName, processArguments);
+                }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -611,11 +622,16 @@ public class DockerService
                     Arguments = processArguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    RedirectStandardInput = true,  // Redirect stdin
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
             };
 
+            // Set environment variables to prevent Docker from waiting for interactive input
+            process.StartInfo.Environment["DOCKER_CLI_HINTS"] = "false";
+            process.StartInfo.Environment["DOCKER_BUILDKIT"] = "1";
+            
             // For Windows, add common paths to PATH environment variable
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -629,6 +645,9 @@ public class DockerService
             }
 
             process.Start();
+            
+            // Close stdin immediately to prevent child processes from waiting for input
+            process.StandardInput.Close();
 
             var outputTask = process.StandardOutput.ReadToEndAsync();
             var errorTask = process.StandardError.ReadToEndAsync();
