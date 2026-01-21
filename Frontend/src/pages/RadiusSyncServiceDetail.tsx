@@ -1103,11 +1103,21 @@ export default function RadiusSyncServiceDetailPage() {
                 <div className="space-y-3">
                   {dockerStatus.runningContainers.map((container) => (
                     <div key={container.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1">
                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium text-sm">{container.names}</p>
                           <p className="text-xs text-muted-foreground">{container.image}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Cpu className="h-3 w-3" />
+                              {container.cpuUsage > 0 ? `${container.cpuUsage.toFixed(1)}%` : '0%'}
+                            </span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <HardDrive className="h-3 w-3" />
+                              {container.memoryUsageFormatted || '0 B'} / {container.memoryLimitFormatted || '0 B'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
