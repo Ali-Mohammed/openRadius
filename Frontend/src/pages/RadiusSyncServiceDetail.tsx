@@ -510,6 +510,62 @@ export default function RadiusSyncServiceDetailPage() {
     navigator.clipboard.writeText(text);
   };
 
+  const handleDeleteContainer = async (containerId: string) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    setIsProcessingContainer(containerId);
+    setContainerToDelete(null);
+    
+    try {
+      await connection.invoke('RequestContainerRemove', serviceName, containerId, true);
+      setContainerActionResult({ success: true, message: 'Container deleted successfully' });
+      // Refresh Docker status after delete
+      setTimeout(() => requestDockerStatus(), 1000);
+    } catch (err) {
+      console.error('Container remove request failed:', err);
+      setContainerActionResult({ success: false, message: 'Failed to delete container' });
+    } finally {
+      setIsProcessingContainer(null);
+      setTimeout(() => setContainerActionResult(null), 3000);
+    }
+  };
+
+  const handleRestartContainer = async (containerId: string, isRunning: boolean) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    setIsProcessingContainer(containerId);
+    setContainerToRestart(null);
+    
+    try {
+      if (isRunning) {
+        // Stop then start (restart)
+        await connection.invoke('RequestContainerStop', serviceName, containerId);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await connection.invoke('RequestContainerStart', serviceName, containerId);
+        setContainerActionResult({ success: true, message: 'Container restarted successfully' });
+      } else {
+        // Just start
+        await connection.invoke('RequestContainerStart', serviceName, containerId);
+        setContainerActionResult({ success: true, message: 'Container started successfully' });
+      }
+      // Refresh Docker status after restart
+      setTimeout(() => requestDockerStatus(), 1000);
+    } catch (err) {
+      console.error('Container restart request failed:', err);
+      setContainerActionResult({ success: false, message: 'Failed to restart container' });
+    } finally {
+      setIsProcessingContainer(null);
+      setTimeout(() => setContainerActionResult(null), 3000);
+    }
+  };
+
+  // Automatically request logs when dialog opens
+  useEffect(() => {
+    if (containerForLogs) {
+      requestContainerLogs(containerForLogs.id!);
+    }
+  }, [containerForLogs]);
+
   // Request Docker status when Services tab is active
   useEffect(() => {
     if (activeTab === 'services' && !dockerStatus && !isLoadingDocker) {
