@@ -172,6 +172,14 @@ export default function RadiusSyncServiceDetailPage() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'general');
   const logsEndRef = useRef<HTMLDivElement>(null);
+  
+  // Docker-related state
+  const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null);
+  const [dockerInstallGuide, setDockerInstallGuide] = useState<DockerInstallGuide | null>(null);
+  const [isLoadingDocker, setIsLoadingDocker] = useState(false);
+  const [dockerError, setDockerError] = useState<string | null>(null);
+  const [containerLogs, setContainerLogs] = useState<{ containerId: string; logs: string } | null>(null);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   // Handle tab change and update URL
   const handleTabChange = (value: string) => {
@@ -284,6 +292,33 @@ export default function RadiusSyncServiceDetailPage() {
       setIsPinging(false);
     });
 
+    // Docker-related event handlers
+    connection.on('DockerStatus', (data: { serviceName: string; dockerStatus: DockerStatus; reportedAt: string }) => {
+      if (data.serviceName === serviceName) {
+        setDockerStatus(data.dockerStatus);
+        setIsLoadingDocker(false);
+        setDockerError(null);
+      }
+    });
+
+    connection.on('DockerInstallGuide', (data: { serviceName: string; installGuide: DockerInstallGuide; reportedAt: string }) => {
+      if (data.serviceName === serviceName) {
+        setDockerInstallGuide(data.installGuide);
+        setShowInstallGuide(true);
+        setIsLoadingDocker(false);
+      }
+    });
+
+    connection.on('ContainerLogs', (data: { serviceName: string; containerId: string; logsData: { success: boolean; logs: string; error: string }; reportedAt: string }) => {
+      if (data.serviceName === serviceName) {
+        if (data.logsData.success) {
+          setContainerLogs({ containerId: data.containerId, logs: data.logsData.logs });
+        } else {
+          setDockerError(`Failed to get logs: ${data.logsData.error}`);
+        }
+      }
+    });
+
     connection.start()
       .then(() => connection.invoke('JoinDashboard'))
       .catch(err => console.error('SignalR connection error:', err));
@@ -296,6 +331,9 @@ export default function RadiusSyncServiceDetailPage() {
       connection.off('ServiceActivity');
       connection.off('ServiceLog');
       connection.off('PingResult');
+      connection.off('DockerStatus');
+      connection.off('DockerInstallGuide');
+      connection.off('ContainerLogs');
     };
   }, [connection, serviceName]);
 
@@ -331,6 +369,89 @@ export default function RadiusSyncServiceDetailPage() {
       console.error('Sync request failed:', err);
     }
   };
+
+  // Docker-related functions
+  const requestDockerStatus = useCallback(async () => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    setIsLoadingDocker(true);
+    setDockerError(null);
+    
+    try {
+      await connection.invoke('RequestDockerStatus', serviceName);
+    } catch (err) {
+      console.error('Docker status request failed:', err);
+      setDockerError('Failed to request Docker status');
+      setIsLoadingDocker(false);
+    }
+  }, [connection, serviceName]);
+
+  const requestDockerInstallGuide = async () => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    setIsLoadingDocker(true);
+    
+    try {
+      await connection.invoke('RequestDockerInstallGuide', serviceName);
+    } catch (err) {
+      console.error('Docker install guide request failed:', err);
+      setIsLoadingDocker(false);
+    }
+  };
+
+  const requestDockerStart = async () => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    setIsLoadingDocker(true);
+    
+    try {
+      await connection.invoke('RequestDockerStart', serviceName);
+    } catch (err) {
+      console.error('Docker start request failed:', err);
+      setIsLoadingDocker(false);
+    }
+  };
+
+  const requestContainerStop = async (containerId: string) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    try {
+      await connection.invoke('RequestContainerStop', serviceName, containerId);
+    } catch (err) {
+      console.error('Container stop request failed:', err);
+    }
+  };
+
+  const requestContainerRemove = async (containerId: string, force: boolean = false) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    try {
+      await connection.invoke('RequestContainerRemove', serviceName, containerId, force);
+    } catch (err) {
+      console.error('Container remove request failed:', err);
+    }
+  };
+
+  const requestContainerLogs = async (containerId: string) => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    try {
+      await connection.invoke('RequestContainerLogs', serviceName, containerId, 100);
+    } catch (err) {
+      console.error('Container logs request failed:', err);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  // Request Docker status when Services tab is active
+  useEffect(() => {
+    if (activeTab === 'services' && !dockerStatus && !isLoadingDocker) {
+      requestDockerStatus();
+    }
+  }, [activeTab, dockerStatus, isLoadingDocker, requestDockerStatus]);
 
   const getStatusBadge = (status: ServiceInfo['status']) => {
     const variants = {
@@ -607,25 +728,528 @@ export default function RadiusSyncServiceDetailPage() {
 
         {/* Services Tab */}
         <TabsContent value="services" className="space-y-6 mt-6">
+          {/* Docker Status Header */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Container className="h-5 w-5" />
-                Docker Services
-              </CardTitle>
-              <CardDescription>
-                Services running on this microservice instance
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Container className="h-5 w-5" />
+                    Docker Environment
+                  </CardTitle>
+                  <CardDescription>
+                    Docker installation status and container management
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={requestDockerStatus}
+                    disabled={isLoadingDocker}
+                  >
+                    {isLoadingDocker ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Refresh
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                <Container className="h-16 w-16 mb-4 opacity-50" />
-                <p className="text-lg font-medium">Docker Services Configuration</p>
-                <p className="text-sm mt-2">This section will display running Docker services</p>
-                <p className="text-xs mt-4 text-muted-foreground/70">Coming soon...</p>
-              </div>
+              {isLoadingDocker && !dockerStatus ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-muted-foreground">Checking Docker status...</span>
+                </div>
+              ) : dockerStatus ? (
+                <div className="space-y-6">
+                  {/* Installation Status */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* Docker Engine */}
+                    <div className={cn(
+                      "p-4 rounded-lg border",
+                      dockerStatus.dockerInstalled 
+                        ? dockerStatus.dockerRunning 
+                          ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                          : "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800"
+                        : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                    )}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Box className={cn(
+                          "h-5 w-5",
+                          dockerStatus.dockerInstalled 
+                            ? dockerStatus.dockerRunning ? "text-green-600" : "text-yellow-600"
+                            : "text-red-600"
+                        )} />
+                        <span className="font-medium text-sm">Docker Engine</span>
+                      </div>
+                      {dockerStatus.dockerInstalled ? (
+                        <>
+                          <p className="text-lg font-bold">{dockerStatus.dockerVersion || 'Installed'}</p>
+                          <Badge variant={dockerStatus.dockerRunning ? "default" : "secondary"} className="mt-1">
+                            {dockerStatus.dockerRunning ? 'Running' : 'Stopped'}
+                          </Badge>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-lg font-bold text-red-600">Not Installed</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={requestDockerInstallGuide}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Install Guide
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Docker Compose */}
+                    <div className={cn(
+                      "p-4 rounded-lg border",
+                      dockerStatus.dockerComposeInstalled 
+                        ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                        : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                    )}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Layers className={cn(
+                          "h-5 w-5",
+                          dockerStatus.dockerComposeInstalled ? "text-green-600" : "text-red-600"
+                        )} />
+                        <span className="font-medium text-sm">Docker Compose</span>
+                      </div>
+                      {dockerStatus.dockerComposeInstalled ? (
+                        <>
+                          <p className="text-lg font-bold">{dockerStatus.dockerComposeVersion || 'Installed'}</p>
+                          <Badge variant="outline" className="mt-1">
+                            {dockerStatus.dockerComposeV2 ? 'V2 (Plugin)' : 'V1'}
+                          </Badge>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-red-600">Not Installed</p>
+                      )}
+                    </div>
+
+                    {/* Platform */}
+                    <div className="p-4 rounded-lg border bg-muted/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Terminal className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium text-sm">Platform</span>
+                      </div>
+                      <p className="text-lg font-bold">{dockerStatus.platform}</p>
+                      {dockerStatus.dockerInfo && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {dockerStatus.dockerInfo.architecture}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Resources Summary */}
+                    {dockerStatus.dockerRunning && dockerStatus.dockerInfo && (
+                      <div className="p-4 rounded-lg border bg-muted/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Cpu className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-medium text-sm">Resources</span>
+                        </div>
+                        <p className="text-lg font-bold">{dockerStatus.dockerInfo.ncpu} CPUs</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(dockerStatus.dockerInfo.memoryTotal / (1024 * 1024 * 1024)).toFixed(1)} GB RAM
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Start Docker Button if not running */}
+                  {dockerStatus.dockerInstalled && !dockerStatus.dockerRunning && (
+                    <div className="flex items-center justify-center p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                      <span className="text-sm mr-4">Docker is installed but not running.</span>
+                      <Button onClick={requestDockerStart} disabled={isLoadingDocker}>
+                        <Power className="h-4 w-4 mr-2" />
+                        Start Docker
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <Container className="h-12 w-12 mb-4 opacity-50" />
+                  <p className="text-sm">Click Refresh to check Docker status</p>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Docker Info Stats */}
+          {dockerStatus?.dockerRunning && dockerStatus.dockerInfo && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card className="border-l-4 border-l-blue-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-blue-600">{dockerStatus.dockerInfo.containersRunning}</div>
+                  <p className="text-xs text-muted-foreground">Running Containers</p>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-gray-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-gray-600">{dockerStatus.dockerInfo.containersStopped}</div>
+                  <p className="text-xs text-muted-foreground">Stopped Containers</p>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-yellow-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-yellow-600">{dockerStatus.dockerInfo.containersPaused}</div>
+                  <p className="text-xs text-muted-foreground">Paused Containers</p>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-purple-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-purple-600">{dockerStatus.dockerInfo.images}</div>
+                  <p className="text-xs text-muted-foreground">Images</p>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-green-600">{dockerStatus.dockerInfo.containers}</div>
+                  <p className="text-xs text-muted-foreground">Total Containers</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Running Containers */}
+          {dockerStatus?.dockerRunning && dockerStatus.runningContainers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Play className="h-5 w-5 text-green-600" />
+                  Running Containers
+                  <Badge variant="secondary" className="ml-2">{dockerStatus.runningContainers.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {dockerStatus.runningContainers.map((container) => (
+                    <div key={container.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        <div>
+                          <p className="font-medium text-sm">{container.names}</p>
+                          <p className="text-xs text-muted-foreground">{container.image}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">{container.status}</Badge>
+                        {container.ports && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="secondary" className="text-xs">
+                                  <Network className="h-3 w-3 mr-1" />
+                                  Ports
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-mono text-xs">{container.ports}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        <div className="flex gap-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => requestContainerLogs(container.id!)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>View Logs</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => copyToClipboard(container.id!)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Copy ID</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => requestContainerStop(container.id!)}
+                                >
+                                  <Square className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Stop Container</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Stopped Containers */}
+          {dockerStatus?.dockerRunning && dockerStatus.allContainers.filter(c => c.state !== 'running').length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Square className="h-5 w-5 text-gray-500" />
+                  Stopped Containers
+                  <Badge variant="secondary" className="ml-2">
+                    {dockerStatus.allContainers.filter(c => c.state !== 'running').length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {dockerStatus.allContainers.filter(c => c.state !== 'running').map((container) => (
+                    <div key={container.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border opacity-70">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-gray-400" />
+                        <div>
+                          <p className="font-medium text-sm">{container.names}</p>
+                          <p className="text-xs text-muted-foreground">{container.image}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">{container.status}</Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => requestContainerRemove(container.id!, false)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Remove Container</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Images */}
+          {dockerStatus?.dockerRunning && dockerStatus.images.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <HardDrive className="h-5 w-5 text-purple-600" />
+                  Images
+                  <Badge variant="secondary" className="ml-2">{dockerStatus.images.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {dockerStatus.images.slice(0, 10).map((image) => (
+                    <div key={image.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                      <div>
+                        <p className="font-medium text-sm">{image.repository || '<none>'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">{image.tag || 'latest'}</Badge>
+                          <span className="text-xs text-muted-foreground">{image.size}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{image.createdSince}</p>
+                    </div>
+                  ))}
+                </div>
+                {dockerStatus.images.length > 10 && (
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    And {dockerStatus.images.length - 10} more images...
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Networks & Volumes */}
+          {dockerStatus?.dockerRunning && (dockerStatus.networks.length > 0 || dockerStatus.volumes.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Networks */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Network className="h-5 w-5 text-blue-600" />
+                    Networks
+                    <Badge variant="secondary" className="ml-2">{dockerStatus.networks.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {dockerStatus.networks.map((network) => (
+                      <div key={network.id} className="flex items-center justify-between p-2 bg-muted/30 rounded border">
+                        <span className="font-medium text-sm">{network.name}</span>
+                        <Badge variant="outline" className="text-xs">{network.driver}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Volumes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Database className="h-5 w-5 text-orange-600" />
+                    Volumes
+                    <Badge variant="secondary" className="ml-2">{dockerStatus.volumes.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {dockerStatus.volumes.slice(0, 5).map((volume) => (
+                      <div key={volume.name} className="flex items-center justify-between p-2 bg-muted/30 rounded border">
+                        <span className="font-medium text-sm truncate max-w-[200px]">{volume.name}</span>
+                        <Badge variant="outline" className="text-xs">{volume.driver}</Badge>
+                      </div>
+                    ))}
+                    {dockerStatus.volumes.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        And {dockerStatus.volumes.length - 5} more...
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Container Logs Modal */}
+          {containerLogs && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Terminal className="h-5 w-5" />
+                  Container Logs: {containerLogs.containerId.substring(0, 12)}
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setContainerLogs(null)}>
+                  Close
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px] rounded-md border bg-black/90 p-4">
+                  <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
+                    {containerLogs.logs || 'No logs available'}
+                  </pre>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Installation Guide */}
+          {showInstallGuide && dockerInstallGuide && (
+            <Card className="border-2 border-blue-200 dark:border-blue-800">
+              <CardHeader className="flex flex-row items-center justify-between bg-blue-50 dark:bg-blue-950/20">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5 text-blue-600" />
+                    Docker Installation Guide for {dockerInstallGuide.platform}
+                  </CardTitle>
+                  <CardDescription>
+                    Recommended: {dockerInstallGuide.recommendedMethod}
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowInstallGuide(false)}>
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-4">
+                  {dockerInstallGuide.steps.map((step) => (
+                    <div key={step.order} className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 font-bold text-sm">
+                        {step.order}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{step.title}</p>
+                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                        {step.command && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <code className="flex-1 px-3 py-2 bg-muted rounded font-mono text-xs break-all">
+                              {step.command}
+                            </code>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => copyToClipboard(step.command!)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {dockerInstallGuide.notes && (
+                  <div className="mt-6 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <AlertCircle className="h-4 w-4 inline mr-2" />
+                      {dockerInstallGuide.notes}
+                    </p>
+                  </div>
+                )}
+                
+                {dockerInstallGuide.downloadUrl && (
+                  <div className="mt-4 flex justify-center">
+                    <Button asChild>
+                      <a href={dockerInstallGuide.downloadUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Official Documentation
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Docker Error */}
+          {dockerError && (
+            <Card className="border-red-200 dark:border-red-800">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-red-600">
+                  <XCircle className="h-5 w-5" />
+                  <span>{dockerError}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
