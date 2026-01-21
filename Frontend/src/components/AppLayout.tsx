@@ -256,7 +256,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <ShieldAlert className="h-4 w-4" />
                   <span>Impersonating: {firstName}</span>
                   <button
-                    onClick={handleExitImpersonation}
+                    onClick={handleExitClick}
                     className="ml-1 hover:bg-amber-600 rounded p-0.5 transition-colors"
                     aria-label="Exit impersonation"
                   >
@@ -340,7 +340,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <ShieldAlert className="h-4 w-4" />
                   <span>Impersonating: {firstName}</span>
                   <button
-                    onClick={handleExitImpersonation}
+                    onClick={handleExitClick}
                     className="ml-1 hover:bg-amber-600 rounded p-0.5 transition-colors"
                     aria-label="Exit impersonation"
                   >
