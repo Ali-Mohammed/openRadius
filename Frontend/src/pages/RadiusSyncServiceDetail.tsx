@@ -10,6 +10,23 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Activity, 
   Clock, 
@@ -37,7 +54,8 @@ import {
   ExternalLink,
   Copy,
   Eye,
-  Layers
+  Layers,
+  RotateCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -180,6 +198,13 @@ export default function RadiusSyncServiceDetailPage() {
   const [dockerError, setDockerError] = useState<string | null>(null);
   const [containerLogs, setContainerLogs] = useState<{ containerId: string; logs: string } | null>(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  
+  // Container action state
+  const [containerToDelete, setContainerToDelete] = useState<ContainerInfo | null>(null);
+  const [containerToRestart, setContainerToRestart] = useState<ContainerInfo | null>(null);
+  const [containerForLogs, setContainerForLogs] = useState<ContainerInfo | null>(null);
+  const [isProcessingContainer, setIsProcessingContainer] = useState<string | null>(null);
+  const [containerActionResult, setContainerActionResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isInstallingDocker, setIsInstallingDocker] = useState(false);
   const [installProgress, setInstallProgress] = useState<{ message: string; progress: number } | null>(null);
 
