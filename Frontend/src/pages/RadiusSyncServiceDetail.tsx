@@ -344,26 +344,6 @@ export default function RadiusSyncServiceDetailPage() {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <Button 
-          variant="outline"
-          onClick={pingService}
-          disabled={isPinging}
-        >
-          {isPinging ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Signal className="h-4 w-4 mr-2" />
-          )}
-          Ping Service
-        </Button>
-        <Button onClick={requestSync}>
-          <Play className="h-4 w-4 mr-2" />
-          Sync Now
-        </Button>
-      </div>
-
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -379,79 +359,41 @@ export default function RadiusSyncServiceDetailPage() {
 
         {/* General Tab */}
         <TabsContent value="general" className="space-y-6 mt-6">
-          {/* Main Grid */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Connection Quality */}
-            {(service.lastPing !== undefined || service.avgPing !== undefined) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gauge className="h-5 w-5" />
-                    Connection Quality
-                  </CardTitle>
-                  <CardDescription>
-                    <Badge variant="outline" className={cn(getPingQuality(service.lastPing).color)}>
-                      {getPingQuality(service.lastPing).label}
-                    </Badge>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold">{service.lastPing ?? '--'}</p>
-                      <p className="text-xs text-muted-foreground">Last Ping (ms)</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold">{service.avgPing?.toFixed(0) ?? '--'}</p>
-                      <p className="text-xs text-muted-foreground">Avg Ping (ms)</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold">{service.pingHistory?.length ?? 0}</p>
-                      <p className="text-xs text-muted-foreground">Samples</p>
-                    </div>
-                  </div>
-                  {service.pingHistory && service.pingHistory.length > 1 && (
-                    <div className="flex items-end gap-1 h-16">
-                      {service.pingHistory.map((ping, i) => {
-                        const maxPing = Math.max(...service.pingHistory!);
-                        const height = Math.max(10, (ping / maxPing) * 100);
-                        return (
-                          <TooltipProvider key={i}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div 
-                                  className={cn("flex-1 rounded-sm transition-all", getPingQuality(ping).bg)}
-                                  style={{ height: `${height}%` }}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{ping}ms</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })}
+          {/* Health Metrics */}
+          <Card className="border-l-4 border-l-primary shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-primary animate-pulse" />
+                </div>
+                <div>
+                  <div>Health Metrics</div>
+                  <CardDescription className="text-xs mt-1">Live performance monitoring and connectivity</CardDescription>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {(service.lastPing !== undefined) && (
+                    <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-950/30 dark:to-cyan-900/20 border border-cyan-200 dark:border-cyan-800">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                        <Gauge className="h-4 w-4 text-cyan-600" />
+                        Ping
+                      </div>
+                      <p className="text-2xl font-bold text-cyan-600">{service.lastPing ?? '--'}</p>
+                      <p className="text-xs text-cyan-600/70">Last (ms)</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Health Metrics */}
-            <Card className="border-l-4 border-l-primary shadow-md">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Activity className="h-5 w-5 text-primary animate-pulse" />
-                  </div>
-                  <div>
-                    <div>Health Metrics</div>
-                    <CardDescription className="text-xs mt-1">Live performance monitoring</CardDescription>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                  {(service.avgPing !== undefined) && (
+                    <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/30 dark:to-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                        <Signal className="h-4 w-4 text-indigo-600" />
+                        Avg Ping
+                      </div>
+                      <p className="text-2xl font-bold text-indigo-600">{service.avgPing?.toFixed(0) ?? '--'}</p>
+                      <p className="text-xs text-indigo-600/70">Avg (ms)</p>
+                    </div>
+                  )}
                   <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
                       <Zap className="h-4 w-4 text-blue-600" />
@@ -495,7 +437,6 @@ export default function RadiusSyncServiceDetailPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
           {/* Activity Progress */}
           {service.currentActivity && (
