@@ -110,6 +110,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Add Claims Transformation for automatic impersonation support
+builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, ImpersonationClaimsTransformation>();
+
 // Add SignalR for real-time sync progress updates
 builder.Services.AddSignalR();
 
