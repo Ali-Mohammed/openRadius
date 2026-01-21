@@ -572,29 +572,35 @@ public class DockerService
         return command;
     }
 
-    private async Task<CommandResult> ExecuteCommandAsync(string command, string arguments = "", int timeoutSeconds = 30)
+    private async Task<CommandResult> ExecuteCommandAsync(string command, string arguments = "", int timeoutSeconds = 5)
     {
         try
         {
-            // On macOS/Linux, use shell to execute commands for better PATH resolution
+            // Resolve command to full path - use the actual binary, not symlinks
             string fileName;
-            string shellArguments;
+            string processArguments;
             
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (command == "docker" && RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // Use the real Docker binary, not the symlink that might hang
+                fileName = "/Applications/Docker.app/Contents/Resources/bin/docker";
+                processArguments = arguments;
+                _logger.LogDebug("Executing Docker command (direct binary): {Command} {Arguments}", fileName, processArguments);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // Resolve the full path to the command for Windows
                 var resolvedCommand = ResolveCommandPath(command);
                 fileName = resolvedCommand;
-                shellArguments = arguments;
-                _logger.LogDebug("Executing command (Windows): {Command} {Arguments}", fileName, shellArguments);
+                processArguments = arguments;
+                _logger.LogDebug("Executing command (Windows): {Command} {Arguments}", fileName, processArguments);
             }
             else
             {
-                // Use /bin/zsh or /bin/bash to execute commands on macOS/Linux
-                // This ensures proper PATH resolution and shell environment
-                fileName = "/bin/zsh";
-                shellArguments = $"-c \"{command} {arguments}\"";
-                _logger.LogDebug("Executing command (Unix shell): {Shell} -c \"{Command} {Arguments}\"", fileName, command, arguments);
+                // For other commands on Unix, resolve the path
+                fileName = ResolveCommandPath(command);
+                processArguments = arguments;
+                _logger.LogDebug("Executing command (Unix): {Command} {Arguments}", fileName, processArguments);
             }
             
             using var process = new Process
@@ -602,7 +608,7 @@ public class DockerService
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = fileName,
-                    Arguments = shellArguments,
+                    Arguments = processArguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
