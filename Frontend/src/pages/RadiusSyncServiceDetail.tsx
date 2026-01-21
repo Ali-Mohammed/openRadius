@@ -997,10 +997,24 @@ export default function RadiusSyncServiceDetailPage() {
                           <Cpu className="h-5 w-5 text-muted-foreground" />
                           <span className="font-medium text-sm">Resources</span>
                         </div>
-                        <p className="text-lg font-bold">{dockerStatus.dockerInfo.ncpu} CPUs</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(dockerStatus.dockerInfo.memoryTotal / (1024 * 1024 * 1024)).toFixed(1)} GB RAM
-                        </p>
+                        <div className="space-y-1">
+                          <div>
+                            <p className="text-lg font-bold">{dockerStatus.dockerInfo.ncpu} CPUs</p>
+                            <p className="text-xs text-muted-foreground">
+                              {dockerStatus.totalCpuUsage > 0 ? `${dockerStatus.totalCpuUsage.toFixed(1)}% in use` : 'Idle'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold">
+                              {(dockerStatus.dockerInfo.memoryTotal / (1024 * 1024 * 1024)).toFixed(1)} GB RAM
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {dockerStatus.totalMemoryUsage > 0 
+                                ? `${dockerStatus.totalMemoryUsageFormatted} in use` 
+                                : 'No containers running'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
