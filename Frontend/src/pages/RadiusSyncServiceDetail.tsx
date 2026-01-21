@@ -206,6 +206,8 @@ export default function RadiusSyncServiceDetailPage() {
   const [dockerError, setDockerError] = useState<string | null>(null);
   const [containerLogs, setContainerLogs] = useState<{ containerId: string; logs: string } | null>(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [showAllImages, setShowAllImages] = useState(false);
+  const [isConnectionReady, setIsConnectionReady] = useState(false);
   
   // Container action state
   const [containerToDelete, setContainerToDelete] = useState<ContainerInfo | null>(null);
@@ -373,8 +375,22 @@ export default function RadiusSyncServiceDetailPage() {
     });
 
     connection.start()
-      .then(() => connection.invoke('JoinDashboard'))
-      .catch(err => console.error('SignalR connection error:', err));
+      .then(() => {
+        setIsConnectionReady(true);
+        return connection.invoke('JoinDashboard');
+      })
+      .then(() => {
+        // Small delay to ensure all handlers are registered
+        setTimeout(() => {
+          if (activeTab === 'services') {
+            requestDockerStatus();
+          }
+        }, 100);
+      })
+      .catch(err => {
+        console.error('SignalR connection error:', err);
+        setIsConnectionReady(false);
+      });
 
     return () => {
       connection.off('InitialState');
@@ -574,12 +590,12 @@ export default function RadiusSyncServiceDetailPage() {
     }
   }, [containerForLogs]);
 
-  // Request Docker status when Services tab is active
+  // Request Docker status when Services tab is active and connection is ready
   useEffect(() => {
-    if (activeTab === 'services' && !dockerStatus && !isLoadingDocker) {
+    if (activeTab === 'services' && isConnectionReady && !isLoadingDocker) {
       requestDockerStatus();
     }
-  }, [activeTab, dockerStatus, isLoadingDocker, requestDockerStatus]);
+  }, [activeTab, isConnectionReady, isLoadingDocker, requestDockerStatus]);
 
   const getStatusBadge = (status: ServiceInfo['status']) => {
     const variants = {
@@ -1229,10 +1245,10 @@ export default function RadiusSyncServiceDetailPage() {
               <CardContent>
                 <div className="space-y-3">
                   {dockerStatus.allContainers.filter(c => c.state !== 'running').map((container) => (
-                    <div key={container.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border opacity-70">
-                      <div className="flex items-center gap-3">
+                    <div key={container.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                      <div className="flex items-center gap-3 flex-1">
                         <div className="h-2 w-2 rounded-full bg-gray-400" />
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium text-sm">{container.names}</p>
                           <p className="text-xs text-muted-foreground">{container.image}</p>
                         </div>
@@ -1262,14 +1278,14 @@ export default function RadiusSyncServiceDetailPage() {
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
-                                  className="h-8 w-8"
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                                   onClick={() => setContainerToRestart(container)}
                                   disabled={isProcessingContainer === container.id}
                                 >
                                   {isProcessingContainer === container.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <RotateCw className="h-4 w-4" />
+                                    <Play className="h-4 w-4" />
                                   )}
                                 </Button>
                               </TooltipTrigger>
@@ -1317,7 +1333,7 @@ export default function RadiusSyncServiceDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {dockerStatus.images.slice(0, 10).map((image) => (
+                  {(showAllImages ? dockerStatus.images : dockerStatus.images.slice(0, 10)).map((image) => (
                     <div key={image.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
                       <div>
                         <p className="font-medium text-sm">{image.repository || '<none>'}</p>
@@ -1331,9 +1347,20 @@ export default function RadiusSyncServiceDetailPage() {
                   ))}
                 </div>
                 {dockerStatus.images.length > 10 && (
-                  <p className="text-sm text-muted-foreground text-center mt-4">
-                    And {dockerStatus.images.length - 10} more images...
-                  </p>
+                  <div className="flex justify-center mt-4">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowAllImages(!showAllImages)}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {showAllImages ? (
+                        <>Show Less</>
+                      ) : (
+                        <>Show {dockerStatus.images.length - 10} More Images...</>
+                      )}
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

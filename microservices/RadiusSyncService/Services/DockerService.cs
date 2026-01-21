@@ -95,7 +95,9 @@ public class DockerService
                 ContainersRunning = (int)systemInfo.ContainersRunning,
                 ContainersPaused = (int)systemInfo.ContainersPaused,
                 ContainersStopped = (int)systemInfo.ContainersStopped,
-                Images = (int)systemInfo.Images
+                Images = (int)systemInfo.Images,
+                MemoryTotal = systemInfo.MemTotal,
+                NCPU = (int)systemInfo.NCPU
             };
 
             // Check Docker Compose
@@ -108,38 +110,41 @@ public class DockerService
                 All = false
             });
             
-            // Get stats for running containers
-            var runningContainersList = new List<ContainerInfo>();
-            double totalCpu = 0;
-            long totalMemory = 0;
-            
-            foreach (var c in containers)
+            // Get stats for running containers with limited concurrency
+            var semaphore = new SemaphoreSlim(3); // Max 3 concurrent stats requests
+            var statsTasks = containers.Select(async c => 
             {
-                var (cpuUsage, memoryUsage, memoryLimit) = await GetContainerStatsAsync(c.ID);
-                
-                runningContainersList.Add(new ContainerInfo
+                await semaphore.WaitAsync();
+                try
                 {
-                    Id = c.ID,
-                    Names = string.Join(", ", c.Names?.Select(n => n.TrimStart('/')) ?? Array.Empty<string>()),
-                    Image = c.Image,
-                    State = c.State,
-                    Status = c.Status,
-                    CreatedAt = c.Created.ToString("yyyy-MM-dd HH:mm:ss"),
-                    CpuUsage = cpuUsage,
-                    MemoryUsage = memoryUsage,
-                    MemoryUsageFormatted = FormatBytes(memoryUsage),
-                    MemoryLimit = memoryLimit,
-                    MemoryLimitFormatted = FormatBytes(memoryLimit)
-                });
-                
-                totalCpu += cpuUsage;
-                totalMemory += memoryUsage;
-            }
+                    var (cpuUsage, memoryUsage, memoryLimit) = await GetContainerStatsAsync(c.ID);
+                    return new ContainerInfo
+                    {
+                        Id = c.ID,
+                        Names = string.Join(", ", c.Names?.Select(n => n.TrimStart('/')) ?? Array.Empty<string>()),
+                        Image = c.Image,
+                        State = c.State,
+                        Status = c.Status,
+                        CreatedAt = c.Created.ToString("yyyy-MM-dd HH:mm:ss"),
+                        CpuUsage = cpuUsage,
+                        MemoryUsage = memoryUsage,
+                        MemoryUsageFormatted = FormatBytes(memoryUsage),
+                        MemoryLimit = memoryLimit,
+                        MemoryLimitFormatted = FormatBytes(memoryLimit)
+                    };
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }).ToList();
             
-            status.RunningContainers = runningContainersList;
-            status.TotalCpuUsage = totalCpu;
-            status.TotalMemoryUsage = totalMemory;
-            status.TotalMemoryUsageFormatted = FormatBytes(totalMemory);
+            var runningContainersList = await Task.WhenAll(statsTasks);
+            
+            status.RunningContainers = runningContainersList.ToList();
+            status.TotalCpuUsage = runningContainersList.Sum(c => c.CpuUsage);
+            status.TotalMemoryUsage = runningContainersList.Sum(c => c.MemoryUsage);
+            status.TotalMemoryUsageFormatted = FormatBytes(status.TotalMemoryUsage);
 
             // Get all containers
             var allContainers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters
@@ -540,44 +545,80 @@ public class DockerService
 
         try
         {
-            double cpuUsage = 0;
-            long memoryUsage = 0;
-            long memoryLimit = 0;
-
+            var tcs = new TaskCompletionSource<(double cpuUsage, long memoryUsage, long memoryLimit)>();
+            
             var statsProgress = new Progress<Docker.DotNet.Models.ContainerStatsResponse>(stats =>
             {
-                if (stats != null)
+                try
                 {
-                    // Calculate CPU usage percentage
-                    var cpuDelta = stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage;
-                    var systemDelta = stats.CPUStats.SystemUsage - stats.PreCPUStats.SystemUsage;
-                    var onlineCpus = stats.CPUStats.OnlineCPUs;
-                    
-                    if (systemDelta > 0 && cpuDelta > 0 && onlineCpus > 0)
+                    if (stats != null && !tcs.Task.IsCompleted)
                     {
-                        cpuUsage = (cpuDelta / (double)systemDelta) * onlineCpus * 100.0;
-                    }
+                        double cpuUsage = 0;
+                        long memoryUsage = 0;
+                        long memoryLimit = 0;
 
-                    // Get memory usage
-                    memoryUsage = (long)stats.MemoryStats.Usage;
-                    memoryLimit = (long)stats.MemoryStats.Limit;
+                        // Calculate CPU usage percentage
+                        var cpuDelta = stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage;
+                        var systemDelta = stats.CPUStats.SystemUsage - stats.PreCPUStats.SystemUsage;
+                        var onlineCpus = stats.CPUStats.OnlineCPUs;
+                        
+                        if (systemDelta > 0 && cpuDelta > 0 && onlineCpus > 0)
+                        {
+                            cpuUsage = (cpuDelta / (double)systemDelta) * onlineCpus * 100.0;
+                        }
+
+                        // Get memory usage
+                        memoryUsage = (long)stats.MemoryStats.Usage;
+                        memoryLimit = (long)stats.MemoryStats.Limit;
+                        
+                        tcs.TrySetResult((cpuUsage, memoryUsage, memoryLimit));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error processing stats for container {ContainerId}", containerId);
+                    tcs.TrySetResult((0, 0, 0));
                 }
             });
 
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(2)); // Timeout after 2 seconds
 
-            await _dockerClient.Containers.GetContainerStatsAsync(
-                containerId,
-                new ContainerStatsParameters { Stream = false },
-                statsProgress,
-                cts.Token
-            );
+            // Start the stats request (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _dockerClient.Containers.GetContainerStatsAsync(
+                        containerId,
+                        new ContainerStatsParameters { Stream = false },
+                        statsProgress,
+                        cts.Token
+                    );
+                }
+                catch (OperationCanceledException)
+                {
+                    tcs.TrySetResult((0, 0, 0));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to get stats for container {ContainerId}", containerId);
+                    tcs.TrySetResult((0, 0, 0));
+                }
+            }, cts.Token);
 
-            // Give it a moment to receive the stats
-            await Task.Delay(100, CancellationToken.None);
-
-            return (cpuUsage, memoryUsage, memoryLimit);
+            // Wait for either the result or timeout
+            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(2000, CancellationToken.None));
+            
+            if (completedTask == tcs.Task)
+            {
+                return await tcs.Task;
+            }
+            else
+            {
+                cts.Cancel();
+                return (0, 0, 0);
+            }
         }
         catch (Exception ex)
         {
