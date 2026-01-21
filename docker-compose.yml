@@ -68,7 +68,8 @@ services:
       - "8080:8080"
     volumes:
       - ./keycloak/keycloak-config.json:/opt/keycloak/data/import/realm.json:ro
-      - ./keycloak/themes:/opt/keycloak/themes:ro
+      # Custom themes disabled to use Keycloak defaults for account console
+      # - ./keycloak/themes:/opt/keycloak/themes:ro
     depends_on:
       postgres:
         condition: service_healthy
