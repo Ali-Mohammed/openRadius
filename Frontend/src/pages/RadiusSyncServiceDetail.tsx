@@ -22,7 +22,9 @@ import {
   Loader2,
   Trash2,
   Signal,
-  Gauge
+  Gauge,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -72,7 +74,15 @@ export default function RadiusSyncServiceDetailPage() {
   const [service, setService] = useState<ServiceInfo | null>(null);
   const [logs, setLogs] = useState<ServiceLog[]>([]);
   const [isPinging, setIsPinging] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Real-time clock update
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -99,30 +109,56 @@ export default function RadiusSyncServiceDetailPage() {
     connection.on('InitialState', (data: { services: ServiceInfo[] } | ServiceInfo[]) => {
       const servicesList = Array.isArray(data) ? data : data.services;
       const found = servicesList.find(s => s.serviceName === serviceName);
-      if (found) setService(found);
+      if (found) {
+        setService(found);
+        setLastUpdate(new Date());
+      }
     });
 
     connection.on('ServiceConnected', (serviceInfo: ServiceInfo) => {
       if (serviceInfo.serviceName === serviceName) {
         setService(serviceInfo);
+        setLastUpdate(new Date());
       }
     });
 
-    connection.on('ServiceDisconnected', (name: string) => {
-      if (name === serviceName) {
+    connection.on('ServiceDisconnected', (data: { serviceName: string; disconnectedAt: string }) => {
+      if (data.serviceName === serviceName) {
         setService(prev => prev ? { ...prev, status: 'Offline' as const } : null);
+        setLastUpdate(new Date());
       }
     });
 
-    connection.on('ServiceHeartbeat', (name: string, heartbeat: ServiceInfo) => {
-      if (name === serviceName) {
-        setService(prev => prev ? { ...prev, ...heartbeat } : heartbeat);
+    connection.on('ServiceHeartbeat', (data: { 
+      serviceName: string; 
+      status: string; 
+      lastHeartbeat: string;
+      healthReport: ServiceInfo['healthReport'];
+    }) => {
+      if (data.serviceName === serviceName) {
+        setService(prev => prev ? { 
+          ...prev, 
+          status: data.status as ServiceInfo['status'], 
+          lastHeartbeat: data.lastHeartbeat,
+          healthReport: data.healthReport 
+        } : null);
+        setLastUpdate(new Date());
       }
     });
 
-    connection.on('ServiceActivity', (name: string, activity: string, progress?: number) => {
-      if (name === serviceName) {
-        setService(prev => prev ? { ...prev, currentActivity: activity, activityProgress: progress } : null);
+    connection.on('ServiceActivity', (data: { 
+      serviceName: string; 
+      activity: string; 
+      progress?: number;
+      timestamp: string;
+    }) => {
+      if (data.serviceName === serviceName) {
+        setService(prev => prev ? { 
+          ...prev, 
+          currentActivity: data.activity, 
+          activityProgress: data.progress 
+        } : null);
+        setLastUpdate(new Date());
       }
     });
 
