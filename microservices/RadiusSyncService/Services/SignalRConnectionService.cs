@@ -496,6 +496,47 @@ public class SignalRConnectionService : BackgroundService
         }
     }
 
+    private async Task ExecuteDockerContainerStartCommand(JsonElement? payload)
+    {
+        var containerId = payload?.TryGetProperty("containerId", out var idProp) == true ? idProp.GetString() ?? "" : "";
+        
+        if (string.IsNullOrEmpty(containerId))
+        {
+            await SendLog("error", "Container ID is required");
+            return;
+        }
+        
+        _logger.LogInformation("Starting container: {ContainerId}", containerId);
+        await ReportActivity($"Starting container {containerId}...", 0);
+        
+        try
+        {
+            var result = await _dockerService.StartContainerAsync(containerId);
+            
+            if (result.Success)
+            {
+                await SendLog("info", $"Container {containerId} started successfully");
+                await ReportActivity($"Container {containerId} started", 100);
+            }
+            else
+            {
+                await SendLog("error", $"Failed to start container: {result.Error}");
+            }
+            
+            // Refresh status
+            var status = await _dockerService.GetStatusAsync(forceRefresh: true);
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                await _hubConnection.InvokeAsync("ReportDockerStatus", _serviceName, status);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start container");
+            await SendLog("error", $"Failed to start container: {ex.Message}");
+        }
+    }
+
     private async Task ExecuteDockerContainerLogsCommand(JsonElement? payload)
     {
         var containerId = payload?.TryGetProperty("containerId", out var idProp) == true ? idProp.GetString() ?? "" : "";
