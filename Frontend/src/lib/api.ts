@@ -46,6 +46,16 @@ export const usersApi = {
     })
     return data
   },
+
+  impersonateUser: async (userId: number) => {
+    const { data } = await apiClient.post(`/api/users/impersonate/${userId}`)
+    return data
+  },
+
+  exitImpersonation: async () => {
+    const { data } = await apiClient.post('/api/users/exit-impersonation')
+    return data
+  },
 }
 
 // Workspace API

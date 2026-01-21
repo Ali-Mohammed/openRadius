@@ -336,6 +336,107 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Workspace updated successfully", user });
     }
 
+    [HttpPost("impersonate/{userId}")]
+    public async Task<ActionResult<object>> ImpersonateUser(int userId)
+    {
+        // Extract realm roles from JSON
+        var realmRoles = new List<string>();
+        var realmAccessClaim = User.Claims.FirstOrDefault(c => c.Type == "realm_access");
+        if (realmAccessClaim != null)
+        {
+            try
+            {
+                var realmAccess = JsonSerializer.Deserialize<JsonElement>(realmAccessClaim.Value);
+                if (realmAccess.TryGetProperty("roles", out var rolesElement))
+                {
+                    realmRoles = rolesElement.EnumerateArray()
+                        .Select(r => r.GetString() ?? "")
+                        .Where(r => !string.IsNullOrEmpty(r))
+                        .ToList();
+                }
+            }
+            catch { }
+        }
+
+        // Check if user has admin role
+        if (!realmRoles.Contains("admin"))
+        {
+            return Forbid();
+        }
+
+        // Get the user to impersonate
+        var targetUser = await _context.Users
+            .Include(u => u.DefaultWorkspace)
+            .Include(u => u.CurrentWorkspace)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (targetUser == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        // Get current user's email for audit
+        var adminEmail = User.Claims.FirstOrDefault(c => 
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" ||
+            c.Type == "email")?.Value;
+
+        // Log impersonation action
+        _logger.LogWarning(
+            "User impersonation: {AdminEmail} is impersonating user {TargetEmail} (ID: {TargetId})",
+            adminEmail,
+            targetUser.Email,
+            targetUser.Id
+        );
+
+        // Return impersonated user data
+        return Ok(new
+        {
+            success = true,
+            impersonatedUser = new
+            {
+                targetUser.Id,
+                targetUser.Email,
+                targetUser.FirstName,
+                targetUser.LastName,
+                targetUser.CurrentWorkspaceId,
+                targetUser.DefaultWorkspaceId,
+                CurrentWorkspace = targetUser.CurrentWorkspace != null ? new
+                {
+                    targetUser.CurrentWorkspace.Id,
+                    targetUser.CurrentWorkspace.Title,
+                    targetUser.CurrentWorkspace.Name,
+                    targetUser.CurrentWorkspace.Location,
+                    targetUser.CurrentWorkspace.Color
+                } : null,
+                DefaultWorkspace = targetUser.DefaultWorkspace != null ? new
+                {
+                    targetUser.DefaultWorkspace.Id,
+                    targetUser.DefaultWorkspace.Title,
+                    targetUser.DefaultWorkspace.Name,
+                    targetUser.DefaultWorkspace.Location,
+                    targetUser.DefaultWorkspace.Color
+                } : null
+            },
+            originalAdmin = adminEmail
+        });
+    }
+
+    [HttpPost("exit-impersonation")]
+    public ActionResult<object> ExitImpersonation()
+    {
+        // Get current user's email
+        var email = User.Claims.FirstOrDefault(c => 
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" ||
+            c.Type == "email")?.Value;
+
+        _logger.LogInformation(
+            "User {Email} exited impersonation mode",
+            email
+        );
+
+        return Ok(new { success = true, message = "Exited impersonation mode" });
+    }
+
     private bool UserExists(int id)
     {
         return _context.Users.Any(e => e.Id == id);
