@@ -112,9 +112,10 @@ export function NavUser() {
   }
 
   const handleManageAccount = () => {
-    // Open Keycloak account management page
-    const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account`
-    window.open(accountUrl, '_blank')
+    // Redirect to Keycloak account console in the same window to preserve authentication
+    // This allows users to manage password and 2FA settings
+    const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account/`
+    window.location.href = accountUrl
   }
 
   const handleExitImpersonation = () => {
@@ -142,11 +143,6 @@ export function NavUser() {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold flex items-center gap-2">
                     {getDisplayName()}
-                    {isImpersonating && (
-                      <Badge variant="destructive" className="text-xs">
-                        Impersonating
-                      </Badge>
-                    )}
                   </span>
                   <span className="truncate text-xs">{getDisplayEmail()}</span>
                 </div>
@@ -172,7 +168,7 @@ export function NavUser() {
                     <span className="truncate text-xs">{getDisplayEmail()}</span>
                     {/* Debug: Show admin status */}
                     {authenticated && (
-                      <span className="text-xs text-muted-foreground mt-1">
+                      <span className="text-xs text-muted-foreground mt-1 break-words whitespace-normal max-w-[200px]">
                         Roles: {keycloak.tokenParsed?.realm_access?.roles?.join(', ') || 'none'}
                       </span>
                     )}
