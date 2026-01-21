@@ -201,15 +201,6 @@ public class UserManagementDbController : ControllerBase
         }
     }
 
-        var authenticatedClient = _httpClientFactory.CreateClient();
-        authenticatedClient.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        authenticatedClient.DefaultRequestHeaders.CacheControl = 
-            new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true, NoStore = true };
-
-        return authenticatedClient;
-    }
-
     // POST: api/user-management
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateMasterUserRequest request)

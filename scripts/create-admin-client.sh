@@ -6,7 +6,7 @@
 KEYCLOAK_URL="http://localhost:8080"
 REALM="openradius"
 ADMIN_USER="admin"
-ADMIN_PASSWORD="admin"
+ADMIN_PASSWORD="admin123"
 CLIENT_ID="openradius-admin"
 CLIENT_SECRET="openradius-admin-secret-2026"
 
@@ -143,47 +143,39 @@ ALL_ROLES=$(curl -s -X GET "$ROLES_URL" \
   -H "Content-Type: application/json")
 
 # Extract and assign required roles
-REQUIRED_ROLES=("manage-users" "query-users" "view-users" "manage-realm" "view-realm" "query-groups" "manage-authorization" "view-authorization" "query-clients" "view-clients")
+REQUIRED_ROLES=("manage-users" "query-users" "view-users" "view-realm" "query-groups")
 
-ROLES_TO_ASSIGN="["
-FIRST=true
+echo "📋 Available roles check..."
 
 for ROLE_NAME in "${REQUIRED_ROLES[@]}"; do
-    ROLE_DATA=$(echo $ALL_ROLES | grep -o "{[^}]*\"name\":\"$ROLE_NAME\"[^}]*}" | head -1)
+    ROLE_DATA=$(echo "$ALL_ROLES" | jq -r ".[] | select(.name==\"$ROLE_NAME\")")
     if [ ! -z "$ROLE_DATA" ]; then
-        if [ "$FIRST" = true ]; then
-            FIRST=false
+        ROLE_ID=$(echo "$ROLE_DATA" | jq -r '.id')
+        ROLE_PAYLOAD="[{\"id\":\"$ROLE_ID\",\"name\":\"$ROLE_NAME\"}]"
+        
+        ASSIGN_ROLES_URL="$KEYCLOAK_URL/admin/realms/$REALM/users/$SERVICE_ACCOUNT_USER_ID/role-mappings/clients/$REALM_MANAGEMENT_UUID"
+        
+        ASSIGN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$ASSIGN_ROLES_URL" \
+          -H "Authorization: Bearer $ADMIN_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "$ROLE_PAYLOAD")
+        
+        HTTP_CODE=$(echo "$ASSIGN_RESPONSE" | tail -n1)
+        
+        if [ "$HTTP_CODE" = "204" ] || [ "$HTTP_CODE" = "200" ]; then
+            echo "   ✅ $ROLE_NAME"
         else
-            ROLES_TO_ASSIGN+=","
+            RESPONSE_BODY=$(echo "$ASSIGN_RESPONSE" | head -n-1)
+            if echo "$RESPONSE_BODY" | grep -q "already exists"; then
+                echo "   ℹ️  $ROLE_NAME (already assigned)"
+            else
+                echo "   ⚠️  $ROLE_NAME (HTTP $HTTP_CODE)"
+            fi
         fi
-        ROLES_TO_ASSIGN+="$ROLE_DATA"
+    else
+        echo "   ❌ $ROLE_NAME (not found)"
     fi
 done
-
-ROLES_TO_ASSIGN+="]"
-
-if [ "$ROLES_TO_ASSIGN" != "[]" ]; then
-    ASSIGN_ROLES_URL="$KEYCLOAK_URL/admin/realms/$REALM/users/$SERVICE_ACCOUNT_USER_ID/role-mappings/clients/$REALM_MANAGEMENT_UUID"
-    
-    ASSIGN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$ASSIGN_ROLES_URL" \
-      -H "Authorization: Bearer $ADMIN_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "$ROLES_TO_ASSIGN")
-    
-    HTTP_CODE=$(echo "$ASSIGN_RESPONSE" | tail -n1)
-    
-    if [ "$HTTP_CODE" = "204" ] || [ "$HTTP_CODE" = "200" ]; then
-        echo "✅ Assigned admin roles to service account:"
-        for ROLE_NAME in "${REQUIRED_ROLES[@]}"; do
-            echo "   • $ROLE_NAME"
-        done
-    else
-        echo "⚠️  Could not assign all roles. HTTP Code: $HTTP_CODE"
-        echo "Response: $(echo "$ASSIGN_RESPONSE" | head -n-1)"
-    fi
-else
-    echo "⚠️  No roles found to assign"
-fi
 
 echo ""
 echo "✨ Setup Complete! ✨"
