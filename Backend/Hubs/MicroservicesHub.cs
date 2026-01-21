@@ -17,13 +17,15 @@ public class MicroservicesHub : Hub
     private static readonly ConcurrentDictionary<string, MicroserviceInfo> ConnectedServices = new();
     private static readonly ConcurrentDictionary<string, DateTime> PendingPings = new();
     private readonly ILogger<MicroservicesHub> _logger;
-    private readonly MasterDbContext _dbContext;
+    private readonly ApplicationDbContext _appDbContext;
+    private readonly MasterDbContext _masterDbContext;
     private readonly MicroserviceApprovalService _approvalService;
 
-    public MicroservicesHub(ILogger<MicroservicesHub> logger, MasterDbContext dbContext, MicroserviceApprovalService approvalService)
+    public MicroservicesHub(ILogger<MicroservicesHub> logger, ApplicationDbContext appDbContext, MasterDbContext masterDbContext, MicroserviceApprovalService approvalService)
     {
         _logger = logger;
-        _dbContext = dbContext;
+        _appDbContext = appDbContext;
+        _masterDbContext = masterDbContext;
         _approvalService = approvalService;
     }
 
@@ -329,7 +331,7 @@ public class MicroservicesHub : Hub
             // Save to database
             try
             {
-                var approvedService = await _dbContext.ApprovedMicroservices
+                var approvedService = await _masterDbContext.ApprovedMicroservices
                     .FirstOrDefaultAsync(s => s.ServiceId == serviceName);
                 
                 if (approvedService == null)
@@ -346,7 +348,7 @@ public class MicroservicesHub : Hub
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
-                    _dbContext.ApprovedMicroservices.Add(approvedService);
+                    _masterDbContext.ApprovedMicroservices.Add(approvedService);
                 }
                 else
                 {
@@ -357,7 +359,7 @@ public class MicroservicesHub : Hub
                     approvedService.UpdatedAt = DateTime.UtcNow;
                 }
                 
-                await _dbContext.SaveChangesAsync();
+                await _masterDbContext.SaveChangesAsync();
                 
                 _logger.LogInformation("Service approved and saved to database: {ServiceName} as {DisplayName}", 
                     serviceName, displayName);
@@ -624,7 +626,7 @@ public class MicroservicesHub : Hub
     /// </summary>
     public async Task<bool> ApproveConnection(int approvalId, string approvedBy)
     {
-        var approval = await _dbContext.MicroserviceApprovals.FindAsync(approvalId);
+        var approval = await _appDbContext.MicroserviceApprovals.FindAsync(approvalId);
         if (approval == null) return false;
         
         var result = await _approvalService.ApproveConnectionAsync(approvalId, approvedBy);
@@ -658,7 +660,7 @@ public class MicroservicesHub : Hub
     /// </summary>
     public async Task<bool> RevokeConnection(int approvalId)
     {
-        var approval = await _dbContext.MicroserviceApprovals.FindAsync(approvalId);
+        var approval = await _appDbContext.MicroserviceApprovals.FindAsync(approvalId);
         if (approval == null) return false;
         
         var result = await _approvalService.RevokeConnectionAsync(approvalId);
@@ -695,7 +697,7 @@ public class MicroservicesHub : Hub
     /// </summary>
     public async Task<bool> DeleteConnection(int approvalId)
     {
-        var approval = await _dbContext.MicroserviceApprovals.FindAsync(approvalId);
+        var approval = await _appDbContext.MicroserviceApprovals.FindAsync(approvalId);
         if (approval == null) return false;
         
         var result = await _approvalService.DeleteApprovalAsync(approvalId);

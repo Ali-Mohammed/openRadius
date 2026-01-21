@@ -477,12 +477,6 @@ export default function MicroserviceApprovals() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

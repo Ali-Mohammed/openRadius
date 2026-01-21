@@ -17,7 +17,7 @@ namespace Backend.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -79,7 +79,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("approved_microservices");
+                    b.ToTable("approved_microservices", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BackupHistory", b =>
@@ -116,7 +116,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BackupHistories");
+                    b.ToTable("BackupHistories", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Group", b =>
@@ -155,7 +155,7 @@ namespace Backend.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Groups");
+                    b.ToTable("Groups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.OidcSettings", b =>
@@ -244,7 +244,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("OidcSettings");
+                    b.ToTable("OidcSettings", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Permission", b =>
@@ -282,7 +282,7 @@ namespace Backend.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Role", b =>
@@ -321,7 +321,7 @@ namespace Backend.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>
@@ -339,7 +339,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("RolePermissions");
+                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.User", b =>
@@ -400,7 +400,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("SupervisorId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserGroup", b =>
@@ -418,7 +418,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("UserGroups");
+                    b.ToTable("UserGroups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserRole", b =>
@@ -436,7 +436,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserWorkspace", b =>
@@ -457,7 +457,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("WorkspaceId");
 
-                    b.ToTable("UserWorkspaces");
+                    b.ToTable("UserWorkspaces", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Workspace", b =>
@@ -533,7 +533,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Workspaces");
+                    b.ToTable("Workspaces", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>
