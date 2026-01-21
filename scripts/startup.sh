@@ -84,6 +84,15 @@ for i in {1..60}; do
     sleep 3
 done
 
+# Configure account-console client scopes
+echo ""
+echo -e "${YELLOW}Configuring account-console client...${NC}"
+if [ -f "$SCRIPT_DIR/configure-account-console.sh" ]; then
+    bash "$SCRIPT_DIR/configure-account-console.sh"
+else
+    echo -e "${YELLOW}Warning: configure-account-console.sh not found. Skipping...${NC}"
+fi
+
 # Step 4: Start Redpanda (Kafka)
 echo ""
 echo -e "${GREEN}[4/6] Starting Redpanda (Kafka)...${NC}"
