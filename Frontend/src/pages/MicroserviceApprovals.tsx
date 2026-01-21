@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, ShieldAlert, ShieldCheck, Clock, Trash2 } from 'lucide-react';
 
@@ -30,6 +33,10 @@ export default function MicroserviceApprovals() {
   const [loading, setLoading] = useState(true);
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
+  const [approverName, setApproverName] = useState('');
 
   const loadApprovals = async () => {
     const conn = connectionRef.current;
@@ -54,7 +61,7 @@ export default function MicroserviceApprovals() {
     }
   };
 
-  const handleApprove = async (approvalId: number) => {
+  const handleApprove = async (approvalId: number, approverNameParam: string) => {
     const conn = connectionRef.current;
     if (!conn) {
       toast.error('Not connected to server');
@@ -62,11 +69,10 @@ export default function MicroserviceApprovals() {
     }
 
     try {
-      const username = localStorage.getItem('username') || 'admin';
-      const result = await conn.invoke('ApproveConnection', approvalId, username);
+      const result = await conn.invoke('ApproveConnection', approvalId, approverNameParam);
       
       if (result) {
-        toast.success('Microservice connection has been approved');
+        toast.success(`Microservice connection approved by ${approverNameParam}`);
         await loadApprovals();
       } else {
         toast.error('Failed to approve connection');
@@ -77,7 +83,7 @@ export default function MicroserviceApprovals() {
     }
   };
 
-  const handleRevoke = async (approvalId: number) => {
+  const handleRevoke = async (approvalId: number, approverNameParam: string) => {
     const conn = connectionRef.current;
     if (!conn) {
       toast.error('Not connected to server');
@@ -88,15 +94,41 @@ export default function MicroserviceApprovals() {
       const result = await conn.invoke('RevokeConnection', approvalId);
       
       if (result) {
-        toast.error('Microservice connection has been revoked');
+        toast.error(`Microservice connection rejected by ${approverNameParam}`);
         await loadApprovals();
       } else {
-        toast.error('Failed to revoke connection');
+        toast.error('Failed to reject connection');
       }
     } catch (error) {
-      console.error('Failed to revoke:', error);
-      toast.error('Failed to revoke connection');
+      console.error('Failed to reject:', error);
+      toast.error('Failed to reject connection');
     }
+  };
+
+  const openConfirmDialog = (action: 'approve' | 'reject', approvalId: number) => {
+    setConfirmAction(action);
+    setSelectedApprovalId(approvalId);
+    setApproverName('');
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    if (!approverName.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
+
+    if (selectedApprovalId === null) return;
+
+    if (confirmAction === 'approve') {
+      await handleApprove(selectedApprovalId, approverName);
+    } else if (confirmAction === 'reject') {
+      await handleRevoke(selectedApprovalId, approverName);
+    }
+
+    setConfirmDialogOpen(false);
+    setSelectedApprovalId(null);
+    setApproverName('');
   };
 
   // Initialize SignalR connection
@@ -233,7 +265,7 @@ export default function MicroserviceApprovals() {
                       <div className="flex gap-2">
                         <Button 
                           size="sm" 
-                          onClick={() => handleApprove(approval.id)}
+                          onClick={() => openConfirmDialog('approve', approval.id)}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -242,7 +274,7 @@ export default function MicroserviceApprovals() {
                         <Button 
                           size="sm" 
                           variant="destructive"
-                          onClick={() => handleRevoke(approval.id)}
+                          onClick={() => openConfirmDialog('reject', approval.id)}
                         >
                           <XCircle className="h-4 w-4 mr-2" />
                           Reject
@@ -298,7 +330,7 @@ export default function MicroserviceApprovals() {
                       <Button 
                         size="sm" 
                         variant="destructive"
-                        onClick={() => handleRevoke(approval.id)}
+                        onClick={() => openConfirmDialog('reject', approval.id)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Revoke

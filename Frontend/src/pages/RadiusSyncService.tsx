@@ -211,6 +211,22 @@ export default function RadiusSyncServicePage() {
       });
     });
 
+    // Handle approval updates - reload services when approval status changes
+    connection.on('ApprovalUpdated', async (data) => {
+      console.log('Approval updated, reloading services:', data);
+      try {
+        const connectedServices = await connection.invoke('GetConnectedServices');
+        setServices(connectedServices || []);
+        setLastUpdate(new Date());
+        
+        // Update pending count
+        const pending = await connection.invoke('GetPendingApprovals');
+        setPendingApprovalsCount(pending?.length || 0);
+      } catch (error) {
+        console.error('Failed to reload after approval update:', error);
+      }
+    });
+
     // Handle service disconnected
     connection.on('ServiceDisconnected', (data: { serviceName: string; disconnectedAt: string }) => {
       setServices(prev => prev.filter(s => s.serviceName !== data.serviceName));
