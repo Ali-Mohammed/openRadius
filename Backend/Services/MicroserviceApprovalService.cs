@@ -125,6 +125,23 @@ public class MicroserviceApprovalService
     }
 
     /// <summary>
+    /// Deletes a microservice approval - service will appear as pending again on next connection
+    /// </summary>
+    public async Task<bool> DeleteApprovalAsync(int approvalId)
+    {
+        var approval = await _context.MicroserviceApprovals.FindAsync(approvalId);
+        if (approval == null) return false;
+
+        _context.MicroserviceApprovals.Remove(approval);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Deleted approval for {ServiceName} from machine {MachineId}", 
+            approval.ServiceName, approval.MachineId);
+
+        return true;
+    }
+
+    /// <summary>
     /// Gets all pending approval requests
     /// </summary>
     public async Task<List<MicroserviceApproval>> GetPendingApprovalsAsync()

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, ShieldAlert, ShieldCheck, Clock, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldAlert, ShieldCheck, Clock, Trash2, ChevronRight, Home } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -34,7 +35,7 @@ export default function MicroserviceApprovals() {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'delete' | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
   const [approverName, setApproverName] = useState('');
 
@@ -107,7 +108,31 @@ export default function MicroserviceApprovals() {
     }
   };
 
-  const openConfirmDialog = (action: 'approve' | 'reject', approvalId: number) => {
+  const handleDelete = async (approvalId: number) => {
+    const conn = connectionRef.current;
+    if (!conn) {
+      toast.error('Not connected to server');
+      return;
+    }
+
+    try {
+      const result = await conn.invoke('DeleteConnection', approvalId);
+      
+      if (result) {
+        toast.success('Microservice approval deleted', {
+          description: 'The service will appear as pending again on next connection.'
+        });
+        await loadApprovals();
+      } else {
+        toast.error('Failed to delete approval');
+      }
+    } catch (error) {
+      console.error('Failed to delete:', error);
+      toast.error('Failed to delete approval');
+    }
+  };
+
+  const openConfirmDialog = (action: 'approve' | 'reject' | 'delete', approvalId: number) => {
     setConfirmAction(action);
     setSelectedApprovalId(approvalId);
     setApproverName('');
@@ -115,7 +140,7 @@ export default function MicroserviceApprovals() {
   };
 
   const handleConfirm = async () => {
-    if (!approverName.trim()) {
+    if (confirmAction !== 'delete' && !approverName.trim()) {
       toast.error('Please enter your name');
       return;
     }
@@ -126,6 +151,8 @@ export default function MicroserviceApprovals() {
       await handleApprove(selectedApprovalId, approverName);
     } else if (confirmAction === 'reject') {
       await handleRevoke(selectedApprovalId, approverName);
+    } else if (confirmAction === 'delete') {
+      await handleDelete(selectedApprovalId);
     }
 
     setConfirmDialogOpen(false);
@@ -186,6 +213,11 @@ export default function MicroserviceApprovals() {
       loadApprovals();
     });
 
+    connection.on('ApprovalDeleted', (data) => {
+      console.log('Approval deleted:', data);
+      loadApprovals();
+    });
+
     connection.onreconnected(() => {
       console.log('SignalR reconnected');
       connection.invoke('JoinDashboard').catch(console.error);
@@ -201,6 +233,7 @@ export default function MicroserviceApprovals() {
     return () => {
       connection.off('PendingApprovalRequest');
       connection.off('ApprovalUpdated');
+      connection.off('ApprovalDeleted');
     };
   }, [connection]);
 
@@ -215,15 +248,18 @@ export default function MicroserviceApprovals() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <ShieldCheck className="h-8 w-8" />
-          Microservice Approvals
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Manage microservice connection approvals and security
-        </p>
-      </div>
+      {/* Breadcrumb */}
+      <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
+        <Link to="/" className="flex items-center hover:text-foreground transition-colors">
+          <Home className="h-4 w-4" />
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to="/microservices/radius-sync" className="hover:text-foreground transition-colors">
+          Microservices
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Approvals</span>
+      </nav>
 
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -329,14 +365,24 @@ export default function MicroserviceApprovals() {
                           Machine: {approval.machineName} ({approval.platform})
                         </CardDescription>
                       </div>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => openConfirmDialog('reject', approval.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Revoke
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => openConfirmDialog('reject', approval.id)}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Revoke
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openConfirmDialog('delete', approval.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -371,49 +417,66 @@ export default function MicroserviceApprovals() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirmAction === 'approve' ? 'Approve Connection' : 'Reject Connection'}
+              {confirmAction === 'approve' ? 'Approve Connection' : 
+               confirmAction === 'reject' ? 'Reject Connection' : 
+               'Delete Approval'}
             </DialogTitle>
             <DialogDescription>
               {confirmAction === 'approve' 
                 ? 'Please enter your name to approve this microservice connection.'
-                : 'Please enter your name to reject this microservice connection. This action cannot be undone.'}
+                : confirmAction === 'reject'
+                ? 'Please enter your name to reject this microservice connection. This action cannot be undone.'
+                : 'Are you sure you want to delete this approval? The microservice will appear as pending again on next connection.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="approverName">Your Name</Label>
-              <Input
-                id="approverName"
-                placeholder="Enter your name"
-                value={approverName}
-                onChange={(e) => setApproverName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && approverName.trim()) {
-                    handleConfirm();
-                  }
-                }}
-              />
+          {confirmAction !== 'delete' && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="approverName">Your Name</Label>
+                <Input
+                  id="approverName"
+                  placeholder="Enter your name"
+                  value={approverName}
+                  onChange={(e) => setApproverName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && approverName.trim()) {
+                      handleConfirm();
+                    }
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
               Cancel
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={!approverName.trim()}
+              disabled={confirmAction !== 'delete' && !approverName.trim()}
               className={confirmAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : ''}
-              variant={confirmAction === 'reject' ? 'destructive' : 'default'}
+              variant={confirmAction === 'reject' || confirmAction === 'delete' ? 'destructive' : 'default'}
             >
               {confirmAction === 'approve' ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Approve
                 </>
-              ) : (
+              ) : confirmAction === 'reject' ? (
                 <>
                   <XCircle className="h-4 w-4 mr-2" />
                   Reject
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
                 </>
               )}
             </Button>

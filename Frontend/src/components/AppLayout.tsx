@@ -133,6 +133,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         icon: Server
       }
     }
+    if (location.pathname === '/microservices/approvals') {
+      return {
+        parent: { title: 'Microservices', href: '/microservices/radius-sync', icon: Server },
+        current: 'Approvals',
+        icon: Server
+      }
+    }
     if (location.pathname === '/microservices/radius-sync') return { parent: null, current: 'Connected Services', icon: Server }
     return { parent: null, current: 'Dashboard', icon: Home }
   }

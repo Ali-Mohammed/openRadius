@@ -624,20 +624,30 @@ public class MicroservicesHub : Hub
     /// </summary>
     public async Task<bool> ApproveConnection(int approvalId, string approvedBy)
     {
+        var approval = await _dbContext.MicroserviceApprovals.FindAsync(approvalId);
+        if (approval == null) return false;
+        
         var result = await _approvalService.ApproveConnectionAsync(approvalId, approvedBy);
         
         if (result)
         {
             _logger.LogInformation("Microservice connection approved: ID {ApprovalId} by {ApprovedBy}", approvalId, approvedBy);
             
-            // Notify all dashboard clients
-            await Clients.Group("dashboard").SendAsync("ApprovalUpdated", new
+            var approvalData = new
             {
                 approvalId,
+                serviceName = approval.ServiceName,
+                machineId = approval.MachineId,
                 status = "approved",
                 approvedBy,
                 approvedAt = DateTime.UtcNow
-            });
+            };
+            
+            // Notify all clients (including pending microservices waiting for approval)
+            await Clients.All.SendAsync("ApprovalUpdated", approvalData);
+            
+            // Also send to specific service group if it exists
+            await Clients.Group($"service-{approval.ServiceName}").SendAsync("ApprovalUpdated", approvalData);
         }
         
         return result;
@@ -648,19 +658,78 @@ public class MicroservicesHub : Hub
     /// </summary>
     public async Task<bool> RevokeConnection(int approvalId)
     {
+        var approval = await _dbContext.MicroserviceApprovals.FindAsync(approvalId);
+        if (approval == null) return false;
+        
         var result = await _approvalService.RevokeConnectionAsync(approvalId);
         
         if (result)
         {
             _logger.LogInformation("Microservice connection revoked: ID {ApprovalId}", approvalId);
             
-            // Notify all dashboard clients
-            await Clients.Group("dashboard").SendAsync("ApprovalUpdated", new
+            var revocationData = new
             {
                 approvalId,
+                serviceName = approval.ServiceName,
+                machineId = approval.MachineId,
                 status = "revoked",
                 revokedAt = DateTime.UtcNow
-            });
+            };
+            
+            // Notify all clients (including the revoked microservice)
+            await Clients.All.SendAsync("ApprovalUpdated", revocationData);
+            
+            // Force disconnect the service if it's connected
+            var connectedService = ConnectedServices.FirstOrDefault(x => x.Key == approval.ServiceName);
+            if (!string.IsNullOrEmpty(connectedService.Key))
+            {
+                ConnectedServices.TryRemove(connectedService.Key, out _);
+            }
+        }
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Delete a microservice approval - service will show as pending again on next connection.
+    /// </summary>
+    public async Task<bool> DeleteConnection(int approvalId)
+    {
+        var approval = await _dbContext.MicroserviceApprovals.FindAsync(approvalId);
+        if (approval == null) return false;
+        
+        var result = await _approvalService.DeleteApprovalAsync(approvalId);
+        
+        if (result)
+        {
+            _logger.LogInformation("Microservice approval deleted: ID {ApprovalId} for {ServiceName}", approvalId, approval.ServiceName);
+            
+            var deletionData = new
+            {
+                approvalId,
+                serviceName = approval.ServiceName,
+                machineId = approval.MachineId,
+                status = "deleted",
+                deletedAt = DateTime.UtcNow
+            };
+            
+            // Notify all clients about the deletion
+            await Clients.All.SendAsync("ApprovalDeleted", deletionData);
+            
+            // Force disconnect the service if it's connected
+            var connectedService = ConnectedServices.FirstOrDefault(x => x.Key == approval.ServiceName);
+            if (!string.IsNullOrEmpty(connectedService.Key))
+            {
+                ConnectedServices.TryRemove(connectedService.Key, out _);
+                
+                // Notify about service disconnection
+                await Clients.Group("dashboard").SendAsync("ServiceDisconnected", new
+                {
+                    serviceName = approval.ServiceName,
+                    connectionId = connectedService.Value.ConnectionId,
+                    disconnectedAt = DateTime.UtcNow
+                });
+            }
         }
         
         return result;

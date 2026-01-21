@@ -209,6 +209,72 @@ public class SignalRConnectionService : BackgroundService
             }
         });
 
+        // Handle approval status updates - auto-reconnect when approved
+        _hubConnection.On<object>("ApprovalUpdated", async (data) =>
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(data);
+                var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                
+                var status = root.TryGetProperty("status", out var statusProp) ? statusProp.GetString() ?? "" : "";
+                
+                _logger.LogInformation("Approval status updated: {Status}", status);
+                
+                if (status == "approved")
+                {
+                    _logger.LogInformation("Service has been approved! Attempting to reconnect...");
+                    
+                    // Disconnect and reconnect to register with the new approved status
+                    await _hubConnection.StopAsync();
+                    await Task.Delay(1000); // Brief delay before reconnecting
+                    
+                    // The main loop will pick up the disconnected state and reinitialize
+                }
+                else if (status == "revoked")
+                {
+                    _logger.LogWarning("Service approval has been revoked. Disconnecting...");
+                    _isRegistered = false;
+                    await _hubConnection.StopAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling approval update");
+            }
+        });
+
+        // Handle approval deletion - disconnect and clear token
+        _hubConnection.On<object>("ApprovalDeleted", async (data) =>
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(data);
+                var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                
+                var serviceName = root.TryGetProperty("serviceName", out var svcProp) ? svcProp.GetString() ?? "" : "";
+                
+                if (serviceName == _serviceName)
+                {
+                    _logger.LogWarning("Approval has been deleted. Disconnecting and clearing credentials...");
+                    
+                    // Clear the stored approval token
+                    _machineIdentityService.SetApprovalToken("");
+                    
+                    _isRegistered = false;
+                    await _hubConnection.StopAsync();
+                    
+                    // The service will appear as pending again on next connection attempt
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling approval deletion");
+            }
+        });
+
         // Handle ping requests
         _hubConnection.On<JsonElement>("Ping", async (data) =>
         {
