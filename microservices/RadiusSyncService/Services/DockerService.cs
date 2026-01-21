@@ -530,6 +530,26 @@ public class DockerService
     }
 
     /// <summary>
+    /// Starts a Docker container.
+    /// </summary>
+    public async Task<CommandResult> StartContainerAsync(string containerIdOrName)
+    {
+        if (_dockerClient == null)
+            return new CommandResult { Success = false, Error = "Docker client not initialized" };
+
+        try
+        {
+            await _dockerClient.Containers.StartContainerAsync(containerIdOrName, new ContainerStartParameters());
+            return new CommandResult { Success = true, Output = $"Container {containerIdOrName} started" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start container {Container}", containerIdOrName);
+            return new CommandResult { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
     /// Removes a Docker container.
     /// </summary>
     public async Task<CommandResult> RemoveContainerAsync(string containerIdOrName, bool force = false)
