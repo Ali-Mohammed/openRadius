@@ -49,24 +49,46 @@ export const Header = () => {
 
   useEffect(() => {
     // Check if in impersonation mode
-    const impersonationStr = sessionStorage.getItem('impersonation')
-    if (impersonationStr) {
-      try {
-        const data = JSON.parse(impersonationStr)
-        setImpersonationData(data)
-        console.log('Header: Impersonation data loaded:', data)
-      } catch (e) {
-        console.error('Header: Failed to parse impersonation data:', e)
-        sessionStorage.removeItem('impersonation')
+    const checkImpersonation = () => {
+      const impersonationStr = sessionStorage.getItem('impersonation')
+      console.log('[Header] Checking impersonation:', impersonationStr ? 'Found data' : 'No data')
+      if (impersonationStr) {
+        try {
+          const data = JSON.parse(impersonationStr)
+          console.log('[Header] Parsed impersonation data:', data)
+          setImpersonationData(data)
+        } catch (e) {
+          console.error('[Header] Failed to parse impersonation:', e)
+          sessionStorage.removeItem('impersonation')
+        }
+      } else {
+        setImpersonationData(null)
       }
-    } else {
-      console.log('Header: No impersonation data in session')
+    }
+
+    // Initial check
+    checkImpersonation()
+
+    // Listen for storage changes (from other tabs or manual updates)
+    const handleStorageChange = () => {
+      console.log('[Header] Storage changed, rechecking...')
+      checkImpersonation()
+    }
+
+    // Check every second for impersonation changes
+    const interval = setInterval(checkImpersonation, 1000)
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
 
   const isImpersonating = !!impersonationData
   
-  console.log('Header render - isImpersonating:', isImpersonating, 'data:', impersonationData)
+  console.log('[Header] Render - isImpersonating:', isImpersonating, 'data:', impersonationData)
   
   const email = keycloak.tokenParsed?.email
   const dbUser = users.find((u: any) => u.email === email)

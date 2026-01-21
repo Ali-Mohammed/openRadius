@@ -26,7 +26,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin, Package, Wallet, ArrowUp, History, Receipt, DollarSign, Tags, Activity } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin, Package, Wallet, ArrowUp, History, Receipt, DollarSign, Tags, Activity, ShieldAlert, X } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { usersApi } from '@/lib/api'
+import { toast } from 'sonner'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -37,6 +41,66 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { theme, toggleTheme, layout } = useTheme()
   const { t, i18n } = useTranslation()
   const [dashboardName, setDashboardName] = useState<string>('')
+  const [impersonationData, setImpersonationData] = useState<any>(null)
+
+  // Check for impersonation
+  useEffect(() => {
+    const checkImpersonation = () => {
+      const data = sessionStorage.getItem('impersonation')
+      console.log('[AppLayout] Checking impersonation:', data)
+      if (data) {
+        try {
+          const parsed = JSON.parse(data)
+          console.log('[AppLayout] Parsed impersonation data:', parsed)
+          setImpersonationData(parsed)
+        } catch (error) {
+          console.error('[AppLayout] Error parsing impersonation data:', error)
+        }
+      } else {
+        setImpersonationData(null)
+      }
+    }
+
+    // Check on mount
+    checkImpersonation()
+
+    // Poll for changes (needed because sessionStorage doesn't trigger events in same tab)
+    const interval = setInterval(checkImpersonation, 1000)
+
+    // Listen for storage events from other tabs
+    window.addEventListener('storage', checkImpersonation)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('storage', checkImpersonation)
+    }
+  }, [])
+
+  // Exit impersonation mutation
+  const exitImpersonationMutation = useMutation({
+    mutationFn: usersApi.exitImpersonation,
+    onSuccess: () => {
+      sessionStorage.removeItem('impersonation')
+      toast.success('Exited impersonation mode')
+      window.location.reload()
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to exit impersonation')
+    }
+  })
+
+  const handleExitImpersonation = async () => {
+    try {
+      await exitImpersonationMutation.mutateAsync()
+    } catch (error) {
+      console.error('Error exiting impersonation:', error)
+    }
+  }
+
+  const isImpersonating = !!impersonationData
+  const firstName = impersonationData?.firstName || ''
+
+  console.log('[AppLayout] Render - isImpersonating:', isImpersonating, 'data:', impersonationData)
 
   // Load dashboard name when on a dashboard detail page
   useEffect(() => {
@@ -166,6 +230,21 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Separator orientation="vertical" className="mr-2 h-4" />
           {i18n.language === 'ar' && (
             <div className="flex items-center gap-2">
+              {/* Impersonation Badge */}
+              {isImpersonating && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium shadow-md">
+                  <ShieldAlert className="h-4 w-4" />
+                  <span>Impersonating: {firstName}</span>
+                  <button
+                    onClick={handleExitImpersonation}
+                    className="ml-1 hover:bg-amber-600 rounded p-0.5 transition-colors"
+                    aria-label="Exit impersonation"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
@@ -235,6 +314,21 @@ export function AppLayout({ children }: AppLayoutProps) {
           </Breadcrumb>
           {i18n.language !== 'ar' && (
             <div className="ml-auto flex items-center gap-2">
+              {/* Impersonation Badge */}
+              {isImpersonating && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium shadow-md">
+                  <ShieldAlert className="h-4 w-4" />
+                  <span>Impersonating: {firstName}</span>
+                  <button
+                    onClick={handleExitImpersonation}
+                    className="ml-1 hover:bg-amber-600 rounded p-0.5 transition-colors"
+                    aria-label="Exit impersonation"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
