@@ -1538,9 +1538,10 @@ export default function BillingProfiles() {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.price}
+                  value={formData.price || ''}
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                   placeholder="0.00"
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
