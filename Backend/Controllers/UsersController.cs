@@ -502,55 +502,79 @@ public class UsersController : ControllerBase
                 return null;
             }
 
-            // First, get admin token
+            _logger.LogInformation("Getting impersonated token for user {UserId} using token exchange", targetKeycloakUserId);
+
+            // Use OAuth2 Token Exchange (RFC 8693) to get impersonated user's token
+            // This is the proper way to impersonate in Keycloak
             var tokenUrl = $"{authority}/protocol/openid-connect/token";
-            var tokenContent = new FormUrlEncodedContent(new[]
+            
+            // First get admin token
+            var adminTokenContent = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("grant_type", "client_credentials"),
                 new KeyValuePair<string, string>("client_id", clientId),
                 new KeyValuePair<string, string>("client_secret", clientSecret)
             });
 
-            var tokenResponse = await client.PostAsync(tokenUrl, tokenContent);
-            if (!tokenResponse.IsSuccessStatusCode)
+            var adminTokenResponse = await client.PostAsync(tokenUrl, adminTokenContent);
+            if (!adminTokenResponse.IsSuccessStatusCode)
             {
-                var error = await tokenResponse.Content.ReadAsStringAsync();
-                _logger.LogError("Failed to get admin token: {Error}", error);
+                var error = await adminTokenResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to get admin token: {StatusCode}, Error: {Error}", adminTokenResponse.StatusCode, error);
                 return null;
             }
 
-            var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
-            var adminToken = tokenResult.GetProperty("access_token").GetString();
+            var adminTokenResult = await adminTokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var adminToken = adminTokenResult.GetProperty("access_token").GetString();
 
-            // Now use Keycloak's admin API to impersonate the user
-            var baseUrl = authority.Replace($"/realms/{realm}", "");
-            var impersonateUrl = $"{baseUrl}/admin/realms/{realm}/users/{targetKeycloakUserId}/impersonation";
-
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-            
-            var impersonateResponse = await client.PostAsync(impersonateUrl, null);
-            
-            if (!impersonateResponse.IsSuccessStatusCode)
+            if (string.IsNullOrEmpty(adminToken))
             {
-                var error = await impersonateResponse.Content.ReadAsStringAsync();
-                _logger.LogError("Failed to impersonate user {UserId}: {Error}", targetKeycloakUserId, error);
+                _logger.LogError("Received empty admin token from Keycloak");
                 return null;
             }
 
-            var impersonateResult = await impersonateResponse.Content.ReadFromJsonAsync<JsonElement>();
-            
-            // The response should contain the access token for the impersonated user
-            if (impersonateResult.TryGetProperty("access_token", out var tokenElement))
+            _logger.LogInformation("Successfully got admin token, performing token exchange");
+
+            // Now perform token exchange to impersonate the user
+            var tokenExchangeContent = new FormUrlEncodedContent(new[]
             {
-                return tokenElement.GetString();
+                new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange"),
+                new KeyValuePair<string, string>("client_id", clientId),
+                new KeyValuePair<string, string>("client_secret", clientSecret),
+                new KeyValuePair<string, string>("subject_token", adminToken),
+                new KeyValuePair<string, string>("requested_subject", targetKeycloakUserId),
+                new KeyValuePair<string, string>("audience", _configuration["Oidc:ClientId"] ?? "openradius-web")
+            });
+
+            var tokenExchangeResponse = await client.PostAsync(tokenUrl, tokenExchangeContent);
+            
+            if (!tokenExchangeResponse.IsSuccessStatusCode)
+            {
+                var error = await tokenExchangeResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Token exchange failed: {StatusCode}, Error: {Error}", 
+                    tokenExchangeResponse.StatusCode, error);
+                return null;
             }
 
-            _logger.LogError("Impersonation response did not contain access_token");
+            var responseContent = await tokenExchangeResponse.Content.ReadAsStringAsync();
+            _logger.LogDebug("Token exchange response: {Response}", responseContent);
+
+            var exchangeResult = await JsonSerializer.DeserializeAsync<JsonElement>(
+                new MemoryStream(System.Text.Encoding.UTF8.GetBytes(responseContent)));
+            
+            if (exchangeResult.TryGetProperty("access_token", out var tokenElement))
+            {
+                var impersonatedToken = tokenElement.GetString();
+                _logger.LogInformation("✅ Successfully obtained impersonated token via token exchange");
+                return impersonatedToken;
+            }
+
+            _logger.LogError("Token exchange response did not contain access_token. Response: {Response}", responseContent);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting impersonated token");
+            _logger.LogError(ex, "Exception while getting impersonated token for user {UserId}", targetKeycloakUserId);
             return null;
         }
     }
