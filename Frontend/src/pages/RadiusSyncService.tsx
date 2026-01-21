@@ -598,37 +598,32 @@ export default function RadiusSyncServicePage() {
       </div>
 
       {/* Services List */}
-      <Card className="shadow-lg border-border/50">
-        <CardHeader className="border-b bg-gradient-to-r from-muted/30 to-background">
+      <Card>
+        <CardHeader className="border-b">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Server className="h-5 w-5 text-primary" />
-                </div>
+              <CardTitle className="flex items-center gap-3">
+                <Server className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <div>{t('radiusSyncService.connectedServices', 'Connected Services')}</div>
                   <CardDescription className="text-xs mt-1">
-                    {services.length} service{services.length !== 1 ? 's' : ''} connected • Real-time monitoring
+                    {services.length} service{services.length !== 1 ? 's' : ''} connected
                   </CardDescription>
                 </div>
               </CardTitle>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              <Badge variant="outline" className="gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                <Activity className="h-3 w-3 text-green-600" />
-                <span className="font-medium">{services.filter(s => s.approvalStatus === 'Approved' && s.status === 'Online').length} Online</span>
+              <Badge variant="secondary" className="gap-1.5">
+                <span className="text-xs">{services.filter(s => s.approvalStatus === 'Approved' && s.status === 'Online').length} Online</span>
               </Badge>
               {services.filter(s => s.approvalStatus === 'Pending').length > 0 && (
-                <Badge variant="outline" className="gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
-                  <AlertCircle className="h-3 w-3 text-orange-600 animate-pulse" />
-                  <span className="font-medium text-orange-600">{services.filter(s => s.approvalStatus === 'Pending').length} Pending</span>
+                <Badge variant="secondary" className="gap-1.5">
+                  <span className="text-xs">{services.filter(s => s.approvalStatus === 'Pending').length} Pending</span>
                 </Badge>
               )}
               {services.filter(s => s.status === 'Degraded').length > 0 && (
-                <Badge variant="outline" className="gap-1.5 px-3 py-1 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-                  <AlertCircle className="h-3 w-3 text-yellow-600" />
-                  <span className="font-medium text-yellow-600">{services.filter(s => s.status === 'Degraded').length} Degraded</span>
+                <Badge variant="secondary" className="gap-1.5">
+                  <span className="text-xs">{services.filter(s => s.status === 'Degraded').length} Degraded</span>
                 </Badge>
               )}
             </div>
@@ -653,33 +648,30 @@ export default function RadiusSyncServicePage() {
               {/* Pending Services Section */}
               {services.filter(s => s.approvalStatus === 'Pending').length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-300"></div>
-                    <h3 className="text-sm font-bold text-orange-600 flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30">
-                      <AlertCircle className="h-4 w-4 animate-pulse" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <Separator className="flex-1" />
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
                       Pending Approval ({services.filter(s => s.approvalStatus === 'Pending').length})
                     </h3>
-                    <div className="h-1 flex-1 rounded-full bg-gradient-to-l from-orange-500 to-orange-300"></div>
+                    <Separator className="flex-1" />
                   </div>
                   {services.filter(s => s.approvalStatus === 'Pending').map((service) => (
                     <div
                       key={service.serviceName}
-                      className="rounded-xl border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50/80 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 p-5 shadow-md hover:shadow-lg transition-all duration-300"
+                      className="rounded-lg border bg-card p-4"
                     >
                       <div className="flex items-center gap-4 mb-4">
-                        {/* Animated Status Indicator */}
-                        <div className="relative">
-                          <div className="h-4 w-4 rounded-full bg-orange-500 animate-pulse" />
-                          <div className="absolute inset-0 h-4 w-4 rounded-full bg-orange-500 animate-ping opacity-75" />
-                        </div>
+                        {/* Status Indicator */}
+                        <div className="h-2 w-2 rounded-full bg-orange-500" />
                         
                         {/* Service Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2 mb-1">
-                            <h3 className="font-bold text-xl text-orange-900 dark:text-orange-100">{service.serviceName}</h3>
-                            <Badge variant="outline" className="text-xs border-orange-300">v{service.version}</Badge>
+                            <h3 className="font-semibold text-base">{service.serviceName}</h3>
+                            <Badge variant="outline" className="text-xs">v{service.version}</Badge>
                           </div>
-                          <p className="text-sm text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Clock className="h-3 w-3" />
                             Requested {getTimeAgo(service.connectedAt)}
                           </p>
@@ -689,7 +681,6 @@ export default function RadiusSyncServicePage() {
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white shadow-md hover:shadow-lg transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               openApprovalDialog(service.serviceName);
@@ -701,7 +692,6 @@ export default function RadiusSyncServicePage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 shadow-sm hover:shadow-md transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               rejectService(service.serviceName);
@@ -714,7 +704,7 @@ export default function RadiusSyncServicePage() {
                       </div>
 
                       {/* Connection Details */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-lg bg-white/70 dark:bg-black/30 border border-orange-200 dark:border-orange-800/50 backdrop-blur-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 rounded-md border bg-muted/50">
                         {service.ipAddress && (
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">IP Address</p>
@@ -765,134 +755,97 @@ export default function RadiusSyncServicePage() {
               {services.filter(s => s.approvalStatus === 'Approved').length > 0 && (
                 <div className="space-y-3">
                   {services.filter(s => s.approvalStatus === 'Pending').length > 0 && (
-                    <div className="flex items-center gap-2 mt-6">
-                      <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-green-500 to-green-300"></div>
-                      <h3 className="text-sm font-bold text-green-700 dark:text-green-400 flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30">
+                    <div className="flex items-center gap-3 mb-4 mt-6">
+                      <Separator className="flex-1" />
+                      <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4" />
                         Active Services ({services.filter(s => s.approvalStatus === 'Approved').length})
                       </h3>
-                      <div className="h-1 flex-1 rounded-full bg-gradient-to-l from-green-500 to-green-300"></div>
+                      <Separator className="flex-1" />
                     </div>
                   )}
                   <div className="grid gap-3">
                     {services.filter(s => s.approvalStatus === 'Approved').map((service) => (
                       <div
                         key={service.serviceName}
-                        className={cn(
-                          "group rounded-xl border-2 p-5 cursor-pointer transition-all duration-300 shadow-md hover:shadow-xl",
-                          "bg-gradient-to-br from-background to-muted/20",
-                          service.status === 'Online' 
-                            ? "border-green-200 dark:border-green-800 hover:border-green-400 dark:hover:border-green-600" 
-                            : service.status === 'Degraded'
-                            ? "border-yellow-200 dark:border-yellow-800 hover:border-yellow-400 dark:hover:border-yellow-600"
-                            : "border-red-200 dark:border-red-800 hover:border-red-400 dark:hover:border-red-600",
-                          "hover:scale-[1.02] active:scale-[0.98]"
-                        )}
+                        className="group rounded-lg border bg-card p-4 cursor-pointer hover:bg-accent transition-colors"
                         onClick={() => navigate(`/microservices/radius-sync/${encodeURIComponent(service.serviceName)}`)}
                       >
                         <div className="flex items-center gap-4">
-                          {/* Animated Status Indicator */}
-                          <div className="relative">
-                            <div className={cn(
-                              "h-4 w-4 rounded-full transition-all duration-300",
-                              service.status === 'Online' && "bg-green-500 shadow-lg shadow-green-500/50",
-                              service.status === 'Degraded' && "bg-yellow-500 shadow-lg shadow-yellow-500/50",
-                              service.status === 'Offline' && "bg-red-500 shadow-lg shadow-red-500/50"
-                            )} />
-                            {service.status === 'Online' && (
-                              <div className="absolute inset-0 h-4 w-4 rounded-full bg-green-500 animate-ping opacity-75" />
-                            )}
-                          </div>
+                          {/* Status Indicator */}
+                          <div className={cn(
+                            "h-2 w-2 rounded-full",
+                            service.status === 'Online' && "bg-green-500",
+                            service.status === 'Degraded' && "bg-yellow-500",
+                            service.status === 'Offline' && "bg-red-500"
+                          )} />
                           
                           {/* Service Info */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-baseline gap-2 mb-1">
-                              <h3 className="font-bold text-xl">{service.displayName || service.serviceName}</h3>
+                              <h3 className="font-semibold text-base">{service.displayName || service.serviceName}</h3>
                               <Badge variant="outline" className="text-xs">v{service.version}</Badge>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Zap className="h-3 w-3" />
-                                <span>Uptime: {formatUptime(service.connectedAt)}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>Last heartbeat: {getTimeAgo(service.lastHeartbeat)}</span>
-                              </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Uptime: {formatUptime(service.connectedAt)}</span>
+                              <span>•</span>
+                              <span>Last heartbeat: {getTimeAgo(service.lastHeartbeat)}</span>
                             </div>
                           </div>
 
                           {/* Health Metrics */}
                           {service.healthReport && (
-                            <div className="flex items-center gap-4">
-                              <div className="text-center px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Cpu className="h-3 w-3 text-blue-600" />
-                                  <p className="text-xs text-muted-foreground font-semibold">CPU</p>
-                                </div>
-                                <p className="text-sm font-bold text-blue-600">{service.healthReport.cpuUsage.toFixed(1)}%</p>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Cpu className="h-3 w-3" />
+                                <span>{service.healthReport.cpuUsage.toFixed(1)}%</span>
                               </div>
-                              <div className="text-center px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <MemoryStick className="h-3 w-3 text-purple-600" />
-                                  <p className="text-xs text-muted-foreground font-semibold">Memory</p>
-                                </div>
-                                <p className="text-sm font-bold text-purple-600">{service.healthReport.memoryUsageMb.toFixed(0)} MB</p>
+                              <div className="flex items-center gap-1">
+                                <MemoryStick className="h-3 w-3" />
+                                <span>{service.healthReport.memoryUsageMb.toFixed(0)} MB</span>
                               </div>
                               {service.healthReport.activeConnections !== undefined && (
-                                <div className="text-center px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                                  <div className="flex items-center gap-1 mb-1">
-                                    <Signal className="h-3 w-3 text-green-600" />
-                                    <p className="text-xs text-muted-foreground font-semibold">Connections</p>
-                                  </div>
-                                  <p className="text-sm font-bold text-green-600">{service.healthReport.activeConnections}</p>
+                                <div className="flex items-center gap-1">
+                                  <Signal className="h-3 w-3" />
+                                  <span>{service.healthReport.activeConnections}</span>
                                 </div>
                               )}
                             </div>
                           )}
 
                           {/* Status Badge & Action */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             {getStatusBadge(service.status)}
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setServiceToDelete(service);
-                                      setDeleteDialogOpen(true);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Delete Service
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-200" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setServiceToDelete(service);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
 
                         {/* Activity Progress */}
                         {service.currentActivity && (
-                          <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border/50">
+                          <div className="mt-3 p-3 rounded-md border bg-muted/50">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium flex items-center gap-2">
-                                <Activity className="h-3 w-3 text-primary animate-pulse" />
+                              <span className="text-xs font-medium flex items-center gap-2">
+                                <Activity className="h-3 w-3" />
                                 {service.currentActivity}
                               </span>
                               {service.activityProgress !== undefined && (
-                                <span className="text-sm font-semibold text-primary">{service.activityProgress}%</span>
+                                <span className="text-xs text-muted-foreground">{service.activityProgress}%</span>
                               )}
                             </div>
                             {service.activityProgress !== undefined && (
-                              <Progress value={service.activityProgress} className="h-2" />
+                              <Progress value={service.activityProgress} className="h-1.5" />
                             )}
                           </div>
                         )}
