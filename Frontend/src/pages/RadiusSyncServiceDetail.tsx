@@ -1479,7 +1479,7 @@ export default function RadiusSyncServiceDetailPage() {
           <ScrollArea className="h-[600px] w-full rounded-md border bg-black p-4">
             <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
               {containerLogs?.containerId === containerForLogs?.id 
-                ? (containerLogs.logs || 'Loading logs...')
+                ? (containerLogs?.logs || 'Loading logs...')
                 : 'Loading logs...'}
             </pre>
           </ScrollArea>
