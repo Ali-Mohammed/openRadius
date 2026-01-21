@@ -540,31 +540,53 @@ public class DockerService
 
         try
         {
-            var statsResponse = await _dockerClient.Containers.GetContainerStatsAsync(
+            var progress = new Progress<Docker.DotNet.Models.JSONMessage>();
+            using var statsStream = await _dockerClient.Containers.GetContainerStatsAsync(
                 containerId,
                 new ContainerStatsParameters { Stream = false },
-                CancellationToken.None
+                CancellationToken.None,
+                progress
             );
 
             double cpuUsage = 0;
             long memoryUsage = 0;
             long memoryLimit = 0;
 
-            if (statsResponse != null)
+            using var reader = new StreamReader(statsStream);
+            var statsJson = await reader.ReadToEndAsync();
+            
+            if (!string.IsNullOrEmpty(statsJson))
             {
-                // Calculate CPU usage percentage
-                var cpuDelta = statsResponse.CPUStats.CPUUsage.TotalUsage - statsResponse.PreCPUStats.CPUUsage.TotalUsage;
-                var systemDelta = statsResponse.CPUStats.SystemUsage - statsResponse.PreCPUStats.SystemUsage;
-                var onlineCpus = statsResponse.CPUStats.OnlineCPUs;
-                
-                if (systemDelta > 0 && cpuDelta > 0 && onlineCpus > 0)
+                using var jsonDoc = System.Text.Json.JsonDocument.Parse(statsJson);
+                var root = jsonDoc.RootElement;
+
+                // Get CPU stats
+                if (root.TryGetProperty("cpu_stats", out var cpuStats) && 
+                    root.TryGetProperty("precpu_stats", out var preCpuStats))
                 {
-                    cpuUsage = (cpuDelta / (double)systemDelta) * onlineCpus * 100.0;
+                    var cpuUsageObj = cpuStats.GetProperty("cpu_usage");
+                    var preCpuUsageObj = preCpuStats.GetProperty("cpu_usage");
+                    
+                    var cpuDelta = cpuUsageObj.GetProperty("total_usage").GetUInt64() - 
+                                   preCpuUsageObj.GetProperty("total_usage").GetUInt64();
+                    var systemDelta = cpuStats.GetProperty("system_cpu_usage").GetUInt64() - 
+                                     preCpuStats.GetProperty("system_cpu_usage").GetUInt64();
+                    var onlineCpus = cpuStats.GetProperty("online_cpus").GetInt32();
+                    
+                    if (systemDelta > 0 && cpuDelta > 0 && onlineCpus > 0)
+                    {
+                        cpuUsage = (cpuDelta / (double)systemDelta) * onlineCpus * 100.0;
+                    }
                 }
 
-                // Get memory usage
-                memoryUsage = (long)statsResponse.MemoryStats.Usage;
-                memoryLimit = (long)statsResponse.MemoryStats.Limit;
+                // Get memory stats
+                if (root.TryGetProperty("memory_stats", out var memoryStats))
+                {
+                    if (memoryStats.TryGetProperty("usage", out var usage))
+                        memoryUsage = usage.GetInt64();
+                    if (memoryStats.TryGetProperty("limit", out var limit))
+                        memoryLimit = limit.GetInt64();
+                }
             }
 
             return (cpuUsage, memoryUsage, memoryLimit);
