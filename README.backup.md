@@ -94,16 +94,6 @@
 - **Real-time Updates** - SignalR for live data sync
 - **Advanced Filtering** - Powerful search and filter options
 
-### 🔌 Microservices & Integration
-- **Microservice Management** - Connected services monitoring dashboard
-- **Approval Workflow** - Machine-based authentication and authorization
-- **Auto-Reconnection** - Automatic reconnection on approval
-- **Health Monitoring** - Real-time heartbeat and activity tracking
-- **Service Metrics** - CPU, RAM, and performance monitoring
-- **Approval System** - Pending/Approved tabs with revoke and delete
-- **Machine Identity** - Hardware-based unique identification
-- **Token Security** - HMACSHA256-based approval tokens
-
 ---
 
 ## 🛠️ Tech Stack
