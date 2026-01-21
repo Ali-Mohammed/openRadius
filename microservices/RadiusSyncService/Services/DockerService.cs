@@ -649,6 +649,22 @@ public class DockerService
     }
 
     /// <summary>
+    /// Formats bytes to human-readable string.
+    /// </summary>
+    private string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    /// <summary>
     /// Resolves the full path to a command, checking common locations.
     /// </summary>
     private string ResolveCommandPath(string command)
