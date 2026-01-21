@@ -1057,12 +1057,33 @@ export default function RadiusSyncServiceDetailPage() {
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8"
-                                  onClick={() => requestContainerLogs(container.id!)}
+                                  onClick={() => setContainerForLogs(container)}
+                                  disabled={isProcessingContainer === container.id}
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>View Logs</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => setContainerToRestart(container)}
+                                  disabled={isProcessingContainer === container.id}
+                                >
+                                  {isProcessingContainer === container.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RotateCw className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Restart Container</TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                           <TooltipProvider>
@@ -1088,6 +1109,7 @@ export default function RadiusSyncServiceDetailPage() {
                                   size="icon" 
                                   className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                   onClick={() => requestContainerStop(container.id!)}
+                                  disabled={isProcessingContainer === container.id}
                                 >
                                   <Square className="h-4 w-4" />
                                 </Button>
@@ -1129,21 +1151,64 @@ export default function RadiusSyncServiceDetailPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">{container.status}</Badge>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => requestContainerRemove(container.id!, false)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Remove Container</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <div className="flex gap-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => setContainerForLogs(container)}
+                                  disabled={isProcessingContainer === container.id}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>View Logs</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => setContainerToRestart(container)}
+                                  disabled={isProcessingContainer === container.id}
+                                >
+                                  {isProcessingContainer === container.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RotateCw className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Start Container</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => setContainerToDelete(container)}
+                                  disabled={isProcessingContainer === container.id}
+                                >
+                                  {isProcessingContainer === container.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove Container</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1342,6 +1407,93 @@ export default function RadiusSyncServiceDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Container Logs Dialog */}
+      <Dialog open={!!containerForLogs} onOpenChange={(open) => !open && setContainerForLogs(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Terminal className="h-5 w-5" />
+              Container Logs: {containerForLogs?.names}
+            </DialogTitle>
+            <DialogDescription>
+              {containerForLogs?.image}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[600px] w-full rounded-md border bg-black p-4">
+            <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
+              {containerLogs?.containerId === containerForLogs?.id 
+                ? (containerLogs.logs || 'Loading logs...')
+                : 'Loading logs...'}
+            </pre>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Container Confirmation */}
+      <AlertDialog open={!!containerToDelete} onOpenChange={(open) => !open && setContainerToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-600" />
+              Delete Container?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete container <strong>{containerToDelete?.names}</strong>?
+              <br />
+              <span className="text-xs text-muted-foreground mt-2 block">Image: {containerToDelete?.image}</span>
+              <br />
+              This action cannot be undone. The container will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (containerToDelete) {
+                  handleDeleteContainer(containerToDelete.id!);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restart Container Confirmation */}
+      <AlertDialog open={!!containerToRestart} onOpenChange={(open) => !open && setContainerToRestart(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCw className="h-5 w-5 text-blue-600" />
+              {containerToRestart?.state === 'running' ? 'Restart' : 'Start'} Container?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {containerToRestart?.state === 'running' ? 'restart' : 'start'} container <strong>{containerToRestart?.names}</strong>?
+              <br />
+              <span className="text-xs text-muted-foreground mt-2 block">Image: {containerToRestart?.image}</span>
+              {containerToRestart?.state === 'running' && (
+                <><br />The container will be stopped and then started again.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (containerToRestart) {
+                  handleRestartContainer(containerToRestart.id!, containerToRestart.state === 'running');
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {containerToRestart?.state === 'running' ? 'Restart' : 'Start'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
