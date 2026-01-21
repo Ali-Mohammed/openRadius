@@ -20,6 +20,10 @@ apiClient.interceptors.request.use(
     if (impersonationData) {
       try {
         const parsed = JSON.parse(impersonationData)
+        // Add impersonated user ID header so backend knows to return impersonated user data
+        if (parsed.impersonatedUser?.id) {
+          config.headers['X-Impersonated-User-Id'] = parsed.impersonatedUser.id.toString()
+        }
         if (parsed.impersonatedToken) {
           config.headers.Authorization = `Bearer ${parsed.impersonatedToken}`
           return config

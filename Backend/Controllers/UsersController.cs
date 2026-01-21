@@ -61,6 +61,58 @@ public class UsersController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<object>> GetCurrentUser()
     {
+        // Check if user is impersonating (UI-only impersonation)
+        var impersonatedUserIdHeader = Request.Headers["X-Impersonated-User-Id"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(impersonatedUserIdHeader) && int.TryParse(impersonatedUserIdHeader, out var impersonatedUserId))
+        {
+            _logger.LogInformation("Returning impersonated user data for user ID {UserId}", impersonatedUserId);
+            
+            // Get the impersonated user from database
+            var impersonatedUser = await _context.Users
+                .Include(u => u.DefaultWorkspace)
+                .Include(u => u.CurrentWorkspace)
+                .FirstOrDefaultAsync(u => u.Id == impersonatedUserId);
+
+            if (impersonatedUser != null)
+            {
+                // Return impersonated user's data with minimal claims
+                // Note: Roles and groups will be from the admin token, not the impersonated user
+                // This is a limitation of UI-only impersonation
+                return Ok(new { 
+                    IsAuthenticated = true,
+                    Name = $"{impersonatedUser.FirstName} {impersonatedUser.LastName}",
+                    Email = impersonatedUser.Email,
+                    Roles = new List<string>(), // No roles for UI-only impersonation
+                    ResourceRoles = new Dictionary<string, List<string>>(),
+                    Groups = new List<string>(),
+                    Claims = new List<object>(),
+                    User = new {
+                        impersonatedUser.Id,
+                        impersonatedUser.Email,
+                        impersonatedUser.FirstName,
+                        impersonatedUser.LastName,
+                        impersonatedUser.CurrentWorkspaceId,
+                        impersonatedUser.DefaultWorkspaceId,
+                        CurrentWorkspace = impersonatedUser.CurrentWorkspace != null ? new {
+                            impersonatedUser.CurrentWorkspace.Id,
+                            impersonatedUser.CurrentWorkspace.Title,
+                            impersonatedUser.CurrentWorkspace.Name,
+                            impersonatedUser.CurrentWorkspace.Location,
+                            impersonatedUser.CurrentWorkspace.Color
+                        } : null,
+                        DefaultWorkspace = impersonatedUser.DefaultWorkspace != null ? new {
+                            impersonatedUser.DefaultWorkspace.Id,
+                            impersonatedUser.DefaultWorkspace.Title,
+                            impersonatedUser.DefaultWorkspace.Name,
+                            impersonatedUser.DefaultWorkspace.Location,
+                            impersonatedUser.DefaultWorkspace.Color
+                        } : null
+                    }
+                });
+            }
+        }
+
+        // Normal flow - return current user's data from token
         var claims = User.Claims.Select(c => new { c.Type, c.Value });
         
         // Extract name
@@ -406,28 +458,23 @@ public class UsersController : ControllerBase
 
         try
         {
-            // Get impersonated user's token from Keycloak
-            var impersonatedToken = await GetImpersonatedTokenAsync(targetUser.KeycloakUserId);
-
-            if (string.IsNullOrEmpty(impersonatedToken))
-            {
-                return StatusCode(500, new { message = "Failed to generate impersonated token" });
-            }
-
-            // Log impersonation action
+            // Note: Keycloak 26.5.0 has limitations with token exchange
+            // We cannot get a real impersonated token, so we use UI-only impersonation
+            // The frontend will use the admin's token but display impersonated user's data
             _logger.LogWarning(
-                "User impersonation: {AdminEmail} is impersonating user {TargetEmail} (ID: {TargetId})",
+                "User impersonation (UI-only): {AdminEmail} is impersonating user {TargetEmail} (ID: {TargetId})",
                 adminEmail,
                 targetUser.Email,
                 targetUser.Id
             );
 
-            // Return impersonated user data with new token
+            // Return the admin's current token (not a new token)
+            // This maintains the admin's session while the UI shows the impersonated user
             return Ok(new
             {
                 success = true,
-                token = impersonatedToken, // New JWT token for the impersonated user
-                originalToken = currentToken, // Original admin's token to restore later
+                token = currentToken, // Use admin's token (UI-only impersonation)
+                originalToken = currentToken, // Same as token since we can't get impersonated token
                 impersonatedUser = new
                 {
                     targetUser.Id,
@@ -535,41 +582,71 @@ public class UsersController : ControllerBase
 
             _logger.LogInformation("Successfully got admin token, performing token exchange");
 
-            // Now perform token exchange to impersonate the user
-            var tokenExchangeContent = new FormUrlEncodedContent(new[]
-            {
-                new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange"),
-                new KeyValuePair<string, string>("client_id", clientId),
-                new KeyValuePair<string, string>("client_secret", clientSecret),
-                new KeyValuePair<string, string>("subject_token", adminToken),
-                new KeyValuePair<string, string>("requested_subject", targetKeycloakUserId),
-                new KeyValuePair<string, string>("audience", _configuration["Oidc:ClientId"] ?? "openradius-web")
-            });
-
-            var tokenExchangeResponse = await client.PostAsync(tokenUrl, tokenExchangeContent);
+            // Get user details from Keycloak to get the username
+            var keycloakBaseUrl = authority.Replace($"/realms/{realm}", "");
+            var userDetailUrl = $"{keycloakBaseUrl}/admin/realms/{realm}/users/{targetKeycloakUserId}";
             
-            if (!tokenExchangeResponse.IsSuccessStatusCode)
+            var userDetailRequest = new HttpRequestMessage(HttpMethod.Get, userDetailUrl);
+            userDetailRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            
+            var userDetailResponse = await client.SendAsync(userDetailRequest);
+            if (!userDetailResponse.IsSuccessStatusCode)
             {
-                var error = await tokenExchangeResponse.Content.ReadAsStringAsync();
-                _logger.LogError("Token exchange failed: {StatusCode}, Error: {Error}", 
-                    tokenExchangeResponse.StatusCode, error);
+                var error = await userDetailResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to get user details: {StatusCode}, Error: {Error}", userDetailResponse.StatusCode, error);
                 return null;
             }
 
-            var responseContent = await tokenExchangeResponse.Content.ReadAsStringAsync();
-            _logger.LogDebug("Token exchange response: {Response}", responseContent);
+            var userDetail = await userDetailResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var username = userDetail.GetProperty("username").GetString();
 
-            var exchangeResult = await JsonSerializer.DeserializeAsync<JsonElement>(
-                new MemoryStream(System.Text.Encoding.UTF8.GetBytes(responseContent)));
-            
-            if (exchangeResult.TryGetProperty("access_token", out var tokenElement))
+            if (string.IsNullOrEmpty(username))
             {
-                var impersonatedToken = tokenElement.GetString();
-                _logger.LogInformation("✅ Successfully obtained impersonated token via token exchange");
-                return impersonatedToken;
+                _logger.LogError("Could not get username for user {UserId}", targetKeycloakUserId);
+                return null;
             }
 
-            _logger.LogError("Token exchange response did not contain access_token. Response: {Response}", responseContent);
+            _logger.LogInformation("Found username {Username} for user {UserId}, getting direct grant token", username, targetKeycloakUserId);
+
+            // Keycloak 26.5.0 doesn't support requested_subject in token exchange
+            // Instead, we'll use the impersonation cookie approach - get a session token
+            // by calling the impersonation endpoint which creates a session
+            var impersonateUrl = $"{keycloakBaseUrl}/admin/realms/{realm}/users/{targetKeycloakUserId}/impersonation";
+            var impersonateRequest = new HttpRequestMessage(HttpMethod.Post, impersonateUrl);
+            impersonateRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            
+            var impersonateResponse = await client.SendAsync(impersonateRequest);
+            
+            if (!impersonateResponse.IsSuccessStatusCode)
+            {
+                var error = await impersonateResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Impersonation endpoint failed: {StatusCode}, Error: {Error}", impersonateResponse.StatusCode, error);
+                return null;
+            }
+
+            var impersonateResult = await impersonateResponse.Content.ReadFromJsonAsync<JsonElement>();
+            
+            // The impersonation endpoint returns a redirect URL with a code
+            // We need to extract the session code from the redirect
+            if (impersonateResult.TryGetProperty("redirect", out var redirectElement))
+            {
+                var redirectUrl = redirectElement.GetString();
+                _logger.LogInformation("Got impersonation redirect: {Redirect}", redirectUrl);
+                
+                // The redirect contains a session but we can't easily get a token from it
+                // Alternative: Use password grant if we had the password, but we don't
+                // Best solution for now: Return admin token and just change the UI
+                // This is a limitation of Keycloak's token exchange in version 26.5
+                _logger.LogWarning("Keycloak 26.5.0 token exchange limitation - using UI-only impersonation");
+                
+                // For now, return the admin token - the frontend will show impersonated user
+                // but backend operations will use admin permissions
+                return adminToken;
+            }
+
+            _logger.LogError("Impersonation response did not contain redirect URL");
+            return null;
+            _logger.LogError("Impersonation response did not contain redirect URL");
             return null;
         }
         catch (Exception ex)
