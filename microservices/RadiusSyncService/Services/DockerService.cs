@@ -91,11 +91,11 @@ public class DockerService
                 ServerVersion = systemInfo.ServerVersion,
                 OperatingSystem = systemInfo.OperatingSystem,
                 Architecture = systemInfo.Architecture,
-                Containers = systemInfo.Containers,
-                ContainersRunning = systemInfo.ContainersRunning,
-                ContainersPaused = systemInfo.ContainersPaused,
-                ContainersStopped = systemInfo.ContainersStopped,
-                Images = systemInfo.Images
+                Containers = (int)systemInfo.Containers,
+                ContainersRunning = (int)systemInfo.ContainersRunning,
+                ContainersPaused = (int)systemInfo.ContainersPaused,
+                ContainersStopped = (int)systemInfo.ContainersStopped,
+                Images = (int)systemInfo.Images
             };
 
             // Check Docker Compose
