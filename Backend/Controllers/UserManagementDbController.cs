@@ -38,26 +38,42 @@ public class UserManagementDbController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Starting Keycloak user sync...");
+            
             var client = await GetAuthenticatedKeycloakClient();
             var authority = _configuration["Oidc:Authority"];
             if (string.IsNullOrEmpty(authority))
             {
+                _logger.LogError("Oidc:Authority configuration is missing");
                 return BadRequest(new { error = "Oidc:Authority configuration is missing" });
             }
             
             var realm = authority.Split("/").Last();
             var url = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users?max=1000";
+            
+            _logger.LogInformation("Fetching users from Keycloak: {Url}", url);
 
             var response = await client.GetAsync(url);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Keycloak API returned error: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                return StatusCode((int)response.StatusCode, new { error = "Keycloak API error", details = errorContent });
+            }
+            
             response.EnsureSuccessStatusCode();
 
             var keycloakUsers = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
             
             if (keycloakUsers == null)
             {
+                _logger.LogWarning("No users found in Keycloak response");
                 return Ok(new { message = "No users found in Keycloak", syncedCount = 0 });
             }
 
+            _logger.LogInformation("Found {Count} users in Keycloak", keycloakUsers.Count);
+            
             int syncedCount = 0;
             int updatedCount = 0;
 
@@ -91,6 +107,7 @@ public class UserManagementDbController : ControllerBase
 
                     _context.Users.Add(newUser);
                     syncedCount++;
+                    _logger.LogInformation("Adding new user: {Email}", finalEmail);
                 }
                 else
                 {
@@ -103,10 +120,13 @@ public class UserManagementDbController : ControllerBase
                     existingUser.FirstName = firstName ?? string.Empty;
                     existingUser.LastName = lastName ?? string.Empty;
                     updatedCount++;
+                    _logger.LogInformation("Updating existing user: {Email}", finalEmail);
                 }
             }
 
             await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Sync completed: {Synced} new, {Updated} updated", syncedCount, updatedCount);
 
             return Ok(new 
             { 
@@ -118,35 +138,68 @@ public class UserManagementDbController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing Keycloak users");
-            return StatusCode(500, new { error = "Failed to sync Keycloak users", message = ex.Message });
+            _logger.LogError(ex, "Error syncing Keycloak users: {Message}", ex.Message);
+            return StatusCode(500, new { error = "Failed to sync Keycloak users", message = ex.Message, stackTrace = ex.StackTrace });
         }
     }
 
     private async Task<HttpClient> GetAuthenticatedKeycloakClient()
     {
-        var client = _httpClientFactory.CreateClient();
-        var authority = _configuration["Oidc:Authority"];
-        if (string.IsNullOrEmpty(authority))
+        try
         {
-            throw new InvalidOperationException("Oidc:Authority configuration is missing");
+            var client = _httpClientFactory.CreateClient();
+            var authority = _configuration["Oidc:Authority"];
+            if (string.IsNullOrEmpty(authority))
+            {
+                throw new InvalidOperationException("Oidc:Authority configuration is missing");
+            }
+            
+            var realm = authority.Split("/").Last();
+            var tokenUrl = $"{authority.Replace($"/realms/{realm}", "")}/realms/{realm}/protocol/openid-connect/token";
+            
+            var clientId = _configuration["KeycloakAdmin:ClientId"] ?? "openradius-admin";
+            var clientSecret = _configuration["KeycloakAdmin:ClientSecret"] ?? "";
+            
+            _logger.LogInformation("Authenticating with Keycloak using client: {ClientId}", clientId);
+
+            var tokenRequest = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("client_id", clientId),
+                new KeyValuePair<string, string>("client_secret", clientSecret)
+            });
+
+            var tokenResponse = await client.PostAsync(tokenUrl, tokenRequest);
+            
+            if (!tokenResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to get Keycloak admin token: {StatusCode} - {Error}", tokenResponse.StatusCode, errorContent);
+                throw new InvalidOperationException($"Failed to authenticate with Keycloak: {errorContent}");
+            }
+            
+            tokenResponse.EnsureSuccessStatusCode();
+
+            var tokenData = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var accessToken = tokenData.GetProperty("access_token").GetString();
+            
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                throw new InvalidOperationException("Access token is null or empty");
+            }
+
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            
+            _logger.LogInformation("Successfully authenticated with Keycloak");
+
+            return client;
         }
-        
-        var realm = authority.Split("/").Last();
-        var tokenUrl = $"{authority.Replace($"/realms/{realm}", "")}/realms/{realm}/protocol/openid-connect/token";
-
-        var tokenRequest = new FormUrlEncodedContent(new[]
+        catch (Exception ex)
         {
-            new KeyValuePair<string, string>("grant_type", "client_credentials"),
-            new KeyValuePair<string, string>("client_id", _configuration["KeycloakAdmin:ClientId"] ?? "openradius-admin"),
-            new KeyValuePair<string, string>("client_secret", _configuration["KeycloakAdmin:ClientSecret"] ?? "")
-        });
-
-        var tokenResponse = await client.PostAsync(tokenUrl, tokenRequest);
-        tokenResponse.EnsureSuccessStatusCode();
-
-        var tokenData = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var accessToken = tokenData.GetProperty("access_token").GetString();
+            _logger.LogError(ex, "Error getting authenticated Keycloak client");
+            throw;
+        }
+    }
 
         var authenticatedClient = _httpClientFactory.CreateClient();
         authenticatedClient.DefaultRequestHeaders.Authorization =

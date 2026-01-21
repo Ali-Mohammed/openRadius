@@ -358,8 +358,15 @@ public class UsersController : ControllerBase
             catch { }
         }
 
-        // Check if user has admin role
-        if (!realmRoles.Contains("admin"))
+        // Check if user has admin role (support multiple variants)
+        var hasAdminRole = realmRoles.Any(role => 
+            role.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
+            role.Equals("administrator", StringComparison.OrdinalIgnoreCase) ||
+            role.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase) ||
+            role.Equals("super-administrator", StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (!hasAdminRole)
         {
             return Forbid();
         }

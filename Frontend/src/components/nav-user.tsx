@@ -61,8 +61,22 @@ export function NavUser() {
 
   const email = keycloak.tokenParsed?.email
   const dbUser = users.find((u: any) => u.email === email)
-  const isAdmin = authenticated && hasRole(keycloak, 'admin')
+  
+  // Check for admin role (supports multiple variants)
+  const isAdmin = authenticated && (
+    hasRole(keycloak, 'admin') || 
+    hasRole(keycloak, 'administrator') || 
+    hasRole(keycloak, 'Administrator') ||
+    hasRole(keycloak, 'Super Administrator') ||
+    hasRole(keycloak, 'super-administrator')
+  )
   const isImpersonating = !!impersonationData
+
+  // Debug: Log roles to help identify admin permission issues
+  if (authenticated && keycloak.tokenParsed) {
+    console.log('User roles:', keycloak.tokenParsed.realm_access?.roles || [])
+    console.log('Is admin:', isAdmin)
+  }
 
   const getProfileImage = () => {
     // Try to get picture from token claims or attributes
@@ -162,6 +176,17 @@ export function NavUser() {
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{getDisplayName()}</span>
                     <span className="truncate text-xs">{getDisplayEmail()}</span>
+                    {/* Debug: Show admin status */}
+                    {authenticated && (
+                      <span className="text-xs text-muted-foreground mt-1">
+                        Roles: {keycloak.tokenParsed?.realm_access?.roles?.join(', ') || 'none'}
+                      </span>
+                    )}
+                    {isAdmin && (
+                      <Badge variant="outline" className="text-xs mt-1 w-fit">
+                        Admin Access
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </DropdownMenuLabel>
