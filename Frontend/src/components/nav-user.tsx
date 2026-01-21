@@ -87,10 +87,20 @@ export function NavUser() {
   }
 
   const getDisplayName = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return `${impersonationData.impersonatedUser.firstName} ${impersonationData.impersonatedUser.lastName}`
+    }
     if (dbUser) {
       return `${dbUser.firstName} ${dbUser.lastName}`
     }
     return keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || t('user.profile')
+  }
+
+  const getDisplayEmail = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return impersonationData.impersonatedUser.email
+    }
+    return email
   }
 
   const handleLogout = () => {
@@ -101,6 +111,10 @@ export function NavUser() {
     // Open Keycloak account management page
     const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account`
     window.open(accountUrl, '_blank')
+  }
+
+  const handleExitImpersonation = () => {
+    exitImpersonationMutation.mutate()
   }
 
   if (!authenticated) return null
