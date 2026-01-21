@@ -8,6 +8,7 @@ public class MicroserviceApproval
     public string ApprovalToken { get; set; } = string.Empty;
     public string MachineName { get; set; } = string.Empty;
     public string Platform { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
     public bool IsApproved { get; set; }
     public DateTime ApprovedAt { get; set; }
     public DateTime LastConnectedAt { get; set; }

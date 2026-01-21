@@ -157,6 +157,11 @@ public class MicroservicesHub : Hub
         if (approval != null)
         {
             serviceInfo.Metadata["ApprovalId"] = approval.Id.ToString();
+            // Set display name from approval if available
+            if (!string.IsNullOrEmpty(approval.DisplayName))
+            {
+                serviceInfo.DisplayName = approval.DisplayName;
+            }
         }
 
         ConnectedServices.AddOrUpdate(serviceName, serviceInfo, (_, _) => serviceInfo);
@@ -651,24 +656,34 @@ public class MicroservicesHub : Hub
     /// <summary>
     /// Approve a pending microservice connection.
     /// </summary>
-    public async Task<bool> ApproveConnection(int approvalId, string approvedBy)
+    public async Task<bool> ApproveConnection(int approvalId, string displayName)
     {
         var approval = await _appDbContext.MicroserviceApprovals.FindAsync(approvalId);
         if (approval == null) return false;
         
-        var result = await _approvalService.ApproveConnectionAsync(approvalId, approvedBy);
+        var result = await _approvalService.ApproveConnectionAsync(approvalId, "Admin", displayName);
         
         if (result)
         {
-            _logger.LogInformation("Microservice connection approved: ID {ApprovalId} by {ApprovedBy}", approvalId, approvedBy);
+            // Update the display name in the connected service if it's connected
+            var connectedService = ConnectedServices.Values.FirstOrDefault(s => 
+                s.ServiceName == approval.ServiceName && 
+                s.Metadata.GetValueOrDefault("MachineId") == approval.MachineId);
+            
+            if (connectedService != null)
+            {
+                connectedService.DisplayName = displayName;
+            }
+            
+            _logger.LogInformation("Microservice connection approved: ID {ApprovalId} with display name {DisplayName}", approvalId, displayName);
             
             var approvalData = new
             {
                 approvalId,
                 serviceName = approval.ServiceName,
                 machineId = approval.MachineId,
+                displayName,
                 status = "approved",
-                approvedBy,
                 approvedAt = DateTime.UtcNow
             };
             

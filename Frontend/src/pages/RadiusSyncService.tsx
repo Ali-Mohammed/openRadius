@@ -399,16 +399,43 @@ export default function RadiusSyncServicePage() {
     return `${seconds}s ago`;
   };
 
-  const openApprovalDialog = (svcName: string) => {
-    setServiceToApprove(svcName);
+  const openApprovalDialog = (service: ServiceInfo) => {
+    setServiceToApprove(service.serviceName);
     setServiceName('');
     setApprovalDialogOpen(true);
   };
 
   const approveService = async () => {
     if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceToApprove || !serviceName.trim()) return;
+    
     try {
-      await connection.invoke('ApproveService', serviceToApprove, serviceName.trim());
+      // Find the service to get its approval ID
+      const service = services.find(s => s.serviceName === serviceToApprove);
+      const approvalId = service?.metadata?.ApprovalId || service?.metadata?.approvalId;
+      
+      if (!approvalId) {
+        console.error('No approval ID found for service:', serviceToApprove);
+        return;
+      }
+      
+      // Call ApproveConnection with approval ID and display name
+      const result = await connection.invoke('ApproveConnection', parseInt(approvalId), serviceName.trim());
+      
+      if (result) {
+        // Reload services to get updated info with display name
+        try {
+          const connectedServices = await connection.invoke('GetConnectedServices');
+          setServices(connectedServices || []);
+          setLastUpdate(new Date());
+          
+          // Update pending count
+          const pending = await connection.invoke('GetPendingApprovals');
+          setPendingApprovalsCount(pending?.length || 0);
+        } catch (error) {
+          console.error('Failed to reload after approval:', error);
+        }
+      }
+      
       setApprovalDialogOpen(false);
       setServiceToApprove(null);
       setServiceName('');
@@ -683,7 +710,7 @@ export default function RadiusSyncServicePage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              openApprovalDialog(service.serviceName);
+                              openApprovalDialog(service);
                             }}
                           >
                             <Check className="h-4 w-4 mr-1" />

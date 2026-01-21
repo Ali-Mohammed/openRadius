@@ -88,7 +88,7 @@ public class MicroserviceApprovalService
     /// <summary>
     /// Approves a microservice connection
     /// </summary>
-    public async Task<bool> ApproveConnectionAsync(int approvalId, string approvedBy)
+    public async Task<bool> ApproveConnectionAsync(int approvalId, string approvedBy, string displayName = "")
     {
         var approval = await _context.MicroserviceApprovals.FindAsync(approvalId);
         if (approval == null) return false;
@@ -96,6 +96,7 @@ public class MicroserviceApprovalService
         approval.IsApproved = true;
         approval.ApprovedAt = DateTime.UtcNow;
         approval.ApprovedBy = approvedBy;
+        approval.DisplayName = !string.IsNullOrEmpty(displayName) ? displayName : approval.ServiceName;
 
         await _context.SaveChangesAsync();
 
