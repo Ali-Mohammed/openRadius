@@ -49,7 +49,34 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
             }
         }
 
-        // Priority 3: Fall back to user's current/default workspace from JWT claims
+        // Priority 3: Check for impersonation (UI-only impersonation)
+        // If X-Impersonated-User-Id header is present, use that user's workspace
+        if (httpContext.Request.Headers.TryGetValue("X-Impersonated-User-Id", out var impersonatedUserIdHeader))
+        {
+            var impersonatedUserIdStr = impersonatedUserIdHeader.FirstOrDefault();
+            if (!string.IsNullOrEmpty(impersonatedUserIdStr) && int.TryParse(impersonatedUserIdStr, out var impersonatedUserId))
+            {
+                _logger.LogInformation($"Impersonation detected - looking up workspace for user ID: {impersonatedUserId}");
+                
+                var impersonatedUser = await _masterDbContext.Users
+                    .Include(u => u.CurrentWorkspace)
+                    .Include(u => u.DefaultWorkspace)
+                    .FirstOrDefaultAsync(u => u.Id == impersonatedUserId);
+
+                if (impersonatedUser != null)
+                {
+                    var impersonatedWorkspaceId = impersonatedUser.CurrentWorkspaceId ?? impersonatedUser.DefaultWorkspaceId;
+                    _logger.LogInformation($"Using impersonated user's workspace: {impersonatedWorkspaceId} for user {impersonatedUser.Email}");
+                    return impersonatedWorkspaceId?.ToString();
+                }
+                else
+                {
+                    _logger.LogWarning($"Impersonated user not found: ID {impersonatedUserId}");
+                }
+            }
+        }
+
+        // Priority 4: Fall back to user's current/default workspace from JWT claims
         // Log all available claims for debugging (don't require IsAuthenticated)
         var claims = httpContext.User.Claims.ToList();
         if (claims.Any())
