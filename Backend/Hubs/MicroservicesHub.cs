@@ -397,6 +397,15 @@ public class MicroservicesHub : Hub
     }
 
     /// <summary>
+    /// Request to start a container on a specific microservice.
+    /// </summary>
+    public async Task RequestContainerStart(string serviceName, string containerId)
+    {
+        await SendCommand(serviceName, "docker-container-start", new { containerId });
+        _logger.LogInformation("Container start requested: {ContainerId} on {ServiceName}", containerId, serviceName);
+    }
+
+    /// <summary>
     /// Request to remove a container on a specific microservice.
     /// </summary>
     public async Task RequestContainerRemove(string serviceName, string containerId, bool force = false)
