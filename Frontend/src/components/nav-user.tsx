@@ -112,9 +112,10 @@ export function NavUser() {
   }
 
   const handleManageAccount = () => {
-    // Redirect to Keycloak account console in the same window to preserve authentication
-    // This allows users to manage password and 2FA settings
-    const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account/`
+    // Use Keycloak's account management with referrer for proper authentication
+    // Bypasses theme issues by using direct URL with token
+    const referrerUri = encodeURIComponent(window.location.href)
+    const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account?referrer=${appConfig.keycloak.clientId}&referrer_uri=${referrerUri}#/`
     window.location.href = accountUrl
   }
 
