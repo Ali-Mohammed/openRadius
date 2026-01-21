@@ -106,6 +106,9 @@ interface DockerStatus {
   dockerComposeInstalled: boolean;
   dockerComposeVersion?: string;
   dockerComposeV2: boolean;
+  totalCpuUsage: number;
+  totalMemoryUsage: number;
+  totalMemoryUsageFormatted: string;
   runningContainers: ContainerInfo[];
   allContainers: ContainerInfo[];
   images: ImageInfo[];
@@ -134,6 +137,11 @@ interface ContainerInfo {
   state?: string;
   ports?: string;
   createdAt?: string;
+  cpuUsage: number;
+  memoryUsage: number;
+  memoryUsageFormatted: string;
+  memoryLimit: number;
+  memoryLimitFormatted: string;
 }
 
 interface ImageInfo {
