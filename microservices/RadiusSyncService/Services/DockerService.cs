@@ -593,11 +593,23 @@ public class DockerService
                 Tail = tail?.ToString() ?? "all"
             };
 
-            using var logsStream = await _dockerClient.Containers.GetContainerLogsAsync(containerIdOrName, false, logsParams, CancellationToken.None);
-            using var reader = new StreamReader(logsStream);
-            var logs = await reader.ReadToEndAsync();
+            var logsStream = await _dockerClient.Containers.GetContainerLogsAsync(containerIdOrName, false, logsParams, CancellationToken.None);
             
-            return new CommandResult { Success = true, Output = logs };
+            // Read from multiplexed stream
+            var logs = new System.Text.StringBuilder();
+            var buffer = new byte[4096];
+            
+            while (true)
+            {
+                var result = await logsStream.ReadOutputAsync(buffer, 0, buffer.Length, CancellationToken.None);
+                if (result.EOF)
+                    break;
+                    
+                var text = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
+                logs.Append(text);
+            }
+            
+            return new CommandResult { Success = true, Output = logs.ToString() };
         }
         catch (Exception ex)
         {
