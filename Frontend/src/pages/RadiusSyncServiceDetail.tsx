@@ -835,15 +835,28 @@ export default function RadiusSyncServiceDetailPage() {
                       ) : (
                         <>
                           <p className="text-lg font-bold text-red-600">Not Installed</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-2"
-                            onClick={requestDockerInstallGuide}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Install Guide
-                          </Button>
+                          <div className="flex gap-2 mt-2">
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={requestDockerInstall}
+                              disabled={isInstallingDocker}
+                            >
+                              {isInstallingDocker ? (
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4 mr-1" />
+                              )}
+                              Install
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={requestDockerInstallGuide}
+                            >
+                              Guide
+                            </Button>
+                          </div>
                         </>
                       )}
                     </div>
@@ -912,6 +925,19 @@ export default function RadiusSyncServiceDetailPage() {
                         <Power className="h-4 w-4 mr-2" />
                         Start Docker
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Installation Progress */}
+                  {isInstallingDocker && installProgress && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                        <span className="font-medium text-blue-700 dark:text-blue-300">Installing Docker...</span>
+                      </div>
+                      <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">{installProgress.message}</p>
+                      <Progress value={installProgress.progress} className="h-2" />
+                      <p className="text-xs text-blue-500 mt-1 text-right">{installProgress.progress}%</p>
                     </div>
                   )}
                 </div>
