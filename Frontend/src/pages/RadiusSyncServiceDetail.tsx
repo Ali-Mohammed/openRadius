@@ -434,6 +434,23 @@ export default function RadiusSyncServiceDetailPage() {
     }
   };
 
+  const requestDockerInstall = async () => {
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
+    
+    setIsInstallingDocker(true);
+    setInstallProgress({ message: 'Starting installation...', progress: 0 });
+    setDockerError(null);
+    
+    try {
+      await connection.invoke('RequestDockerInstall', serviceName);
+    } catch (err) {
+      console.error('Docker install request failed:', err);
+      setIsInstallingDocker(false);
+      setInstallProgress(null);
+      setDockerError('Failed to start Docker installation');
+    }
+  };
+
   const requestContainerStop = async (containerId: string) => {
     if (!connection || connection.state !== signalR.HubConnectionState.Connected || !serviceName) return;
     
