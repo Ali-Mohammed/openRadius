@@ -107,15 +107,39 @@ public class DockerService
             {
                 All = false
             });
-            status.RunningContainers = containers.Select(c => new ContainerInfo
+            
+            // Get stats for running containers
+            var runningContainersList = new List<ContainerInfo>();
+            double totalCpu = 0;
+            long totalMemory = 0;
+            
+            foreach (var c in containers)
             {
-                Id = c.ID,
-                Names = string.Join(", ", c.Names?.Select(n => n.TrimStart('/')) ?? Array.Empty<string>()),
-                Image = c.Image,
-                State = c.State,
-                Status = c.Status,
-                CreatedAt = c.Created.ToString("yyyy-MM-dd HH:mm:ss")
-            }).ToList();
+                var (cpuUsage, memoryUsage, memoryLimit) = await GetContainerStatsAsync(c.ID);
+                
+                runningContainersList.Add(new ContainerInfo
+                {
+                    Id = c.ID,
+                    Names = string.Join(", ", c.Names?.Select(n => n.TrimStart('/')) ?? Array.Empty<string>()),
+                    Image = c.Image,
+                    State = c.State,
+                    Status = c.Status,
+                    CreatedAt = c.Created.ToString("yyyy-MM-dd HH:mm:ss"),
+                    CpuUsage = cpuUsage,
+                    MemoryUsage = memoryUsage,
+                    MemoryUsageFormatted = FormatBytes(memoryUsage),
+                    MemoryLimit = memoryLimit,
+                    MemoryLimitFormatted = FormatBytes(memoryLimit)
+                });
+                
+                totalCpu += cpuUsage;
+                totalMemory += memoryUsage;
+            }
+            
+            status.RunningContainers = runningContainersList;
+            status.TotalCpuUsage = totalCpu;
+            status.TotalMemoryUsage = totalMemory;
+            status.TotalMemoryUsageFormatted = FormatBytes(totalMemory);
 
             // Get all containers
             var allContainers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters
