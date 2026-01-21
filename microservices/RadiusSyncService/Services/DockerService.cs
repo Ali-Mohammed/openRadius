@@ -1115,6 +1115,9 @@ public class DockerStatus
     public bool DockerComposeV2 { get; set; }
     
     // Resources
+    public double TotalCpuUsage { get; set; }
+    public long TotalMemoryUsage { get; set; }
+    public string TotalMemoryUsageFormatted { get; set; } = string.Empty;
     public List<ContainerInfo> RunningContainers { get; set; } = new();
     public List<ContainerInfo> AllContainers { get; set; } = new();
     public List<ImageInfo> Images { get; set; } = new();
@@ -1145,6 +1148,11 @@ public class ContainerInfo
     public string? State { get; set; }
     public string? Ports { get; set; }
     public string? CreatedAt { get; set; }
+    public double CpuUsage { get; set; }
+    public long MemoryUsage { get; set; }
+    public string MemoryUsageFormatted { get; set; } = string.Empty;
+    public long MemoryLimit { get; set; }
+    public string MemoryLimitFormatted { get; set; } = string.Empty;
 }
 
 public class ImageInfo
