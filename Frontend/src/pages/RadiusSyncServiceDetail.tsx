@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +27,17 @@ import {
   RefreshCw,
   Zap,
   LayoutGrid,
-  Container
+  Container,
+  Download,
+  Power,
+  Square,
+  Box,
+  Network,
+  Database,
+  ExternalLink,
+  Copy,
+  Eye,
+  Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -65,6 +75,86 @@ interface ServiceLog {
   message: string;
   data?: unknown;
   timestamp: string;
+}
+
+// Docker-related interfaces
+interface DockerStatus {
+  platform: string;
+  checkedAt: string;
+  dockerInstalled: boolean;
+  dockerVersion?: string;
+  dockerRunning: boolean;
+  dockerInfo?: DockerInfo;
+  dockerComposeInstalled: boolean;
+  dockerComposeVersion?: string;
+  dockerComposeV2: boolean;
+  runningContainers: ContainerInfo[];
+  allContainers: ContainerInfo[];
+  images: ImageInfo[];
+  networks: NetworkInfo[];
+  volumes: VolumeInfo[];
+}
+
+interface DockerInfo {
+  serverVersion?: string;
+  operatingSystem?: string;
+  architecture?: string;
+  containers: number;
+  containersRunning: number;
+  containersPaused: number;
+  containersStopped: number;
+  images: number;
+  memoryTotal: number;
+  ncpu: number;
+}
+
+interface ContainerInfo {
+  id?: string;
+  names?: string;
+  image?: string;
+  status?: string;
+  state?: string;
+  ports?: string;
+  createdAt?: string;
+}
+
+interface ImageInfo {
+  id?: string;
+  repository?: string;
+  tag?: string;
+  size?: string;
+  createdAt?: string;
+  createdSince?: string;
+}
+
+interface NetworkInfo {
+  id?: string;
+  name?: string;
+  driver?: string;
+  scope?: string;
+}
+
+interface VolumeInfo {
+  name?: string;
+  driver?: string;
+  mountpoint?: string;
+}
+
+interface InstallationStep {
+  order: number;
+  title: string;
+  description: string;
+  command?: string;
+}
+
+interface DockerInstallGuide {
+  platform: string;
+  recommendedMethod: string;
+  steps: InstallationStep[];
+  alternativeMethod?: string;
+  alternativeSteps?: InstallationStep[];
+  notes?: string;
+  downloadUrl?: string;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';

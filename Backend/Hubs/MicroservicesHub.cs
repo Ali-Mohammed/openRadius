@@ -349,6 +349,142 @@ public class MicroservicesHub : Hub
         });
     }
 
+    #region Docker Management
+
+    /// <summary>
+    /// Request Docker status from a specific microservice.
+    /// </summary>
+    public async Task RequestDockerStatus(string serviceName)
+    {
+        await SendCommand(serviceName, "docker-status", null);
+        _logger.LogInformation("Docker status requested from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Request Docker installation guide from a specific microservice.
+    /// </summary>
+    public async Task RequestDockerInstallGuide(string serviceName)
+    {
+        await SendCommand(serviceName, "docker-install-guide", null);
+        _logger.LogInformation("Docker installation guide requested from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Request to start Docker on a specific microservice.
+    /// </summary>
+    public async Task RequestDockerStart(string serviceName)
+    {
+        await SendCommand(serviceName, "docker-start", null);
+        _logger.LogInformation("Docker start requested from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Request to stop a container on a specific microservice.
+    /// </summary>
+    public async Task RequestContainerStop(string serviceName, string containerId)
+    {
+        await SendCommand(serviceName, "docker-container-stop", new { containerId });
+        _logger.LogInformation("Container stop requested: {ContainerId} on {ServiceName}", containerId, serviceName);
+    }
+
+    /// <summary>
+    /// Request to remove a container on a specific microservice.
+    /// </summary>
+    public async Task RequestContainerRemove(string serviceName, string containerId, bool force = false)
+    {
+        await SendCommand(serviceName, "docker-container-remove", new { containerId, force });
+        _logger.LogInformation("Container remove requested: {ContainerId} on {ServiceName}", containerId, serviceName);
+    }
+
+    /// <summary>
+    /// Request container logs from a specific microservice.
+    /// </summary>
+    public async Task RequestContainerLogs(string serviceName, string containerId, int? tail = null)
+    {
+        await SendCommand(serviceName, "docker-container-logs", new { containerId, tail });
+        _logger.LogInformation("Container logs requested: {ContainerId} on {ServiceName}", containerId, serviceName);
+    }
+
+    /// <summary>
+    /// Request to pull an image on a specific microservice.
+    /// </summary>
+    public async Task RequestImagePull(string serviceName, string image)
+    {
+        await SendCommand(serviceName, "docker-image-pull", new { image });
+        _logger.LogInformation("Image pull requested: {Image} on {ServiceName}", image, serviceName);
+    }
+
+    /// <summary>
+    /// Request to run docker-compose up on a specific microservice.
+    /// </summary>
+    public async Task RequestComposeUp(string serviceName, string composePath, bool detached = true, bool build = false)
+    {
+        await SendCommand(serviceName, "docker-compose-up", new { composePath, detached, build });
+        _logger.LogInformation("Docker compose up requested: {Path} on {ServiceName}", composePath, serviceName);
+    }
+
+    /// <summary>
+    /// Request to run docker-compose down on a specific microservice.
+    /// </summary>
+    public async Task RequestComposeDown(string serviceName, string composePath, bool removeVolumes = false)
+    {
+        await SendCommand(serviceName, "docker-compose-down", new { composePath, removeVolumes });
+        _logger.LogInformation("Docker compose down requested: {Path} on {ServiceName}", composePath, serviceName);
+    }
+
+    /// <summary>
+    /// Request to prune Docker resources on a specific microservice.
+    /// </summary>
+    public async Task RequestDockerPrune(string serviceName, bool all = false, bool volumes = false)
+    {
+        await SendCommand(serviceName, "docker-prune", new { all, volumes });
+        _logger.LogInformation("Docker prune requested on {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Called by microservice to report Docker status.
+    /// </summary>
+    public async Task ReportDockerStatus(string serviceName, object dockerStatus)
+    {
+        await Clients.Group("dashboard").SendAsync("DockerStatus", new
+        {
+            serviceName,
+            dockerStatus,
+            reportedAt = DateTime.UtcNow
+        });
+        _logger.LogDebug("Docker status reported from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Called by microservice to report Docker installation guide.
+    /// </summary>
+    public async Task ReportDockerInstallGuide(string serviceName, object installGuide)
+    {
+        await Clients.Group("dashboard").SendAsync("DockerInstallGuide", new
+        {
+            serviceName,
+            installGuide,
+            reportedAt = DateTime.UtcNow
+        });
+        _logger.LogDebug("Docker installation guide reported from {ServiceName}", serviceName);
+    }
+
+    /// <summary>
+    /// Called by microservice to report container logs.
+    /// </summary>
+    public async Task ReportContainerLogs(string serviceName, string containerId, object logsData)
+    {
+        await Clients.Group("dashboard").SendAsync("ContainerLogs", new
+        {
+            serviceName,
+            containerId,
+            logsData,
+            reportedAt = DateTime.UtcNow
+        });
+    }
+
+    #endregion
+
     private static object GetServiceStatus(MicroserviceInfo info) => new
     {
         serviceName = info.ServiceName,
