@@ -122,6 +122,9 @@ builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 // Add FreeRADIUS Log Service
 builder.Services.AddScoped<IFreeRadiusLogService, FreeRadiusLogService>();
 
+// Add Microservice Approval Service
+builder.Services.AddScoped<MicroserviceApprovalService>();
+
 // Add Kafka Consumer Service for CDC monitoring
 builder.Services.AddHostedService<KafkaConsumerService>();
 

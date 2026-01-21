@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Services;
 
 namespace Backend.Hubs;
 
@@ -17,11 +18,13 @@ public class MicroservicesHub : Hub
     private static readonly ConcurrentDictionary<string, DateTime> PendingPings = new();
     private readonly ILogger<MicroservicesHub> _logger;
     private readonly MasterDbContext _dbContext;
+    private readonly MicroserviceApprovalService _approvalService;
 
-    public MicroservicesHub(ILogger<MicroservicesHub> logger, MasterDbContext dbContext)
+    public MicroservicesHub(ILogger<MicroservicesHub> logger, MasterDbContext dbContext, MicroserviceApprovalService approvalService)
     {
         _logger = logger;
         _dbContext = dbContext;
+        _approvalService = approvalService;
     }
 
     /// <summary>
@@ -62,13 +65,71 @@ public class MicroservicesHub : Hub
 
     /// <summary>
     /// Registers a microservice with the hub. Called by microservices on startup.
+    /// Validates approval before allowing registration.
     /// </summary>
-    public async Task RegisterService(string serviceName, string version, Dictionary<string, string>? metadata = null)
+    public async Task RegisterService(string serviceName, string version, string machineId, string approvalToken, Dictionary<string, string>? metadata = null)
     {
         var connectionId = Context.ConnectionId;
         var httpContext = Context.GetHttpContext();
         var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString() ?? "Unknown";
         var userAgent = httpContext?.Request?.Headers["User-Agent"].ToString() ?? "Unknown";
+
+        // Validate approval
+        var isApproved = await _approvalService.ValidateConnectionAsync(serviceName, machineId, approvalToken);
+        
+        if (!isApproved)
+        {
+            _logger.LogWarning("Microservice registration rejected: {ServiceName} (Machine: {MachineId})", serviceName, machineId);
+            
+            // Check if this is a new request or existing pending/revoked
+            var existingApproval = await _approvalService.GetApprovalByMachineAsync(serviceName, machineId);
+            
+            if (existingApproval == null)
+            {
+                // First time connection - request approval
+                var machineName = metadata?.GetValueOrDefault("MachineName") ?? "Unknown";
+                var platform = metadata?.GetValueOrDefault("Platform") ?? "Unknown";
+                var token = await _approvalService.RequestApprovalAsync(serviceName, machineId, machineName, platform);
+                
+                await Clients.Caller.SendAsync("RegistrationRejected", new
+                {
+                    reason = "Approval required",
+                    status = "pending",
+                    message = "This microservice connection requires approval. Please contact an administrator."
+                });
+                
+                // Notify dashboard about pending approval
+                await Clients.Group("dashboard").SendAsync("PendingApprovalRequest", new
+                {
+                    serviceName,
+                    machineId,
+                    machineName,
+                    platform,
+                    requestedAt = DateTime.UtcNow
+                });
+            }
+            else if (existingApproval.IsRevoked)
+            {
+                await Clients.Caller.SendAsync("RegistrationRejected", new
+                {
+                    reason = "Connection revoked",
+                    status = "revoked",
+                    message = "This microservice connection has been revoked. Please contact an administrator."
+                });
+            }
+            else
+            {
+                await Clients.Caller.SendAsync("RegistrationRejected", new
+                {
+                    reason = "Awaiting approval",
+                    status = "pending",
+                    message = "This microservice connection is awaiting approval."
+                });
+            }
+            
+            // Don't abort - let the client handle the rejection gracefully
+            return;
+        }
         
         var serviceInfo = new MicroserviceInfo
         {
@@ -83,13 +144,19 @@ public class MicroservicesHub : Hub
             Metadata = metadata ?? new Dictionary<string, string>()
         };
 
+        // Add machine ID to metadata
+        serviceInfo.Metadata["MachineId"] = machineId;
+
         ConnectedServices.AddOrUpdate(serviceName, serviceInfo, (_, _) => serviceInfo);
+        
+        // Update last connected time
+        await _approvalService.UpdateLastConnectedAsync(serviceName, machineId);
         
         // Add the service to its own group for targeted messaging
         await Groups.AddToGroupAsync(connectionId, $"service-{serviceName}");
         
-        _logger.LogInformation("Microservice registered: {ServiceName} v{Version} ({ConnectionId})", 
-            serviceName, version, connectionId);
+        _logger.LogInformation("Microservice registered: {ServiceName} v{Version} ({ConnectionId}) - Machine: {MachineId}", 
+            serviceName, version, connectionId, machineId);
         
         // Acknowledge registration to the service
         await Clients.Caller.SendAsync("RegistrationAcknowledged", new
@@ -527,6 +594,73 @@ public class MicroservicesHub : Hub
             logsData,
             reportedAt = DateTime.UtcNow
         });
+    }
+
+    #endregion
+
+    #region Approval Management
+
+    /// <summary>
+    /// Get all pending microservice approval requests.
+    /// </summary>
+    public async Task<List<MicroserviceApproval>> GetPendingApprovals()
+    {
+        return await _approvalService.GetPendingApprovalsAsync();
+    }
+
+    /// <summary>
+    /// Get all approved microservice connections.
+    /// </summary>
+    public async Task<List<MicroserviceApproval>> GetApprovedConnections()
+    {
+        return await _approvalService.GetApprovedConnectionsAsync();
+    }
+
+    /// <summary>
+    /// Approve a pending microservice connection.
+    /// </summary>
+    public async Task<bool> ApproveConnection(int approvalId, string approvedBy)
+    {
+        var result = await _approvalService.ApproveConnectionAsync(approvalId, approvedBy);
+        
+        if (result)
+        {
+            _logger.LogInformation("Microservice connection approved: ID {ApprovalId} by {ApprovedBy}", approvalId, approvedBy);
+            
+            // Notify all dashboard clients
+            await Clients.Group("dashboard").SendAsync("ApprovalUpdated", new
+            {
+                approvalId,
+                status = "approved",
+                approvedBy,
+                approvedAt = DateTime.UtcNow
+            });
+        }
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Revoke an approved microservice connection.
+    /// </summary>
+    public async Task<bool> RevokeConnection(int approvalId)
+    {
+        var result = await _approvalService.RevokeConnectionAsync(approvalId);
+        
+        if (result)
+        {
+            _logger.LogInformation("Microservice connection revoked: ID {ApprovalId}", approvalId);
+            
+            // Notify all dashboard clients
+            await Clients.Group("dashboard").SendAsync("ApprovalUpdated", new
+            {
+                approvalId,
+                status = "revoked",
+                revokedAt = DateTime.UtcNow
+            });
+        }
+        
+        return result;
     }
 
     #endregion

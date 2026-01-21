@@ -30,7 +30,8 @@ import {
   Cpu,
   MemoryStick,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +93,7 @@ export default function RadiusSyncServicePage() {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [serviceToApprove, setServiceToApprove] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   // Real-time clock update
@@ -148,6 +150,14 @@ export default function RadiusSyncServicePage() {
         
         // Join the dashboard group to receive service updates
         await connection.invoke('JoinDashboard');
+        
+        // Load pending approvals count
+        try {
+          const pending = await connection.invoke('GetPendingApprovals');
+          setPendingApprovalsCount(pending?.length || 0);
+        } catch (err) {
+          console.error('Failed to load pending approvals:', err);
+        }
         
         // Measure initial ping
         setTimeout(() => measureDashboardPing(), 500);
@@ -246,6 +256,25 @@ export default function RadiusSyncServicePage() {
     // Handle service logs
     connection.on('ServiceLog', (log: Omit<ServiceLog, 'id'>) => {
       addLog(log);
+    });
+
+    // Handle approval requests
+    connection.on('PendingApprovalRequest', async () => {
+      try {
+        const pending = await connection.invoke('GetPendingApprovals');
+        setPendingApprovalsCount(pending?.length || 0);
+      } catch (err) {
+        console.error('Failed to update pending approvals count:', err);
+      }
+    });
+
+    connection.on('ApprovalUpdated', async () => {
+      try {
+        const pending = await connection.invoke('GetPendingApprovals');
+        setPendingApprovalsCount(pending?.length || 0);
+      } catch (err) {
+        console.error('Failed to update pending approvals count:', err);
+      }
     });
 
     // Handle service approval
@@ -365,6 +394,19 @@ export default function RadiusSyncServicePage() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Pending Approvals Alert */}
+          {pendingApprovalsCount > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2 animate-pulse"
+              onClick={() => navigate('/microservices/approvals')}
+            >
+              <ShieldAlert className="h-4 w-4" />
+              <span>{pendingApprovalsCount} Pending Approval{pendingApprovalsCount > 1 ? 's' : ''}</span>
+            </Button>
+          )}
+          
           {/* Real-time clock */}
           <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 backdrop-blur-sm border border-border/50 shadow-sm text-sm">
             <Clock className="h-4 w-4 text-primary animate-pulse" />
@@ -432,7 +474,7 @@ export default function RadiusSyncServicePage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Approval</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {services.filter(s => s.approvalStatus === 'Pending').length}
+                  {pendingApprovalsCount}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
