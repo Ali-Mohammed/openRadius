@@ -363,6 +363,61 @@ export default function MicroserviceApprovals() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction === 'approve' ? 'Approve Connection' : 'Reject Connection'}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction === 'approve' 
+                ? 'Please enter your name to approve this microservice connection.'
+                : 'Please enter your name to reject this microservice connection. This action cannot be undone.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="approverName">Your Name</Label>
+              <Input
+                id="approverName"
+                placeholder="Enter your name"
+                value={approverName}
+                onChange={(e) => setApproverName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && approverName.trim()) {
+                    handleConfirm();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={!approverName.trim()}
+              className={confirmAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : ''}
+              variant={confirmAction === 'reject' ? 'destructive' : 'default'}
+            >
+              {confirmAction === 'approve' ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Approve
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
