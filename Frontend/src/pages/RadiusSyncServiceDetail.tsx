@@ -262,10 +262,21 @@ export default function RadiusSyncServiceDetailPage() {
   };
 
   const formatUptime = (connectedAt: string) => {
-    const diff = Date.now() - new Date(connectedAt).getTime();
+    const diff = currentTime.getTime() - new Date(connectedAt).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
+  };
+
+  const getTimeAgo = (timestamp: string) => {
+    const diff = currentTime.getTime() - new Date(timestamp).getTime();
+    const seconds = Math.floor(diff / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
   };
 
   const getLogIcon = (level: ServiceLog['level']) => {
@@ -296,10 +307,28 @@ export default function RadiusSyncServiceDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{service.serviceName}</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            {service.displayName || service.serviceName}
+          </h1>
           <p className="text-muted-foreground">Version {service.version}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3 items-center">
+          {/* Last Update Indicator */}
+          {lastUpdate && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="gap-2 px-3 py-2 cursor-help">
+                    <RefreshCw className="h-3 w-3 text-green-500 animate-spin" style={{ animationDuration: '3s' }} />
+                    <span className="text-xs">Updated {getTimeAgo(lastUpdate.toISOString())}</span>
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Last updated: {lastUpdate.toLocaleTimeString()}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {getStatusBadge(service.status)}
         </div>
       </div>
