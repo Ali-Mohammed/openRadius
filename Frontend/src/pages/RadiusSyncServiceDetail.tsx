@@ -321,6 +321,24 @@ export default function RadiusSyncServiceDetailPage() {
       }
     });
 
+    connection.on('DockerInstallProgress', (data: { serviceName: string; progressData: { message: string; progress: number }; reportedAt: string }) => {
+      if (data.serviceName === serviceName) {
+        setInstallProgress(data.progressData);
+      }
+    });
+
+    connection.on('DockerInstallResult', (data: { serviceName: string; installResult: { success: boolean; message: string; requiresManualAction: boolean }; reportedAt: string }) => {
+      if (data.serviceName === serviceName) {
+        setIsInstallingDocker(false);
+        setInstallProgress(null);
+        if (data.installResult.success) {
+          setDockerError(null);
+        } else {
+          setDockerError(data.installResult.message);
+        }
+      }
+    });
+
     connection.start()
       .then(() => connection.invoke('JoinDashboard'))
       .catch(err => console.error('SignalR connection error:', err));
@@ -336,6 +354,8 @@ export default function RadiusSyncServiceDetailPage() {
       connection.off('DockerStatus');
       connection.off('DockerInstallGuide');
       connection.off('ContainerLogs');
+      connection.off('DockerInstallProgress');
+      connection.off('DockerInstallResult');
     };
   }, [connection, serviceName]);
 
