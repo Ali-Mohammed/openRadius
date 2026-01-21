@@ -15,13 +15,11 @@ namespace Backend.Controllers;
 public class RadiusUserController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-    private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusUserController> _logger;
 
-    public RadiusUserController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusUserController> logger)
+    public RadiusUserController(ApplicationDbContext context, ILogger<RadiusUserController> logger)
     {
         _context = context;
-        _masterContext = masterContext;
         _logger = logger;
     }
 
@@ -418,23 +416,12 @@ public class RadiusUserController : ControllerBase
             .Where(u => includeDeleted || !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.FindFirst("sub")?.Value;
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         var isImpersonating = User.FindFirst("is_impersonating")?.Value == "true";
         
-        // Get the actual user ID from master Users table
-        string? userKeycloakId = null;
-        if (!string.IsNullOrEmpty(claimKeycloakId))
-        {
-            var masterUser = await _masterContext.Users
-                .Where(u => u.KeycloakUserId == claimKeycloakId)
-                .Select(u => u.KeycloakUserId)
-                .FirstOrDefaultAsync();
-            userKeycloakId = masterUser;
-        }
-        
-        _logger.LogInformation("🔍 ZONE FILTER DEBUG - ClaimKeycloakId: {ClaimId}, MasterUserKeycloakId: {MasterId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
-            claimKeycloakId, userKeycloakId, isAdmin, isImpersonating);
+        _logger.LogInformation("🔍 ZONE FILTER DEBUG - UserKeycloakId: {UserId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
+            userKeycloakId, isAdmin, isImpersonating);
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
         {
@@ -1101,19 +1088,8 @@ public class RadiusUserController : ControllerBase
             .Where(u => u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.FindFirst("sub")?.Value;
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
-        
-        // Get the actual user ID from master Users table
-        string? userKeycloakId = null;
-        if (!string.IsNullOrEmpty(claimKeycloakId))
-        {
-            var masterUser = await _masterContext.Users
-                .Where(u => u.KeycloakUserId == claimKeycloakId)
-                .Select(u => u.KeycloakUserId)
-                .FirstOrDefaultAsync();
-            userKeycloakId = masterUser;
-        }
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
         {
@@ -1260,19 +1236,8 @@ public class RadiusUserController : ControllerBase
             .Where(u => !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.FindFirst("sub")?.Value;
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
-        
-        // Get the actual user ID from master Users table
-        string? userKeycloakId = null;
-        if (!string.IsNullOrEmpty(claimKeycloakId))
-        {
-            var masterUser = await _masterContext.Users
-                .Where(u => u.KeycloakUserId == claimKeycloakId)
-                .Select(u => u.KeycloakUserId)
-                .FirstOrDefaultAsync();
-            userKeycloakId = masterUser;
-        }
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
         {
@@ -1422,19 +1387,8 @@ public class RadiusUserController : ControllerBase
             .Where(u => !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var claimKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.FindFirst("sub")?.Value;
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
-        
-        // Get the actual user ID from master Users table
-        string? userKeycloakId = null;
-        if (!string.IsNullOrEmpty(claimKeycloakId))
-        {
-            var masterUser = await _masterContext.Users
-                .Where(u => u.KeycloakUserId == claimKeycloakId)
-                .Select(u => u.KeycloakUserId)
-                .FirstOrDefaultAsync();
-            userKeycloakId = masterUser;
-        }
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
         {
