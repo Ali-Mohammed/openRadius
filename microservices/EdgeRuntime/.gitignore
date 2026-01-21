@@ -1,0 +1,33 @@
+# Add sensitive files to gitignore
+.env
+.env.production
+.env.staging
+*.log
+*.pid
+
+# Project directories
+connectors/
+
+# Docker volumes
+postgres_data/
+
+# Backup files
+backups/
+*.backup
+*.dump
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets
+secrets/
+*.pem
+*.key
+*.crt

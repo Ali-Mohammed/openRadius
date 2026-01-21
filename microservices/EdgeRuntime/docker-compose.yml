@@ -1,0 +1,97 @@
+# local1-docker-compose.yml
+
+services:
+  postgres_local1:
+    image: postgres:18.1
+    container_name: postgres_local1
+    command: postgres -c wal_level=logical
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-local1_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - openradius-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  connect_local1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: connect_local1
+    platform: linux/amd64
+    depends_on:
+      postgres_local1:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:19092}
+      GROUP_ID: ${CONNECTOR_GROUP_ID:-2}
+      CONFIG_STORAGE_TOPIC: connect_configs_local1
+      OFFSET_STORAGE_TOPIC: connect_offsets_local1
+      STATUS_STORAGE_TOPIC: connect_status_local1
+      REST_ADVERTISED_HOST_NAME: connect_local1
+      # Production settings
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: "10000"
+      CONNECT_OFFSET_FLUSH_TIMEOUT_MS: "5000"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      # Heap settings for performance
+      KAFKA_HEAP_OPTS: "-Xms512M -Xmx2G"
+    ports:
+      - "8084:8083"
+    networks:
+      - openradius-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  openradius-network:
+    external: true
+    name: openradius_openradius-network
+
+volumes:
+  postgres_data:
+    driver: local
