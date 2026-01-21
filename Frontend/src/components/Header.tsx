@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useKeycloak } from '../contexts/KeycloakContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { Avatar, AvatarFallback } from './ui/avatar'
 import {
   DropdownMenu,
@@ -17,15 +17,19 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from './ui/dropdown-menu'
-import { Moon, Sun, User, LogOut, Settings, Palette, Languages, Maximize2, Minimize2, Menu } from 'lucide-react'
+import { Moon, Sun, User, LogOut, Settings, Palette, Languages, Maximize2, Minimize2, Menu, ShieldAlert, X } from 'lucide-react'
 import { usersApi } from '../lib/api'
 import { appConfig } from '../config/app.config'
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { Button } from './ui/button'
 
 export const Header = () => {
   const { keycloak, authenticated } = useKeycloak()
   const { theme, toggleTheme, primaryColor, setPrimaryColor, layout, setLayout } = useTheme()
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const [impersonationData, setImpersonationData] = useState<any>(null)
 
   // Fetch all users to find current user
   const { data: users = [] } = useQuery({
@@ -34,6 +38,36 @@ export const Header = () => {
     enabled: authenticated && !!keycloak.token,
   })
 
+  const exitImpersonationMutation = useMutation({
+    mutationFn: usersApi.exitImpersonation,
+    onSuccess: () => {
+      sessionStorage.removeItem('impersonation')
+      toast.success("Impersonation ended. You have returned to your account")
+      window.location.reload()
+    },
+  })
+
+  useEffect(() => {
+    // Check if in impersonation mode
+    const impersonationStr = sessionStorage.getItem('impersonation')
+    if (impersonationStr) {
+      try {
+        const data = JSON.parse(impersonationStr)
+        setImpersonationData(data)
+        console.log('Header: Impersonation data loaded:', data)
+      } catch (e) {
+        console.error('Header: Failed to parse impersonation data:', e)
+        sessionStorage.removeItem('impersonation')
+      }
+    } else {
+      console.log('Header: No impersonation data in session')
+    }
+  }, [])
+
+  const isImpersonating = !!impersonationData
+  
+  console.log('Header render - isImpersonating:', isImpersonating, 'data:', impersonationData)
+  
   const email = keycloak.tokenParsed?.email
   const dbUser = users.find((u: any) => u.email === email)
 
@@ -62,10 +96,17 @@ export const Header = () => {
   }
 
   const getDisplayName = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return `${impersonationData.impersonatedUser.firstName} ${impersonationData.impersonatedUser.lastName}`
+    }
     if (dbUser) {
       return `${dbUser.firstName} ${dbUser.lastName}`
     }
     return keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || t('user.profile')
+  }
+
+  const handleExitImpersonation = () => {
+    exitImpersonationMutation.mutate()
   }
 
   if (!authenticated) return null
@@ -92,6 +133,22 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Impersonation Badge */}
+            {isImpersonating && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium shadow-md">
+                <ShieldAlert className="h-4 w-4 animate-pulse" />
+                <span>Impersonating: {impersonationData?.impersonatedUser?.firstName}</span>
+                <button
+                  onClick={handleExitImpersonation}
+                  className="ml-2 p-1 hover:bg-amber-600 rounded transition-colors"
+                  disabled={exitImpersonationMutation.isPending}
+                  title="Exit Impersonation"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}

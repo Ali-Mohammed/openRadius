@@ -72,12 +72,6 @@ export function NavUser() {
   )
   const isImpersonating = !!impersonationData
 
-  // Debug: Log roles to help identify admin permission issues
-  if (authenticated && keycloak.tokenParsed) {
-    console.log('User roles:', keycloak.tokenParsed.realm_access?.roles || [])
-    console.log('Is admin:', isAdmin)
-  }
-
   const getProfileImage = () => {
     // Try to get picture from token claims or attributes
     return keycloak.tokenParsed?.picture || null

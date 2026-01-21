@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useKeycloak } from '../contexts/KeycloakContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -8,12 +8,27 @@ import { Button } from '../components/ui/button'
 import { Skeleton } from '../components/ui/skeleton'
 import { Badge } from '../components/ui/badge'
 import { usersApi } from '../lib/api'
-import { Bell, ExternalLink, UserCog } from 'lucide-react'
+import { Bell, ExternalLink, UserCog, ShieldAlert } from 'lucide-react'
 
 export default function ProfileSettings() {
   const { keycloak } = useKeycloak()
   const { t } = useTranslation()
   const { layout } = useTheme()
+  const [impersonationData, setImpersonationData] = useState<any>(null)
+
+  useEffect(() => {
+    // Check if in impersonation mode
+    const impersonationStr = sessionStorage.getItem('impersonation')
+    if (impersonationStr) {
+      try {
+        setImpersonationData(JSON.parse(impersonationStr))
+      } catch (e) {
+        sessionStorage.removeItem('impersonation')
+      }
+    }
+  }, [])
+
+  const isImpersonating = !!impersonationData
 
   // Fetch current user data
   const { data: userData, isLoading } = useQuery({
@@ -21,6 +36,35 @@ export default function ProfileSettings() {
     queryFn: usersApi.getCurrentUser,
     enabled: !!keycloak.token,
   })
+
+  // Get display values based on impersonation status
+  const getDisplayName = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return `${impersonationData.impersonatedUser.firstName} ${impersonationData.impersonatedUser.lastName}`
+    }
+    return `${keycloak.tokenParsed?.given_name || ''} ${keycloak.tokenParsed?.family_name || ''}`
+  }
+
+  const getDisplayEmail = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return impersonationData.impersonatedUser.email
+    }
+    return keycloak.tokenParsed?.email
+  }
+
+  const getDisplayFirstName = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return impersonationData.impersonatedUser.firstName
+    }
+    return keycloak.tokenParsed?.given_name
+  }
+
+  const getDisplayLastName = () => {
+    if (isImpersonating && impersonationData?.impersonatedUser) {
+      return impersonationData.impersonatedUser.lastName
+    }
+    return keycloak.tokenParsed?.family_name
+  }
 
   const handleManageAccount = () => {
     const accountUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}/account`
@@ -41,6 +85,20 @@ export default function ProfileSettings() {
         </Button>
       </div>
 
+      {isImpersonating && (
+        <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+              <ShieldAlert className="h-5 w-5" />
+              <div>
+                <p className="font-semibold">Impersonation Mode Active</p>
+                <p className="text-sm">You are viewing this profile as an impersonated user. Original admin: {impersonationData.originalAdmin}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
         {/* Account Information */}
         {isLoading ? (
           <Card>
@@ -55,19 +113,21 @@ export default function ProfileSettings() {
           <Card>
             <CardHeader>
               <CardTitle>Account Information</CardTitle>
-              <CardDescription>Your account details and permissions</CardDescription>
+              <CardDescription>
+                {isImpersonating ? "Impersonated user's account details" : "Your account details and permissions"}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">
-                    {keycloak.tokenParsed?.given_name} {keycloak.tokenParsed?.family_name}
+                    {getDisplayFirstName()} {getDisplayLastName()}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{keycloak.tokenParsed?.email}</p>
+                  <p className="font-medium">{getDisplayEmail()}</p>
                 </div>
               </div>
 
