@@ -1,5 +1,5 @@
 import { useKeycloak } from "@/contexts/KeycloakContext"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import { usersApi } from "@/lib/api"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -15,15 +15,23 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDown, LogOut, User, Settings, KeyRound, UserCog } from "lucide-react"
+import { ChevronsUpDown, LogOut, User, Settings, KeyRound, UserCog, Users, ShieldAlert } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { appConfig } from "@/config/app.config"
+import { hasRole } from "@/utils/keycloak-helper"
+import { ImpersonateUserDialog } from "@/components/impersonate-user-dialog"
+import { useState, useEffect } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
 
 export function NavUser() {
   const { keycloak, authenticated } = useKeycloak()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { toast } = useToast()
+  const [showImpersonateDialog, setShowImpersonateDialog] = useState(false)
+  const [impersonationData, setImpersonationData] = useState<any>(null)
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
@@ -31,8 +39,34 @@ export function NavUser() {
     enabled: authenticated && !!keycloak.token,
   })
 
+  const exitImpersonationMutation = useMutation({
+    mutationFn: usersApi.exitImpersonation,
+    onSuccess: () => {
+      sessionStorage.removeItem('impersonation')
+      toast({
+        title: "Impersonation Ended",
+        description: "You have returned to your account",
+      })
+      window.location.reload()
+    },
+  })
+
+  useEffect(() => {
+    // Check if in impersonation mode
+    const impersonationStr = sessionStorage.getItem('impersonation')
+    if (impersonationStr) {
+      try {
+        setImpersonationData(JSON.parse(impersonationStr))
+      } catch (e) {
+        sessionStorage.removeItem('impersonation')
+      }
+    }
+  }, [])
+
   const email = keycloak.tokenParsed?.email
   const dbUser = users.find((u: any) => u.email === email)
+  const isAdmin = authenticated && hasRole(keycloak, 'admin')
+  const isImpersonating = !!impersonationData
 
   const getProfileImage = () => {
     // Try to get picture from token claims or attributes
