@@ -236,6 +236,163 @@ public class DockerService
     }
 
     /// <summary>
+    /// Attempts to install Docker (platform-specific).
+    /// On macOS, uses Homebrew to install Docker Desktop.
+    /// On Linux, uses the official Docker installation script.
+    /// </summary>
+    public async Task<InstallationResult> InstallDockerAsync(Action<string, int>? progressCallback = null)
+    {
+        var platform = GetPlatform();
+        var result = new InstallationResult { Platform = platform };
+
+        _logger.LogInformation("Starting Docker installation on {Platform}", platform);
+
+        try
+        {
+            switch (platform)
+            {
+                case "macOS":
+                    result = await InstallDockerOnMacOS(progressCallback);
+                    break;
+                case "Linux":
+                    result = await InstallDockerOnLinux(progressCallback);
+                    break;
+                case "Windows":
+                    result.Success = false;
+                    result.Message = "Automatic Docker installation on Windows requires manual download. Please visit https://docs.docker.com/desktop/install/windows-install/";
+                    result.RequiresManualAction = true;
+                    break;
+                default:
+                    result.Success = false;
+                    result.Message = "Unsupported platform for automatic installation";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Docker installation failed");
+            result.Success = false;
+            result.Message = $"Installation failed: {ex.Message}";
+            result.Error = ex.Message;
+        }
+
+        return result;
+    }
+
+    private async Task<InstallationResult> InstallDockerOnMacOS(Action<string, int>? progressCallback)
+    {
+        var result = new InstallationResult { Platform = "macOS" };
+
+        // Check if Homebrew is installed
+        progressCallback?.Invoke("Checking for Homebrew...", 5);
+        var brewCheck = await ExecuteCommandAsync("/opt/homebrew/bin/brew", "--version");
+        if (!brewCheck.Success)
+        {
+            // Try the Intel Mac path
+            brewCheck = await ExecuteCommandAsync("/usr/local/bin/brew", "--version");
+        }
+
+        if (!brewCheck.Success)
+        {
+            result.Success = false;
+            result.Message = "Homebrew is not installed. Please install Homebrew first: /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"";
+            result.RequiresManualAction = true;
+            return result;
+        }
+
+        var brewPath = File.Exists("/opt/homebrew/bin/brew") ? "/opt/homebrew/bin/brew" : "/usr/local/bin/brew";
+
+        // Install Docker Desktop using Homebrew
+        progressCallback?.Invoke("Installing Docker Desktop via Homebrew...", 20);
+        _logger.LogInformation("Installing Docker Desktop via Homebrew");
+
+        var installResult = await ExecuteCommandAsync(brewPath, "install --cask docker", timeoutSeconds: 600);
+
+        if (!installResult.Success)
+        {
+            result.Success = false;
+            result.Message = $"Homebrew installation failed: {installResult.Error}";
+            result.Error = installResult.Error;
+            result.Output = installResult.Output;
+            return result;
+        }
+
+        progressCallback?.Invoke("Docker Desktop installed. Starting Docker...", 80);
+
+        // Start Docker Desktop
+        var startResult = await ExecuteCommandAsync("open", "-a Docker");
+        
+        progressCallback?.Invoke("Waiting for Docker to start...", 90);
+        
+        // Wait for Docker to be ready
+        for (int i = 0; i < 30; i++)
+        {
+            await Task.Delay(2000);
+            var statusCheck = await ExecuteCommandAsync("docker", "info", timeoutSeconds: 5);
+            if (statusCheck.Success)
+            {
+                progressCallback?.Invoke("Docker is ready!", 100);
+                result.Success = true;
+                result.Message = "Docker Desktop installed and started successfully!";
+                return result;
+            }
+        }
+
+        result.Success = true;
+        result.Message = "Docker Desktop installed. Please complete the setup in the Docker Desktop application.";
+        result.RequiresManualAction = true;
+        return result;
+    }
+
+    private async Task<InstallationResult> InstallDockerOnLinux(Action<string, int>? progressCallback)
+    {
+        var result = new InstallationResult { Platform = "Linux" };
+
+        progressCallback?.Invoke("Downloading Docker installation script...", 10);
+
+        // Use the convenience script for Linux
+        var curlResult = await ExecuteCommandAsync("curl", "-fsSL https://get.docker.com -o /tmp/get-docker.sh", timeoutSeconds: 60);
+        
+        if (!curlResult.Success)
+        {
+            result.Success = false;
+            result.Message = $"Failed to download Docker install script: {curlResult.Error}";
+            return result;
+        }
+
+        progressCallback?.Invoke("Running Docker installation script (requires sudo)...", 30);
+        
+        var installResult = await ExecuteCommandAsync("sudo", "sh /tmp/get-docker.sh", timeoutSeconds: 600);
+
+        if (!installResult.Success)
+        {
+            result.Success = false;
+            result.Message = $"Docker installation failed: {installResult.Error}";
+            result.Error = installResult.Error;
+            return result;
+        }
+
+        progressCallback?.Invoke("Adding current user to docker group...", 70);
+        
+        // Add current user to docker group
+        var user = Environment.UserName;
+        await ExecuteCommandAsync("sudo", $"usermod -aG docker {user}");
+
+        progressCallback?.Invoke("Starting Docker service...", 85);
+        
+        // Start Docker service
+        await ExecuteCommandAsync("sudo", "systemctl enable docker");
+        await ExecuteCommandAsync("sudo", "systemctl start docker");
+
+        progressCallback?.Invoke("Docker installed successfully!", 100);
+
+        result.Success = true;
+        result.Message = "Docker installed successfully! You may need to log out and back in for group changes to take effect.";
+        result.RequiresManualAction = true;
+        return result;
+    }
+
+    /// <summary>
     /// Runs a Docker container.
     /// </summary>
     public async Task<CommandResult> RunContainerAsync(DockerRunOptions options)
@@ -365,15 +522,64 @@ public class DockerService
         return "Unknown";
     }
 
+    /// <summary>
+    /// Resolves the full path to a command, checking common locations.
+    /// </summary>
+    private string ResolveCommandPath(string command)
+    {
+        // If it's already a full path, return it
+        if (Path.IsPathRooted(command) && File.Exists(command))
+            return command;
+
+        // Common paths to check for Docker and other tools
+        var searchPaths = new[]
+        {
+            "/usr/local/bin",
+            "/opt/homebrew/bin",
+            "/usr/bin",
+            "/bin",
+            "/Applications/Docker.app/Contents/Resources/bin",
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\\Docker\\Docker\\resources\\bin",
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\\Docker\\Docker\\resources"
+        };
+
+        foreach (var path in searchPaths)
+        {
+            var fullPath = Path.Combine(path, command);
+            if (File.Exists(fullPath))
+            {
+                _logger.LogDebug("Resolved {Command} to {FullPath}", command, fullPath);
+                return fullPath;
+            }
+            
+            // On Windows, check for .exe extension
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var exePath = fullPath + ".exe";
+                if (File.Exists(exePath))
+                {
+                    _logger.LogDebug("Resolved {Command} to {FullPath}", command, exePath);
+                    return exePath;
+                }
+            }
+        }
+
+        // Fall back to the original command and let the system try to resolve it
+        return command;
+    }
+
     private async Task<CommandResult> ExecuteCommandAsync(string command, string arguments = "", int timeoutSeconds = 30)
     {
         try
         {
+            // Resolve the full path to the command for better cross-platform support
+            var resolvedCommand = ResolveCommandPath(command);
+            
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = command,
+                    FileName = resolvedCommand,
                     Arguments = arguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -381,6 +587,20 @@ public class DockerService
                     CreateNoWindow = true
                 }
             };
+
+            // Add common paths to PATH environment variable for macOS/Linux
+            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+            var additionalPaths = new[]
+            {
+                "/usr/local/bin",
+                "/opt/homebrew/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/sbin",
+                "/sbin",
+                "/Applications/Docker.app/Contents/Resources/bin"
+            };
+            process.StartInfo.Environment["PATH"] = string.Join(":", additionalPaths) + ":" + currentPath;
 
             process.Start();
 
