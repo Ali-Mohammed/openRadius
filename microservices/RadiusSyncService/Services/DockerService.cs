@@ -531,6 +531,52 @@ public class DockerService
     }
 
     /// <summary>
+    /// Gets container resource statistics.
+    /// </summary>
+    private async Task<(double cpuUsage, long memoryUsage, long memoryLimit)> GetContainerStatsAsync(string containerId)
+    {
+        if (_dockerClient == null)
+            return (0, 0, 0);
+
+        try
+        {
+            var statsResponse = await _dockerClient.Containers.GetContainerStatsAsync(
+                containerId,
+                new ContainerStatsParameters { Stream = false },
+                CancellationToken.None
+            );
+
+            double cpuUsage = 0;
+            long memoryUsage = 0;
+            long memoryLimit = 0;
+
+            if (statsResponse != null)
+            {
+                // Calculate CPU usage percentage
+                var cpuDelta = statsResponse.CPUStats.CPUUsage.TotalUsage - statsResponse.PreCPUStats.CPUUsage.TotalUsage;
+                var systemDelta = statsResponse.CPUStats.SystemUsage - statsResponse.PreCPUStats.SystemUsage;
+                var onlineCpus = statsResponse.CPUStats.OnlineCPUs;
+                
+                if (systemDelta > 0 && cpuDelta > 0 && onlineCpus > 0)
+                {
+                    cpuUsage = (cpuDelta / (double)systemDelta) * onlineCpus * 100.0;
+                }
+
+                // Get memory usage
+                memoryUsage = (long)statsResponse.MemoryStats.Usage;
+                memoryLimit = (long)statsResponse.MemoryStats.Limit;
+            }
+
+            return (cpuUsage, memoryUsage, memoryLimit);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get stats for container {ContainerId}", containerId);
+            return (0, 0, 0);
+        }
+    }
+
+    /// <summary>
     /// Stops a Docker container.
     /// </summary>
     public async Task<CommandResult> StopContainerAsync(string containerIdOrName)
