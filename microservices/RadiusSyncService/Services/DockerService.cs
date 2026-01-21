@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using Docker.DotNet;
+using Docker.DotNet.Models;
 
 namespace RadiusSyncService.Services;
 
@@ -14,11 +16,35 @@ public class DockerService
     private DockerStatus _cachedStatus;
     private DateTime _lastCheck = DateTime.MinValue;
     private readonly TimeSpan _cacheDuration = TimeSpan.FromSeconds(30);
+    private DockerClient? _dockerClient;
 
     public DockerService(ILogger<DockerService> logger)
     {
         _logger = logger;
         _cachedStatus = new DockerStatus();
+        InitializeDockerClient();
+    }
+
+    private void InitializeDockerClient()
+    {
+        try
+        {
+            // Create Docker client based on platform
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _dockerClient = new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine")).CreateClient();
+            }
+            else
+            {
+                // macOS and Linux use Unix socket
+                _dockerClient = new DockerClientConfiguration(new Uri("unix:///var/run/docker.sock")).CreateClient();
+            }
+            _logger.LogInformation("Docker client initialized successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to initialize Docker client");
+        }
     }
 
     /// <summary>
@@ -39,94 +65,118 @@ public class DockerService
             CheckedAt = DateTime.UtcNow
         };
 
-        // Check Docker
-        _logger.LogInformation("Checking if docker command is available...");
-        var dockerResult = await ExecuteCommandAsync("docker", "--version");
-        _logger.LogInformation("Docker --version result: Success={Success}, Output={Output}, Error={Error}", 
-            dockerResult.Success, dockerResult.Output, dockerResult.Error);
-        
-        status.DockerInstalled = dockerResult.Success;
-        if (dockerResult.Success)
+        if (_dockerClient == null)
         {
-            status.DockerVersion = ParseVersion(dockerResult.Output, "Docker version");
-            
-            // Check if Docker daemon is running
-            var pingResult = await ExecuteCommandAsync("docker", "info", timeoutSeconds: 10);
-            status.DockerRunning = pingResult.Success;
-            
-            if (pingResult.Success)
-            {
-                // Get additional Docker info
-                var infoResult = await ExecuteCommandAsync("docker", "info --format '{{json .}}'", timeoutSeconds: 10);
-                if (infoResult.Success)
-                {
-                    try
-                    {
-                        status.DockerInfo = ParseDockerInfo(infoResult.Output);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to parse Docker info");
-                    }
-                }
-            }
+            _logger.LogWarning("Docker client not initialized");
+            status.DockerInstalled = CheckDockerBinaryExists();
+            _cachedStatus = status;
+            _lastCheck = DateTime.UtcNow;
+            return status;
         }
 
-        // Check Docker Compose (V2 - docker compose)
-        var composeV2Result = await ExecuteCommandAsync("docker", "compose version");
-        if (composeV2Result.Success)
+        try
         {
-            status.DockerComposeInstalled = true;
-            status.DockerComposeVersion = ParseVersion(composeV2Result.Output, "Docker Compose version");
+            // Try to get Docker version using API
+            var versionResponse = await _dockerClient.System.GetVersionAsync();
+            status.DockerInstalled = true;
+            status.DockerRunning = true;
+            status.DockerVersion = versionResponse.Version;
+            
+            _logger.LogInformation("Docker version: {Version}", status.DockerVersion);
+
+            // Get Docker system info
+            var systemInfo = await _dockerClient.System.GetSystemInfoAsync();
+            status.DockerInfo = new DockerInfo
+            {
+                ServerVersion = systemInfo.ServerVersion,
+                OperatingSystem = systemInfo.OperatingSystem,
+                Architecture = systemInfo.Architecture,
+                Containers = systemInfo.Containers,
+                ContainersRunning = systemInfo.ContainersRunning,
+                ContainersPaused = systemInfo.ContainersPaused,
+                ContainersStopped = systemInfo.ContainersStopped,
+                Images = systemInfo.Images
+            };
+
+            // Check Docker Compose
+            status.DockerComposeInstalled = true; // Docker Desktop includes Compose
             status.DockerComposeV2 = true;
+            
+            // Get running containers
+            var containers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters
+            {
+                All = false
+            });
+            status.RunningContainers = containers.Select(c => new ContainerInfo
+            {
+                Id = c.ID,
+                Name = c.Names?.FirstOrDefault()?.TrimStart('/') ?? "unknown",
+                Image = c.Image,
+                State = c.State,
+                Status = c.Status,
+                Created = DateTimeOffset.FromUnixTimeSeconds(c.Created).DateTime
+            }).ToList();
+
+            // Get all containers
+            var allContainers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters
+            {
+                All = true
+            });
+            status.AllContainers = allContainers.Select(c => new ContainerInfo
+            {
+                Id = c.ID,
+                Name = c.Names?.FirstOrDefault()?.TrimStart('/') ?? "unknown",
+                Image = c.Image,
+                State = c.State,
+                Status = c.Status,
+                Created = DateTimeOffset.FromUnixTimeSeconds(c.Created).DateTime
+            }).ToList();
+
+            // Get images
+            var images = await _dockerClient.Images.ListImagesAsync(new ImagesListParameters
+            {
+                All = false
+            });
+            status.Images = images.Select(img => new ImageInfo
+            {
+                Id = img.ID,
+                Tags = img.RepoTags?.ToList() ?? new List<string>(),
+                Size = img.Size,
+                Created = DateTimeOffset.FromUnixTimeSeconds(img.Created).DateTime
+            }).ToList();
+
+            // Get networks
+            var networks = await _dockerClient.Networks.ListNetworksAsync();
+            status.Networks = networks.Select(n => new NetworkInfo
+            {
+                Id = n.ID,
+                Name = n.Name,
+                Driver = n.Driver,
+                Scope = n.Scope
+            }).ToList();
+
+            // Get volumes
+            var volumes = await _dockerClient.Volumes.ListAsync();
+            status.Volumes = volumes.Volumes?.Select(v => new VolumeInfo
+            {
+                Name = v.Name,
+                Driver = v.Driver,
+                Mountpoint = v.Mountpoint
+            }).ToList() ?? new List<VolumeInfo>();
         }
-        else
+        catch (Exception ex)
         {
-            // Check Docker Compose V1 (docker-compose)
-            var composeV1Result = await ExecuteCommandAsync("docker-compose", "--version");
-            status.DockerComposeInstalled = composeV1Result.Success;
-            if (composeV1Result.Success)
+            _logger.LogWarning(ex, "Failed to connect to Docker daemon via API");
+            
+            // Fallback: check if Docker binary exists
+            status.DockerInstalled = CheckDockerBinaryExists();
+            status.DockerRunning = false;
+            
+            if (status.DockerInstalled)
             {
-                status.DockerComposeVersion = ParseVersion(composeV1Result.Output, "docker-compose version");
-                status.DockerComposeV2 = false;
-            }
-        }
-
-        // Get running containers if Docker is running
-        if (status.DockerRunning)
-        {
-            var containersResult = await ExecuteCommandAsync("docker", "ps --format '{{json .}}'");
-            if (containersResult.Success)
-            {
-                status.RunningContainers = ParseContainers(containersResult.Output);
-            }
-
-            // Get all containers including stopped
-            var allContainersResult = await ExecuteCommandAsync("docker", "ps -a --format '{{json .}}'");
-            if (allContainersResult.Success)
-            {
-                status.AllContainers = ParseContainers(allContainersResult.Output);
-            }
-
-            // Get Docker images
-            var imagesResult = await ExecuteCommandAsync("docker", "images --format '{{json .}}'");
-            if (imagesResult.Success)
-            {
-                status.Images = ParseImages(imagesResult.Output);
-            }
-
-            // Get Docker networks
-            var networksResult = await ExecuteCommandAsync("docker", "network ls --format '{{json .}}'");
-            if (networksResult.Success)
-            {
-                status.Networks = ParseNetworks(networksResult.Output);
-            }
-
-            // Get Docker volumes
-            var volumesResult = await ExecuteCommandAsync("docker", "volume ls --format '{{json .}}'");
-            if (volumesResult.Success)
-            {
-                status.Volumes = ParseVolumes(volumesResult.Output);
+                status.DockerVersion = GetDockerVersionFromPlist() ?? "Installed (not running)";
+                status.DockerComposeInstalled = true;
+                status.DockerComposeV2 = true;
             }
         }
 
@@ -134,6 +184,24 @@ public class DockerService
         _lastCheck = DateTime.UtcNow;
 
         return status;
+    }
+
+    private bool CheckDockerBinaryExists()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return File.Exists("/Applications/Docker.app/Contents/Resources/bin/docker");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return File.Exists("/usr/bin/docker") || File.Exists("/usr/local/bin/docker");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            return File.Exists(Path.Combine(programFiles, "Docker", "Docker", "resources", "bin", "docker.exe"));
+        }
+        return false;
     }
 
     /// <summary>
@@ -524,6 +592,59 @@ public class DockerService
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "Windows";
         return "Unknown";
+    }
+
+    /// <summary>
+    /// Gets Docker version from Docker Desktop's Info.plist file (macOS only).
+    /// </summary>
+    private string? GetDockerVersionFromPlist()
+    {
+        try
+        {
+            var plistPath = "/Applications/Docker.app/Contents/Info.plist";
+            if (!File.Exists(plistPath))
+                return null;
+
+            var plistContent = File.ReadAllText(plistPath);
+            
+            // Simple parsing - look for CFBundleShortVersionString
+            var versionKey = "<key>CFBundleShortVersionString</key>";
+            var keyIndex = plistContent.IndexOf(versionKey);
+            if (keyIndex == -1)
+                return null;
+
+            var stringStart = plistContent.IndexOf("<string>", keyIndex);
+            if (stringStart == -1)
+                return null;
+
+            stringStart += "<string>".Length;
+            var stringEnd = plistContent.IndexOf("</string>", stringStart);
+            if (stringEnd == -1)
+                return null;
+
+            return plistContent.Substring(stringStart, stringEnd - stringStart);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read Docker version from Info.plist");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Checks if Docker Desktop process is running (macOS only).
+    /// </summary>
+    private bool IsDockerDesktopRunning()
+    {
+        try
+        {
+            var result = ExecuteCommandAsync("pgrep", "-f \"Docker.app\"", timeoutSeconds: 2).GetAwaiter().GetResult();
+            return result.Success && !string.IsNullOrWhiteSpace(result.Output);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

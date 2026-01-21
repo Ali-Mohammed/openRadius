@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.1" />
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
   </ItemGroup>
 
   <ItemGroup>
