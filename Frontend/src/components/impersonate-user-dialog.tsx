@@ -20,10 +20,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Search, UserCog, AlertTriangle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface ImpersonateUserDialogProps {
   open: boolean
@@ -39,7 +38,6 @@ interface User {
 
 export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDialogProps) {
   const { keycloak } = useKeycloak()
-  const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -55,10 +53,7 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
   const impersonateMutation = useMutation({
     mutationFn: (userId: number) => usersApi.impersonateUser(userId),
     onSuccess: (data) => {
-      toast({
-        title: "Impersonation Started",
-        description: `You are now impersonating ${data.impersonatedUser.firstName} ${data.impersonatedUser.lastName}`,
-      })
+      toast.success(`Now impersonating ${data.impersonatedUser.firstName} ${data.impersonatedUser.lastName}`)
       
       // Store impersonation context in sessionStorage
       sessionStorage.setItem('impersonation', JSON.stringify({
@@ -70,12 +65,10 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
       // Reload the page to refresh all contexts with impersonated user
       window.location.reload()
     },
-    onError: (error: any) => {
-      toast({
-        title: "Impersonation Failed",
-        description: error.response?.data?.message || "Failed to impersonate user",
-        variant: "destructive",
-      })
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } }
+      const errorMessage = err?.response?.data?.message || "Failed to impersonate user"
+      toast.error(errorMessage)
     },
   })
 
@@ -133,7 +126,7 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
               />
             </div>
 
-            <div className="border rounded-lg max-h-[400px] overflow-y-auto">
+            <div className="border rounded-lg max-h-100 overflow-y-auto">
               {isLoading ? (
                 <div className="p-8 text-center text-muted-foreground">
                   Loading users...

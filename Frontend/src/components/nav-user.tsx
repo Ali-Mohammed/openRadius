@@ -22,14 +22,13 @@ import { appConfig } from "@/config/app.config"
 import { hasRole } from "@/utils/keycloak-helper"
 import { ImpersonateUserDialog } from "@/components/impersonate-user-dialog"
 import { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
 export function NavUser() {
   const { keycloak, authenticated } = useKeycloak()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { toast } = useToast()
   const [showImpersonateDialog, setShowImpersonateDialog] = useState(false)
   const [impersonationData, setImpersonationData] = useState<any>(null)
 
@@ -43,10 +42,7 @@ export function NavUser() {
     mutationFn: usersApi.exitImpersonation,
     onSuccess: () => {
       sessionStorage.removeItem('impersonation')
-      toast({
-        title: "Impersonation Ended",
-        description: "You have returned to your account",
-      })
+      toast.success("Impersonation ended. You have returned to your account")
       window.location.reload()
     },
   })
