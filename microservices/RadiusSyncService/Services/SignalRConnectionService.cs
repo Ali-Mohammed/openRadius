@@ -221,6 +221,9 @@ public class SignalRConnectionService : BackgroundService
                 case "docker-container-stop":
                     await ExecuteDockerContainerStopCommand(payload);
                     break;
+                case "docker-container-start":
+                    await ExecuteDockerContainerStartCommand(payload);
+                    break;
                 case "docker-container-remove":
                     await ExecuteDockerContainerRemoveCommand(payload);
                     break;
