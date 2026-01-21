@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, 
   Clock, 
@@ -24,7 +25,9 @@ import {
   Signal,
   Gauge,
   RefreshCw,
-  Zap
+  Zap,
+  LayoutGrid,
+  Container
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +72,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function RadiusSyncServiceDetailPage() {
   const { serviceName } = useParams<{ serviceName: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const [service, setService] = useState<ServiceInfo | null>(null);
@@ -76,7 +80,14 @@ export default function RadiusSyncServiceDetailPage() {
   const [isPinging, setIsPinging] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'general');
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Handle tab change and update URL
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    navigate(`?tab=${value}`, { replace: true });
+  };
 
   // Real-time clock update
   useEffect(() => {
@@ -353,199 +364,239 @@ export default function RadiusSyncServiceDetailPage() {
         </Button>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Connection Quality */}
-        {(service.lastPing !== undefined || service.avgPing !== undefined) && (
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Container className="h-4 w-4" />
+            Services
+          </TabsTrigger>
+        </TabsList>
+
+        {/* General Tab */}
+        <TabsContent value="general" className="space-y-6 mt-6">
+          {/* Main Grid */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Connection Quality */}
+            {(service.lastPing !== undefined || service.avgPing !== undefined) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gauge className="h-5 w-5" />
+                    Connection Quality
+                  </CardTitle>
+                  <CardDescription>
+                    <Badge variant="outline" className={cn(getPingQuality(service.lastPing).color)}>
+                      {getPingQuality(service.lastPing).label}
+                    </Badge>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold">{service.lastPing ?? '--'}</p>
+                      <p className="text-xs text-muted-foreground">Last Ping (ms)</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-3xl font-bold">{service.avgPing?.toFixed(0) ?? '--'}</p>
+                      <p className="text-xs text-muted-foreground">Avg Ping (ms)</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-3xl font-bold">{service.pingHistory?.length ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">Samples</p>
+                    </div>
+                  </div>
+                  {service.pingHistory && service.pingHistory.length > 1 && (
+                    <div className="flex items-end gap-1 h-16">
+                      {service.pingHistory.map((ping, i) => {
+                        const maxPing = Math.max(...service.pingHistory!);
+                        const height = Math.max(10, (ping / maxPing) * 100);
+                        return (
+                          <TooltipProvider key={i}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div 
+                                  className={cn("flex-1 rounded-sm transition-all", getPingQuality(ping).bg)}
+                                  style={{ height: `${height}%` }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{ping}ms</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Health Metrics */}
+            <Card className="border-l-4 border-l-primary shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Activity className="h-5 w-5 text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <div>Health Metrics</div>
+                    <CardDescription className="text-xs mt-1">Live performance monitoring</CardDescription>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                      <Zap className="h-4 w-4 text-blue-600" />
+                      Connected
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600">{formatUptime(service.connectedAt)}</p>
+                  </div>
+                  <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                      <Activity className="h-4 w-4 text-green-600 animate-pulse" />
+                      Last Heartbeat
+                    </div>
+                    <p className="text-xl font-bold text-green-600">{formatTimestamp(service.lastHeartbeat)}</p>
+                    <p className="text-xs text-green-600/70">{getTimeAgo(service.lastHeartbeat)}</p>
+                  </div>
+                  {service.healthReport && (
+                    <>
+                      <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                          <Cpu className="h-4 w-4 text-purple-600" />
+                          CPU Usage
+                        </div>
+                        <p className="text-2xl font-bold text-purple-600">{service.healthReport.cpuUsage.toFixed(1)}%</p>
+                        <Progress value={service.healthReport.cpuUsage} className="h-1.5" />
+                      </div>
+                      <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 border border-orange-200 dark:border-orange-800">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                          <HardDrive className="h-4 w-4 text-orange-600" />
+                          Memory
+                        </div>
+                        <p className="text-2xl font-bold text-orange-600">{service.healthReport.memoryUsageMb.toFixed(1)} MB</p>
+                        {service.healthReport.customMetrics?.memoryLimit && (
+                          <Progress 
+                            value={(service.healthReport.memoryUsageMb / Number(service.healthReport.customMetrics.memoryLimit)) * 100} 
+                            className="h-1.5" 
+                          />
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Activity Progress */}
+          {service.currentActivity && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Activity</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{service.currentActivity}</span>
+                  {service.activityProgress !== undefined && (
+                    <span className="font-bold">{Math.round(service.activityProgress)}%</span>
+                  )}
+                </div>
+                {service.activityProgress !== undefined && (
+                  <Progress value={service.activityProgress} className="h-2" />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Metadata */}
+          {service.metadata && Object.keys(service.metadata).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Metadata</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(service.metadata).map(([key, value]) => (
+                    <div key={key} className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground font-medium">{key}:</span>
+                      <span className="font-mono text-sm">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Logs Section */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Terminal className="h-5 w-5" />
+                  Activity Logs
+                </CardTitle>
+                <CardDescription>Real-time logs from this service</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setLogs([])}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-4">
+                {logs.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>No logs yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 font-mono text-sm">
+                    {logs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-2">
+                        {getLogIcon(log.level)}
+                        <span className="text-muted-foreground">[{formatTimestamp(log.timestamp)}]</span>
+                        <span>{log.message}</span>
+                      </div>
+                    ))}
+                    <div ref={logsEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services" className="space-y-6 mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Gauge className="h-5 w-5" />
-                Connection Quality
+                <Container className="h-5 w-5" />
+                Docker Services
               </CardTitle>
               <CardDescription>
-                <Badge variant="outline" className={cn(getPingQuality(service.lastPing).color)}>
-                  {getPingQuality(service.lastPing).label}
-                </Badge>
+                Services running on this microservice instance
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{service.lastPing ?? '--'}</p>
-                  <p className="text-xs text-muted-foreground">Last Ping (ms)</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{service.avgPing?.toFixed(0) ?? '--'}</p>
-                  <p className="text-xs text-muted-foreground">Avg Ping (ms)</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{service.pingHistory?.length ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">Samples</p>
-                </div>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+                <Container className="h-16 w-16 mb-4 opacity-50" />
+                <p className="text-lg font-medium">Docker Services Configuration</p>
+                <p className="text-sm mt-2">This section will display running Docker services</p>
+                <p className="text-xs mt-4 text-muted-foreground/70">Coming soon...</p>
               </div>
-              {service.pingHistory && service.pingHistory.length > 1 && (
-                <div className="flex items-end gap-1 h-16">
-                  {service.pingHistory.map((ping, i) => {
-                    const maxPing = Math.max(...service.pingHistory!);
-                    const height = Math.max(10, (ping / maxPing) * 100);
-                    return (
-                      <TooltipProvider key={i}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div 
-                              className={cn("flex-1 rounded-sm transition-all", getPingQuality(ping).bg)}
-                              style={{ height: `${height}%` }}
-                            />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{ping}ms</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                </div>
-              )}
             </CardContent>
           </Card>
-        )}
-
-        {/* Health Metrics */}
-        <Card className="border-l-4 border-l-primary shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-primary animate-pulse" />
-              </div>
-              <div>
-                <div>Health Metrics</div>
-                <CardDescription className="text-xs mt-1">Live performance monitoring</CardDescription>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
-                  <Zap className="h-4 w-4 text-blue-600" />
-                  Connected
-                </div>
-                <p className="text-2xl font-bold text-blue-600">{formatUptime(service.connectedAt)}</p>
-              </div>
-              <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
-                  <Activity className="h-4 w-4 text-green-600 animate-pulse" />
-                  Last Heartbeat
-                </div>
-                <p className="text-xl font-bold text-green-600">{formatTimestamp(service.lastHeartbeat)}</p>
-                <p className="text-xs text-green-600/70">{getTimeAgo(service.lastHeartbeat)}</p>
-              </div>
-              {service.healthReport && (
-                <>
-                  <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
-                      <Cpu className="h-4 w-4 text-purple-600" />
-                      CPU Usage
-                    </div>
-                    <p className="text-2xl font-bold text-purple-600">{service.healthReport.cpuUsage.toFixed(1)}%</p>
-                    <Progress value={service.healthReport.cpuUsage} className="h-1.5" />
-                  </div>
-                  <div className="space-y-2 p-3 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 border border-orange-200 dark:border-orange-800">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
-                      <HardDrive className="h-4 w-4 text-orange-600" />
-                      Memory
-                    </div>
-                    <p className="text-2xl font-bold text-orange-600">{service.healthReport.memoryUsageMb.toFixed(1)} MB</p>
-                    {service.healthReport.customMetrics?.memoryLimit && (
-                      <Progress 
-                        value={(service.healthReport.memoryUsageMb / Number(service.healthReport.customMetrics.memoryLimit)) * 100} 
-                        className="h-1.5" 
-                      />
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Activity Progress */}
-      {service.currentActivity && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{service.currentActivity}</span>
-              {service.activityProgress !== undefined && (
-                <span className="font-bold">{Math.round(service.activityProgress)}%</span>
-              )}
-            </div>
-            {service.activityProgress !== undefined && (
-              <Progress value={service.activityProgress} className="h-2" />
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Metadata */}
-      {service.metadata && Object.keys(service.metadata).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Metadata</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(service.metadata).map(([key, value]) => (
-                <div key={key} className="flex justify-between border-b pb-2">
-                  <span className="text-muted-foreground font-medium">{key}:</span>
-                  <span className="font-mono text-sm">{value}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Logs Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Terminal className="h-5 w-5" />
-              Activity Logs
-            </CardTitle>
-            <CardDescription>Real-time logs from this service</CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setLogs([])}>
-            <Trash2 className="h-4 w-4 mr-1" />
-            Clear
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-4">
-            {logs.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p>No logs yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2 font-mono text-sm">
-                {logs.map((log) => (
-                  <div key={log.id} className="flex items-start gap-2">
-                    {getLogIcon(log.level)}
-                    <span className="text-muted-foreground">[{formatTimestamp(log.timestamp)}]</span>
-                    <span>{log.message}</span>
-                  </div>
-                ))}
-                <div ref={logsEndRef} />
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
