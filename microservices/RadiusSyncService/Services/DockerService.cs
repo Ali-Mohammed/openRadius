@@ -114,7 +114,7 @@ public class DockerService
                 Image = c.Image,
                 State = c.State,
                 Status = c.Status,
-                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(c.Created).ToString("yyyy-MM-dd HH:mm:ss")
+                CreatedAt = c.Created.ToString("yyyy-MM-dd HH:mm:ss")
             }).ToList();
 
             // Get all containers
@@ -129,7 +129,7 @@ public class DockerService
                 Image = c.Image,
                 State = c.State,
                 Status = c.Status,
-                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(c.Created).ToString("yyyy-MM-dd HH:mm:ss")
+                CreatedAt = c.Created.ToString("yyyy-MM-dd HH:mm:ss")
             }).ToList();
 
             // Get images
@@ -143,7 +143,7 @@ public class DockerService
                 Repository = img.RepoTags?.FirstOrDefault()?.Split(':').FirstOrDefault() ?? "unknown",
                 Tag = img.RepoTags?.FirstOrDefault()?.Split(':').Skip(1).FirstOrDefault() ?? "unknown",
                 Size = FormatBytes(img.Size),
-                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(img.Created).ToString("yyyy-MM-dd HH:mm:ss")
+                CreatedAt = img.Created.ToString("yyyy-MM-dd HH:mm:ss")
             }).ToList();
 
             // Get networks
