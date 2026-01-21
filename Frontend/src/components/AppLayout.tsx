@@ -26,6 +26,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, Languages, Home, UserCog, Settings, Building2, Radio, Users, CircleUser, Eye, Wrench, SlidersHorizontal, Key, Server, Network, LayoutDashboard, Database, MapPin, Package, Wallet, ArrowUp, History, Receipt, DollarSign, Tags, Activity, ShieldAlert, X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
@@ -42,6 +52,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { t, i18n } = useTranslation()
   const [dashboardName, setDashboardName] = useState<string>('')
   const [impersonationData, setImpersonationData] = useState<any>(null)
+  const [showExitDialog, setShowExitDialog] = useState(false)
 
   // Check for impersonation
   useEffect(() => {
@@ -97,8 +108,17 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }
 
+  const handleExitClick = () => {
+    setShowExitDialog(true)
+  }
+
+  const confirmExit = () => {
+    setShowExitDialog(false)
+    handleExitImpersonation()
+  }
+
   const isImpersonating = !!impersonationData
-  const firstName = impersonationData?.firstName || ''
+  const firstName = impersonationData?.impersonatedUser?.firstName || ''
 
   console.log('[AppLayout] Render - isImpersonating:', isImpersonating, 'data:', impersonationData)
 
@@ -369,6 +389,22 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </div>
       </SidebarInset>
+
+      {/* Exit Impersonation Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exit Impersonation Mode?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are currently impersonating <strong>{firstName}</strong>. Are you sure you want to return to your own account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmExit}>Exit Impersonation</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   )
 }
