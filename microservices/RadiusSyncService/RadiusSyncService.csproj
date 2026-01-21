@@ -12,10 +12,4 @@
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="docker-wrapper.sh">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
