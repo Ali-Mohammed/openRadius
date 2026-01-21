@@ -182,6 +182,17 @@ public class SignalRConnectionService : BackgroundService
             var status = root.TryGetProperty("status", out var statusProp) ? statusProp.GetString() ?? "unknown" : "unknown";
             var message = root.TryGetProperty("message", out var msgProp) ? msgProp.GetString() ?? "" : "";
             
+            // Save approval token if provided
+            if (root.TryGetProperty("approvalToken", out var tokenProp))
+            {
+                var token = tokenProp.GetString();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    _machineIdentityService.SetApprovalToken(token);
+                    _logger.LogInformation("Approval token saved for future connection attempts");
+                }
+            }
+            
             if (status == "pending")
             {
                 _logger.LogWarning("Registration rejected - awaiting approval: {Message}", message);

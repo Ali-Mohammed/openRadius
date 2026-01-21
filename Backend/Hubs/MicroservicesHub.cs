@@ -95,7 +95,8 @@ public class MicroservicesHub : Hub
                 {
                     reason = "Approval required",
                     status = "pending",
-                    message = "This microservice connection requires approval. Please contact an administrator."
+                    message = "This microservice connection requires approval. Please contact an administrator.",
+                    approvalToken = token
                 });
                 
                 // Notify dashboard about pending approval
@@ -123,7 +124,8 @@ public class MicroservicesHub : Hub
                 {
                     reason = "Awaiting approval",
                     status = "pending",
-                    message = "This microservice connection is awaiting approval."
+                    message = "This microservice connection is awaiting approval.",
+                    approvalToken = existingApproval.ApprovalToken
                 });
             }
             
