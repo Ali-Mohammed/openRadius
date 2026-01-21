@@ -688,9 +688,20 @@ public class SasSyncService : ISasSyncService
             var authority = configuration["Oidc:Authority"];
             if (string.IsNullOrEmpty(authority))
             {
-                _logger.LogWarning("Oidc:Authority configuration is missing, skipping Keycloak user creation");
+                _logger.LogError("Oidc:Authority configuration is missing, cannot create Keycloak users");
                 return null;
             }
+            
+            var clientId = configuration["KeycloakAdmin:ClientId"];
+            var clientSecret = configuration["KeycloakAdmin:ClientSecret"];
+            
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+            {
+                _logger.LogError("KeycloakAdmin:ClientId or ClientSecret is missing in configuration. Cannot create Keycloak users.");
+                return null;
+            }
+            
+            _logger.LogInformation("Creating Keycloak user for manager: {Username} using client: {ClientId}", manager.Username, clientId);
             
             var realm = authority.Split("/").Last();
             
@@ -699,19 +710,26 @@ public class SasSyncService : ISasSyncService
             var tokenContent = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                new KeyValuePair<string, string>("client_id", configuration["KeycloakAdmin:ClientId"] ?? "openradius-admin"),
-                new KeyValuePair<string, string>("client_secret", configuration["KeycloakAdmin:ClientSecret"] ?? "")
+                new KeyValuePair<string, string>("client_id", clientId),
+                new KeyValuePair<string, string>("client_secret", clientSecret)
             });
 
             var tokenResponse = await client.PostAsync(tokenUrl, tokenContent);
             if (!tokenResponse.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to get Keycloak admin token: {StatusCode}", tokenResponse.StatusCode);
+                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to get Keycloak admin token: {StatusCode}, Error: {Error}", tokenResponse.StatusCode, errorContent);
                 return null;
             }
 
             var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
             var adminToken = tokenResult.GetProperty("access_token").GetString();
+            
+            if (string.IsNullOrEmpty(adminToken))
+            {
+                _logger.LogError("Received empty access token from Keycloak");
+                return null;
+            }
             
             client.DefaultRequestHeaders.Authorization = 
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
@@ -720,6 +738,8 @@ public class SasSyncService : ISasSyncService
             var email = manager.Username?.Contains("@") == true 
                 ? manager.Username 
                 : $"{manager.Username}@local";
+            
+            _logger.LogDebug("Checking if user {Email} already exists in Keycloak", email);
             
             var searchUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users?email={Uri.EscapeDataString(email)}";
             var searchResponse = await client.GetAsync(searchUrl);
@@ -730,11 +750,20 @@ public class SasSyncService : ISasSyncService
                 if (existingUsers != null && existingUsers.Count > 0)
                 {
                     // User already exists in Keycloak, return their ID
-                    return existingUsers[0].GetProperty("id").GetString();
+                    var userId = existingUsers[0].GetProperty("id").GetString();
+                    _logger.LogInformation("User {Email} already exists in Keycloak with ID: {UserId}", email, userId);
+                    return userId;
                 }
+            }
+            else
+            {
+                var searchError = await searchResponse.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to search for existing user {Email}: {StatusCode}, Error: {Error}", 
+                    email, searchResponse.StatusCode, searchError);
             }
             
             // Create user in Keycloak
+            _logger.LogInformation("Creating new Keycloak user: {Email}", email);
             var usersUrl = $"{authority.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users";
             
             var userPayload = new
@@ -768,19 +797,20 @@ public class SasSyncService : ISasSyncService
                 // Get the created user's ID from the Location header
                 var location = createResponse.Headers.Location?.ToString();
                 var userId = location?.Split('/').Last();
-                _logger.LogInformation("Created Keycloak user for manager: {Username}, ID: {UserId}", manager.Username, userId);
+                _logger.LogInformation("✅ Successfully created Keycloak user for manager: {Username}, ID: {UserId}", manager.Username, userId);
                 return userId;
             }
             else
             {
                 var errorContent = await createResponse.Content.ReadAsStringAsync();
-                _logger.LogWarning("Failed to create Keycloak user for {Username}: {Error}", manager.Username, errorContent);
+                _logger.LogError("❌ Failed to create Keycloak user for {Username}: {StatusCode}, Error: {Error}", 
+                    manager.Username, createResponse.StatusCode, errorContent);
                 return null;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating Keycloak user for manager: {Username}", manager.Username);
+            _logger.LogError(ex, "❌ Exception while creating Keycloak user for manager: {Username}", manager.Username);
             return null;
         }
     }
