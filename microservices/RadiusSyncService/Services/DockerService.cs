@@ -110,11 +110,11 @@ public class DockerService
             status.RunningContainers = containers.Select(c => new ContainerInfo
             {
                 Id = c.ID,
-                Name = c.Names?.FirstOrDefault()?.TrimStart('/') ?? "unknown",
+                Names = string.Join(", ", c.Names?.Select(n => n.TrimStart('/')) ?? Array.Empty<string>()),
                 Image = c.Image,
                 State = c.State,
                 Status = c.Status,
-                Created = DateTimeOffset.FromUnixTimeSeconds(c.Created).DateTime
+                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(c.Created).ToString("yyyy-MM-dd HH:mm:ss")
             }).ToList();
 
             // Get all containers
@@ -125,11 +125,11 @@ public class DockerService
             status.AllContainers = allContainers.Select(c => new ContainerInfo
             {
                 Id = c.ID,
-                Name = c.Names?.FirstOrDefault()?.TrimStart('/') ?? "unknown",
+                Names = string.Join(", ", c.Names?.Select(n => n.TrimStart('/')) ?? Array.Empty<string>()),
                 Image = c.Image,
                 State = c.State,
                 Status = c.Status,
-                Created = DateTimeOffset.FromUnixTimeSeconds(c.Created).DateTime
+                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(c.Created).ToString("yyyy-MM-dd HH:mm:ss")
             }).ToList();
 
             // Get images
@@ -140,9 +140,10 @@ public class DockerService
             status.Images = images.Select(img => new ImageInfo
             {
                 Id = img.ID,
-                Tags = img.RepoTags?.ToList() ?? new List<string>(),
-                Size = img.Size,
-                Created = DateTimeOffset.FromUnixTimeSeconds(img.Created).DateTime
+                Repository = img.RepoTags?.FirstOrDefault()?.Split(':').FirstOrDefault() ?? "unknown",
+                Tag = img.RepoTags?.FirstOrDefault()?.Split(':').Skip(1).FirstOrDefault() ?? "unknown",
+                Size = FormatBytes(img.Size),
+                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(img.Created).ToString("yyyy-MM-dd HH:mm:ss")
             }).ToList();
 
             // Get networks
