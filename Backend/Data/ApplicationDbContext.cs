@@ -79,6 +79,37 @@ public class ApplicationDbContext : DbContext
         // All CreatedByUser, UpdatedByUser, DeletedByUser navigation properties are ignored
         modelBuilder.Ignore<User>();
 
+        // Ignore User navigation properties for all entities with audit fields
+        // These entities have CreatedBy/UpdatedBy/DeletedBy int fields but no FK constraints
+        var entityTypes = new[]
+        {
+            typeof(Addon), typeof(Automation), typeof(BillingGroup), typeof(BillingProfile),
+            typeof(CashbackGroup), typeof(CashbackProfileAmount), typeof(CustomWallet),
+            typeof(Dashboard), typeof(DashboardItem), typeof(DashboardTab), typeof(DashboardGlobalFilter),
+            typeof(Fat), typeof(FatPort), typeof(Fdt), typeof(OltDevice), typeof(Olt), typeof(PonPort),
+            typeof(RadiusActivation), typeof(RadiusCustomAttribute), typeof(RadiusGroup),
+            typeof(RadiusIpReservation), typeof(RadiusNas), typeof(Transaction),
+            typeof(TransactionComment), typeof(UserCashback), typeof(UserWallet),
+            typeof(UserZone), typeof(WalletHistory), typeof(WorkflowHistory), typeof(Zone),
+            typeof(BillingGroupUser)
+        };
+
+        foreach (var entityType in entityTypes)
+        {
+            var entity = modelBuilder.Entity(entityType);
+            
+            // Ignore all User navigation properties (CreatedByUser, UpdatedByUser, DeletedByUser)
+            var userProperties = entityType.GetProperties()
+                .Where(p => p.PropertyType == typeof(User) && 
+                           (p.Name.EndsWith("User") || p.Name == "User"))
+                .ToList();
+            
+            foreach (var prop in userProperties)
+            {
+                entity.Ignore(prop.Name);
+            }
+        }
+
         // UserCashback: Ignore User navigation property since Users table is in MasterDbContext
         modelBuilder.Entity<UserCashback>(entity =>
         {
