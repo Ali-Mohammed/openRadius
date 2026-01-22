@@ -12,41 +12,46 @@ namespace Backend.Migrations.ApplicationDb
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Addons_User_CreatedBy",
-                table: "Addons");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Addons_User_DeletedBy",
-                table: "Addons");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Addons_User_UpdatedBy",
-                table: "Addons");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Automations_User_CreatedBy",
-                table: "Automations");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Automations_User_DeletedBy",
-                table: "Automations");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Automations_User_UpdatedBy",
-                table: "Automations");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_BillingGroups_User_CreatedBy",
-                table: "BillingGroups");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_BillingGroups_User_DeletedBy",
-                table: "BillingGroups");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_BillingGroups_User_UpdatedBy",
-                table: "BillingGroups");
+            // Use raw SQL to drop constraints and table only if they exist
+            // This allows the migration to work for both existing databases (with constraints)
+            // and new databases (without constraints)
+            
+            migrationBuilder.Sql(@"
+                -- Drop all foreign key constraints to User table if they exist
+                DO $$ 
+                DECLARE
+                    r RECORD;
+                BEGIN
+                    FOR r IN (
+                        SELECT constraint_name, table_name 
+                        FROM information_schema.table_constraints 
+                        WHERE constraint_type = 'FOREIGN KEY' 
+                        AND constraint_name LIKE '%_User_%'
+                        AND table_schema = 'public'
+                    ) LOOP
+                        EXECUTE 'ALTER TABLE ""' || r.table_name || '"" DROP CONSTRAINT IF EXISTS ""' || r.constraint_name || '""';
+                    END LOOP;
+                END $$;
+                
+                -- Drop all indexes related to User navigation properties
+                DO $$ 
+                DECLARE
+                    r RECORD;
+                BEGIN
+                    FOR r IN (
+                        SELECT indexname, tablename
+                        FROM pg_indexes
+                        WHERE indexname LIKE 'IX_%_User_%'
+                        AND schemaname = 'public'
+                    ) LOOP
+                        EXECUTE 'DROP INDEX IF EXISTS ""' || r.indexname || '""';
+                    END LOOP;
+                END $$;
+                
+                -- Finally, drop the User table if it exists
+                DROP TABLE IF EXISTS ""User"" CASCADE;
+            ");
+        }
 
             migrationBuilder.DropForeignKey(
                 name: "FK_BillingGroupUser_User_CreatedBy",
