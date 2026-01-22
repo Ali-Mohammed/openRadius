@@ -9,5 +9,5 @@ public class BackupHistory
     public string FilePath { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string CreatedBy { get; set; } = string.Empty;
+    public int CreatedBy { get; set; }
 }

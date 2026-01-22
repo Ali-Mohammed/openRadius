@@ -7,7 +7,7 @@ namespace Backend.Models
         public string Comment { get; set; } = string.Empty;
         public string? Tags { get; set; } // JSON array of tags
         public string? Attachments { get; set; } // JSON array of attachment metadata
-        public string CreatedBy { get; set; } = string.Empty;
+        public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
 
         // Navigation property

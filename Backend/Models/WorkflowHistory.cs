@@ -10,7 +10,7 @@ public class WorkflowHistory
     
     // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? CreatedBy { get; set; }
+    public int? CreatedBy { get; set; }
     
     // Navigation property
     public Automation? Automation { get; set; }

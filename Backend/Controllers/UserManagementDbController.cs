@@ -359,9 +359,9 @@ public class UserManagementDbController : ControllerBase
                 .Select(w => new { id = w.Id, title = w.Title, name = w.Name, color = w.Color, icon = w.Icon })
                 .ToListAsync();
 
-            // Fetch zones from workspace database using local User.Id (stored as string in UserZones)
+            // Fetch zones from workspace database using local User.Id  
             var localUserIds = users.Select(u => u.Id.ToString()).ToList();
-            var userZonesMap = new Dictionary<string, List<object>>();
+            var userZonesMap = new Dictionary<int, List<object>>();
             
             if (localUserIds.Any())
             {
@@ -470,8 +470,8 @@ public class UserManagementDbController : ControllerBase
                     : null,
                 roles = u.Roles,
                 groups = u.Groups,
-                zones = userZonesMap.ContainsKey(u.Id.ToString())
-                    ? userZonesMap[u.Id.ToString()]
+                zones = userZonesMap.ContainsKey(u.Id)
+                    ? userZonesMap[u.Id]
                     : new List<object>(),
                 workspaces = u.Workspaces
             }).ToList();
