@@ -510,6 +510,7 @@ public class UserManagementDbController : ControllerBase
                 keycloakUserId = u.KeycloakUserId,
                 firstName = u.FirstName,
                 lastName = u.LastName,
+                username = u.Username,
                 email = u.Email,
                 enabled = !string.IsNullOrEmpty(u.KeycloakUserId) && enabledStatusMap.ContainsKey(u.KeycloakUserId)
                     ? enabledStatusMap[u.KeycloakUserId]

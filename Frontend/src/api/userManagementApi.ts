@@ -5,6 +5,7 @@ export interface User {
   keycloakUserId?: string
   firstName?: string
   lastName?: string
+  username?: string
   email?: string
   enabled?: boolean
   supervisorId?: number
