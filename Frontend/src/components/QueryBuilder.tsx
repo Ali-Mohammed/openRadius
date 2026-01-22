@@ -151,6 +151,26 @@ const typeIcons: Record<ColumnType, React.ReactNode> = {
   array: <List className="h-3.5 w-3.5" />,
 }
 
+// Relative date options
+const relativeDateOptions = [
+  { value: 'now', label: 'Now' },
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'tomorrow', label: 'Tomorrow' },
+  { value: '7_days_ago', label: '7 days ago' },
+  { value: '30_days_ago', label: '30 days ago' },
+  { value: '90_days_ago', label: '90 days ago' },
+  { value: '1_year_ago', label: '1 year ago' },
+  { value: '7_days_from_now', label: '7 days from now' },
+  { value: '30_days_from_now', label: '30 days from now' },
+  { value: '90_days_from_now', label: '90 days from now' },
+  { value: '1_year_from_now', label: '1 year from now' },
+  { value: 'start_of_month', label: 'Start of this month' },
+  { value: 'end_of_month', label: 'End of this month' },
+  { value: 'start_of_year', label: 'Start of this year' },
+  { value: 'end_of_year', label: 'End of this year' },
+]
+
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9)
 
@@ -368,6 +388,14 @@ function ConditionRow({
     // Text/Number/Date input with suggestions
     const hasSuggestions = allSuggestions.length > 0 || isLoadingSuggestions
     const inputRect = inputRef.current?.getBoundingClientRect()
+    
+    // For date fields, add relative date options to suggestions
+    const dateSuggestions = columnType === 'date' 
+      ? [...relativeDateOptions.map(opt => ({ value: opt.value, label: opt.label })), ...allSuggestions]
+      : allSuggestions
+    
+    const hasDateSuggestions = columnType === 'date' ? true : hasSuggestions
+    
     return (
       <div className="relative">
         <Input
@@ -382,19 +410,44 @@ function ConditionRow({
             }
           }}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          placeholder="Enter value..."
-          className={`h-8 text-xs ${columnType === 'date' ? 'w-[140px]' : 'w-36'}`}
+          placeholder={columnType === 'date' ? 'Select date or use relative...' : 'Enter value...'}
+          className={`h-8 text-xs ${columnType === 'date' ? 'w-[180px]' : 'w-36'}`}
         />
-        {showSuggestions && hasSuggestions && inputRect && createPortal(
+        {showSuggestions && hasDateSuggestions && inputRect && createPortal(
           <div 
             className="fixed bg-popover border rounded-md shadow-md max-h-52 overflow-auto"
             style={{
               top: inputRect.bottom + 4,
               left: inputRect.left,
-              width: inputRect.width,
+              width: columnType === 'date' ? 200 : inputRect.width,
               zIndex: 99999,
             }}
           >
+            {columnType === 'date' && relativeDateOptions.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground border-b">
+                  Relative Dates
+                </div>
+                {relativeDateOptions.map((option, idx) => (
+                  <button
+                    key={`rel-${idx}`}
+                    className="w-full px-3 py-1.5 text-xs text-left hover:bg-accent truncate flex items-center gap-2"
+                    onMouseDown={() => {
+                      handleValueChange(option.value)
+                      setShowSuggestions(false)
+                    }}
+                  >
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    {option.label}
+                  </button>
+                ))}
+                {allSuggestions.length > 0 && (
+                  <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground border-t border-b">
+                    Suggestions
+                  </div>
+                )}
+              </>
+            )}
             {isLoadingSuggestions ? (
               <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
             ) : (
@@ -439,8 +492,8 @@ function ConditionRow({
           type={columnType === 'number' ? 'number' : columnType === 'date' ? 'date' : 'text'}
           value={condition.value2 as string || ''}
           onChange={(e) => handleValue2Change(columnType === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
-          placeholder="End value..."
-          className={`h-8 text-xs ${columnType === 'date' ? 'w-[140px]' : 'w-36'}`}
+          placeholder={columnType === 'date' ? 'End date or relative...' : 'End value...'}
+          className={`h-8 text-xs ${columnType === 'date' ? 'w-[180px]' : 'w-36'}`}
         />
       </>
     )

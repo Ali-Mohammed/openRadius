@@ -412,6 +412,33 @@ public class RadiusTagSyncService : IRadiusTagSyncService
         public string? GetValueString() => Value?.ToString();
     }
 
+    private static DateTime ParseRelativeDate(string value)
+    {
+        var now = DateTime.UtcNow;
+        var today = DateTime.UtcNow.Date;
+
+        return value.ToLower() switch
+        {
+            "now" => now,
+            "today" => today,
+            "yesterday" => today.AddDays(-1),
+            "tomorrow" => today.AddDays(1),
+            "7_days_ago" => today.AddDays(-7),
+            "30_days_ago" => today.AddDays(-30),
+            "90_days_ago" => today.AddDays(-90),
+            "1_year_ago" => today.AddYears(-1),
+            "7_days_from_now" => today.AddDays(7),
+            "30_days_from_now" => today.AddDays(30),
+            "90_days_from_now" => today.AddDays(90),
+            "1_year_from_now" => today.AddYears(1),
+            "start_of_month" => new DateTime(today.Year, today.Month, 1),
+            "end_of_month" => new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month)),
+            "start_of_year" => new DateTime(today.Year, 1, 1),
+            "end_of_year" => new DateTime(today.Year, 12, 31),
+            _ => DateTime.TryParse(value, out var date) ? date : now
+        };
+    }
+
     private IQueryable<RadiusUser> ApplyAdvancedFilters(IQueryable<RadiusUser> query, FilterGroup? filterGroup)
     {
         if (filterGroup == null || filterGroup.Conditions == null || filterGroup.Conditions.Count == 0)
@@ -509,7 +536,9 @@ public class RadiusTagSyncService : IRadiusTagSyncService
     private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildExpirationPredicate(
         string? op, string? value, string? value2)
     {
-        if (!DateTime.TryParse(value, out var dateVal)) return null;
+        if (string.IsNullOrEmpty(value)) return null;
+
+        var dateVal = ParseRelativeDate(value);
 
         return op switch
         {
@@ -517,8 +546,10 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             "not_equals" => u => !u.Expiration.HasValue || u.Expiration.Value.Date != dateVal.Date,
             "greater_than" or "after" => u => u.Expiration.HasValue && u.Expiration.Value > dateVal,
             "less_than" or "before" => u => u.Expiration.HasValue && u.Expiration.Value < dateVal,
-            "between" when DateTime.TryParse(value2, out var dateVal2) =>
-                u => u.Expiration.HasValue && u.Expiration.Value >= dateVal && u.Expiration.Value <= dateVal2,
+            "on_or_after" => u => u.Expiration.HasValue && u.Expiration.Value >= dateVal,
+            "on_or_before" => u => u.Expiration.HasValue && u.Expiration.Value <= dateVal,
+            "between" when !string.IsNullOrEmpty(value2) =>
+                u => u.Expiration.HasValue && u.Expiration.Value >= dateVal && u.Expiration.Value <= ParseRelativeDate(value2),
             "is_empty" => u => !u.Expiration.HasValue,
             "is_not_empty" => u => u.Expiration.HasValue,
             _ => null
@@ -528,7 +559,9 @@ public class RadiusTagSyncService : IRadiusTagSyncService
     private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildCreatedAtPredicate(
         string? op, string? value, string? value2)
     {
-        if (!DateTime.TryParse(value, out var dateVal)) return null;
+        if (string.IsNullOrEmpty(value)) return null;
+
+        var dateVal = ParseRelativeDate(value);
 
         return op switch
         {
@@ -536,8 +569,10 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             "not_equals" => u => u.CreatedAt.Date != dateVal.Date,
             "greater_than" or "after" => u => u.CreatedAt > dateVal,
             "less_than" or "before" => u => u.CreatedAt < dateVal,
-            "between" when DateTime.TryParse(value2, out var dateVal2) =>
-                u => u.CreatedAt >= dateVal && u.CreatedAt <= dateVal2,
+            "on_or_after" => u => u.CreatedAt >= dateVal,
+            "on_or_before" => u => u.CreatedAt <= dateVal,
+            "between" when !string.IsNullOrEmpty(value2) =>
+                u => u.CreatedAt >= dateVal && u.CreatedAt <= ParseRelativeDate(value2),
             _ => null
         };
     }
@@ -545,7 +580,9 @@ public class RadiusTagSyncService : IRadiusTagSyncService
     private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildLastOnlinePredicate(
         string? op, string? value, string? value2)
     {
-        if (!DateTime.TryParse(value, out var dateVal)) return null;
+        if (string.IsNullOrEmpty(value)) return null;
+
+        var dateVal = ParseRelativeDate(value);
 
         return op switch
         {
@@ -553,8 +590,10 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             "not_equals" => u => !u.LastOnline.HasValue || u.LastOnline.Value.Date != dateVal.Date,
             "greater_than" or "after" => u => u.LastOnline.HasValue && u.LastOnline.Value > dateVal,
             "less_than" or "before" => u => u.LastOnline.HasValue && u.LastOnline.Value < dateVal,
-            "between" when DateTime.TryParse(value2, out var dateVal2) =>
-                u => u.LastOnline.HasValue && u.LastOnline.Value >= dateVal && u.LastOnline.Value <= dateVal2,
+            "on_or_after" => u => u.LastOnline.HasValue && u.LastOnline.Value >= dateVal,
+            "on_or_before" => u => u.LastOnline.HasValue && u.LastOnline.Value <= dateVal,
+            "between" when !string.IsNullOrEmpty(value2) =>
+                u => u.LastOnline.HasValue && u.LastOnline.Value >= dateVal && u.LastOnline.Value <= ParseRelativeDate(value2),
             "is_empty" => u => !u.LastOnline.HasValue,
             "is_not_empty" => u => u.LastOnline.HasValue,
             _ => null

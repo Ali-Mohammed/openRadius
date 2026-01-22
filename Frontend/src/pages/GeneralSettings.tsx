@@ -22,18 +22,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge'
 import { getIconComponent } from '@/utils/iconColorHelper'
 
-export default function GeneralSettings() {
-  const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
-  const queryClient = useQueryClient()
-  const [currency, setCurrency] = useState('USD')
-  const [churnDays, setChurnDays] = useState(20)
-  const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncProgress, setSyncProgress] = useState<TagSyncProgress | null>(null)
-  const [showFilterBuilder, setShowFilterBuilder] = useState(false)
-  const [pendingFilters, setPendingFilters] = useState<FilterGroup | null>(null)
-  const [appliedFilters, setAppliedFilters] = useState<FilterGroup | null>(null)
-
 interface TagSyncProgress {
   phase: string
   current: number
