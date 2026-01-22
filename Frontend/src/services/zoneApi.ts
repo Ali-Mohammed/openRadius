@@ -38,7 +38,7 @@ export interface ZoneUpdateDto {
 }
 
 export interface AssignUsersToZoneDto {
-  UserIds: string[]
+  UserIds: number[]
 }
 
 export interface AssignRadiusUsersToZoneDto {
