@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Backend.Models;
@@ -16,11 +17,22 @@ public class BillingGroup
     public DateTime? DeletedAt { get; set; }
     public int? DeletedBy { get; set; }
     
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
+    
     // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public int? UpdatedBy { get; set; }
+    
+    // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
+    
+    [ForeignKey(nameof(UpdatedBy))]
+    public User? UpdatedByUser { get; set; }
     
     // Navigation properties
     [JsonIgnore]
@@ -39,4 +51,8 @@ public class BillingGroupUser
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? CreatedBy { get; set; }
+    
+    // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
 }

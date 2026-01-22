@@ -149,8 +149,10 @@ public class RadiusActivation
     // Soft Delete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Timestamps
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

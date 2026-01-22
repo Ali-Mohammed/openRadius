@@ -26,8 +26,10 @@ public class Dashboard
 
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Navigation properties
     public virtual ICollection<DashboardTab> Tabs { get; set; } = new List<DashboardTab>();
     public virtual ICollection<DashboardGlobalFilter> GlobalFilters { get; set; } = new List<DashboardGlobalFilter>();
@@ -84,8 +86,10 @@ public class DashboardItem
 
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Navigation properties
     [ForeignKey("TabId")]
     public virtual DashboardTab Tab { get; set; } = null!;
@@ -117,8 +121,10 @@ public class DashboardGlobalFilter
 
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Navigation properties
     [ForeignKey("DashboardId")]
     public virtual Dashboard Dashboard { get; set; } = null!;

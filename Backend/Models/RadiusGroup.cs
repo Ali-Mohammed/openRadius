@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models;
 
 /// <summary>
@@ -18,6 +20,10 @@ public class RadiusGroup
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public int? DeletedBy { get; set; }
+    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     
     // Timestamps
     public DateTime CreatedAt { get; set; }

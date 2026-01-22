@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models
 {
@@ -15,6 +16,16 @@ namespace Backend.Models
         public int? UpdatedBy { get; set; }
         public DateTime? DeletedAt { get; set; }
         public int? DeletedBy { get; set; }
+        
+        // Navigation Properties
+        [ForeignKey(nameof(CreatedBy))]
+        public User? CreatedByUser { get; set; }
+        
+        [ForeignKey(nameof(UpdatedBy))]
+        public User? UpdatedByUser { get; set; }
+        
+        [ForeignKey(nameof(DeletedBy))]
+        public User? DeletedByUser { get; set; }
 
         // Navigation properties
         public CashbackGroup? CashbackGroup { get; set; }

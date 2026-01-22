@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models
 {
     public class RadiusIpReservation
@@ -11,6 +13,10 @@ namespace Backend.Models
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
         public int? DeletedBy { get; set; }
+        
+        // Navigation Properties
+        [ForeignKey(nameof(DeletedBy))]
+        public User? DeletedByUser { get; set; }
     }
 
     public class RadiusIpReservationResponse

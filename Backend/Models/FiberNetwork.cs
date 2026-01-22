@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models;
 
@@ -129,8 +130,10 @@ public class Olt
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Navigation
     public virtual ICollection<PonPort> PonPorts { get; set; } = new List<PonPort>();
 }
@@ -255,8 +258,10 @@ public class Fat
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Navigation
     public virtual Fdt? Fdt { get; set; }
     public virtual ICollection<FatPort> FatPorts { get; set; } = new List<FatPort>();
@@ -280,8 +285,10 @@ public class FatPort
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
-
+    public int? DeletedBy { get; set; }    
+    // Navigation Properties
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
     // Navigation
     public virtual Fat? Fat { get; set; }
 }

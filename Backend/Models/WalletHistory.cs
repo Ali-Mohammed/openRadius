@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models;
 
 public class WalletHistory
@@ -29,6 +31,10 @@ public class WalletHistory
     // Audit fields
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? CreatedBy { get; set; }
+    
+    // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
     
     // Navigation properties
     public CustomWallet? CustomWallet { get; set; }

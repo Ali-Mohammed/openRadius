@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models;
 
 public class Transaction
@@ -54,8 +56,16 @@ public class Transaction
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
     public int? DeletedBy { get; set; }
+        // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
     
-    // Navigation properties
+    [ForeignKey(nameof(UpdatedBy))]
+    public User? UpdatedByUser { get; set; }
+    
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
+        // Navigation properties
     public CustomWallet? CustomWallet { get; set; }
     public UserWallet? UserWallet { get; set; }
     public Transaction? RelatedTransaction { get; set; }

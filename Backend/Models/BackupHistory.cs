@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models;
 
 public class BackupHistory
@@ -10,4 +12,8 @@ public class BackupHistory
     public long SizeBytes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int CreatedBy { get; set; }
+    
+    // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
 }

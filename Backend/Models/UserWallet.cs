@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models;
 
 public class UserWallet
@@ -33,8 +35,16 @@ public class UserWallet
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
     public int? DeletedBy { get; set; }
+        // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
     
-    // Navigation properties
+    [ForeignKey(nameof(UpdatedBy))]
+    public User? UpdatedByUser { get; set; }
+    
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
+        // Navigation properties
     // Note: User is not included as navigation to avoid cross-context issues
     // User data is fetched from MasterDbContext separately
     public CustomWallet? CustomWallet { get; set; }

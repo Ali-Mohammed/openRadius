@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models
 {
     public class CashbackGroup
@@ -11,6 +13,10 @@ namespace Backend.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? DeletedAt { get; set; }
         public int? DeletedBy { get; set; }
+        
+        // Navigation Properties
+        [ForeignKey(nameof(DeletedBy))]
+        public User? DeletedByUser { get; set; }
         
         // Many-to-many relationship with users
         public ICollection<CashbackGroupUser> CashbackGroupUsers { get; set; } = new List<CashbackGroupUser>();

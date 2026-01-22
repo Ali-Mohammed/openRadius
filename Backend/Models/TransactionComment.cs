@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models
 {
     public class TransactionComment
@@ -9,6 +11,10 @@ namespace Backend.Models
         public string? Attachments { get; set; } // JSON array of attachment metadata
         public int? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
+        
+        // Navigation Properties
+        [ForeignKey(nameof(CreatedBy))]
+        public User? CreatedByUser { get; set; }
 
         // Navigation property
         public Transaction? Transaction { get; set; }

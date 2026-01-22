@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models
 {
     /// <summary>
@@ -130,6 +132,12 @@ namespace Backend.Models
         /// User ID who created this NAS record
         /// </summary>
         public int CreatedBy { get; set; }
+        
+        /// <summary>
+        /// Navigation property for the user who created this NAS record
+        /// </summary>
+        [ForeignKey(nameof(CreatedBy))]
+        public User? CreatedByUser { get; set; }
 
         /// <summary>
         /// Timestamp when the record was created
