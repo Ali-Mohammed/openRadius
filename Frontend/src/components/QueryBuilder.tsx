@@ -409,7 +409,7 @@ function ConditionRow({
               fetchSuggestions(condition.value as string)
             }
           }}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
           placeholder={columnType === 'date' ? 'Type or select date...' : 'Enter value...'}
           className={`h-8 text-xs ${columnType === 'date' ? 'w-[180px]' : 'w-36'}`}
         />
@@ -434,12 +434,10 @@ function ConditionRow({
                     className="w-full px-3 py-1.5 text-xs text-left hover:bg-accent truncate flex items-center gap-2"
                     onMouseDown={(e) => {
                       e.preventDefault()
+                      e.stopPropagation()
                       console.log('Selected relative date:', option.value, option.label)
                       handleValueChange(option.value)
-                      setShowSuggestions(false)
-                      if (inputRef.current) {
-                        inputRef.current.blur()
-                      }
+                      setTimeout(() => setShowSuggestions(false), 0)
                     }}
                   >
                     <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -464,9 +462,11 @@ function ConditionRow({
                   <button
                     key={idx}
                     className="w-full px-3 py-1.5 text-xs text-left hover:bg-accent truncate flex items-center gap-2"
-                    onMouseDown={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       handleValueChange(suggestionValue)
-                      setShowSuggestions(false)
+                      setTimeout(() => setShowSuggestions(false), 0)
                     }}
                   >
                     {suggestionColor && (
