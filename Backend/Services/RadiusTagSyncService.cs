@@ -414,18 +414,34 @@ public class RadiusTagSyncService : IRadiusTagSyncService
     // Filter support classes and methods
     private class FilterGroup
     {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string? Id { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("logic")]
         public string Logic { get; set; } = "and";
+        
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
         public List<object>? Conditions { get; set; }
     }
 
     private class FilterCondition
     {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string? Id { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("field")]
         public string? Field { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("column")]
         public string? Column { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("operator")]
         public string? Operator { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
         public object? Value { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("value2")]
         public object? Value2 { get; set; }
 
         public string? GetFieldName() => Field ?? Column;
@@ -491,8 +507,14 @@ public class RadiusTagSyncService : IRadiusTagSyncService
 
     private IQueryable<RadiusUser> ApplyAdvancedFilters(IQueryable<RadiusUser> query, FilterGroup? filterGroup)
     {
+        _logger.LogInformation("🚀🚀🚀 APPLYADVANCEDFILTERS CALLED - filterGroup is null: {IsNull}", filterGroup == null);
+        
         if (filterGroup == null || filterGroup.Conditions == null || filterGroup.Conditions.Count == 0)
+        {
+            _logger.LogWarning("⚠️ RETURNING EARLY - filterGroup null: {FgNull}, Conditions null: {CondNull}, Conditions count: {Count}", 
+                filterGroup == null, filterGroup?.Conditions == null, filterGroup?.Conditions?.Count ?? 0);
             return query;
+        }
 
         var conditions = new List<System.Linq.Expressions.Expression<Func<RadiusUser, bool>>>();
 
