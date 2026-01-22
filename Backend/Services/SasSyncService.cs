@@ -572,6 +572,80 @@ public class SasSyncService : ISasSyncService
                 ReportProgress("Zones", zoneIndex, zones.Count, $"Processed {zoneIndex} of {zones.Count} zones");
             }
             
+            // Fifth: Sync RadiusUser zone assignments to match UserZone assignments
+            ReportProgress("RadiusZones", 0, 100, "Syncing RadiusUser zone assignments...");
+            _logger.LogInformation("Syncing RadiusUser zone assignments based on UserZone mappings");
+            
+            // Get all UserZone assignments
+            var userZoneAssignments = await context.UserZones
+                .Include(uz => uz.Zone)
+                .Where(uz => !uz.Zone.IsDeleted)
+                .ToListAsync();
+                
+            _logger.LogInformation("Found {Count} UserZone assignments to process", userZoneAssignments.Count);
+            
+            // Get all users with their usernames (from master context)
+            var userIdToUsername = await masterContext.Users
+                .Where(u => u.Username != null)
+                .ToDictionaryAsync(u => u.Id, u => u.Username!);
+            
+            int radiusZoneIndex = 0;
+            int radiusUsersUpdated = 0;
+            
+            foreach (var userZone in userZoneAssignments)
+            {
+                radiusZoneIndex++;
+                
+                // Get the username for this user
+                if (!userIdToUsername.TryGetValue(userZone.UserId, out var username))
+                {
+                    _logger.LogDebug("No username found for UserId {UserId}", userZone.UserId);
+                    continue;
+                }
+                
+                _logger.LogDebug("Processing UserZone: UserId={UserId}, Username={Username}, ZoneId={ZoneId}", 
+                    userZone.UserId, username, userZone.ZoneId);
+                
+                // Find all RadiusUsers with this username
+                var radiusUsers = await context.RadiusUsers
+                    .Where(ru => ru.Username == username && !ru.IsDeleted)
+                    .ToListAsync();
+                
+                if (radiusUsers.Any())
+                {
+                    _logger.LogInformation("Found {Count} RadiusUsers with username '{Username}'", radiusUsers.Count, username);
+                    
+                    foreach (var radiusUser in radiusUsers)
+                    {
+                        // Only update if zone is different
+                        if (radiusUser.ZoneId != userZone.ZoneId)
+                        {
+                            radiusUser.ZoneId = userZone.ZoneId;
+                            radiusUsersUpdated++;
+                            _logger.LogInformation("Updated RadiusUser '{Username}' (ID: {RadiusUserId}) to ZoneId {ZoneId}", 
+                                username, radiusUser.Id, userZone.ZoneId);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("RadiusUser '{Username}' (ID: {RadiusUserId}) already has ZoneId {ZoneId}", 
+                                username, radiusUser.Id, userZone.ZoneId);
+                        }
+                    }
+                    
+                    await context.SaveChangesAsync();
+                }
+                else
+                {
+                    _logger.LogDebug("No RadiusUsers found for username '{Username}'", username);
+                }
+                
+                ReportProgress("RadiusZones", radiusZoneIndex, userZoneAssignments.Count, 
+                    $"Processed {radiusZoneIndex} of {userZoneAssignments.Count} user-zone mappings");
+            }
+            
+            result.RadiusUsersZoneSynced = radiusUsersUpdated;
+            _logger.LogInformation("Synced {Count} RadiusUser zone assignments", radiusUsersUpdated);
+            
             ReportProgress("Complete", 100, 100, "Manager sync completed!");
         }
         catch (Exception ex)
