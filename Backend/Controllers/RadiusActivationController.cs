@@ -398,7 +398,7 @@ public class RadiusActivationController : ControllerBase
                 var balanceBefore = userWallet.CurrentBalance;
                 userWallet.CurrentBalance = balanceAfter;
                 userWallet.UpdatedAt = DateTime.UtcNow;
-                userWallet.UpdatedBy = userEmail;
+                userWallet.UpdatedBy = User.GetSystemUserId();
 
                 var onBehalfText = request.IsActionBehalf && request.PayerUserId.HasValue 
                     ? $" (on behalf of {walletOwnerUsername})" 
@@ -419,7 +419,7 @@ public class RadiusActivationController : ControllerBase
                     Reference = $"ACTIVATION-{radiusUser.Id}",
                     PaymentMethod = "Wallet",
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userEmail,
+                    CreatedBy = User.GetSystemUserId(),
                     RadiusUserId = radiusUser.Id,
                     RadiusUsername = radiusUser.Username,
                     RadiusProfileId = radiusProfileId,
@@ -442,7 +442,7 @@ public class RadiusActivationController : ControllerBase
                     Description = $"RADIUS user activation for {radiusUser.Username}{onBehalfText}",
                     Reference = $"ACTIVATION-{radiusUser.Id}",
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userEmail
+                    CreatedBy = User.GetSystemUserId()
                 };
 
                 _context.WalletHistories.Add(walletHistory);
@@ -503,7 +503,7 @@ public class RadiusActivationController : ControllerBase
                     var cashbackBalanceBefore = userWallet.CurrentBalance;
                     userWallet.CurrentBalance += calculatedCashbackAmount;
                     userWallet.UpdatedAt = DateTime.UtcNow;
-                    userWallet.UpdatedBy = userEmail;
+                    userWallet.UpdatedBy = User.GetSystemUserId();
 
                     // Determine description based on whether this is on-behalf or normal activation
                     var cashbackDescription = request.IsActionBehalf && request.PayerUserId.HasValue
@@ -526,7 +526,7 @@ public class RadiusActivationController : ControllerBase
                         Reference = $"CASHBACK-{radiusUser.Id}",
                         PaymentMethod = "Cashback",
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail,
+                        CreatedBy = User.GetSystemUserId(),
                         RadiusUserId = radiusUser.Id,
                         RadiusUsername = radiusUser.Username,
                         RadiusProfileId = radiusProfileId,
@@ -551,7 +551,7 @@ public class RadiusActivationController : ControllerBase
                         Description = cashbackDescription,
                         Reference = $"CASHBACK-{radiusUser.Id}",
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
+                        CreatedBy = User.GetSystemUserId()
                     };
 
                     _context.WalletHistories.Add(cashbackHistory);
@@ -601,7 +601,7 @@ public class RadiusActivationController : ControllerBase
                         Reference = $"ACTIVATION-{radiusUser.Id}",
                         PaymentMethod = "Activation",
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail,
+                        CreatedBy = User.GetSystemUserId(),
                         RadiusUserId = radiusUser.Id,
                         RadiusUsername = radiusUser.Username,
                         RadiusProfileId = radiusProfileId,
@@ -624,7 +624,7 @@ public class RadiusActivationController : ControllerBase
                         Description = $"RADIUS profile wallet deposit for {radiusUser.Username} activation",
                         Reference = $"ACTIVATION-{radiusUser.Id}",
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
+                        CreatedBy = User.GetSystemUserId()
                     };
 
                     _context.WalletHistories.Add(customWalletHistory);
@@ -712,7 +712,7 @@ public class RadiusActivationController : ControllerBase
                             Description = $"Billing profile deduction for {radiusUser.Username} activation",
                             Reference = $"ACTIVATION-{radiusUser.Id}",
                             CreatedAt = DateTime.UtcNow,
-                            CreatedBy = userEmail
+                            CreatedBy = User.GetSystemUserId()
                         };
                         _context.WalletHistories.Add(walletHistory);
 
@@ -779,7 +779,7 @@ public class RadiusActivationController : ControllerBase
                             Description = $"Billing profile distribution for {radiusUser.Username} activation",
                             Reference = $"ACTIVATION-{radiusUser.Id}",
                             CreatedAt = DateTime.UtcNow,
-                            CreatedBy = userEmail
+                            CreatedBy = User.GetSystemUserId()
                         };
                         _context.WalletHistories.Add(walletHistory);
 
@@ -828,7 +828,7 @@ public class RadiusActivationController : ControllerBase
                                 Reference = $"ACTIVATION-{radiusUser.Id}",
                                 PaymentMethod = "Activation",
                                 CreatedAt = DateTime.UtcNow,
-                                CreatedBy = userEmail,
+                                CreatedBy = User.GetSystemUserId(),
                                 RadiusUserId = radiusUser.Id,
                                 RadiusUsername = radiusUser.Username,
                                 RadiusProfileId = radiusProfileId,
@@ -852,7 +852,7 @@ public class RadiusActivationController : ControllerBase
                                 Description = $"Remaining balance from {radiusUser.Username} activation",
                                 Reference = $"ACTIVATION-{radiusUser.Id}",
                                 CreatedAt = DateTime.UtcNow,
-                                CreatedBy = userEmail
+                                CreatedBy = User.GetSystemUserId()
                             };
                             _context.WalletHistories.Add(walletHistory);
 
@@ -1076,7 +1076,7 @@ public class RadiusActivationController : ControllerBase
             // Soft delete the activation
             activation.IsDeleted = true;
             activation.DeletedAt = DateTime.UtcNow;
-            activation.DeletedBy = userEmail;
+            activation.DeletedBy = User.GetSystemUserId();
             activation.Status = "rolled_back";
 
             await _context.SaveChangesAsync();

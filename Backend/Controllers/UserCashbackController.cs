@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers
 {
@@ -128,7 +129,7 @@ namespace Backend.Controllers
                             // Update existing
                             existing.Amount = item.Amount;
                             existing.UpdatedAt = DateTime.UtcNow;
-                            existing.UpdatedBy = userEmail;
+                            existing.UpdatedBy = User.GetSystemUserId();
                         }
                         else
                         {
@@ -139,7 +140,7 @@ namespace Backend.Controllers
                                 BillingProfileId = item.BillingProfileId,
                                 Amount = item.Amount,
                                 CreatedAt = DateTime.UtcNow,
-                                CreatedBy = userEmail
+                                CreatedBy = User.GetSystemUserId()
                             };
                             _context.UserCashbacks.Add(newCashback);
                         }
@@ -148,7 +149,7 @@ namespace Backend.Controllers
                     {
                         // Soft delete if amount is 0
                         existing.DeletedAt = DateTime.UtcNow;
-                        existing.DeletedBy = userEmail;
+                        existing.DeletedBy = User.GetSystemUserId();
                     }
                 }
 
@@ -202,7 +203,7 @@ namespace Backend.Controllers
                 foreach (var cashback in cashbacks)
                 {
                     cashback.DeletedAt = DateTime.UtcNow;
-                    cashback.DeletedBy = userEmail;
+                    cashback.DeletedBy = User.GetSystemUserId();
                 }
 
                 await _context.SaveChangesAsync();

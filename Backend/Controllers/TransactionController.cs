@@ -747,7 +747,7 @@ public class TransactionController : ControllerBase
 
                     transaction.Status = "reversed";
                     transaction.UpdatedAt = DateTime.UtcNow;
-                    transaction.UpdatedBy = userEmail;
+                    transaction.UpdatedBy = User.GetSystemUserId();
 
                     // Create reversal transaction
                     var reversalTransaction = new Models.Transaction
@@ -768,16 +768,16 @@ public class TransactionController : ControllerBase
                         RelatedTransactionId = transaction.Id,
                         IsDeleted = true,
                         DeletedAt = DateTime.UtcNow,
-                        DeletedBy = userEmail,
+                        DeletedBy = User.GetSystemUserId(),
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
+                        CreatedBy = User.GetSystemUserId()
                     };
 
                     _context.Transactions.Add(reversalTransaction);
 
                     transaction.IsDeleted = true;
                     transaction.DeletedAt = DateTime.UtcNow;
-                    transaction.DeletedBy = userEmail;
+                    transaction.DeletedBy = User.GetSystemUserId();
 
                     var deletionHistory = new TransactionHistory
                     {
@@ -892,13 +892,13 @@ public class TransactionController : ControllerBase
                     transaction.DeletedBy = null;
                     transaction.Status = "completed";
                     transaction.UpdatedAt = DateTime.UtcNow;
-                    transaction.UpdatedBy = userEmail;
+                    transaction.UpdatedBy = User.GetSystemUserId();
 
                     if (reversalTransaction != null)
                     {
                         reversalTransaction.IsDeleted = true;
                         reversalTransaction.DeletedAt = DateTime.UtcNow;
-                        reversalTransaction.DeletedBy = userEmail;
+                        reversalTransaction.DeletedBy = User.GetSystemUserId();
                     }
 
                     var transactionHistory = new TransactionHistory

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 
@@ -279,7 +280,7 @@ public class RadiusIpReservationController : ControllerBase
                        ?? "system";
 
         reservation.DeletedAt = DateTime.UtcNow;
-        reservation.DeletedBy = userEmail;
+        reservation.DeletedBy = User.GetSystemUserId();
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -339,7 +340,7 @@ public class RadiusIpReservationController : ControllerBase
         foreach (var reservation in reservations)
         {
             reservation.DeletedAt = DateTime.UtcNow;
-            reservation.DeletedBy = userEmail;
+            reservation.DeletedBy = User.GetSystemUserId();
         }
 
         await _context.SaveChangesAsync();
