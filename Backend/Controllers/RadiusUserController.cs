@@ -419,7 +419,12 @@ public class RadiusUserController : ControllerBase
         // Zone-based filtering for non-admin users
         var systemUserId = User.GetSystemUserId();
         var userKeycloakId = User.GetUserKeycloakId();
-        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+        
+        // Check admin role - check both IsInRole and the actual claim
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin") || 
+                      User.Claims.Any(c => c.Type == "role" && (c.Value == "admin" || c.Value == "Admin")) ||
+                      User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role && (c.Value == "admin" || c.Value == "Admin"));
+        
         var isImpersonating = User.IsImpersonating();
         
         _logger.LogInformation("🔍 ZONE FILTER DEBUG - SystemUserId: {SystemUserId}, UserKeycloakId: {UserId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
@@ -1091,7 +1096,9 @@ public class RadiusUserController : ControllerBase
 
         // Zone-based filtering for non-admin users
         var systemUserId = User.GetSystemUserId();
-        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin") || 
+                      User.Claims.Any(c => c.Type == "role" && (c.Value == "admin" || c.Value == "Admin")) ||
+                      User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role && (c.Value == "admin" || c.Value == "Admin"));
         
         if (!isAdmin && systemUserId.HasValue)
         {
