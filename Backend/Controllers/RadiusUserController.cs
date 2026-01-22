@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
@@ -416,16 +417,17 @@ public class RadiusUserController : ControllerBase
             .Where(u => includeDeleted || !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.FindFirst("sub")?.Value;
+        var systemUserId = User.GetSystemUserId();
+        var userKeycloakId = User.GetUserKeycloakId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
-        var isImpersonating = User.FindFirst("is_impersonating")?.Value == "true";
+        var isImpersonating = User.IsImpersonating();
         
-        _logger.LogInformation("🔍 ZONE FILTER DEBUG - UserKeycloakId: {UserId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
-            userKeycloakId, isAdmin, isImpersonating);
+        _logger.LogInformation("🔍 ZONE FILTER DEBUG - SystemUserId: {SystemUserId}, UserKeycloakId: {UserId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
+            systemUserId, userKeycloakId, isAdmin, isImpersonating);
         
-        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        if (!isAdmin && systemUserId.HasValue)
         {
-            // Get zones managed by this user
+            // Get zones managed by this user using system user ID
             var userZoneIds = await _context.UserZones
                 .Where(uz => uz.UserId == userKeycloakId)
                 .Select(uz => uz.ZoneId)
@@ -1088,7 +1090,7 @@ public class RadiusUserController : ControllerBase
             .Where(u => u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.GetUserKeycloakId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
@@ -1236,7 +1238,7 @@ public class RadiusUserController : ControllerBase
             .Where(u => !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.GetUserKeycloakId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
@@ -1387,7 +1389,7 @@ public class RadiusUserController : ControllerBase
             .Where(u => !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.FindFirst("sub")?.Value;
+        var userKeycloakId = User.GetUserKeycloakId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         
         if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
