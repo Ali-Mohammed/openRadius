@@ -39,7 +39,7 @@ public class RadiusCustomAttribute
     // Soft Delete
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
     
     // Timestamps
     public DateTime CreatedAt { get; set; }
@@ -61,7 +61,7 @@ public class RadiusCustomAttributeResponse
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
 }
 
 public class CreateRadiusCustomAttributeRequest

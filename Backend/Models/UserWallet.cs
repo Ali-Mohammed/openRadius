@@ -27,7 +27,7 @@ public class UserWallet
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public int? CreatedBy { get; set; }
-    public string? UpdatedBy { get; set; }
+    public int? UpdatedBy { get; set; }
     
     // Soft delete
     public bool IsDeleted { get; set; } = false;

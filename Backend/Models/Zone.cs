@@ -16,7 +16,7 @@ public class Zone
     // Soft delete
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
     
     // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -79,11 +79,11 @@ public class ZoneResponse
     public int? ParentZoneId { get; set; }
     public string? ParentZoneName { get; set; }
     public DateTime CreatedAt { get; set; }
-    public string? CreatedBy { get; set; }
+    public int? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public string? UpdatedBy { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? UpdatedBy { get; set; }
+    public DateTime? DeletedAt { get; set; };
+    public int? DeletedBy { get; set; }
     public int UserCount { get; set; }
     public int RadiusUserCount { get; set; }
     public List<ZoneResponse> Children { get; set; } = new();

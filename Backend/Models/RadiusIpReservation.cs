@@ -10,7 +10,7 @@ namespace Backend.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
-        public string? DeletedBy { get; set; }
+        public int? DeletedBy { get; set; }
     }
 
     public class RadiusIpReservationResponse
@@ -28,6 +28,6 @@ namespace Backend.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
-        public string? DeletedBy { get; set; }
+        public int? DeletedBy { get; set; }
     }
 }
