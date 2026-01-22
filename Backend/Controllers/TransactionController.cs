@@ -665,7 +665,7 @@ public class TransactionController : ControllerBase
                     balanceAfter = restoredBalanceAfter,
                     reversalTransactionId = reversalTransaction?.Id
                 }),
-                PerformedBy = userEmail,
+                PerformedBy = User.Identity?.Name ?? "system",
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(transactionHistory);
