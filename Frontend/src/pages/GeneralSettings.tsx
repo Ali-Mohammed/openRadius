@@ -221,9 +221,19 @@ export default function GeneralSettings() {
       updatedRules = [...tagSyncRules, newRule]
     }
 
+    // Update local state first for immediate UI feedback
     setTagSyncRules(updatedRules)
-    saveTagSyncRulesMutation.mutate(updatedRules)
-    setShowRuleDialog(false)
+    
+    // Save to backend
+    saveTagSyncRulesMutation.mutate(updatedRules, {
+      onSuccess: () => {
+        setShowRuleDialog(false)
+      },
+      onError: () => {
+        // Revert local state on error
+        setTagSyncRules(tagSyncRules)
+      }
+    })
   }
 
   const handleSyncTags = async () => {
