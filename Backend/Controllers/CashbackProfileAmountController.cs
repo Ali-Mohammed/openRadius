@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers
 {
@@ -52,7 +53,7 @@ namespace Backend.Controllers
         {
             try
             {
-                var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+                var userId = User.GetSystemUserId();
 
                 // Get existing amounts for this group
                 var existingAmounts = await _context.CashbackProfileAmounts
@@ -71,7 +72,7 @@ namespace Backend.Controllers
                             // Update existing
                             existing.Amount = item.Amount;
                             existing.UpdatedAt = DateTime.UtcNow;
-                            existing.UpdatedBy = userEmail;
+                            existing.UpdatedBy = userId;
                         }
                         else
                         {
@@ -82,7 +83,7 @@ namespace Backend.Controllers
                                 BillingProfileId = item.BillingProfileId,
                                 Amount = item.Amount,
                                 CreatedAt = DateTime.UtcNow,
-                                CreatedBy = userEmail
+                                CreatedBy = userId
                             };
                             _context.CashbackProfileAmounts.Add(newAmount);
                         }
@@ -91,7 +92,7 @@ namespace Backend.Controllers
                     {
                         // Soft delete if amount is 0
                         existing.DeletedAt = DateTime.UtcNow;
-                        existing.DeletedBy = userEmail;
+                        existing.DeletedBy = userId;
                     }
                 }
 
@@ -135,7 +136,7 @@ namespace Backend.Controllers
         {
             try
             {
-                var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+                var userId = User.GetSystemUserId();
 
                 var amounts = await _context.CashbackProfileAmounts
                     .Where(a => a.CashbackGroupId == groupId && a.DeletedAt == null)
@@ -144,7 +145,7 @@ namespace Backend.Controllers
                 foreach (var amount in amounts)
                 {
                     amount.DeletedAt = DateTime.UtcNow;
-                    amount.DeletedBy = userEmail;
+                    amount.DeletedBy = userId;
                 }
 
                 await _context.SaveChangesAsync();

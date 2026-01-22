@@ -14,7 +14,7 @@ namespace Backend.Models
         public int? CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public DateTime? DeletedAt { get; set; }
-        public string? DeletedBy { get; set; }
+        public int? DeletedBy { get; set; }
 
         // Navigation properties
         public CashbackGroup? CashbackGroup { get; set; }

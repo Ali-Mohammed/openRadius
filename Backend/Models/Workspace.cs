@@ -17,9 +17,9 @@ public class Workspace
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public int CreatedBy { get; set; }
-    public int UpdatedBy { get; set; };
+    public int UpdatedBy { get; set; }
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
 }
 
 public class WorkspaceDto

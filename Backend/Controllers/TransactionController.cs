@@ -1067,17 +1067,13 @@ public class TransactionController : ControllerBase
                 return BadRequest(new { error = "Comment is required" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value 
-                            ?? _httpContextAccessor.HttpContext?.User?.FindFirst("preferred_username")?.Value 
-                            ?? "Unknown";
-
             var comment = new TransactionComment
             {
                 TransactionId = id,
                 Comment = request.Comment,
                 Tags = request.Tags != null && request.Tags.Any() ? System.Text.Json.JsonSerializer.Serialize(request.Tags) : null,
                 Attachments = request.Attachments != null && request.Attachments.Any() ? System.Text.Json.JsonSerializer.Serialize(request.Attachments) : null,
-                CreatedBy = userEmail,
+                CreatedBy = User.GetSystemUserId(),
                 CreatedAt = DateTime.UtcNow
             };
 

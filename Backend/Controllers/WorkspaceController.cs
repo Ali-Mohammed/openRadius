@@ -134,8 +134,8 @@ public class WorkspaceController : ControllerBase
             Icon = dto.Icon,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            CreatedBy = User.GetSystemUserId(),
-            UpdatedBy = User.GetSystemUserId()
+            CreatedBy = User.GetSystemUserId() ?? 0,
+            UpdatedBy = User.GetSystemUserId() ?? 0
         };
         
         _masterContext.Workspaces.Add(workspace);
@@ -236,7 +236,7 @@ public class WorkspaceController : ControllerBase
         workspace.Color = dto.Color;
         workspace.Icon = dto.Icon;
         workspace.UpdatedAt = DateTime.UtcNow;
-        workspace.UpdatedBy = User.GetSystemUserId();
+        workspace.UpdatedBy = User.GetSystemUserId() ?? 0;
 
         try
         {
@@ -290,7 +290,7 @@ public class WorkspaceController : ControllerBase
         workspace.DeletedAt = null;
         workspace.DeletedBy = null;
         workspace.UpdatedAt = DateTime.UtcNow;
-        workspace.UpdatedBy = User.GetSystemUserId();
+        workspace.UpdatedBy = User.GetSystemUserId() ?? 0;
         await _masterContext.SaveChangesAsync();
 
         return NoContent();
@@ -350,11 +350,11 @@ public class WorkspaceController : ControllerBase
             worksheet.Cell(row, 7).Value = workspace.Status;
             worksheet.Cell(row, 8).Value = workspace.Color;
             worksheet.Cell(row, 9).Value = workspace.CreatedAt;
-            worksheet.Cell(row, 10).Value = workspace.CreatedBy;
+            worksheet.Cell(row, 10).Value = workspace.CreatedBy.ToString();
             worksheet.Cell(row, 11).Value = workspace.UpdatedAt;
-            worksheet.Cell(row, 12).Value = workspace.UpdatedBy;
+            worksheet.Cell(row, 12).Value = workspace.UpdatedBy.ToString();
             worksheet.Cell(row, 13).Value = workspace.DeletedAt?.ToString() ?? "";
-            worksheet.Cell(row, 14).Value = workspace.DeletedBy ?? "";
+            worksheet.Cell(row, 14).Value = workspace.DeletedBy?.ToString() ?? "";
         }
         
         // Auto-fit columns
@@ -462,8 +462,8 @@ public class WorkspaceController : ControllerBase
                     Currency = dto.Currency ?? "USD",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
-                    CreatedBy = userName,
-                    UpdatedBy = userName
+                    CreatedBy = User.GetSystemUserId() ?? 0,
+                    UpdatedBy = User.GetSystemUserId() ?? 0
                 };
 
                 _masterContext.Workspaces.Add(workspace);

@@ -19,7 +19,7 @@ public class BillingGroup
     // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? CreatedBy { get; set; }
-    public DateTime? UpdatedAt { get; set; };
+    public DateTime? UpdatedAt { get; set; }
     public int? UpdatedBy { get; set; }
     
     // Navigation properties
@@ -38,5 +38,5 @@ public class BillingGroupUser
     // Note: User is in master DB, not workspace DB, so no navigation property here
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? CreatedBy { get; set; }
+    public int? CreatedBy { get; set; }
 }

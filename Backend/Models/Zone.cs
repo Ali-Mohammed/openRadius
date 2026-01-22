@@ -22,7 +22,7 @@ public class Zone
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public string? UpdatedBy { get; set; }
+    public int? UpdatedBy { get; set; }
     
     // Navigation properties (no Workspace navigation - it's in a different database)
     [JsonIgnore]
@@ -43,7 +43,7 @@ public class UserZone
     public int ZoneId { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? CreatedBy { get; set; }
+    public int? CreatedBy { get; set; }
     
     // Navigation properties
     [JsonIgnore]
@@ -82,7 +82,7 @@ public class ZoneResponse
     public int? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public int? UpdatedBy { get; set; }
-    public DateTime? DeletedAt { get; set; };
+    public DateTime? DeletedAt { get; set; }
     public int? DeletedBy { get; set; }
     public int UserCount { get; set; }
     public int RadiusUserCount { get; set; }

@@ -15,7 +15,7 @@ public class BillingProfile
     // Soft delete
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
     
     // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
