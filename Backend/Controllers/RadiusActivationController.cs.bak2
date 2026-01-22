@@ -533,9 +533,6 @@ public class RadiusActivationController : ControllerBase
                         RadiusProfileName = radiusProfileName,
                         BillingProfileId = request.BillingProfileId,
                     BillingProfileName = request.BillingProfileId.HasValue ? (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name : null
-                };
-                _context.Transactions.Add(cashbackTransaction);
-
 
                     // Create wallet history for cashback
                     var cashbackHistory = new WalletHistory
