@@ -329,9 +329,9 @@ export default function DashboardView() {
   const activeTab = dashboard.tabs.find((tab) => tab.id === activeTabId)
 
   return (
-    <div className="">
-      <div className="flex items-center justify-between">
-        <Tabs value={activeTabId} onValueChange={setActiveTabId}>
+    <div className="p-2">
+      <Tabs value={activeTabId} onValueChange={setActiveTabId}>
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TabsList>
               {dashboard.tabs.map((tab, index) => (
@@ -360,44 +360,42 @@ export default function DashboardView() {
               </Button>
             )}
           </div>
-        </Tabs>
-        
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            {showFilters ? 'Hide' : 'Show'} Filters
-          </Button>
-          <Button
-            variant={isEditing ? 'default' : 'outline'}
-            size="sm"
-            onClick={handleToggleEdit}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            {isEditing ? 'Done Editing' : 'Edit'}
-          </Button>
-          {isEditing && (
-            <Button size="sm" onClick={() => setShowAddItemDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Item
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              {showFilters ? 'Hide' : 'Show'} Filters
             </Button>
-          )}
+            <Button
+              variant={isEditing ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleToggleEdit}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              {isEditing ? 'Done Editing' : 'Edit'}
+            </Button>
+            {isEditing && (
+              <Button size="sm" onClick={() => setShowAddItemDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {showFilters && dashboard.globalFilters.length > 0 && (
-        <GlobalFilters
-          filters={dashboard.globalFilters}
-          onFilterChange={handleFilterChange}
-        />
-      )}
+        {showFilters && dashboard.globalFilters.length > 0 && (
+          <GlobalFilters
+            filters={dashboard.globalFilters}
+            onFilterChange={handleFilterChange}
+          />
+        )}
 
-      <Tabs value={activeTabId} onValueChange={setActiveTabId}>
         {dashboard.tabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id} className="mt-4">
+          <TabsContent key={tab.id} value={tab.id} className="mt-2">
             {tab.items.length > 0 ? (
               <DashboardGrid
                 items={tab.items}

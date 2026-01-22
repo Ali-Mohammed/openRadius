@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import type { EChartsOption } from 'echarts'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -22,6 +22,37 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
   const [data, setData] = useState<DashboardData[] | { value: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const chartRef = useRef<ReactECharts>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Resize chart when container size changes
+  useEffect(() => {
+    const resizeChart = () => {
+      if (chartRef.current) {
+        const instance = chartRef.current.getEchartsInstance()
+        if (instance) {
+          instance.resize()
+        }
+      }
+    }
+    
+    const resizeObserver = new ResizeObserver(() => {
+      // Use requestAnimationFrame for smooth resize
+      requestAnimationFrame(resizeChart)
+    })
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
+    
+    // Also resize on initial mount after a short delay
+    const timer = setTimeout(resizeChart, 100)
+    
+    return () => {
+      resizeObserver.disconnect()
+      clearTimeout(timer)
+    }
+  }, [data])
 
   useEffect(() => {
     fetchData()
@@ -206,7 +237,7 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
   if (error) {
     return (
       <div className="h-full flex flex-col">
-        <div className="border-b px-4 py-3">
+        <div className="px-3 py-2 bg-muted/30">
           <h3 className="text-sm font-semibold">{title}</h3>
         </div>
         <div className="flex-1 flex items-center justify-center px-4">
@@ -220,7 +251,7 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
   if (data && 'value' in data && config.chartType === 'number') {
     return (
       <div className="h-full flex flex-col">
-        <div className="border-b px-4 py-3">
+        <div className="px-3 py-2 bg-muted/30">
           <h3 className="text-sm font-semibold">{title}</h3>
         </div>
         <div className="flex-1 flex items-center justify-center px-4">
@@ -241,23 +272,26 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
   const chartData = Array.isArray(data) ? data : []
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="border-b px-4 py-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
+    <div className="h-full w-full flex flex-col overflow-hidden">
+      <div className="px-3 py-2 bg-muted/30 shrink-0">
+        <h3 className="text-sm font-semibold truncate">{title}</h3>
       </div>
-      <div className="flex-1 px-4 py-2">
+      <div ref={containerRef} className="flex-1 min-h-0 min-w-0 relative">
         {chartData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-muted-foreground">No data available</p>
           </div>
         ) : (
-          <ReactECharts 
-            option={getChartOption()} 
-            style={{ height: '100%', width: '100%' }}
-            opts={{ renderer: 'canvas' }}
-            notMerge={true}
-            lazyUpdate={true}
-          />
+          <div className="absolute inset-0 p-1">
+            <ReactECharts 
+              ref={chartRef}
+              option={getChartOption()} 
+              style={{ height: '100%', width: '100%' }}
+              opts={{ renderer: 'canvas' }}
+              notMerge={true}
+              lazyUpdate={true}
+            />
+          </div>
         )}
       </div>
     </div>

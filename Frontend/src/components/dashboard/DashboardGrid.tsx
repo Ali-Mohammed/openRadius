@@ -149,7 +149,7 @@ export function DashboardGrid({
         {items.map((item) => (
           <div
             key={item.id}
-            className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
           >
             {isEditing && (
               <div className="absolute top-2 right-2 z-10 flex gap-1">
@@ -182,7 +182,7 @@ export function DashboardGrid({
                 )}
               </div>
             )}
-            <div className="h-full w-full overflow-auto">{renderWidget(item)}</div>
+            <div className="absolute inset-0">{renderWidget(item)}</div>
           </div>
         ))}
       </Responsive>
