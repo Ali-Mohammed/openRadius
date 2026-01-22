@@ -371,6 +371,7 @@ public class UserManagementDbController : ControllerBase
                     u.KeycloakUserId,
                     u.FirstName,
                     u.LastName,
+                    u.Username,
                     u.Email,
                     u.SupervisorId,
                     u.DefaultWorkspaceId,
