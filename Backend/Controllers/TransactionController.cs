@@ -261,6 +261,8 @@ public class TransactionController : ControllerBase
     {
         try
         {
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            
             if (request.Amount <= 0)
             {
                 return BadRequest(new { error = "Amount must be greater than zero" });
@@ -1053,6 +1055,8 @@ public class TransactionController : ControllerBase
     {
         try
         {
+            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            
             var transaction = await _context.Transactions
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(t => t.Id == id);
