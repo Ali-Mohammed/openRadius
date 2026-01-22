@@ -234,7 +234,14 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             }
 
             ReportProgress(onProgress, "Initializing", 0, rules.Count, "Loading tag sync rules...");
-            await BroadcastProgress("Initializing", 0, rules.Count, "Loading tag sync rules...");
+            await _hubContext.Clients.Group("TagSync").SendAsync("TagSyncProgress", new
+            {
+                phase = "Initializing",
+                current = 0,
+                total = rules.Count,
+                percentComplete = 0,
+                message = "Loading tag sync rules..."
+            });
 
             // Process each rule
             for (int i = 0; i < rules.Count; i++)
@@ -242,7 +249,14 @@ public class RadiusTagSyncService : IRadiusTagSyncService
                 var rule = rules[i];
                 
                 ReportProgress(onProgress, "Processing", i, rules.Count, $"Processing rule for tag: {rule.TagName}");
-                await BroadcastProgress("Processing", i, rules.Count, $"Processing rule for tag: {rule.TagName}");
+                await _hubContext.Clients.Group("TagSync").SendAsync("TagSyncProgress", new
+                {
+                    phase = "Processing",
+                    current = i,
+                    total = rules.Count,
+                    percentComplete = (int)((i / (double)rules.Count) * 100),
+                    message = $"Processing rule for tag: {rule.TagName}"
+                });
 
                 // Get the tag
                 var tag = await context.RadiusTags.FirstOrDefaultAsync(t => t.Id == rule.TagId);
@@ -291,7 +305,7 @@ public class RadiusTagSyncService : IRadiusTagSyncService
                     {
                         user.RadiusUserTags.Add(new RadiusUserTag
                         {
-                            RadiusUserId = user.Id!.Value,
+                            RadiusUserId = user.Id,
                             RadiusTagId = tag.Id,
                             AssignedAt = DateTime.UtcNow
                         });
@@ -305,7 +319,14 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             }
 
             ReportProgress(onProgress, "Completed", rules.Count, rules.Count, $"Tag sync completed. Processed {result.UsersProcessed} users.");
-            await BroadcastProgress("Completed", rules.Count, rules.Count, $"Tag sync completed. Processed {result.UsersProcessed} users.");
+            await _hubContext.Clients.Group("TagSync").SendAsync("TagSyncProgress", new
+            {
+                phase = "Completed",
+                current = rules.Count,
+                total = rules.Count,
+                percentComplete = 100,
+                message = $"Tag sync completed. Processed {result.UsersProcessed} users."
+            });
 
             _logger.LogInformation("Tag sync with rules completed. Users: {Users}, Assigned: {Assigned}", 
                 result.UsersProcessed, result.TagsAssigned);

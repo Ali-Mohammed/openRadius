@@ -81,7 +81,7 @@ export default function GeneralSettings() {
   const { data: tagSyncSettings } = useQuery({
     queryKey: ['tag-sync-rules', currentWorkspaceId],
     queryFn: async () => {
-      const response = await apiClient.get(`/api/settings/${currentWorkspaceId}/tag-sync-rules`)
+      const response = await apiClient.get(`/api/workspaces/${currentWorkspaceId}/settings/tag-sync-rules`)
       return response.data
     },
     enabled: currentWorkspaceId !== null,
@@ -118,7 +118,7 @@ export default function GeneralSettings() {
 
   const saveTagSyncRulesMutation = useMutation({
     mutationFn: async (rules: TagSyncRule[]) => {
-      const response = await apiClient.post(`/api/settings/${currentWorkspaceId}/tag-sync-rules`, { rules })
+      const response = await apiClient.post(`/api/workspaces/${currentWorkspaceId}/settings/tag-sync-rules`, { rules })
       return response.data
     },
     onSuccess: () => {
