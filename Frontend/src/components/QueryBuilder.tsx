@@ -400,7 +400,7 @@ function ConditionRow({
       <div className="relative">
         <Input
           ref={inputRef}
-          type={columnType === 'number' ? 'number' : columnType === 'date' ? 'date' : 'text'}
+          type={columnType === 'number' ? 'number' : 'text'}
           value={condition.value as string || ''}
           onChange={(e) => handleValueChange(columnType === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
           onFocus={() => {
@@ -410,7 +410,7 @@ function ConditionRow({
             }
           }}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          placeholder={columnType === 'date' ? 'Select date or use relative...' : 'Enter value...'}
+          placeholder={columnType === 'date' ? 'Type or select date...' : 'Enter value...'}
           className={`h-8 text-xs ${columnType === 'date' ? 'w-[180px]' : 'w-36'}`}
         />
         {showSuggestions && hasDateSuggestions && inputRect && createPortal(
@@ -432,9 +432,14 @@ function ConditionRow({
                   <button
                     key={`rel-${idx}`}
                     className="w-full px-3 py-1.5 text-xs text-left hover:bg-accent truncate flex items-center gap-2"
-                    onMouseDown={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      console.log('Selected relative date:', option.value, option.label)
                       handleValueChange(option.value)
                       setShowSuggestions(false)
+                      if (inputRef.current) {
+                        inputRef.current.blur()
+                      }
                     }}
                   >
                     <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -489,10 +494,10 @@ function ConditionRow({
       <>
         <span className="text-xs text-muted-foreground px-1">and</span>
         <Input
-          type={columnType === 'number' ? 'number' : columnType === 'date' ? 'date' : 'text'}
+          type={columnType === 'number' ? 'number' : 'text'}
           value={condition.value2 as string || ''}
           onChange={(e) => handleValue2Change(columnType === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
-          placeholder={columnType === 'date' ? 'End date or relative...' : 'End value...'}
+          placeholder={columnType === 'date' ? 'Type or select date...' : 'End value...'}
           className={`h-8 text-xs ${columnType === 'date' ? 'w-[180px]' : 'w-36'}`}
         />
       </>
