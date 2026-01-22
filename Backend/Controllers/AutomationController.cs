@@ -130,7 +130,13 @@ public class AutomationController : ControllerBase
                 Status = request.Status ?? "draft",
                 IsActive = request.IsActive ?? true,
                 CreatedAt = DateTime.UtcNow,
-            CreatedBy = User.GetSystemUserId()
+                CreatedBy = User.GetSystemUserId()
+            };
+
+            _context.Automations.Add(automation);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetAutomation), new { id = automation.Id }, automation);
         }
         catch (Exception ex)
         {
