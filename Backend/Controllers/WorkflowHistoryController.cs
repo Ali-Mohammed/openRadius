@@ -75,14 +75,12 @@ public class WorkflowHistoryController : ControllerBase
                 EdgeCount = request.EdgeCount,
                 CreatedAt = DateTime.UtcNow,
             CreatedBy = User.GetSystemUserId()
-                history.Id, request.AutomationId);
+        };
 
-            return CreatedAtAction(nameof(GetHistoryByAutomation), 
-                new { automationId = history.AutomationId }, history);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating workflow history");
+        _context.WorkflowHistories.Add(history);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Created workflow history {HistoryId} for automation {AutomationId}",
             return StatusCode(500, new { message = "An error occurred while creating workflow history" });
         }
     }
