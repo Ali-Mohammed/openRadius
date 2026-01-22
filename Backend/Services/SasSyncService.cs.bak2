@@ -1100,7 +1100,7 @@ public class SasSyncService : ISasSyncService
                                     existingBillingProfile.Price = radiusProfile.Price;
                                     existingBillingProfile.IsActive = radiusProfile.Enabled; // Update active status
                                     existingBillingProfile.UpdatedAt = DateTime.UtcNow;
-                                    existingBillingProfile.UpdatedBy = null; // System sync
+                                    existingBillingProfile.UpdatedBy = null // System sync;
                                 }
                             }
 
