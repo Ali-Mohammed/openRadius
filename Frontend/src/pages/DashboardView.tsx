@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { Plus, Edit, Settings, Filter, GripVertical } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -25,7 +25,7 @@ export default function DashboardView() {
   const [showFilters, setShowFilters] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [draggedTabIndex, setDraggedTabIndex] = useState<number | null>(null)
-  const [originalDashboard, setOriginalDashboard] = useState<Dashboard | null>(null)
+  const originalDashboardRef = useRef<Dashboard | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -33,40 +33,58 @@ export default function DashboardView() {
     }
   }, [id])
 
-  // Save layout changes when exiting edit mode
+  // Capture snapshot only when entering edit mode
+  useEffect(() => {when entering edit mode
   useEffect(() => {
-    const handleEditModeChange = async () => {
-      if (!isEditing && dashboard && originalDashboard) {
-        await saveLayoutChanges()
-        setOriginalDashboard(null)
-      }
-      if (isEditing && dashboard) {
-        setOriginalDashboard(JSON.parse(JSON.stringify(dashboard)))
-      }
+    if (isEditing && dashboard) {
+      console.log('Capturing dashboard snapshot for edit mode')
+      originalDashboardRef.current = JSON.parse(JSON.stringify(dashboard))
+    } else if (!isEditing) {
+      console.log('Exited edit mode, clearing snapshot')
+      originalDashboardRef.current = null
     }
-    handleEditModeChange()
   }, [isEditing])
 
   const saveLayoutChanges = async () => {
-    if (!dashboard || !originalDashboard) return
+    const originalDashboard = originalDashboardRef.current
+     {
+      console.log('No dashboard or originalDashboard to save', { dashboard: !!dashboard, originalDashboard: !!originalDashboard })
+      return
+    }
+
+    console.log('Saving layout changes...')
+    console.log('Current dashboard:', dashboard)
+    console.log('Original dashboard:', originalDashboard)
+    let changeCount = 0
 
     try {
       for (const tab of dashboard.tabs) {
         const originalTab = originalDashboard.tabs.find(t => t.id === tab.id)
         if (originalTab) {
+          console.log(`Checking tab ${tab.id} with ${tab.items.length} items`)
           for (const item of tab.items) {
             const originalItem = originalTab.items.find(i => i.id === item.id)
-            if (originalItem &&
-                (originalItem.layout.x !== item.layout.x ||
-                 originalItem.layout.y !== item.layout.y ||
-                 originalItem.layout.w !== item.layout.w ||
-                 originalItem.layout.h !== item.layout.h)) {
-              await dashboardApi.updateItemLayout(dashboard.id, item.id, item.layout)
+            if (originalItem) {
+              console.log(`Item ${item.id} - Current layout:`, item.layout, 'Original layout:', originalItem.layout)
+              if (originalItem.layout.x !== item.layout.x ||
+                  originalItem.layout.y !== item.layout.y ||
+                  originalItem.layout.w !== item.layout.w ||
+                  originalItem.layout.h !== item.layout.h) {
+                console.log(`Updating layout for item ${item.id}:`, item.layout)
+                await dashboardApi.updateItemLayout(dashboard.id, item.id, item.layout)
+                changeCount++
+              }
             }
           }
         }
       }
-      toast.success('Layout saved successfully')
+      if (changeCount > 0) {
+        console.log(`Saved ${changeCount} layout changes`)
+        toast.success(`Layout saved successfully (${changeCount} items updated)`)
+      } else {
+        console.log('No layout changes to save')
+      }
+      originalDashboardRef.current = null
     } catch (error) {
       console.error('Error saving layout:', error)
       toast.error('Failed to save layout changes')
