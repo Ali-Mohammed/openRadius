@@ -412,7 +412,7 @@ public class ZoneController : ControllerBase
 
     // GET: api/zone/{id}/users
     [HttpGet("{id}/users")]
-    public async Task<ActionResult<IEnumerable<string>>> GetZoneUsers(int id)
+    public async Task<ActionResult<IEnumerable<int>>> GetZoneUsers(int id)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
