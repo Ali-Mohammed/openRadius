@@ -340,7 +340,7 @@ public class SasSyncService : ISasSyncService
                                     Status = "active",
                                     AllowNegativeBalance = false, // Allow Overdraft = false
                                     CreatedAt = DateTime.UtcNow,
-                                    CreatedBy = "sync"
+                                    CreatedBy = null // Synced from external system
                                 };
                                 context.UserWallets.Add(userWallet);
                                 await context.SaveChangesAsync();
@@ -547,7 +547,7 @@ public class SasSyncService : ISasSyncService
                                     UserId = systemUserId,
                                     ZoneId = zone.Id,
                                     CreatedAt = DateTime.UtcNow,
-                                    CreatedBy = "sync"
+                                    CreatedBy = null // Synced from external system
                                 };
                                 context.UserZones.Add(userZone);
                                 await context.SaveChangesAsync();
@@ -1089,7 +1089,7 @@ public class SasSyncService : ISasSyncService
                                         IsActive = radiusProfile.Enabled, // Set active status based on radius profile
                                         IsDeleted = false,
                                         CreatedAt = DateTime.UtcNow,
-                                        CreatedBy = "System-Sync"
+                                        CreatedBy = null // Synced from external system
                                     };
                                     await context.BillingProfiles.AddAsync(newBillingProfile, cancellationToken);
                                 }
