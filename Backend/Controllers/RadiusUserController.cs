@@ -422,11 +422,28 @@ public class RadiusUserController : ControllerBase
         
         // Check admin role using helper
         var isAdmin = User.IsAdmin();
+
+        Console.WriteLine("-------------------");
+        Console.WriteLine("Checking if user is =>" + isAdmin);
+        Console.WriteLine("-------------------");
         
         var isImpersonating = User.IsImpersonating();
         
-        _logger.LogInformation("🔍 ZONE FILTER DEBUG - SystemUserId: {SystemUserId}, UserKeycloakId: {UserId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}", 
-            systemUserId, userKeycloakId, isAdmin, isImpersonating);
+        // Log all roles for debugging
+        var allRoles = User.Claims
+            .Where(c => c.Type == "role" || c.Type == System.Security.Claims.ClaimTypes.Role)
+            .Select(c => c.Value)
+            .ToList();
+        
+        _logger.LogInformation("🔍 ZONE FILTER DEBUG - SystemUserId: {SystemUserId}, UserKeycloakId: {UserId}, IsAdmin: {IsAdmin}, IsImpersonating: {IsImpersonating}, Roles: [{Roles}]", 
+            systemUserId, userKeycloakId, isAdmin, isImpersonating, string.Join(", ", allRoles));
+        
+        // Get total count before any filtering
+        var totalBeforeFilter = await _context.RadiusUsers.CountAsync();
+        var totalActiveBeforeFilter = await _context.RadiusUsers.Where(u => includeDeleted || !u.IsDeleted).CountAsync();
+        _logger.LogInformation("📊 RADIUS USERS COUNT - Total in DB: {Total}, Active: {Active}, IncludeDeleted: {IncludeDeleted}", 
+            totalBeforeFilter, totalActiveBeforeFilter, includeDeleted);
+        
         
         if (!isAdmin && systemUserId.HasValue)
         {

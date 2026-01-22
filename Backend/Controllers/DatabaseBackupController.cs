@@ -402,6 +402,7 @@ public class DatabaseBackupController : ControllerBase
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(524288000)] // 500 MB
     [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    [Microsoft.AspNetCore.Mvc.ApiExplorerSettings(IgnoreApi = true)] // Hide from Swagger due to multipart/form-data limitations
     public async Task<IActionResult> UploadBackup([FromForm] IFormFile file, [FromForm] string databaseName, [FromForm] string databaseType)
     {
         try

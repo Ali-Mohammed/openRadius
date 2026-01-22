@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Backend.Models;
 
 namespace Backend.Helpers;
 
@@ -129,6 +130,20 @@ public static class UserClaimsHelper
     /// </summary>
     public static bool IsAdmin(this ClaimsPrincipal user)
     {
+        // Log all claims for debugging
+        Console.WriteLine("[IsAdmin Check] All claims:");
+        foreach (var claim in user.Claims)
+        {
+            Console.WriteLine($"  Type: {claim.Type}, Value: {claim.Value}");
+        }
+        
+        // Log role claims specifically
+        var roles = user.Claims
+            .Where(c => c.Type == "role" || c.Type == ClaimTypes.Role)
+            .Select(c => c.Value)
+            .ToList();
+        Console.WriteLine($"[IsAdmin Check] Found {roles.Count} role claims: {string.Join(", ", roles)}");
+        
         return user.HasRole(UserRoles.Admin);
     }
 

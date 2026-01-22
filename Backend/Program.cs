@@ -5,6 +5,7 @@ using Backend.Data;
 using Backend.Models;
 using Backend.Services;
 using Backend.Hubs;
+using Backend.Helpers;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.Extensions;
