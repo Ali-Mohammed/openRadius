@@ -111,10 +111,27 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
             .Where(u => u.KeycloakUserId == keycloakUserId)
             .FirstOrDefaultAsync();
 
+        // Auto-create user if doesn't exist
         if (systemUser == null)
         {
-            _logger.LogWarning("System user not found for Keycloak ID: {KeycloakId}", keycloakUserId);
-            return principal;
+            var email = identity.FindFirst("email")?.Value ?? identity.FindFirst(ClaimTypes.Email)?.Value;
+            var firstName = identity.FindFirst("given_name")?.Value ?? identity.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
+            var lastName = identity.FindFirst("family_name")?.Value ?? identity.FindFirst(ClaimTypes.Surname)?.Value ?? "";
+            
+            systemUser = new Models.User
+            {
+                KeycloakUserId = keycloakUserId,
+                Email = email ?? $"{keycloakUserId}@unknown.com",
+                FirstName = firstName,
+                LastName = lastName,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            _masterContext.Users.Add(systemUser);
+            await _masterContext.SaveChangesAsync();
+            
+            _logger.LogInformation("Auto-created user: Email={Email}, KeycloakId={KeycloakId}, SystemId={SystemId}", 
+                systemUser.Email, keycloakUserId, systemUser.Id);
         }
 
         // Add system user ID and Keycloak ID claims
