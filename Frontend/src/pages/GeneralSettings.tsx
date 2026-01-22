@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DollarSign, Save, Users, Tags, Loader2, Filter } from 'lucide-react'
+import { DollarSign, Save, Users, Tags, Loader2, Filter, Plus, Trash2, Edit2 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
@@ -16,6 +16,11 @@ import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { apiClient } from '@/lib/api'
 import * as signalR from '@microsoft/signalr'
 import { QueryBuilder, type FilterGroup, type FilterColumn, filtersToQueryString } from '@/components/QueryBuilder'
+import { radiusTagApi, type RadiusTag } from '@/api/radiusTagApi'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { getIconComponent } from '@/utils/iconColorHelper'
 
 export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
@@ -37,9 +42,48 @@ interface TagSyncProgress {
   message: string
 }
 
+interface TagSyncRule {
+  id: string
+  tagId: number
+  tagName: string
+  filterGroup: FilterGroup | null
+}
+
+export default function GeneralSettings() {
+  const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
+  const queryClient = useQueryClient()
+  const [currency, setCurrency] = useState('USD')
+  const [churnDays, setChurnDays] = useState(20)
+  const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<TagSyncProgress | null>(null)
+  
+  // Tag Sync Rules state
+  const [tagSyncRules, setTagSyncRules] = useState<TagSyncRule[]>([])
+  const [showRuleDialog, setShowRuleDialog] = useState(false)
+  const [editingRule, setEditingRule] = useState<TagSyncRule | null>(null)
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
+  const [ruleFilters, setRuleFilters] = useState<FilterGroup | null>(null)
+
+  // Fetch available tags
+  const { data: availableTags = [] } = useQuery({
+    queryKey: ['radius-tags'],
+    queryFn: () => radiusTagApi.getAll(false),
+  })
+
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['general-settings', currentWorkspaceId],
     queryFn: () => settingsApi.getGeneralSettings(currentWorkspaceId!),
+    enabled: currentWorkspaceId !== null,
+  })
+
+  // Fetch tag sync rules from settings
+  const { data: tagSyncSettings } = useQuery({
+    queryKey: ['tag-sync-rules', currentWorkspaceId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/settings/${currentWorkspaceId}/tag-sync-rules`)
+      return response.data
+    },
     enabled: currentWorkspaceId !== null,
   })
 
@@ -52,6 +96,13 @@ interface TagSyncProgress {
     }
   }, [settingsData])
 
+  // Load tag sync rules
+  useEffect(() => {
+    if (tagSyncSettings?.rules) {
+      setTagSyncRules(tagSyncSettings.rules)
+    }
+  }, [tagSyncSettings])
+
   const updateMutation = useMutation({
     mutationFn: (settings: { currency: string; churnDays: number; dateFormat: string }) => 
       settingsApi.updateGeneralSettings(currentWorkspaceId!, settings),
@@ -62,6 +113,20 @@ interface TagSyncProgress {
     },
     onError: (error: any) => {
       toast.error(formatApiError(error) || 'Failed to save settings')
+    },
+  })
+
+  const saveTagSyncRulesMutation = useMutation({
+    mutationFn: async (rules: TagSyncRule[]) => {
+      const response = await apiClient.post(`/api/settings/${currentWorkspaceId}/tag-sync-rules`, { rules })
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tag-sync-rules', currentWorkspaceId] })
+      toast.success('Tag sync rules saved successfully')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to save tag sync rules')
     },
   })
 
@@ -77,15 +142,52 @@ interface TagSyncProgress {
     updateMutation.mutate({ currency, churnDays, dateFormat })
   }
 
-  const handleApplyFilters = () => {
-    setAppliedFilters(pendingFilters)
-    setShowFilterBuilder(false)
+  const handleAddRule = () => {
+    setEditingRule(null)
+    setSelectedTagId(null)
+    setRuleFilters(null)
+    setShowRuleDialog(true)
   }
 
-  const handleClearFilters = () => {
-    setPendingFilters(null)
-    setAppliedFilters(null)
-    setShowFilterBuilder(false)
+  const handleEditRule = (rule: TagSyncRule) => {
+    setEditingRule(rule)
+    setSelectedTagId(rule.tagId)
+    setRuleFilters(rule.filterGroup)
+    setShowRuleDialog(true)
+  }
+
+  const handleDeleteRule = (ruleId: string) => {
+    const updatedRules = tagSyncRules.filter(r => r.id !== ruleId)
+    setTagSyncRules(updatedRules)
+    saveTagSyncRulesMutation.mutate(updatedRules)
+  }
+
+  const handleSaveRule = () => {
+    if (!selectedTagId) {
+      toast.error('Please select a tag')
+      return
+    }
+
+    const selectedTag = availableTags.find(t => t.id === selectedTagId)
+    if (!selectedTag) return
+
+    const newRule: TagSyncRule = {
+      id: editingRule?.id || `rule-${Date.now()}`,
+      tagId: selectedTagId,
+      tagName: selectedTag.title,
+      filterGroup: ruleFilters,
+    }
+
+    let updatedRules: TagSyncRule[]
+    if (editingRule) {
+      updatedRules = tagSyncRules.map(r => r.id === editingRule.id ? newRule : r)
+    } else {
+      updatedRules = [...tagSyncRules, newRule]
+    }
+
+    setTagSyncRules(updatedRules)
+    saveTagSyncRulesMutation.mutate(updatedRules)
+    setShowRuleDialog(false)
   }
 
   const handleSyncTags = async () => {
