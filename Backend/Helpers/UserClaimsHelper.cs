@@ -103,10 +103,32 @@ public static class UserClaimsHelper
         if (user.IsInRole(roleNameLower))
             return true;
 
-        // Check in claims with different claim types (handles Keycloak JWT structure)
-        return user.Claims.Any(c => 
+        // Check in individual role claims
+        if (user.Claims.Any(c => 
             (c.Type == "role" || c.Type == ClaimTypes.Role) && 
-            (c.Value.Equals(roleName, StringComparison.OrdinalIgnoreCase)));
+            (c.Value.Equals(roleName, StringComparison.OrdinalIgnoreCase))))
+            return true;
+
+        // Check in Keycloak's realm_access JSON structure
+        var realmAccessClaim = user.FindFirst("realm_access")?.Value;
+        if (!string.IsNullOrEmpty(realmAccessClaim))
+        {
+            try
+            {
+                var realmAccess = System.Text.Json.JsonDocument.Parse(realmAccessClaim);
+                if (realmAccess.RootElement.TryGetProperty("roles", out var rolesElement))
+                {
+                    foreach (var role in rolesElement.EnumerateArray())
+                    {
+                        if (role.GetString()?.Equals(roleName, StringComparison.OrdinalIgnoreCase) == true)
+                            return true;
+                    }
+                }
+            }
+            catch { /* Ignore JSON parsing errors */ }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -130,20 +152,6 @@ public static class UserClaimsHelper
     /// </summary>
     public static bool IsAdmin(this ClaimsPrincipal user)
     {
-        // Log all claims for debugging
-        Console.WriteLine("[IsAdmin Check] All claims:");
-        foreach (var claim in user.Claims)
-        {
-            Console.WriteLine($"  Type: {claim.Type}, Value: {claim.Value}");
-        }
-        
-        // Log role claims specifically
-        var roles = user.Claims
-            .Where(c => c.Type == "role" || c.Type == ClaimTypes.Role)
-            .Select(c => c.Value)
-            .ToList();
-        Console.WriteLine($"[IsAdmin Check] Found {roles.Count} role claims: {string.Join(", ", roles)}");
-        
         return user.HasRole(UserRoles.Admin);
     }
 

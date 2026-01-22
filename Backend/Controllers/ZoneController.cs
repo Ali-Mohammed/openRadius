@@ -7,7 +7,7 @@ using Backend.Helpers;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("api/workspace/{workspaceId}/[controller]")]
+[Route("api/[controller]")]
 public class ZoneController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -196,9 +196,9 @@ public class ZoneController : ControllerBase
         return Ok(zones);
     }
 
-    // GET: api/workspace/{workspaceId}/zone/{id}
+    // GET: api/zone/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<ZoneResponse>> GetZone(int workspaceId, int id)
+    public async Task<ActionResult<ZoneResponse>> GetZone(int id)
     {
         var zone = await _context.Zones
             .Where(z => z.Id == id && !z.IsDeleted)
@@ -226,9 +226,9 @@ public class ZoneController : ControllerBase
         return Ok(zone);
     }
 
-    // POST: api/workspace/{workspaceId}/zone
+    // POST: api/zone
     [HttpPost]
-    public async Task<ActionResult<ZoneResponse>> CreateZone(int workspaceId, [FromBody] ZoneCreateDto dto)
+    public async Task<ActionResult<ZoneResponse>> CreateZone([FromBody] ZoneCreateDto dto)
     {
         var zone = new Zone
         {
@@ -263,9 +263,9 @@ public class ZoneController : ControllerBase
         return CreatedAtAction(nameof(GetZone), new { workspaceId, id = zone.Id }, response);
     }
 
-    // PUT: api/workspace/{workspaceId}/zone/{id}
+    // PUT: api/zone/{id}
     [HttpPut("{id}")]
-    public async Task<ActionResult<ZoneResponse>> UpdateZone(int workspaceId, int id, [FromBody] ZoneUpdateDto dto)
+    public async Task<ActionResult<ZoneResponse>> UpdateZone(int id, [FromBody] ZoneUpdateDto dto)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
@@ -310,9 +310,9 @@ public class ZoneController : ControllerBase
         return Ok(response);
     }
 
-    // DELETE: api/workspace/{workspaceId}/zone/{id}
+    // DELETE: api/zone/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteZone(int workspaceId, int id)
+    public async Task<IActionResult> DeleteZone(int id)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
@@ -341,9 +341,9 @@ public class ZoneController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/workspace/{workspaceId}/zone/{id}/restore
+    // POST: api/zone/{id}/restore
     [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreZone(int workspaceId, int id)
+    public async Task<IActionResult> RestoreZone(int id)
     {
         var zone = await _context.Zones
             .IgnoreQueryFilters()
@@ -365,9 +365,9 @@ public class ZoneController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/workspace/{workspaceId}/zone/{id}/assign-users
+    // POST: api/zone/{id}/assign-users
     [HttpPost("{id}/assign-users")]
-    public async Task<IActionResult> AssignUsersToZone(int workspaceId, int id, [FromBody] AssignUsersToZoneDto dto)
+    public async Task<IActionResult> AssignUsersToZone(int id, [FromBody] AssignUsersToZoneDto dto)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
@@ -407,9 +407,9 @@ public class ZoneController : ControllerBase
         return Ok(new { message = "Users assigned successfully", count = dto.UserIds.Count });
     }
 
-    // GET: api/workspace/{workspaceId}/zone/{id}/users
+    // GET: api/zone/{id}/users
     [HttpGet("{id}/users")]
-    public async Task<ActionResult<IEnumerable<string>>> GetZoneUsers(int workspaceId, int id)
+    public async Task<ActionResult<IEnumerable<string>>> GetZoneUsers(int id)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
@@ -427,9 +427,9 @@ public class ZoneController : ControllerBase
         return Ok(userIds);
     }
 
-    // POST: api/workspace/{workspaceId}/zone/{id}/assign-radius-users
+    // POST: api/zone/{id}/assign-radius-users
     [HttpPost("{id}/assign-radius-users")]
-    public async Task<IActionResult> AssignRadiusUsersToZone(int workspaceId, int id, [FromBody] AssignRadiusUsersToZoneDto dto)
+    public async Task<IActionResult> AssignRadiusUsersToZone(int id, [FromBody] AssignRadiusUsersToZoneDto dto)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
@@ -453,9 +453,9 @@ public class ZoneController : ControllerBase
         return Ok(new { message = "Radius users assigned successfully", count = radiusUsers.Count });
     }
 
-    // GET: api/workspace/{workspaceId}/zone/{id}/radius-users
+    // GET: api/zone/{id}/radius-users
     [HttpGet("{id}/radius-users")]
-    public async Task<ActionResult<IEnumerable<object>>> GetZoneRadiusUsers(int workspaceId, int id)
+    public async Task<ActionResult<IEnumerable<object>>> GetZoneRadiusUsers(int id)
     {
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
