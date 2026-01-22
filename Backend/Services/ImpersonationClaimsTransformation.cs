@@ -127,3 +127,4 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
 
         return principal;
     }
+}
