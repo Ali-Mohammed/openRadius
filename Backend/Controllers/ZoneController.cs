@@ -29,9 +29,9 @@ public class ZoneController : ControllerBase
         return _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
     }
 
-    // GET: api/workspace/{workspaceId}/zone/flat - Returns flat list of all zones (for dropdowns/selections)
+    // GET: api/zone/flat - Returns flat list of all zones (for dropdowns/selections)
     [HttpGet("flat")]
-    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZonesFlat(int workspaceId)
+    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZonesFlat()
     {
         var allZones = await _context.Zones
             .Where(z => !z.IsDeleted)
@@ -55,9 +55,9 @@ public class ZoneController : ControllerBase
         return Ok(allZones);
     }
 
-    // GET: api/workspace/{workspaceId}/zone
+    // GET: api/zone
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZones(int workspaceId)
+    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetZones()
     {
         var allZones = await _context.Zones
             .Where(z => !z.IsDeleted)
@@ -168,9 +168,9 @@ public class ZoneController : ControllerBase
         return (totalUserCount, totalRadiusUserCount);
     }
 
-    // GET: api/workspace/{workspaceId}/zone/deleted
+    // GET: api/zone/deleted
     [HttpGet("deleted")]
-    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetDeletedZones(int workspaceId)
+    public async Task<ActionResult<IEnumerable<ZoneResponse>>> GetDeletedZones()
     {
         var zones = await _context.Zones
             .IgnoreQueryFilters()
