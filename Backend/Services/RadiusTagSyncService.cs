@@ -205,6 +205,133 @@ public class RadiusTagSyncService : IRadiusTagSyncService
         return result;
     }
 
+    public async Task<TagSyncResult> SyncTagsWithRulesAsync(int workspaceId, Action<TagSyncProgress>? onProgress = null)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var masterContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+        
+        var result = new TagSyncResult();
+
+        try
+        {
+            _logger.LogInformation("Starting RADIUS tag sync with rules for workspace {WorkspaceId}", workspaceId);
+
+            // Get workspace and tag sync rules
+            var workspace = await masterContext.Workspaces.FindAsync(workspaceId);
+            if (workspace == null || string.IsNullOrEmpty(workspace.TagSyncRules))
+            {
+                _logger.LogWarning("No tag sync rules found for workspace {WorkspaceId}", workspaceId);
+                return result;
+            }
+
+            // Parse the rules
+            var rules = System.Text.Json.JsonSerializer.Deserialize<List<TagSyncRuleDto>>(workspace.TagSyncRules);
+            if (rules == null || rules.Count == 0)
+            {
+                _logger.LogWarning("No valid tag sync rules found for workspace {WorkspaceId}", workspaceId);
+                return result;
+            }
+
+            ReportProgress(onProgress, "Initializing", 0, rules.Count, "Loading tag sync rules...");
+            await BroadcastProgress("Initializing", 0, rules.Count, "Loading tag sync rules...");
+
+            // Process each rule
+            for (int i = 0; i < rules.Count; i++)
+            {
+                var rule = rules[i];
+                
+                ReportProgress(onProgress, "Processing", i, rules.Count, $"Processing rule for tag: {rule.TagName}");
+                await BroadcastProgress("Processing", i, rules.Count, $"Processing rule for tag: {rule.TagName}");
+
+                // Get the tag
+                var tag = await context.RadiusTags.FirstOrDefaultAsync(t => t.Id == rule.TagId);
+                if (tag == null)
+                {
+                    _logger.LogWarning("Tag {TagId} not found for rule {RuleId}", rule.TagId, rule.Id);
+                    result.Errors.Add($"Tag '{rule.TagName}' not found");
+                    continue;
+                }
+
+                // Build query for radius users
+                var query = context.RadiusUsers
+                    .Include(u => u.RadiusUserTags)
+                    .Where(u => !u.IsDeleted)
+                    .AsQueryable();
+
+                // Apply filters if provided in the rule
+                if (rule.FilterGroup != null)
+                {
+                    try
+                    {
+                        var filterJson = System.Text.Json.JsonSerializer.Serialize(rule.FilterGroup);
+                        var filterGroup = System.Text.Json.JsonSerializer.Deserialize<FilterGroup>(filterJson);
+                        if (filterGroup != null)
+                        {
+                            query = ApplyAdvancedFilters(query, filterGroup);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing filters for rule {RuleId}", rule.Id);
+                        result.Errors.Add($"Error parsing filters for rule '{rule.TagName}': {ex.Message}");
+                        continue;
+                    }
+                }
+
+                var users = await query.ToListAsync();
+                result.TotalUsers += users.Count;
+
+                // Process users for this rule
+                foreach (var user in users)
+                {
+                    var hasTag = user.RadiusUserTags.Any(ut => ut.RadiusTagId == tag.Id);
+                    
+                    if (!hasTag)
+                    {
+                        user.RadiusUserTags.Add(new RadiusUserTag
+                        {
+                            RadiusUserId = user.Id!.Value,
+                            RadiusTagId = tag.Id,
+                            AssignedAt = DateTime.UtcNow
+                        });
+                        result.TagsAssigned++;
+                    }
+                    
+                    result.UsersProcessed++;
+                }
+
+                await context.SaveChangesAsync();
+            }
+
+            ReportProgress(onProgress, "Completed", rules.Count, rules.Count, $"Tag sync completed. Processed {result.UsersProcessed} users.");
+            await BroadcastProgress("Completed", rules.Count, rules.Count, $"Tag sync completed. Processed {result.UsersProcessed} users.");
+
+            _logger.LogInformation("Tag sync with rules completed. Users: {Users}, Assigned: {Assigned}", 
+                result.UsersProcessed, result.TagsAssigned);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during tag sync with rules");
+            result.Errors.Add(ex.Message);
+            
+            await _hubContext.Clients.Group("TagSync").SendAsync("TagSyncError", new
+            {
+                message = ex.Message
+            });
+        }
+
+        return result;
+    }
+
+    private class TagSyncRuleDto
+    {
+        public string Id { get; set; } = "";
+        public int TagId { get; set; }
+        public string TagName { get; set; } = "";
+        public object? FilterGroup { get; set; }
+    }
+
     private async Task<RadiusTag> GetOrCreateTag(ApplicationDbContext context, string title, string color, string icon)
     {
         var tag = await context.RadiusTags.FirstOrDefaultAsync(t => t.Title == title);
