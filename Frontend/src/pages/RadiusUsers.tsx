@@ -40,6 +40,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { settingsApi } from '@/api/settingsApi'
 import { QueryBuilder, type FilterGroup, type FilterColumn, filtersToQueryString } from '@/components/QueryBuilder'
+import { getIconComponent } from '@/utils/iconColorHelper'
 
 export default function RadiusUsers() {
   const { t, i18n } = useTranslation()
@@ -1554,11 +1555,23 @@ export default function RadiusUsers() {
           <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
             {user.tags && user.tags.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {user.tags.map(tag => (
-                  <Badge key={tag.id} variant="outline" className="text-xs">
-                    {tag.tagName}
-                  </Badge>
-                ))}
+                {user.tags.map(tag => {
+                  const IconComponent = getIconComponent(tag.icon || 'Tag')
+                  return (
+                    <Badge 
+                      key={tag.id} 
+                      variant="outline" 
+                      className="text-xs flex items-center gap-1"
+                      style={{ 
+                        borderColor: tag.color || '#3b82f6',
+                        color: tag.color || '#3b82f6'
+                      }}
+                    >
+                      <IconComponent className="h-3 w-3" />
+                      {tag.tagName || tag.title}
+                    </Badge>
+                  )
+                })}
               </div>
             ) : '-'}
           </TableCell>

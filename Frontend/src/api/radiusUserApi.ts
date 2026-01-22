@@ -4,9 +4,11 @@ import type { FilterGroup } from '@/components/QueryBuilder'
 export interface RadiusTag {
   id: number
   title: string
+  tagName?: string  // Alias for title for backward compatibility
   description?: string
   status: string
   color: string
+  icon?: string
   createdAt?: string
   updatedAt?: string
 }
