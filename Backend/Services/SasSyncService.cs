@@ -546,19 +546,18 @@ public class SasSyncService : ISasSyncService
                                 {
                                     UserId = systemUserId,
                                     ZoneId = zone.Id,
-                                CreatedAt = DateTime.UtcNow,
-                                CreatedBy = "sync"
-                            };
+                                    CreatedAt = DateTime.UtcNow,
+                                    CreatedBy = "sync"
+                                };
                                 context.UserZones.Add(userZone);
                                 await context.SaveChangesAsync();
+                                result.ZonesAssigned++;
+                                _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user ID {UserId}", zone.Name, zone.Id, localUserId);
                             }
-                        }
-                            result.ZonesAssigned++;
-                            _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user ID {UserId}", zone.Name, zone.Id, localUserId);
-                        }
-                        else
-                        {
-                            _logger.LogInformation("Zone '{ZoneName}' already assigned to user {UserId}", zone.Name, localUserId);
+                            else
+                            {
+                                _logger.LogInformation("Zone '{ZoneName}' already assigned to user {UserId}", zone.Name, localUserId);
+                            }
                         }
                     }
                     catch (Exception ex)
