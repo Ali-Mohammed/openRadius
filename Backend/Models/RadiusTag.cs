@@ -32,6 +32,7 @@ namespace Backend.Models
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string TagName => Title; // Alias for frontend compatibility
         public string? Description { get; set; }
         public string Status { get; set; } = "active";
         public string Color { get; set; } = "#3b82f6";
