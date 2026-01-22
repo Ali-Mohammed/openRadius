@@ -112,8 +112,14 @@ public class UserManagementDbController : ControllerBase
                 else
                 {
                     // Update existing user
-                    if (string.IsNullOrEmpty(existingUser.KeycloakUserId))
+                    var keycloakIdChanged = existingUser.KeycloakUserId != keycloakUserId;
+                    if (string.IsNullOrEmpty(existingUser.KeycloakUserId) || keycloakIdChanged)
                     {
+                        if (keycloakIdChanged)
+                        {
+                            _logger.LogWarning("⚠️ Correcting KeycloakUserId mismatch for {Email}: {OldId} → {NewId}", 
+                                finalEmail, existingUser.KeycloakUserId ?? "NULL", keycloakUserId);
+                        }
                         existingUser.KeycloakUserId = keycloakUserId;
                     }
                     existingUser.Email = finalEmail;
@@ -218,11 +224,54 @@ public class UserManagementDbController : ControllerBase
                 }
             }
 
+            // Create user in Keycloak first to get proper KeycloakUserId
+            string? keycloakUserId = null;
+            try
+            {
+                var client = await GetAuthenticatedKeycloakClient();
+                var authority = _configuration["Oidc:Authority"];
+                var realm = authority?.Split("/").Last();
+                var createUserUrl = $"{authority?.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users";
+
+                var keycloakUser = new
+                {
+                    username = request.Email ?? $"{request.FirstName?.ToLower()}.{request.LastName?.ToLower()}",
+                    email = request.Email,
+                    firstName = request.FirstName,
+                    lastName = request.LastName,
+                    enabled = true,
+                    emailVerified = false
+                };
+
+                var response = await client.PostAsJsonAsync(createUserUrl, keycloakUser);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    // Get the created user's ID from Location header
+                    var locationHeader = response.Headers.Location?.ToString();
+                    if (!string.IsNullOrEmpty(locationHeader))
+                    {
+                        keycloakUserId = locationHeader.Split('/').Last();
+                        _logger.LogInformation("✓ Created Keycloak user with ID: {KeycloakUserId}", keycloakUserId);
+                    }
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("⚠️ Failed to create user in Keycloak: {Error}. Creating local user without Keycloak integration.", error);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Failed to create user in Keycloak. Creating local user without Keycloak integration.");
+            }
+
             var newUser = new User
             {
                 FirstName = request.FirstName ?? string.Empty,
                 LastName = request.LastName ?? string.Empty,
                 Email = request.Email ?? string.Empty,
+                KeycloakUserId = keycloakUserId, // Set the Keycloak ID if we got it
                 SupervisorId = request.SupervisorId,
                 CreatedAt = DateTime.UtcNow
             };

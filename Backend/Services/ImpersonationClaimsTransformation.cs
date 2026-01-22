@@ -161,23 +161,40 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
                 throw new UnauthorizedAccessException("Missing required 'email' claim for user creation.");
             }
             
-            _logger.LogInformation("🆕 Creating new user: KeycloakId={KeycloakId}, Email={Email}, Name={FirstName} {LastName}", 
-                keycloakUserId, email, firstName, lastName);
+            // Check if a user with this email exists (for migration/upgrade scenarios)
+            var existingUserByEmail = await _masterContext.Users
+                .Where(u => u.Email == email)
+                .FirstOrDefaultAsync();
             
-            systemUser = new Models.User
+            if (existingUserByEmail != null)
             {
-                KeycloakUserId = keycloakUserId,
-                Email = email,
-                FirstName = firstName,
-                LastName = lastName,
-                CreatedAt = DateTime.UtcNow
-            };
-            
-            _masterContext.Users.Add(systemUser);
-            await _masterContext.SaveChangesAsync();
-            
-            _logger.LogInformation("✓ Auto-created user: ID={UserId}, Email={Email}, KeycloakId={KeycloakId}", 
-                systemUser.Id, systemUser.Email, keycloakUserId);
+                _logger.LogWarning("⚠️ User exists with email {Email} but different KeycloakUserId. Updating KeycloakUserId from {OldId} to {NewId}", 
+                    email, existingUserByEmail.KeycloakUserId ?? "NULL", keycloakUserId);
+                
+                existingUserByEmail.KeycloakUserId = keycloakUserId;
+                await _masterContext.SaveChangesAsync();
+                systemUser = existingUserByEmail;
+            }
+            else
+            {
+                _logger.LogInformation("🆕 Creating new user: KeycloakId={KeycloakId}, Email={Email}, Name={FirstName} {LastName}", 
+                    keycloakUserId, email, firstName, lastName);
+                
+                systemUser = new Models.User
+                {
+                    KeycloakUserId = keycloakUserId,
+                    Email = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    CreatedAt = DateTime.UtcNow
+                };
+                
+                _masterContext.Users.Add(systemUser);
+                await _masterContext.SaveChangesAsync();
+                
+                _logger.LogInformation("✓ Auto-created user: ID={UserId}, Email={Email}, KeycloakId={KeycloakId}", 
+                    systemUser.Id, systemUser.Email, keycloakUserId);
+            }
         }
 
         // Add system user ID and Keycloak ID claims
