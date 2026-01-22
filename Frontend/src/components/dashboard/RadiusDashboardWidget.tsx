@@ -197,35 +197,33 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
 
   if (loading) {
     return (
-      <Card className="h-full flex items-center justify-center">
-        <CardContent>
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="text-sm">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center">
+      <div className="h-full flex flex-col">
+        <div className="border-b px-4 py-3">
+          <h3 className="text-sm font-semibold">{title}</h3>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-4">
           <p className="text-sm text-destructive">{error}</p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   // Single value display (no disaggregation)
   if (data && 'value' in data && config.chartType === 'number') {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="text-sm">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center h-[calc(100%-4rem)]">
+      <div className="h-full flex flex-col">
+        <div className="border-b px-4 py-3">
+          <h3 className="text-sm font-semibold">{title}</h3>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <div className="text-5xl font-bold text-primary">{data.value.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground mt-2">
@@ -234,8 +232,8 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
                `Average ${config.valueField}`}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
@@ -243,11 +241,11 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
   const chartData = Array.isArray(data) ? data : []
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-sm">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="h-[calc(100%-4rem)]">
+    <div className="h-full flex flex-col">
+      <div className="border-b px-4 py-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <div className="flex-1 px-4 py-2">
         {chartData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-muted-foreground">No data available</p>
@@ -259,7 +257,7 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
             opts={{ renderer: 'canvas' }}
           />
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

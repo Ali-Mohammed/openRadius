@@ -145,7 +145,7 @@ export function DashboardGrid({
                 )}
               </div>
             )}
-            <div className="h-full w-full p-4 overflow-auto">{renderWidget(item)}</div>
+            <div className="h-full w-full overflow-auto">{renderWidget(item)}</div>
           </div>
         ))}
       </GridLayout>
