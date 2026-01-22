@@ -8,13 +8,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DollarSign, Save, Users, Tags, Loader2 } from 'lucide-react'
+import { DollarSign, Save, Users, Tags, Loader2, Filter } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { apiClient } from '@/lib/api'
 import * as signalR from '@microsoft/signalr'
+import { QueryBuilder, type FilterGroup, type FilterColumn, filtersToQueryString } from '@/components/QueryBuilder'
 
 export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
@@ -24,6 +25,9 @@ export default function GeneralSettings() {
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncProgress, setSyncProgress] = useState<TagSyncProgress | null>(null)
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false)
+  const [pendingFilters, setPendingFilters] = useState<FilterGroup | null>(null)
+  const [appliedFilters, setAppliedFilters] = useState<FilterGroup | null>(null)
 
 interface TagSyncProgress {
   phase: string
@@ -61,8 +65,27 @@ interface TagSyncProgress {
     },
   })
 
+  const filterColumns: FilterColumn[] = useMemo(() => [
+    { key: 'enabled', label: 'Enabled', type: 'boolean' },
+    { key: 'expiration', label: 'Expiration Date', type: 'date' },
+    { key: 'createdAt', label: 'Created At', type: 'date' },
+    { key: 'lastOnline', label: 'Last Online', type: 'date' },
+    { key: 'balance', label: 'Balance', type: 'number' },
+  ], [])
+
   const handleSave = () => {
     updateMutation.mutate({ currency, churnDays, dateFormat })
+  }
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(pendingFilters)
+    setShowFilterBuilder(false)
+  }
+
+  const handleClearFilters = () => {
+    setPendingFilters(null)
+    setAppliedFilters(null)
+    setShowFilterBuilder(false)
   }
 
   const handleSyncTags = async () => {
@@ -94,7 +117,9 @@ interface TagSyncProgress {
 
       await connection.start()
 
-      const response = await apiClient.post('/api/radius/tags/sync')
+      // Include filters in the request if applied
+      const requestData = appliedFilters ? { filters: filtersToQueryString(appliedFilters) } : {}
+      const response = await apiClient.post('/api/radius/tags/sync', requestData)
       
       toast.success(`Tag Sync Complete: Processed ${response.data.usersProcessed} users. Assigned ${response.data.tagsAssigned} tags, removed ${response.data.tagsRemoved} tags.`)
     } catch (error: any) {
@@ -285,6 +310,53 @@ interface TagSyncProgress {
                   This will automatically assign tags like "New User", "Active", "Expired", and "Expiring Soon" 
                   based on user creation dates and expiration status.
                 </p>
+                
+                {/* Filter Builder Toggle */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFilterBuilder(!showFilterBuilder)}
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      {appliedFilters ? 'Edit Filters' : 'Add Filters'}
+                    </Button>
+                    {appliedFilters && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearFilters}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                  {appliedFilters && (
+                    <span className="text-sm text-muted-foreground">
+                      Filters applied - only matching users will be synced
+                    </span>
+                  )}
+                </div>
+
+                {/* Query Builder */}
+                {showFilterBuilder && (
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <QueryBuilder
+                      columns={filterColumns}
+                      value={pendingFilters}
+                      onChange={setPendingFilters}
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleApplyFilters}>
+                        Apply Filters
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setShowFilterBuilder(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {syncProgress && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">

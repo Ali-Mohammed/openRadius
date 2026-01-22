@@ -2,7 +2,7 @@ namespace Backend.Services;
 
 public interface IRadiusTagSyncService
 {
-    Task<TagSyncResult> SyncTagsAsync(Action<TagSyncProgress>? onProgress = null);
+    Task<TagSyncResult> SyncTagsAsync(string? filters = null, Action<TagSyncProgress>? onProgress = null);
 }
 
 public class TagSyncResult

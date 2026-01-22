@@ -302,12 +302,12 @@ namespace Backend.Controllers
 
         // POST: api/radius/tags/sync
         [HttpPost("sync")]
-        public async Task<ActionResult<object>> SyncTags()
+        public async Task<ActionResult<object>> SyncTags([FromBody] SyncTagsRequest? request)
         {
             try
             {
                 _logger.LogInformation("Starting RADIUS tag sync via API");
-                var result = await _tagSyncService.SyncTagsAsync();
+                var result = await _tagSyncService.SyncTagsAsync(request?.Filters);
 
                 return Ok(new
                 {
@@ -342,5 +342,10 @@ namespace Backend.Controllers
         public string? Status { get; set; }
         public string? Color { get; set; }
         public string? Icon { get; set; }
+    }
+
+    public class SyncTagsRequest
+    {
+        public string? Filters { get; set; }
     }
 }
