@@ -551,7 +551,7 @@ export default function GeneralSettings() {
 
       {/* Tag Sync Rule Dialog */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {editingRule ? 'Edit Tag Sync Rule' : 'Add Tag Sync Rule'}
