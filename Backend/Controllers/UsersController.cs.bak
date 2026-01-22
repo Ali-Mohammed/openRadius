@@ -646,6 +646,8 @@ public class UsersController : ControllerBase
 
             _logger.LogError("Impersonation response did not contain redirect URL");
             return null;
+            _logger.LogError("Impersonation response did not contain redirect URL");
+            return null;
         }
         catch (Exception ex)
         {
