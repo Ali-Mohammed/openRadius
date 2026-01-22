@@ -338,19 +338,46 @@ public class RadiusUserController : ControllerBase
         };
     }
 
+    private static DateTime? ParseRelativeDate(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+
+        // Try parsing as absolute date first
+        if (DateTime.TryParse(value, out var parsed))
+            return DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+
+        // Parse relative date keywords
+        var now = DateTime.UtcNow;
+        return value.ToLowerInvariant() switch
+        {
+            "now" => now,
+            "today" => now.Date,
+            "yesterday" => now.Date.AddDays(-1),
+            "tomorrow" => now.Date.AddDays(1),
+            "7_days_ago" => now.AddDays(-7),
+            "30_days_ago" => now.AddDays(-30),
+            "90_days_ago" => now.AddDays(-90),
+            "1_year_ago" => now.AddYears(-1),
+            "7_days_from_now" => now.AddDays(7),
+            "30_days_from_now" => now.AddDays(30),
+            "90_days_from_now" => now.AddDays(90),
+            "1_year_from_now" => now.AddYears(1),
+            "start_of_month" => new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+            "end_of_month" => new DateTime(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month), 23, 59, 59, DateTimeKind.Utc),
+            "start_of_year" => new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            "end_of_year" => new DateTime(now.Year, 12, 31, 23, 59, 59, DateTimeKind.Utc),
+            _ => null
+        };
+    }
+
     private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildDatePredicate(
         System.Linq.Expressions.Expression<Func<RadiusUser, DateTime?>> selector, string? op, string? value, string? value2 = null)
     {
         if (string.IsNullOrEmpty(op)) return null;
         var propName = GetPropertyName(selector);
 
-        DateTime? dateValue = null;
-        if (!string.IsNullOrEmpty(value) && DateTime.TryParse(value, out var parsed))
-            dateValue = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
-
-        DateTime? dateValue2 = null;
-        if (!string.IsNullOrEmpty(value2) && DateTime.TryParse(value2, out var parsed2))
-            dateValue2 = DateTime.SpecifyKind(parsed2, DateTimeKind.Utc);
+        DateTime? dateValue = ParseRelativeDate(value);
+        DateTime? dateValue2 = ParseRelativeDate(value2);
 
         var now = DateTime.UtcNow;
 
