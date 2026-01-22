@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Services;
 using System.Security.Claims;
 
 namespace Backend.Controllers
@@ -12,12 +13,18 @@ namespace Backend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly MasterDbContext _masterContext;
+        private readonly IRadiusTagSyncService _tagSyncService;
         private readonly ILogger<RadiusTagController> _logger;
 
-        public RadiusTagController(ApplicationDbContext context, MasterDbContext masterContext, ILogger<RadiusTagController> logger)
+        public RadiusTagController(
+            ApplicationDbContext context, 
+            MasterDbContext masterContext,
+            IRadiusTagSyncService tagSyncService,
+            ILogger<RadiusTagController> logger)
         {
             _context = context;
             _masterContext = masterContext;
+            _tagSyncService = tagSyncService;
             _logger = logger;
         }
 
@@ -290,6 +297,31 @@ namespace Backend.Controllers
             {
                 _logger.LogError(ex, "Error fetching users for tag {TagId}", id);
                 return StatusCode(500, new { message = "Failed to fetch tag users" });
+            }
+        }
+
+        // POST: api/radius/tags/sync
+        [HttpPost("sync")]
+        public async Task<ActionResult<object>> SyncTags()
+        {
+            try
+            {
+                _logger.LogInformation("Starting RADIUS tag sync via API");
+                var result = await _tagSyncService.SyncTagsAsync();
+
+                return Ok(new
+                {
+                    totalUsers = result.TotalUsers,
+                    usersProcessed = result.UsersProcessed,
+                    tagsAssigned = result.TagsAssigned,
+                    tagsRemoved = result.TagsRemoved,
+                    errors = result.Errors
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error syncing RADIUS tags");
+                return StatusCode(500, new { message = "Failed to sync tags", error = ex.Message });
             }
         }
     }

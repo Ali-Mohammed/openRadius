@@ -126,6 +126,9 @@ builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 // Add FreeRADIUS Log Service
 builder.Services.AddScoped<IFreeRadiusLogService, FreeRadiusLogService>();
 
+// Add RADIUS Tag Sync Service
+builder.Services.AddScoped<IRadiusTagSyncService, RadiusTagSyncService>();
+
 // Add Microservice Approval Service
 builder.Services.AddScoped<MicroserviceApprovalService>();
 
@@ -277,6 +280,7 @@ app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
 app.MapHub<CdcHub>("/hubs/cdc");
 app.MapHub<LogsHub>("/hubs/logs");
+app.MapHub<TagSyncHub>("/hubs/tagsync");
 app.MapHub<MicroservicesHub>("/hubs/microservices").AllowAnonymous();
 
 app.Run();

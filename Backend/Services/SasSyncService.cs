@@ -261,13 +261,20 @@ public class SasSyncService : ISasSyncService
                 
                 try
                 {
-                    // Check if user already exists in master DB by username (email format)
+                    // Check if user already exists in master DB by SasManagerId first, then by email
+                    var existingUser = await masterContext.Users
+                        .FirstOrDefaultAsync(u => u.SasManagerId == sasManager.Id);
+                    
                     var email = sasManager.Username?.Contains("@") == true 
                         ? sasManager.Username 
                         : $"{sasManager.Username}@local";
                     
-                    var existingUser = await masterContext.Users
-                        .FirstOrDefaultAsync(u => u.Email == email);
+                    // If not found by SasManagerId, try by email (for legacy data)
+                    if (existingUser == null)
+                    {
+                        existingUser = await masterContext.Users
+                            .FirstOrDefaultAsync(u => u.Email == email);
+                    }
 
                     string? keycloakUserId = null;
 
@@ -291,9 +298,11 @@ public class SasSyncService : ISasSyncService
                             FirstName = sasManager.Firstname ?? sasManager.Username ?? "",
                             LastName = sasManager.Lastname ?? "",
                             KeycloakUserId = keycloakUserId,
+                            SasManagerId = sasManager.Id,
                             DefaultWorkspaceId = workspaceId,
                             CurrentWorkspaceId = workspaceId,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = DateTime.UtcNow,
+                            Username = email,
                         };
                         
                         masterContext.Users.Add(newUser);
@@ -373,6 +382,13 @@ public class SasSyncService : ISasSyncService
                         // Update existing user
                         existingUser.FirstName = sasManager.Firstname ?? existingUser.FirstName;
                         existingUser.LastName = sasManager.Lastname ?? existingUser.LastName;
+                        
+                        // Update SasManagerId if not set (for legacy data)
+                        if (!existingUser.SasManagerId.HasValue)
+                        {
+                            existingUser.SasManagerId = sasManager.Id;
+                            _logger.LogInformation("Updated SasManagerId for existing user {Username}: {SasManagerId}", sasManager.Username, sasManager.Id);
+                        }
                         
                         // Set default workspace if not already set
                         if (!existingUser.DefaultWorkspaceId.HasValue)

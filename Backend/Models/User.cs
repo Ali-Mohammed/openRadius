@@ -14,6 +14,9 @@ public class User
     // Keycloak integration
     public string? KeycloakUserId { get; set; }
     
+    // External API integration - SAS Manager ID for preventing duplicates during sync
+    public int? SasManagerId { get; set; }
+    
     // Supervisor relationship
     public int? SupervisorId { get; set; }
     
