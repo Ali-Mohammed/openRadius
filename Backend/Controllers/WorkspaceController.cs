@@ -80,9 +80,14 @@ public class WorkspaceController : ControllerBase
             query = query.OrderByDescending(i => i.CreatedAt);
         }
 
-        var workspaces = await query.ToListAsync();
+        // Eager load user relationships in a single query
+        var workspaces = await query
+            .Include(w => w.CreatedByUser)
+            .Include(w => w.UpdatedByUser)
+            .Include(w => w.DeletedByUser)
+            .ToListAsync();
         
-        // Return DTOs to avoid circular references
+        // Return DTOs with user information from navigation properties
         var workspaceResponses = workspaces.Select(w => new
         {
             w.Id,
@@ -98,9 +103,12 @@ public class WorkspaceController : ControllerBase
             w.CreatedAt,
             w.UpdatedAt,
             w.CreatedBy,
+            CreatedByUser = w.CreatedByUser?.Email ?? w.CreatedByUser?.KeycloakUserId ?? "System",
             w.UpdatedBy,
+            UpdatedByUser = w.UpdatedByUser?.Email ?? w.UpdatedByUser?.KeycloakUserId,
             w.DeletedAt,
-            w.DeletedBy
+            w.DeletedBy,
+            DeletedByUser = w.DeletedByUser?.Email ?? w.DeletedByUser?.KeycloakUserId
         }).ToList();
         
         return Ok(workspaceResponses);

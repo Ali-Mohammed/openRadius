@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.Models;
 
 public class Workspace
@@ -16,10 +18,23 @@ public class Workspace
     public string DateFormat { get; set; } = "MM/DD/YYYY"; // Date format for the system
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    
+    // Foreign Keys
     public int CreatedBy { get; set; }
     public int UpdatedBy { get; set; }
-    public DateTime? DeletedAt { get; set; }
     public int? DeletedBy { get; set; }
+    
+    // Navigation Properties
+    [ForeignKey(nameof(CreatedBy))]
+    public User? CreatedByUser { get; set; }
+    
+    [ForeignKey(nameof(UpdatedBy))]
+    public User? UpdatedByUser { get; set; }
+    
+    [ForeignKey(nameof(DeletedBy))]
+    public User? DeletedByUser { get; set; }
+    
+    public DateTime? DeletedAt { get; set; }
 }
 
 public class WorkspaceDto
