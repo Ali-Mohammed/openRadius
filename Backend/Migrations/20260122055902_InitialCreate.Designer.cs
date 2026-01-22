@@ -12,15 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(MasterDbContext))]
-    [Migration("20260120171623_AddApprovedMicroservicesTable")]
-    partial class AddApprovedMicroservicesTable
+    [Migration("20260122055902_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -94,9 +94,8 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("DatabaseName")
                         .IsRequired()
@@ -485,9 +484,8 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -500,8 +498,8 @@ namespace Backend.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -530,9 +528,8 @@ namespace Backend.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

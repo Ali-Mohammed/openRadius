@@ -13,6 +13,28 @@ namespace Backend.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "approved_microservices",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    service_id = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    display_name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    approved_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    approved_by = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    last_connected_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    last_ip_address = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: true),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false),
+                    notes = table.Column<string>(type: "text", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_approved_microservices", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BackupHistories",
                 columns: table => new
                 {
@@ -23,7 +45,7 @@ namespace Backend.Migrations
                     FilePath = table.Column<string>(type: "text", nullable: false),
                     SizeBytes = table.Column<long>(type: "bigint", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: false)
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -140,10 +162,10 @@ namespace Backend.Migrations
                     DateFormat = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -266,6 +288,32 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "UserWorkspaces",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AssignedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserWorkspaces", x => new { x.UserId, x.WorkspaceId });
+                    table.ForeignKey(
+                        name: "FK_UserWorkspaces_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserWorkspaces_Workspaces_WorkspaceId",
+                        column: x => x.WorkspaceId,
+                        principalTable: "Workspaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Groups_Name",
                 table: "Groups",
@@ -324,11 +372,19 @@ namespace Backend.Migrations
                 name: "IX_Users_SupervisorId",
                 table: "Users",
                 column: "SupervisorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserWorkspaces_WorkspaceId",
+                table: "UserWorkspaces",
+                column: "WorkspaceId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "approved_microservices");
+
             migrationBuilder.DropTable(
                 name: "BackupHistories");
 
@@ -343,6 +399,9 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserRoles");
+
+            migrationBuilder.DropTable(
+                name: "UserWorkspaces");
 
             migrationBuilder.DropTable(
                 name: "Permissions");

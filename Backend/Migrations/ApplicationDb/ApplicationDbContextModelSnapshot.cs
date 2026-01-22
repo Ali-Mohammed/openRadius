@@ -36,8 +36,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CustomWalletId")
                         .HasColumnType("integer");
@@ -45,8 +45,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -67,8 +67,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -91,14 +91,14 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -123,8 +123,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("WorkflowJson")
                         .HasColumnType("text");
@@ -148,14 +148,14 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -176,8 +176,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -199,8 +199,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("GroupId", "UserId");
 
@@ -223,14 +223,14 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -254,8 +254,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -363,8 +363,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Disabled")
                         .HasColumnType("boolean");
@@ -428,20 +428,20 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -553,8 +553,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -595,8 +595,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -642,8 +642,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -844,8 +844,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("FdtId")
                         .HasColumnType("uuid");
@@ -903,8 +903,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("FatId")
                         .HasColumnType("uuid");
@@ -1098,8 +1098,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Environment")
                         .IsRequired()
@@ -1270,8 +1270,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -1521,8 +1521,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("DurationDays")
                         .HasColumnType("integer");
@@ -1660,8 +1660,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
@@ -1709,8 +1709,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -1810,8 +1810,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -2548,8 +2548,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CustomWalletId")
                         .HasColumnType("integer");
@@ -2557,8 +2557,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -2604,8 +2604,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("UserId")
                         .HasColumnType("integer");
@@ -2656,9 +2656,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Tags")
                         .HasColumnType("text");
@@ -2783,20 +2782,20 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -2822,8 +2821,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("CurrentBalance")
                         .HasColumnType("numeric");
@@ -2843,8 +2842,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -2859,8 +2858,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -2891,12 +2890,11 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("ZoneId")
                         .HasColumnType("integer");
@@ -2935,8 +2933,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CustomWalletId")
                         .HasColumnType("integer");
@@ -2995,8 +2993,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int>("EdgeCount")
                         .HasColumnType("integer");
@@ -3037,9 +3035,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -3052,8 +3049,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -3082,9 +3079,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -3105,14 +3101,14 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -3136,8 +3132,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

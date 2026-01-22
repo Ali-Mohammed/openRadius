@@ -27,11 +27,11 @@ namespace Backend.Migrations.ApplicationDb
                     WorkflowJson = table.Column<string>(type: "text", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -51,11 +51,11 @@ namespace Backend.Migrations.ApplicationDb
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -75,7 +75,7 @@ namespace Backend.Migrations.ApplicationDb
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -126,7 +126,7 @@ namespace Backend.Migrations.ApplicationDb
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -181,6 +181,30 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "MicroserviceApprovals",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ServiceName = table.Column<string>(type: "text", nullable: false),
+                    MachineId = table.Column<string>(type: "text", nullable: false),
+                    ApprovalToken = table.Column<string>(type: "text", nullable: false),
+                    MachineName = table.Column<string>(type: "text", nullable: false),
+                    Platform = table.Column<string>(type: "text", nullable: false),
+                    DisplayName = table.Column<string>(type: "text", nullable: false),
+                    IsApproved = table.Column<bool>(type: "boolean", nullable: false),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastConnectedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ApprovedBy = table.Column<string>(type: "text", nullable: false),
+                    IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MicroserviceApprovals", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OltDevices",
                 columns: table => new
                 {
@@ -192,7 +216,7 @@ namespace Backend.Migrations.ApplicationDb
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -252,7 +276,7 @@ namespace Backend.Migrations.ApplicationDb
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -333,7 +357,7 @@ namespace Backend.Migrations.ApplicationDb
                     Icon = table.Column<string>(type: "text", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     LastSyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -557,10 +581,10 @@ namespace Backend.Migrations.ApplicationDb
                     DateFormat = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -581,11 +605,11 @@ namespace Backend.Migrations.ApplicationDb
                     SasUserId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -608,7 +632,7 @@ namespace Backend.Migrations.ApplicationDb
                     NodeCount = table.Column<int>(type: "integer", nullable: false),
                     EdgeCount = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true)
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -628,7 +652,7 @@ namespace Backend.Migrations.ApplicationDb
                     GroupId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true)
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -674,11 +698,11 @@ namespace Backend.Migrations.ApplicationDb
                     CustomWalletId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -707,11 +731,11 @@ namespace Backend.Migrations.ApplicationDb
                     CustomWalletIcon = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -738,7 +762,7 @@ namespace Backend.Migrations.ApplicationDb
                     OrderIndex = table.Column<int>(type: "integer", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -810,15 +834,16 @@ namespace Backend.Migrations.ApplicationDb
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     RadiusProfileId = table.Column<int>(type: "integer", nullable: false),
                     BillingGroupId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -918,6 +943,7 @@ namespace Backend.Migrations.ApplicationDb
                     City = table.Column<string>(type: "text", nullable: true),
                     Phone = table.Column<string>(type: "text", nullable: true),
                     ProfileId = table.Column<int>(type: "integer", nullable: true),
+                    ProfileBillingId = table.Column<int>(type: "integer", nullable: true),
                     Balance = table.Column<decimal>(type: "numeric", nullable: false),
                     LoanBalance = table.Column<decimal>(type: "numeric", nullable: false),
                     Expiration = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -982,10 +1008,10 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
                     ZoneId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true)
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1012,6 +1038,12 @@ namespace Backend.Migrations.ApplicationDb
                     CustomWalletId = table.Column<int>(type: "integer", nullable: true),
                     UserWalletId = table.Column<int>(type: "integer", nullable: true),
                     UserId = table.Column<int>(type: "integer", nullable: true),
+                    RadiusUserId = table.Column<int>(type: "integer", nullable: true),
+                    RadiusUsername = table.Column<string>(type: "text", nullable: true),
+                    RadiusProfileId = table.Column<int>(type: "integer", nullable: true),
+                    RadiusProfileName = table.Column<string>(type: "text", nullable: true),
+                    BillingProfileId = table.Column<int>(type: "integer", nullable: true),
+                    BillingProfileName = table.Column<string>(type: "text", nullable: true),
                     BalanceBefore = table.Column<decimal>(type: "numeric", nullable: false),
                     BalanceAfter = table.Column<decimal>(type: "numeric", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
@@ -1022,11 +1054,11 @@ namespace Backend.Migrations.ApplicationDb
                     Metadata = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1070,7 +1102,7 @@ namespace Backend.Migrations.ApplicationDb
                     Reference = table.Column<string>(type: "text", nullable: true),
                     UserId = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true)
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1105,7 +1137,7 @@ namespace Backend.Migrations.ApplicationDb
                     Config = table.Column<string>(type: "jsonb", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1227,10 +1259,10 @@ namespace Backend.Migrations.ApplicationDb
                     Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1260,10 +1292,10 @@ namespace Backend.Migrations.ApplicationDb
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1274,12 +1306,88 @@ namespace Backend.Migrations.ApplicationDb
                         principalTable: "BillingProfiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RadiusActivations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ActionById = table.Column<int>(type: "integer", nullable: true),
+                    ActionByUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    ActionForId = table.Column<int>(type: "integer", nullable: true),
+                    ActionForUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsActionBehalf = table.Column<bool>(type: "boolean", nullable: false),
+                    RadiusUserId = table.Column<int>(type: "integer", nullable: false),
+                    RadiusUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    PreviousRadiusProfileId = table.Column<int>(type: "integer", nullable: true),
+                    RadiusProfileId = table.Column<int>(type: "integer", nullable: true),
+                    PreviousBillingProfileId = table.Column<int>(type: "integer", nullable: true),
+                    BillingProfileId = table.Column<int>(type: "integer", nullable: true),
+                    PreviousExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CurrentExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    NextExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PreviousBalance = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    NewBalance = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ApiStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ApiStatusCode = table.Column<int>(type: "integer", nullable: true),
+                    ApiStatusMessage = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ApiResponse = table.Column<string>(type: "text", nullable: true),
+                    ExternalReferenceId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    TransactionId = table.Column<int>(type: "integer", nullable: true),
+                    PaymentMethod = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    DurationDays = table.Column<int>(type: "integer", nullable: true),
+                    Source = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IpAddress = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    RetryCount = table.Column<int>(type: "integer", nullable: false),
+                    LastRetryAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessingStartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessingCompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RadiusActivations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserCashbacks_User_UserId",
-                        column: x => x.UserId,
-                        principalTable: "User",
+                        name: "FK_RadiusActivations_BillingProfiles_BillingProfileId",
+                        column: x => x.BillingProfileId,
+                        principalTable: "BillingProfiles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_RadiusActivations_BillingProfiles_PreviousBillingProfileId",
+                        column: x => x.PreviousBillingProfileId,
+                        principalTable: "BillingProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_RadiusActivations_RadiusProfiles_PreviousRadiusProfileId",
+                        column: x => x.PreviousRadiusProfileId,
+                        principalTable: "RadiusProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_RadiusActivations_RadiusProfiles_RadiusProfileId",
+                        column: x => x.RadiusProfileId,
+                        principalTable: "RadiusProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_RadiusActivations_RadiusUsers_RadiusUserId",
+                        column: x => x.RadiusUserId,
+                        principalTable: "RadiusUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1296,7 +1404,7 @@ namespace Backend.Migrations.ApplicationDb
                     Enabled = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -1327,7 +1435,7 @@ namespace Backend.Migrations.ApplicationDb
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1375,7 +1483,7 @@ namespace Backend.Migrations.ApplicationDb
                     Comment = table.Column<string>(type: "text", nullable: false),
                     Tags = table.Column<string>(type: "text", nullable: true),
                     Attachments = table.Column<string>(type: "text", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -1434,7 +1542,7 @@ namespace Backend.Migrations.ApplicationDb
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1459,7 +1567,7 @@ namespace Backend.Migrations.ApplicationDb
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1611,6 +1719,56 @@ namespace Backend.Migrations.ApplicationDb
                 name: "IX_radius_ip_pools_name",
                 table: "radius_ip_pools",
                 column: "name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_ApiStatus",
+                table: "RadiusActivations",
+                column: "ApiStatus");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_BillingProfileId",
+                table: "RadiusActivations",
+                column: "BillingProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_CreatedAt",
+                table: "RadiusActivations",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_PreviousBillingProfileId",
+                table: "RadiusActivations",
+                column: "PreviousBillingProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_PreviousRadiusProfileId",
+                table: "RadiusActivations",
+                column: "PreviousRadiusProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_RadiusProfileId",
+                table: "RadiusActivations",
+                column: "RadiusProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_RadiusUserId",
+                table: "RadiusActivations",
+                column: "RadiusUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_RadiusUserId_CreatedAt",
+                table: "RadiusActivations",
+                columns: new[] { "RadiusUserId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_Status",
+                table: "RadiusActivations",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RadiusActivations_Type",
+                table: "RadiusActivations",
+                column: "Type");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RadiusCustomAttributes_RadiusProfileId",
@@ -1786,11 +1944,6 @@ namespace Backend.Migrations.ApplicationDb
                 column: "BillingProfileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserCashbacks_UserId",
-                table: "UserCashbacks",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_UserWallets_CustomWalletId",
                 table: "UserWallets",
                 column: "CustomWalletId");
@@ -1906,6 +2059,9 @@ namespace Backend.Migrations.ApplicationDb
                 name: "FatPorts");
 
             migrationBuilder.DropTable(
+                name: "MicroserviceApprovals");
+
+            migrationBuilder.DropTable(
                 name: "OltDevices");
 
             migrationBuilder.DropTable(
@@ -1913,6 +2069,9 @@ namespace Backend.Migrations.ApplicationDb
 
             migrationBuilder.DropTable(
                 name: "radius_ip_pools");
+
+            migrationBuilder.DropTable(
+                name: "RadiusActivations");
 
             migrationBuilder.DropTable(
                 name: "RadiusCustomAttributes");
@@ -1945,6 +2104,9 @@ namespace Backend.Migrations.ApplicationDb
                 name: "TransactionHistories");
 
             migrationBuilder.DropTable(
+                name: "User");
+
+            migrationBuilder.DropTable(
                 name: "UserCashbacks");
 
             migrationBuilder.DropTable(
@@ -1975,10 +2137,10 @@ namespace Backend.Migrations.ApplicationDb
                 name: "Transactions");
 
             migrationBuilder.DropTable(
-                name: "BillingProfiles");
+                name: "Workspace");
 
             migrationBuilder.DropTable(
-                name: "User");
+                name: "BillingProfiles");
 
             migrationBuilder.DropTable(
                 name: "Automations");
@@ -2003,9 +2165,6 @@ namespace Backend.Migrations.ApplicationDb
 
             migrationBuilder.DropTable(
                 name: "RadiusProfiles");
-
-            migrationBuilder.DropTable(
-                name: "Workspace");
 
             migrationBuilder.DropTable(
                 name: "PonPorts");
