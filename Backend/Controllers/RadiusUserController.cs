@@ -420,10 +420,8 @@ public class RadiusUserController : ControllerBase
         var systemUserId = User.GetSystemUserId();
         var userKeycloakId = User.GetUserKeycloakId();
         
-        // Check admin role - check both IsInRole and the actual claim
-        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin") || 
-                      User.Claims.Any(c => c.Type == "role" && (c.Value == "admin" || c.Value == "Admin")) ||
-                      User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role && (c.Value == "admin" || c.Value == "Admin"));
+        // Check admin role using helper
+        var isAdmin = User.IsAdmin();
         
         var isImpersonating = User.IsImpersonating();
         
@@ -1096,9 +1094,7 @@ public class RadiusUserController : ControllerBase
 
         // Zone-based filtering for non-admin users
         var systemUserId = User.GetSystemUserId();
-        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin") || 
-                      User.Claims.Any(c => c.Type == "role" && (c.Value == "admin" || c.Value == "Admin")) ||
-                      User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role && (c.Value == "admin" || c.Value == "Admin"));
+        var isAdmin = User.IsAdmin();
         
         if (!isAdmin && systemUserId.HasValue)
         {
@@ -1246,9 +1242,7 @@ public class RadiusUserController : ControllerBase
 
         // Zone-based filtering for non-admin users
         var systemUserId = User.GetSystemUserId();
-        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin") || 
-                      User.Claims.Any(c => c.Type == "role" && (c.Value == "admin" || c.Value == "Admin")) ||
-                      User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role && (c.Value == "admin" || c.Value == "Admin"));
+        var isAdmin = User.IsAdmin();
         
         if (!isAdmin && systemUserId.HasValue)
         {
@@ -1399,9 +1393,7 @@ public class RadiusUserController : ControllerBase
 
         // Zone-based filtering for non-admin users
         var systemUserId = User.GetSystemUserId();
-        var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin") || 
-                      User.Claims.Any(c => c.Type == "role" && (c.Value == "admin" || c.Value == "Admin")) ||
-                      User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role && (c.Value == "admin" || c.Value == "Admin"));
+        var isAdmin = User.IsAdmin();
         
         if (!isAdmin && systemUserId.HasValue)
         {

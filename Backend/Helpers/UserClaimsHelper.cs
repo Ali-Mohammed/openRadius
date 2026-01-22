@@ -83,4 +83,60 @@ public static class UserClaimsHelper
     {
         return user.FindFirst("original_email")?.Value;
     }
+
+    /// <summary>
+    /// Checks if the user has a specific role, checking both IsInRole and JWT claims
+    /// This handles Keycloak's realm_access role structure
+    /// </summary>
+    public static bool HasRole(this ClaimsPrincipal user, string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+            return false;
+
+        // Check standard ASP.NET IsInRole
+        if (user.IsInRole(roleName))
+            return true;
+
+        // Check case-insensitive variant
+        var roleNameLower = roleName.ToLower();
+        if (user.IsInRole(roleNameLower))
+            return true;
+
+        // Check in claims with different claim types (handles Keycloak JWT structure)
+        return user.Claims.Any(c => 
+            (c.Type == "role" || c.Type == ClaimTypes.Role) && 
+            (c.Value.Equals(roleName, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>
+    /// Checks if the user has any of the specified roles
+    /// </summary>
+    public static bool HasAnyRole(this ClaimsPrincipal user, params string[] roles)
+    {
+        return roles.Any(role => user.HasRole(role));
+    }
+
+    /// <summary>
+    /// Checks if the user has all of the specified roles
+    /// </summary>
+    public static bool HasAllRoles(this ClaimsPrincipal user, params string[] roles)
+    {
+        return roles.All(role => user.HasRole(role));
+    }
+
+    /// <summary>
+    /// Checks if the user is an administrator (has admin role)
+    /// </summary>
+    public static bool IsAdmin(this ClaimsPrincipal user)
+    {
+        return user.HasRole(UserRoles.Admin);
+    }
+
+    /// <summary>
+    /// Checks if the user has any administrative role (admin or manager)
+    /// </summary>
+    public static bool IsAdministrative(this ClaimsPrincipal user)
+    {
+        return user.HasAnyRole(UserRoles.AdministrativeRoles);
+    }
 }
