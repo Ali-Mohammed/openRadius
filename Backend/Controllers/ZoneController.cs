@@ -260,7 +260,7 @@ public class ZoneController : ControllerBase
             RadiusUserCount = 0
         };
 
-        return CreatedAtAction(nameof(GetZone), new { workspaceId, id = zone.Id }, response);
+        return CreatedAtAction(nameof(GetZone), new { id = zone.Id }, response);
     }
 
     // PUT: api/zone/{id}

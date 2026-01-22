@@ -201,7 +201,7 @@ export default function Zones() {
 
   const assignUsersMutation = useMutation({
     mutationFn: ({ zoneId, userIds }: { zoneId: number; userIds: string[] }) =>
-      zoneApi.assignUsersToZone(workspaceIdNum, zoneId, { userIds }),
+      zoneApi.assignUsersToZone(zoneId, { UserIds: userIds }),
     onSuccess: () => {
       toast.success('Users assigned successfully')
       queryClient.invalidateQueries({ queryKey: ['zones'] })

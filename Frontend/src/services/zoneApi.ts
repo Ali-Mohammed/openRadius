@@ -38,87 +38,85 @@ export interface ZoneUpdateDto {
 }
 
 export interface AssignUsersToZoneDto {
-  userIds: string[]
+  UserIds: string[]
 }
 
 export interface AssignRadiusUsersToZoneDto {
-  radiusUserIds: number[]
+  RadiusUserIds: number[]
 }
 
 export const zoneApi = {
   // Get all zones (hierarchical)
-  getZones: async (workspaceId: number): Promise<Zone[]> => {
-    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone`)
+  getZones: async (): Promise<Zone[]> => {
+    const response = await apiClient.get(`/api/zone`)
     return response.data
   },
 
   // Get all zones as flat list (for dropdowns/selections)
-  getZonesFlat: async (workspaceId: number): Promise<Zone[]> => {
-    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/flat`)
+  getZonesFlat: async (): Promise<Zone[]> => {
+    const response = await apiClient.get(`/api/zone/flat`)
     return response.data
   },
 
   // Get single zone
-  getZone: async (workspaceId: number, zoneId: number): Promise<Zone> => {
-    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/${zoneId}`)
+  getZone: async (zoneId: number): Promise<Zone> => {
+    const response = await apiClient.get(`/api/zone/${zoneId}`)
     return response.data
   },
 
   // Create zone
-  createZone: async (workspaceId: number, data: ZoneCreateDto): Promise<Zone> => {
-    const response = await apiClient.post(`/api/workspace/${workspaceId}/zone`, data)
+  createZone: async (data: ZoneCreateDto): Promise<Zone> => {
+    const response = await apiClient.post(`/api/zone`, data)
     return response.data
   },
 
   // Update zone
-  updateZone: async (workspaceId: number, zoneId: number, data: ZoneUpdateDto): Promise<Zone> => {
-    const response = await apiClient.put(`/api/workspace/${workspaceId}/zone/${zoneId}`, data)
+  updateZone: async (zoneId: number, data: ZoneUpdateDto): Promise<Zone> => {
+    const response = await apiClient.put(`/api/zone/${zoneId}`, data)
     return response.data
   },
 
   // Delete zone
-  deleteZone: async (workspaceId: number, zoneId: number): Promise<void> => {
-    await apiClient.delete(`/api/workspace/${workspaceId}/zone/${zoneId}`)
+  deleteZone: async (zoneId: number): Promise<void> => {
+    await apiClient.delete(`/api/zone/${zoneId}`)
   },
 
   // Get deleted zones
-  getDeletedZones: async (workspaceId: number): Promise<Zone[]> => {
-    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/deleted`)
+  getDeletedZones: async (): Promise<Zone[]> => {
+    const response = await apiClient.get(`/api/zone/deleted`)
     return response.data
   },
 
   // Restore zone
-  restoreZone: async (workspaceId: number, zoneId: number): Promise<void> => {
-    await apiClient.post(`/api/workspace/${workspaceId}/zone/${zoneId}/restore`)
+  restoreZone: async (zoneId: number): Promise<void> => {
+    await apiClient.post(`/api/zone/${zoneId}/restore`)
   },
 
   // Assign users to zone
   assignUsersToZone: async (
-    workspaceId: number,
     zoneId: number,
     data: AssignUsersToZoneDto
   ): Promise<{ message: string; count: number }> => {
     const response = await apiClient.post(
-      `/api/workspace/${workspaceId}/zone/${zoneId}/assign-users`,
+      `/api/zone/${zoneId}/assign-users`,
       data
     )
     return response.data
   },
 
   // Get zone users
-  getZoneUsers: async (workspaceId: number, zoneId: number): Promise<string[]> => {
-    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/${zoneId}/users`)
+  getZoneUsers: async (zoneId: number): Promise<string[]> => {
+    const response = await apiClient.get(`/api/zone/${zoneId}/users`)
     return response.data
   },
 
   // Assign radius users to zone
   assignRadiusUsersToZone: async (
-    workspaceId: number,
     zoneId: number,
     data: AssignRadiusUsersToZoneDto
   ): Promise<{ message: string; count: number }> => {
     const response = await apiClient.post(
-      `/api/workspace/${workspaceId}/zone/${zoneId}/assign-radius-users`,
+      `/api/zone/${zoneId}/assign-radius-users`,
       data
     )
     return response.data
@@ -126,7 +124,6 @@ export const zoneApi = {
 
   // Get zone radius users
   getZoneRadiusUsers: async (
-    workspaceId: number,
     zoneId: number
   ): Promise<Array<{
     id: number
@@ -136,7 +133,7 @@ export const zoneApi = {
     email: string
     phone: string
   }>> => {
-    const response = await apiClient.get(`/api/workspace/${workspaceId}/zone/${zoneId}/radius-users`)
+    const response = await apiClient.get(`/api/zone/${zoneId}/radius-users`)
     return response.data
   },
 }

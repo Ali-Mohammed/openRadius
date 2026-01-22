@@ -6,6 +6,7 @@ import keycloak from '../keycloak'
 export const apiClient = axios.create({
   baseURL: appConfig.api.baseUrl,
   headers: {
+    'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
     'Pragma': 'no-cache',
     'Expires': '0',
