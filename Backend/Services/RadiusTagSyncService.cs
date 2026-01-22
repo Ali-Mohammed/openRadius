@@ -243,6 +243,26 @@ public class RadiusTagSyncService : IRadiusTagSyncService
                 message = "Loading tag sync rules..."
             });
 
+            // First, remove ALL existing tags from ALL users
+            _logger.LogInformation("Removing all existing tags from all users");
+            await _hubContext.Clients.Group("TagSync").SendAsync("TagSyncProgress", new
+            {
+                phase = "Cleaning",
+                current = 0,
+                total = rules.Count,
+                percentComplete = 0,
+                message = "Removing all existing tags..."
+            });
+
+            var existingTags = await context.RadiusUserTags.ToListAsync();
+            if (existingTags.Any())
+            {
+                context.RadiusUserTags.RemoveRange(existingTags);
+                await context.SaveChangesAsync();
+                result.TagsRemoved = existingTags.Count;
+                _logger.LogInformation("Removed {Count} existing tags", existingTags.Count);
+            }
+
             // Process each rule
             for (int i = 0; i < rules.Count; i++)
             {
@@ -296,22 +316,17 @@ public class RadiusTagSyncService : IRadiusTagSyncService
                 var users = await query.ToListAsync();
                 result.TotalUsers += users.Count;
 
-                // Process users for this rule
+                // Process users for this rule - assign tag to all matching users
                 foreach (var user in users)
                 {
-                    var hasTag = user.RadiusUserTags.Any(ut => ut.RadiusTagId == tag.Id);
-                    
-                    if (!hasTag)
+                    // Since we cleared all tags at the start, just add the tag
+                    user.RadiusUserTags.Add(new RadiusUserTag
                     {
-                        user.RadiusUserTags.Add(new RadiusUserTag
-                        {
-                            RadiusUserId = user.Id,
-                            RadiusTagId = tag.Id,
-                            AssignedAt = DateTime.UtcNow
-                        });
-                        result.TagsAssigned++;
-                    }
-                    
+                        RadiusUserId = user.Id,
+                        RadiusTagId = tag.Id,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                    result.TagsAssigned++;
                     result.UsersProcessed++;
                 }
 

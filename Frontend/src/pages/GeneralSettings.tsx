@@ -97,7 +97,14 @@ export default function GeneralSettings() {
   // Load tag sync rules
   useEffect(() => {
     if (tagSyncSettings?.rules) {
-      setTagSyncRules(tagSyncSettings.rules)
+      // Transform Pascal case to camel case
+      const transformedRules = tagSyncSettings.rules.map((rule: any) => ({
+        id: rule.Id || rule.id,
+        tagId: rule.TagId || rule.tagId,
+        tagName: rule.TagName || rule.tagName,
+        filterGroup: rule.FilterGroup || rule.filterGroup
+      }))
+      setTagSyncRules(transformedRules)
     }
   }, [tagSyncSettings])
 
@@ -116,7 +123,14 @@ export default function GeneralSettings() {
 
   const saveTagSyncRulesMutation = useMutation({
     mutationFn: async (rules: TagSyncRule[]) => {
-      const response = await apiClient.post(`/api/workspaces/${currentWorkspaceId}/settings/tag-sync-rules`, { rules })
+      // Transform camel case to Pascal case for backend
+      const transformedRules = rules.map(rule => ({
+        Id: rule.id,
+        TagId: rule.tagId,
+        TagName: rule.tagName,
+        FilterGroup: rule.filterGroup
+      }))
+      const response = await apiClient.post(`/api/workspaces/${currentWorkspaceId}/settings/tag-sync-rules`, { rules: transformedRules })
       return response.data
     },
     onSuccess: () => {
