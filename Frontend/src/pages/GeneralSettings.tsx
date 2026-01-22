@@ -399,67 +399,92 @@ export default function GeneralSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Tags className="h-5 w-5" />
-                RADIUS Tag Sync
+                RADIUS Tag Sync Rules
               </CardTitle>
               <CardDescription>
-                Auto-assign tags to users based on their created date and expiration status
+                Configure automatic tag assignment rules for RADIUS users based on custom filters
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  This will automatically assign tags like "New User", "Active", "Expired", and "Expiring Soon" 
-                  based on user creation dates and expiration status.
-                </p>
-                
-                {/* Filter Builder Toggle */}
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowFilterBuilder(!showFilterBuilder)}
-                    >
-                      <Filter className="h-4 w-4 mr-2" />
-                      {appliedFilters ? 'Edit Filters' : 'Add Filters'}
-                    </Button>
-                    {appliedFilters && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearFilters}
-                      >
-                        Clear Filters
-                      </Button>
-                    )}
+              <div className="space-y-4">
+                {/* Tag Sync Rules List */}
+                {tagSyncRules.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Tags className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No tag sync rules configured yet</p>
+                    <p className="text-xs mt-1">Add a rule to automatically assign tags to users</p>
                   </div>
-                  {appliedFilters && (
-                    <span className="text-sm text-muted-foreground">
-                      Filters applied - only matching users will be synced
-                    </span>
-                  )}
-                </div>
-
-                {/* Query Builder */}
-                {showFilterBuilder && (
-                  <div className="border rounded-lg p-4 space-y-4">
-                    <QueryBuilder
-                      columns={filterColumns}
-                      value={pendingFilters}
-                      onChange={setPendingFilters}
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleApplyFilters}>
-                        Apply Filters
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setShowFilterBuilder(false)}>
-                        Cancel
-                      </Button>
-                    </div>
+                ) : (
+                  <div className="space-y-2">
+                    {tagSyncRules.map((rule) => {
+                      const tag = availableTags.find(t => t.id === rule.tagId)
+                      if (!tag) return null
+                      
+                      const IconComponent = getIconComponent(tag.icon || 'Tag')
+                      const filterCount = rule.filterGroup?.conditions?.length || 0
+                      
+                      return (
+                        <div
+                          key={rule.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1.5"
+                              style={{
+                                borderColor: tag.color || '#3b82f6',
+                                color: tag.color || '#3b82f6'
+                              }}
+                            >
+                              <IconComponent className="h-3.5 w-3.5" />
+                              {tag.title}
+                            </Badge>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Filter className="h-3.5 w-3.5" />
+                              <span>
+                                {filterCount === 0 
+                                  ? 'No filters (applies to all users)' 
+                                  : `${filterCount} filter${filterCount > 1 ? 's' : ''} configured`
+                                }
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditRule(rule)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteRule(rule.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
+
+                {/* Add Rule Button */}
+                <Button
+                  variant="outline"
+                  onClick={handleAddRule}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Tag Sync Rule
+                </Button>
+
+                {/* Sync Progress */}
                 {syncProgress && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 pt-4">
                     <div className="flex items-center justify-between text-sm">
                       <span>{syncProgress.message}</span>
                       <span className="font-medium">{syncProgress.percentComplete}%</span>
@@ -467,28 +492,114 @@ export default function GeneralSettings() {
                     <Progress value={syncProgress.percentComplete} className="h-2" />
                   </div>
                 )}
+
+                {/* Sync Button */}
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-muted-foreground">
+                      {tagSyncRules.length === 0 
+                        ? 'Add at least one rule to enable tag sync'
+                        : `Ready to sync with ${tagSyncRules.length} rule${tagSyncRules.length > 1 ? 's' : ''}`
+                      }
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleSyncTags} 
+                    disabled={isSyncing || tagSyncRules.length === 0}
+                    className="w-full sm:w-auto"
+                  >
+                    {isSyncing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Syncing Tags...
+                      </>
+                    ) : (
+                      <>
+                        <Tags className="mr-2 h-4 w-4" />
+                        Sync Tags Now
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-              <Button 
-                onClick={handleSyncTags} 
-                disabled={isSyncing}
-                className="w-full sm:w-auto"
-              >
-                {isSyncing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Syncing Tags...
-                  </>
-                ) : (
-                  <>
-                    <Tags className="mr-2 h-4 w-4" />
-                    Sync Tags
-                  </>
-                )}
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Tag Sync Rule Dialog */}
+      <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRule ? 'Edit Tag Sync Rule' : 'Add Tag Sync Rule'}
+            </DialogTitle>
+            <DialogDescription>
+              Configure which tag to assign and the filter criteria for automatic assignment
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Tag Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="tag-select">Select Tag</Label>
+              <Select
+                value={selectedTagId?.toString() || ''}
+                onValueChange={(value) => setSelectedTagId(parseInt(value))}
+              >
+                <SelectTrigger id="tag-select">
+                  <SelectValue placeholder="Choose a tag to assign..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTags
+                    .filter(tag => tag.status === 'active')
+                    .map((tag) => {
+                      const IconComponent = getIconComponent(tag.icon || 'Tag')
+                      return (
+                        <SelectItem key={tag.id} value={tag.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent 
+                              className="h-4 w-4" 
+                              style={{ color: tag.color || '#3b82f6' }}
+                            />
+                            <span>{tag.title}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This tag will be automatically assigned to users matching the filter criteria below
+              </p>
+            </div>
+
+            {/* Query Builder */}
+            <div className="space-y-2">
+              <Label>Filter Criteria (Optional)</Label>
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <QueryBuilder
+                  columns={filterColumns}
+                  value={ruleFilters}
+                  onChange={setRuleFilters}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Leave empty to apply this tag to all users, or add filters to target specific users
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRuleDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRule} disabled={!selectedTagId}>
+              {editingRule ? 'Update Rule' : 'Add Rule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
