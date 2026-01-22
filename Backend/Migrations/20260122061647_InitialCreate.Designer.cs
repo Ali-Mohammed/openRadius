@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(MasterDbContext))]
-    [Migration("20260122061333_AddUserNavigationPropertiesToAllModels")]
-    partial class AddUserNavigationPropertiesToAllModels
+    [Migration("20260122061647_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -549,7 +549,7 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
@@ -660,17 +660,18 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Backend.Models.User", "DeletedByUser")
                         .WithMany()
-                        .HasForeignKey("DeletedBy");
+                        .HasForeignKey("DeletedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Backend.Models.User", "UpdatedByUser")
                         .WithMany()
                         .HasForeignKey("UpdatedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");

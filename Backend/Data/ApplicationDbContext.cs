@@ -79,6 +79,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().Ignore(u => u.UserRoles);
         modelBuilder.Entity<User>().Ignore(u => u.UserGroups);
         modelBuilder.Entity<User>().Ignore(u => u.UserWorkspaces);
+        modelBuilder.Entity<User>().Ignore(u => u.Subordinates);
+        modelBuilder.Entity<User>().Ignore(u => u.Supervisor);
+        modelBuilder.Entity<User>().Ignore(u => u.DefaultWorkspace);
+        modelBuilder.Entity<User>().Ignore(u => u.CurrentWorkspace);
 
         // UserCashback: Ignore User navigation property since Users table is in MasterDbContext
         modelBuilder.Entity<UserCashback>(entity =>

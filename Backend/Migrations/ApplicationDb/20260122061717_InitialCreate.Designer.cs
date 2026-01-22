@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.ApplicationDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260122055909_InitialCreate")]
+    [Migration("20260122061717_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -75,7 +75,13 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedBy");
+
                     b.HasIndex("CustomWalletId");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.ToTable("Addons");
                 });
@@ -134,6 +140,12 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("UpdatedBy");
+
                     b.ToTable("Automations");
                 });
 
@@ -184,9 +196,15 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("IsActive");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.ToTable("BillingGroups");
                 });
@@ -206,6 +224,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("integer");
 
                     b.HasKey("GroupId", "UserId");
+
+                    b.HasIndex("CreatedBy");
 
                     b.HasIndex("UserId");
 
@@ -264,9 +284,15 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("BillingGroupId");
 
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("Name");
 
                     b.HasIndex("RadiusProfileId");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.ToTable("BillingProfiles");
                 });
@@ -386,6 +412,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("DeletedAt");
 
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("Disabled");
 
                     b.HasIndex("Name");
@@ -449,6 +477,12 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasKey("Id");
 
                     b.HasIndex("BillingProfileId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.HasIndex("CashbackGroupId", "BillingProfileId");
 
@@ -528,11 +562,17 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("Name");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("Type");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.ToTable("CustomWallets");
                 });
@@ -581,6 +621,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeletedBy");
+
                     b.ToTable("Dashboards");
                 });
 
@@ -626,6 +668,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasKey("Id");
 
                     b.HasIndex("DashboardId");
+
+                    b.HasIndex("DeletedBy");
 
                     b.ToTable("DashboardGlobalFilters");
                 });
@@ -677,6 +721,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeletedBy");
 
                     b.HasIndex("TabId");
 
@@ -889,6 +935,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("FdtId");
 
                     b.ToTable("Fats");
@@ -927,6 +975,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeletedBy");
 
                     b.HasIndex("FatId");
 
@@ -1256,6 +1306,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeletedBy");
+
                     b.ToTable("Olts");
                 });
 
@@ -1293,6 +1345,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeletedBy");
 
                     b.ToTable("OltDevices");
                 });
@@ -1624,6 +1678,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("PreviousBillingProfileId");
 
                     b.HasIndex("PreviousRadiusProfileId");
@@ -1687,6 +1743,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("RadiusProfileId");
 
                     b.HasIndex("RadiusUserId");
@@ -1745,6 +1803,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeletedBy");
 
                     b.ToTable("RadiusGroups");
                 });
@@ -1832,6 +1892,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasKey("Id");
 
                     b.HasIndex("DeletedAt");
+
+                    b.HasIndex("DeletedBy");
 
                     b.HasIndex("IpAddress");
 
@@ -1942,6 +2004,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
 
                     b.HasIndex("Nasname");
 
@@ -2624,13 +2688,19 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("CreatedBy");
+
                     b.HasIndex("CustomWalletId");
+
+                    b.HasIndex("DeletedBy");
 
                     b.HasIndex("RelatedTransactionId");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("TransactionType");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.HasIndex("UserId");
 
@@ -2671,6 +2741,8 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedBy");
 
                     b.HasIndex("TransactionId");
 
@@ -2759,12 +2831,6 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrentWorkspaceId");
-
-                    b.HasIndex("DefaultWorkspaceId");
-
-                    b.HasIndex("SupervisorId");
-
                     b.ToTable("User");
                 });
 
@@ -2806,6 +2872,12 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasKey("Id");
 
                     b.HasIndex("BillingProfileId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.ToTable("UserCashbacks");
                 });
@@ -2869,9 +2941,15 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedBy");
+
                     b.HasIndex("CustomWalletId");
 
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("Status");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.HasIndex("UserId");
 
@@ -2903,6 +2981,8 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
 
                     b.HasIndex("ZoneId");
 
@@ -2969,6 +3049,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("CreatedBy");
+
                     b.HasIndex("CustomWalletId");
 
                     b.HasIndex("TransactionType");
@@ -3013,81 +3095,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("AutomationId");
 
+                    b.HasIndex("CreatedBy");
+
                     b.ToTable("WorkflowHistories");
-                });
-
-            modelBuilder.Entity("Backend.Models.Workspace", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ChurnDays")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Comments")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("DateFormat")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Icon")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Workspace");
                 });
 
             modelBuilder.Entity("Backend.Models.Zone", b =>
@@ -3140,29 +3150,101 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
                     b.HasIndex("Name");
 
                     b.HasIndex("ParentZoneId");
+
+                    b.HasIndex("UpdatedBy");
 
                     b.ToTable("Zones");
                 });
 
             modelBuilder.Entity("Backend.Models.Addon", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
                         .WithMany()
                         .HasForeignKey("CustomWalletId");
 
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("CreatedByUser");
+
                     b.Navigation("CustomWallet");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.Automation", b =>
+                {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.BillingGroup", b =>
+                {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.BillingGroupUser", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.BillingGroup", "Group")
                         .WithMany("GroupUsers")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("CreatedByUser");
 
                     b.Navigation("Group");
                 });
@@ -3174,15 +3256,33 @@ namespace Backend.Migrations.ApplicationDb
                         .HasForeignKey("BillingGroupId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.RadiusProfile", "RadiusProfile")
                         .WithMany()
                         .HasForeignKey("RadiusProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
                     b.Navigation("BillingGroup");
 
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("RadiusProfile");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.BillingProfileAddon", b =>
@@ -3221,6 +3321,15 @@ namespace Backend.Migrations.ApplicationDb
                     b.Navigation("UserWallet");
                 });
 
+            modelBuilder.Entity("Backend.Models.CashbackGroup", b =>
+                {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.Navigation("DeletedByUser");
+                });
+
             modelBuilder.Entity("Backend.Models.CashbackGroupUser", b =>
                 {
                     b.HasOne("Backend.Models.CashbackGroup", "CashbackGroup")
@@ -3246,9 +3355,57 @@ namespace Backend.Migrations.ApplicationDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
                     b.Navigation("BillingProfile");
 
                     b.Navigation("CashbackGroup");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.CustomWallet", b =>
+                {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.Dashboard", b =>
+                {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.Navigation("DeletedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.DashboardGlobalFilter", b =>
@@ -3259,16 +3416,28 @@ namespace Backend.Migrations.ApplicationDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.Navigation("Dashboard");
+
+                    b.Navigation("DeletedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.DashboardItem", b =>
                 {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.DashboardTab", "Tab")
                         .WithMany("Items")
                         .HasForeignKey("TabId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DeletedByUser");
 
                     b.Navigation("Tab");
                 });
@@ -3286,22 +3455,34 @@ namespace Backend.Migrations.ApplicationDb
 
             modelBuilder.Entity("Backend.Models.Fat", b =>
                 {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.Fdt", "Fdt")
                         .WithMany("Fats")
                         .HasForeignKey("FdtId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("Fdt");
                 });
 
             modelBuilder.Entity("Backend.Models.FatPort", b =>
                 {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.Fat", "Fat")
                         .WithMany("FatPorts")
                         .HasForeignKey("FatId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DeletedByUser");
 
                     b.Navigation("Fat");
                 });
@@ -3315,6 +3496,24 @@ namespace Backend.Migrations.ApplicationDb
                         .IsRequired();
 
                     b.Navigation("PonPort");
+                });
+
+            modelBuilder.Entity("Backend.Models.Olt", b =>
+                {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.Navigation("DeletedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.OltDevice", b =>
+                {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.Navigation("DeletedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.PonPort", b =>
@@ -3334,6 +3533,10 @@ namespace Backend.Migrations.ApplicationDb
                         .WithMany()
                         .HasForeignKey("BillingProfileId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
 
                     b.HasOne("Backend.Models.BillingProfile", "PreviousBillingProfile")
                         .WithMany()
@@ -3358,6 +3561,8 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Navigation("BillingProfile");
 
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("PreviousBillingProfile");
 
                     b.Navigation("PreviousRadiusProfile");
@@ -3369,6 +3574,10 @@ namespace Backend.Migrations.ApplicationDb
 
             modelBuilder.Entity("Backend.Models.RadiusCustomAttribute", b =>
                 {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.RadiusProfile", "RadiusProfile")
                         .WithMany()
                         .HasForeignKey("RadiusProfileId");
@@ -3377,19 +3586,47 @@ namespace Backend.Migrations.ApplicationDb
                         .WithMany()
                         .HasForeignKey("RadiusUserId");
 
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("RadiusProfile");
 
                     b.Navigation("RadiusUser");
                 });
 
+            modelBuilder.Entity("Backend.Models.RadiusGroup", b =>
+                {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.Navigation("DeletedByUser");
+                });
+
             modelBuilder.Entity("Backend.Models.RadiusIpReservation", b =>
                 {
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.RadiusUser", "RadiusUser")
                         .WithMany()
                         .HasForeignKey("RadiusUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("RadiusUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.RadiusNas", b =>
+                {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusProfileWallet", b =>
@@ -3455,35 +3692,59 @@ namespace Backend.Migrations.ApplicationDb
 
             modelBuilder.Entity("Backend.Models.Transaction", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
                         .WithMany()
                         .HasForeignKey("CustomWalletId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
 
                     b.HasOne("Backend.Models.Transaction", "RelatedTransaction")
                         .WithMany()
                         .HasForeignKey("RelatedTransactionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
                     b.HasOne("Backend.Models.UserWallet", "UserWallet")
                         .WithMany()
                         .HasForeignKey("UserWalletId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("CreatedByUser");
+
                     b.Navigation("CustomWallet");
 
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("RelatedTransaction");
+
+                    b.Navigation("UpdatedByUser");
 
                     b.Navigation("UserWallet");
                 });
 
             modelBuilder.Entity("Backend.Models.TransactionComment", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.Transaction", "Transaction")
                         .WithMany()
                         .HasForeignKey("TransactionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("CreatedByUser");
 
                     b.Navigation("Transaction");
                 });
@@ -3499,27 +3760,6 @@ namespace Backend.Migrations.ApplicationDb
                     b.Navigation("Transaction");
                 });
 
-            modelBuilder.Entity("Backend.Models.User", b =>
-                {
-                    b.HasOne("Backend.Models.Workspace", "CurrentWorkspace")
-                        .WithMany()
-                        .HasForeignKey("CurrentWorkspaceId");
-
-                    b.HasOne("Backend.Models.Workspace", "DefaultWorkspace")
-                        .WithMany()
-                        .HasForeignKey("DefaultWorkspaceId");
-
-                    b.HasOne("Backend.Models.User", "Supervisor")
-                        .WithMany("Subordinates")
-                        .HasForeignKey("SupervisorId");
-
-                    b.Navigation("CurrentWorkspace");
-
-                    b.Navigation("DefaultWorkspace");
-
-                    b.Navigation("Supervisor");
-                });
-
             modelBuilder.Entity("Backend.Models.UserCashback", b =>
                 {
                     b.HasOne("Backend.Models.BillingProfile", "BillingProfile")
@@ -3528,32 +3768,78 @@ namespace Backend.Migrations.ApplicationDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
                     b.Navigation("BillingProfile");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.UserWallet", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
                         .WithMany()
                         .HasForeignKey("CustomWalletId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("CreatedByUser");
+
                     b.Navigation("CustomWallet");
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.UserZone", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.Zone", "Zone")
                         .WithMany("UserZones")
                         .HasForeignKey("ZoneId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("CreatedByUser");
+
                     b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("Backend.Models.WalletHistory", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.HasOne("Backend.Models.CustomWallet", "CustomWallet")
                         .WithMany()
                         .HasForeignKey("CustomWalletId")
@@ -3563,6 +3849,8 @@ namespace Backend.Migrations.ApplicationDb
                         .WithMany()
                         .HasForeignKey("UserWalletId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
 
                     b.Navigation("CustomWallet");
 
@@ -3577,16 +3865,40 @@ namespace Backend.Migrations.ApplicationDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
                     b.Navigation("Automation");
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.Zone", b =>
                 {
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Backend.Models.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedBy");
+
                     b.HasOne("Backend.Models.Zone", "ParentZone")
                         .WithMany("Children")
                         .HasForeignKey("ParentZoneId");
 
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DeletedByUser");
+
                     b.Navigation("ParentZone");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.BillingGroup", b =>
@@ -3646,11 +3958,6 @@ namespace Backend.Migrations.ApplicationDb
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>
                 {
                     b.Navigation("RadiusUserTags");
-                });
-
-            modelBuilder.Entity("Backend.Models.User", b =>
-                {
-                    b.Navigation("Subordinates");
                 });
 
             modelBuilder.Entity("Backend.Models.Zone", b =>
