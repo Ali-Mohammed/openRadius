@@ -32,7 +32,7 @@ public class UserWallet
     // Soft delete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
     
     // Navigation properties
     // Note: User is not included as navigation to avoid cross-context issues
