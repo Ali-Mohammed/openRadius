@@ -955,7 +955,7 @@ public class RadiusUserController : ControllerBase
 
         user.IsDeleted = true;
         user.DeletedAt = DateTime.UtcNow;
-        user.DeletedBy = User.Identity?.Name ?? "system";
+        user.DeletedBy = User.GetSystemUserId();
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -999,7 +999,7 @@ public class RadiusUserController : ControllerBase
             return NotFound(new { message = "No users found to delete" });
         }
 
-        var deletedBy = User.Identity?.Name ?? "system";
+        var deletedBy = User.GetSystemUserId();
         foreach (var user in users)
         {
             user.IsDeleted = true;

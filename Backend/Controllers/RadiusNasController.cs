@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 using System.Security.Claims;
 
 namespace Backend.Controllers;
@@ -172,7 +173,7 @@ public class RadiusNasController : ControllerBase
                 SshUsername = request.SshUsername,
                 SshPassword = request.SshPassword,
                 SshPort = request.SshPort,
-                CreatedBy = 1, // TODO: Get from authenticated user context
+                CreatedBy = User.GetSystemUserId() ?? 0,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsDeleted = false
