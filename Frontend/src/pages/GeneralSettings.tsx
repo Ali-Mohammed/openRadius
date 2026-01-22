@@ -8,10 +8,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DollarSign, Save, Users } from 'lucide-react'
+import { DollarSign, Save, Users, Tags, Loader2 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { apiClient } from '@/lib/api'
+import * as signalR from '@microsoft/signalr'
 
 export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
@@ -19,6 +22,16 @@ export default function GeneralSettings() {
   const [currency, setCurrency] = useState('USD')
   const [churnDays, setChurnDays] = useState(20)
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<TagSyncProgress | null>(null)
+
+interface TagSyncProgress {
+  phase: string
+  current: number
+  total: number
+  percentComplete: number
+  message: string
+}
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['general-settings', currentWorkspaceId],
@@ -52,6 +65,49 @@ export default function GeneralSettings() {
     updateMutation.mutate({ currency, churnDays, dateFormat })
   }
 
+  const handleSyncTags = async () => {
+    let connection: signalR.HubConnection | null = null
+    
+    try {
+      setIsSyncing(true)
+      setSyncProgress({
+        phase: 'Starting',
+        current: 0,
+        total: 0,
+        percentComplete: 0,
+        message: 'Initializing tag sync...'
+      })
+
+      // Connect to SignalR hub for progress updates
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${import.meta.env.VITE_API_URL}/hubs/tagsync`)
+        .withAutomaticReconnect()
+        .build()
+
+      connection.on('TagSyncProgress', (progress: TagSyncProgress) => {
+        setSyncProgress(progress)
+      })
+
+      connection.on('TagSyncError', (error: { message: string }) => {
+        toast.error(`Tag Sync Error: ${error.message}`)
+      })
+
+      await connection.start()
+
+      const response = await apiClient.post('/api/radius/tags/sync')
+      
+      toast.success(`Tag Sync Complete: Processed ${response.data.usersProcessed} users. Assigned ${response.data.tagsAssigned} tags, removed ${response.data.tagsRemoved} tags.`)
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to sync tags')
+    } finally {
+      if (connection) {
+        await connection.stop()
+      }
+      setIsSyncing(false)
+      setSyncProgress(null)
+    }
+  }
+
   if (isLoadingWorkspace || isLoading) {
     return <div className="p-6">Loading...</div>
   }
@@ -67,6 +123,7 @@ export default function GeneralSettings() {
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="radius-user">Radius User</TabsTrigger>
+          <TabsTrigger value="tag-sync">Tag Sync</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
@@ -207,6 +264,54 @@ export default function GeneralSettings() {
                   {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tag-sync" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tags className="h-5 w-5" />
+                RADIUS Tag Sync
+              </CardTitle>
+              <CardDescription>
+                Auto-assign tags to users based on their created date and expiration status
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  This will automatically assign tags like "New User", "Active", "Expired", and "Expiring Soon" 
+                  based on user creation dates and expiration status.
+                </p>
+                {syncProgress && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{syncProgress.message}</span>
+                      <span className="font-medium">{syncProgress.percentComplete}%</span>
+                    </div>
+                    <Progress value={syncProgress.percentComplete} className="h-2" />
+                  </div>
+                )}
+              </div>
+              <Button 
+                onClick={handleSyncTags} 
+                disabled={isSyncing}
+                className="w-full sm:w-auto"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing Tags...
+                  </>
+                ) : (
+                  <>
+                    <Tags className="mr-2 h-4 w-4" />
+                    Sync Tags
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
