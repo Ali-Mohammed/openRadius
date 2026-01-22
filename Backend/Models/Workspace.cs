@@ -17,6 +17,7 @@ public class Workspace
     public string Currency { get; set; } = "USD"; // USD or IQD
     public int ChurnDays { get; set; } = 20; // Number of days for user to become churn user
     public string DateFormat { get; set; } = "MM/DD/YYYY"; // Date format for the system
+    public string? TagSyncRules { get; set; } // JSON string containing tag sync rules
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
