@@ -53,7 +53,7 @@ public class Transaction
     // Soft delete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public int? DeletedBy { get; set; }
     
     // Navigation properties
     public CustomWallet? CustomWallet { get; set; }
