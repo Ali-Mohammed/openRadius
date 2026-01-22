@@ -140,8 +140,16 @@ public class RadiusUserController : ControllerBase
     // Apply advanced filters to query
     private IQueryable<RadiusUser> ApplyAdvancedFilters(IQueryable<RadiusUser> query, FilterGroup? filterGroup)
     {
+        _logger.LogInformation("🚀 ApplyAdvancedFilters called - filterGroup is null: {IsNull}", filterGroup == null);
+        
         if (filterGroup == null || filterGroup.Conditions == null || filterGroup.Conditions.Count == 0)
+        {
+            _logger.LogWarning("⚠️ Returning early - filterGroup null: {FgNull}, Conditions null: {CondNull}, Conditions count: {Count}", 
+                filterGroup == null, filterGroup?.Conditions == null, filterGroup?.Conditions?.Count ?? 0);
             return query;
+        }
+
+        _logger.LogInformation("📦 Processing {Count} conditions", filterGroup.Conditions.Count);
 
         var conditions = new List<System.Linq.Expressions.Expression<Func<RadiusUser, bool>>>();
 
@@ -149,15 +157,32 @@ public class RadiusUserController : ControllerBase
         {
             var json = System.Text.Json.JsonSerializer.Serialize(item);
             
+            _logger.LogInformation("📄 Condition JSON: {Json}", json);
+            
             // Try to parse as FilterCondition first (support both "field" and "column" from frontend)
             if (json.Contains("\"field\"") || json.Contains("\"column\""))
             {
                 var condition = System.Text.Json.JsonSerializer.Deserialize<FilterCondition>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                _logger.LogInformation("✅ Deserialized condition: Field={Field}, Column={Column}, Operator={Op}, Value type={ValueType}", 
+                    condition?.Field, condition?.Column, condition?.Operator, condition?.Value?.GetType().Name);
+                
                 if (condition != null && !string.IsNullOrEmpty(condition.GetFieldName()))
                 {
                     var predicate = BuildConditionPredicate(condition);
                     if (predicate != null)
+                    {
                         conditions.Add(predicate);
+                        _logger.LogInformation("✨ Added predicate for field: {Field}", condition.GetFieldName());
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ BuildConditionPredicate returned null for field: {Field}", condition.GetFieldName());
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Condition is null or has empty field name");
                 }
             }
             // Otherwise it's a nested group
@@ -167,6 +192,8 @@ public class RadiusUserController : ControllerBase
                 // For nested groups, we'd need to recursively build - for simplicity, flatten for now
             }
         }
+
+        _logger.LogInformation("🎲 Total predicates to apply: {Count}", conditions.Count);
 
         if (conditions.Count == 0)
             return query;
@@ -209,7 +236,10 @@ public class RadiusUserController : ControllerBase
         var value = condition.GetValueString();
         var values = condition.GetValueList();
 
-        return field switch
+        _logger.LogInformation("🔧 BuildConditionPredicate: field={Field}, op={Op}, value={Value}, values count={Count}", 
+            field, op, value, values?.Count ?? 0);
+
+        var predicate = field switch
         {
             "username" => BuildStringPredicate(u => u.Username, op, value, values),
             "firstname" => BuildStringPredicate(u => u.Firstname, op, value, values),
@@ -233,6 +263,10 @@ public class RadiusUserController : ControllerBase
             "tags" => BuildTagsPredicate(op, values),
             _ => null
         };
+        
+        _logger.LogInformation("🎯 BuildConditionPredicate result: field={Field}, predicate is null: {IsNull}", 
+            field, predicate == null);
+        return predicate;
     }
 
     private static System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildStringPredicate(
@@ -431,8 +465,9 @@ public class RadiusUserController : ControllerBase
 
         return op switch
         {
-            "contains_any" or "is_any_of" => u => u.RadiusUserTags.Any(t => tagIds.Contains(t.RadiusTagId)),
+            "contains" or "contains_any" or "is_any_of" => u => u.RadiusUserTags.Any(t => tagIds.Contains(t.RadiusTagId)),
             "contains_all" => u => tagIds.All(tagId => u.RadiusUserTags.Any(t => t.RadiusTagId == tagId)),
+            "does_not_contain" or "not_contains" => u => !u.RadiusUserTags.Any(t => tagIds.Contains(t.RadiusTagId)),
             "is_empty" => u => !u.RadiusUserTags.Any(),
             "is_not_empty" => u => u.RadiusUserTags.Any(),
             _ => null
