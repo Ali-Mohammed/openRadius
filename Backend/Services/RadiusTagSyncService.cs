@@ -299,10 +299,13 @@ public class RadiusTagSyncService : IRadiusTagSyncService
                     try
                     {
                         var filterJson = System.Text.Json.JsonSerializer.Serialize(rule.FilterGroup);
+                        _logger.LogInformation("Applying filters for rule {RuleId}: {FilterJson}", rule.Id, filterJson);
+                        
                         var filterGroup = System.Text.Json.JsonSerializer.Deserialize<FilterGroup>(filterJson);
                         if (filterGroup != null)
                         {
                             query = ApplyAdvancedFilters(query, filterGroup);
+                            _logger.LogInformation("Filters applied successfully for rule {RuleId}", rule.Id);
                         }
                     }
                     catch (Exception ex)
@@ -314,6 +317,8 @@ public class RadiusTagSyncService : IRadiusTagSyncService
                 }
 
                 var users = await query.ToListAsync();
+                _logger.LogInformation("Found {UserCount} users matching filters for rule {RuleId} (tag: {TagName})", 
+                    users.Count, rule.Id, rule.TagName);
                 result.TotalUsers += users.Count;
 
                 // Process users for this rule - assign tag to all matching users
@@ -424,7 +429,37 @@ public class RadiusTagSyncService : IRadiusTagSyncService
         public object? Value2 { get; set; }
 
         public string? GetFieldName() => Field ?? Column;
-        public string? GetValueString() => Value?.ToString();
+        
+        public string? GetValueString()
+        {
+            if (Value == null) return null;
+            
+            // Handle array values (for multi-select filters like profile IDs)
+            if (Value is System.Text.Json.JsonElement jsonElement)
+            {
+                if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    var values = jsonElement.EnumerateArray()
+                        .Select(e => e.ToString())
+                        .ToList();
+                    return string.Join(",", values);
+                }
+                return jsonElement.ToString();
+            }
+            
+            // Handle list/array types
+            if (Value is System.Collections.IEnumerable enumerable && Value is not string)
+            {
+                var values = new List<string>();
+                foreach (var item in enumerable)
+                {
+                    values.Add(item?.ToString() ?? "");
+                }
+                return string.Join(",", values);
+            }
+            
+            return Value.ToString();
+        }
     }
 
     private static DateTime ParseRelativeDate(string value)
@@ -535,12 +570,16 @@ public class RadiusTagSyncService : IRadiusTagSyncService
     {
         if (string.IsNullOrEmpty(value)) return null;
 
+        _logger.LogInformation("BuildProfilePredicate called with op={Operator}, value={Value}", op, value);
+
         // Handle multiple values separated by commas (for multi-select)
         var profileIds = value.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(v => v.Trim())
             .Where(v => int.TryParse(v, out _))
             .Select(v => int.Parse(v))
             .ToList();
+
+        _logger.LogInformation("Parsed profile IDs: {ProfileIds}", string.Join(", ", profileIds));
 
         if (profileIds.Count == 0) return null;
 
