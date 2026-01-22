@@ -496,22 +496,47 @@ public class RadiusTagSyncService : IRadiusTagSyncService
 
         var conditions = new List<System.Linq.Expressions.Expression<Func<RadiusUser, bool>>>();
 
+        _logger.LogInformation("📦 Processing {Count} conditions from filter group", filterGroup.Conditions.Count);
+
         foreach (var item in filterGroup.Conditions)
         {
             var json = System.Text.Json.JsonSerializer.Serialize(item);
+            
+            _logger.LogInformation("📄 Condition JSON: {Json}", json);
             
             if (json.Contains("\"field\"") || json.Contains("\"column\""))
             {
                 var condition = System.Text.Json.JsonSerializer.Deserialize<FilterCondition>(json, 
                     new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                _logger.LogInformation("✅ Deserialized condition: Field={Field}, Column={Column}, Operator={Op}, Value type={ValueType}", 
+                    condition?.Field, condition?.Column, condition?.Operator, condition?.Value?.GetType().Name);
+                    
                 if (condition != null && !string.IsNullOrEmpty(condition.GetFieldName()))
                 {
                     var predicate = BuildConditionPredicate(condition);
                     if (predicate != null)
+                    {
                         conditions.Add(predicate);
+                        _logger.LogInformation("✨ Added predicate for field: {Field}", condition.GetFieldName());
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ BuildConditionPredicate returned null for field: {Field}", condition.GetFieldName());
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Condition is null or has empty field name");
                 }
             }
+            else
+            {
+                _logger.LogWarning("⚠️ JSON doesn't contain 'field' or 'column': {Json}", json);
+            }
         }
+
+        _logger.LogInformation("🎲 Total predicates to apply: {Count}", conditions.Count);
 
         if (conditions.Count == 0)
             return query;
@@ -551,7 +576,9 @@ public class RadiusTagSyncService : IRadiusTagSyncService
         var op = condition.Operator?.ToLower();
         var value = condition.GetValueString();
 
-        return field switch
+        _logger.LogInformation("🔧 BuildConditionPredicate: field={Field}, op={Op}, value={Value}", field, op, value);
+
+        var predicate = field switch
         {
             "enabled" => op == "equals" && bool.TryParse(value, out var boolVal)
                 ? (u => u.Enabled == boolVal)
@@ -563,6 +590,9 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             "profileid" => BuildProfilePredicate(op, value),
             _ => null
         };
+
+        _logger.LogInformation("🎯 BuildConditionPredicate result: field={Field}, predicate is null: {IsNull}", field, predicate == null);
+        return predicate;
     }
 
     private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildProfilePredicate(
