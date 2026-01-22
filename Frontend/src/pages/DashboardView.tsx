@@ -33,8 +33,7 @@ export default function DashboardView() {
     }
   }, [id])
 
-  // Capture snapshot only when entering edit mode
-  useEffect(() => {when entering edit mode
+  // Capture snapshot when entering edit mode
   useEffect(() => {
     if (isEditing && dashboard) {
       console.log('Capturing dashboard snapshot for edit mode')
@@ -47,7 +46,8 @@ export default function DashboardView() {
 
   const saveLayoutChanges = async () => {
     const originalDashboard = originalDashboardRef.current
-     {
+    
+    if (!dashboard || !originalDashboard) {
       console.log('No dashboard or originalDashboard to save', { dashboard: !!dashboard, originalDashboard: !!originalDashboard })
       return
     }
@@ -238,13 +238,16 @@ export default function DashboardView() {
   }
 
   const handleLayoutChange = async (updatedItems: DashboardItem[]) => {
-    if (!dashboard || !isEditing) return
+    if (!dashboard) return
+
+    console.log('DashboardView handleLayoutChange called with updatedItems:', updatedItems.map(i => ({ id: i.id, layout: i.layout })))
 
     // Update local state immediately for smooth UX
     const updatedTabs = dashboard.tabs.map((tab) =>
       tab.id === activeTabId ? { ...tab, items: updatedItems } : tab
     )
 
+    console.log('Setting dashboard with updated tabs')
     setDashboard({ ...dashboard, tabs: updatedTabs })
 
     // Debounce backend save - only save after user stops dragging/resizing
@@ -326,16 +329,39 @@ export default function DashboardView() {
   const activeTab = dashboard.tabs.find((tab) => tab.id === activeTabId)
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-2 space-y-2">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {dashboard.name}
-          </h1>
-          {dashboard.description && (
-            <p className="mt-2 text-gray-600 dark:text-gray-400">{dashboard.description}</p>
-          )}
-        </div>
+        <Tabs value={activeTabId} onValueChange={setActiveTabId}>
+          <div className="flex items-center gap-2">
+            <TabsList>
+              {dashboard.tabs.map((tab, index) => (
+                <div
+                  key={tab.id}
+                  draggable={isEditing}
+                  onDragStart={() => handleTabDragStart(index)}
+                  onDragOver={(e) => handleTabDragOver(e, index)}
+                  onDrop={() => handleTabDrop(index)}
+                  className={isEditing ? 'cursor-move' : ''}
+                >
+                  <TabsTrigger value={tab.id} className="flex items-center gap-2">
+                    {isEditing && <GripVertical className="h-3 w-3" />}
+                    {tab.name}
+                  </TabsTrigger>
+                </div>
+              ))}
+            </TabsList>
+            {isEditing && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowAddTabDialog(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </Tabs>
+        
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -370,45 +396,6 @@ export default function DashboardView() {
       )}
 
       <Tabs value={activeTabId} onValueChange={setActiveTabId}>
-        <div className="flex items-center gap-2">
-          <TabsList>
-            {dashboard.tabs.map((tab, index) => (
-              <div
-                key={tab.id}
-                className="flex items-center gap-1 relative"
-                draggable={isEditing}
-                onDragStart={() => handleTabDragStart(index)}
-                onDragOver={(e) => handleTabDragOver(e, index)}
-                onDragEnd={handleTabDragEnd}
-                style={{
-                  cursor: isEditing ? 'move' : 'default',
-                  opacity: draggedTabIndex === index ? 0.5 : 1,
-                }}
-              >
-                {isEditing && (
-                  <GripVertical className="h-4 w-4 text-gray-400 absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-                )}
-                <TabsTrigger 
-                  value={tab.id}
-                  className={isEditing ? 'pl-6' : ''}
-                >
-                  {tab.name}
-                </TabsTrigger>
-              </div>
-            ))}
-          </TabsList>
-          {isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddTabDialog(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Tab
-            </Button>
-          )}
-        </div>
-
         {dashboard.tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-4">
             {tab.items.length > 0 ? (

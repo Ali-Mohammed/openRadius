@@ -29,6 +29,7 @@ export function DashboardGrid({
 }: DashboardGridProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(1200)
+  const [internalLayouts, setInternalLayouts] = useState<Layouts | null>(null)
 
   useEffect(() => {
     const updateWidth = () => {
@@ -42,6 +43,13 @@ export function DashboardGrid({
     return () => window.removeEventListener('resize', updateWidth)
   }, [])
 
+  // Reset internal layouts when items change or when exiting edit mode
+  useEffect(() => {
+    if (!isEditing) {
+      setInternalLayouts(null)
+    }
+  }, [isEditing])
+
   const layout: Layout[] = items.map((item) => ({
     i: item.id,
     x: item.layout.x,
@@ -50,7 +58,7 @@ export function DashboardGrid({
     h: item.layout.h,
   }))
 
-  const layouts: Layouts = {
+  const layouts: Layouts = internalLayouts || {
     lg: layout,
     md: layout.map(l => ({ ...l, w: Math.min(l.w, 12) })),
     sm: layout.map(l => ({ ...l, w: Math.min(l.w, 8), x: 0 })),
@@ -59,12 +67,29 @@ export function DashboardGrid({
   }
 
   const handleLayoutChange = (currentLayout: Layout[], allLayouts: Layouts) => {
-    if (onLayoutChange) {
-      // Use lg layout as the source of truth
-      const lgLayout = allLayouts.lg || currentLayout
+    // Store internal layouts during editing to prevent reset on re-render
+    if (isEditing) {
+      setInternalLayouts(allLayouts)
+    }
+  }
+
+  const handleDragStop = (layout: Layout[], oldItem: Layout, newItem: Layout, placeholder: Layout, e: MouseEvent, element: HTMLElement) => {
+    console.log('Drag stopped - newItem:', newItem)
+    updateLayout(layout)
+  }
+
+  const handleResizeStop = (layout: Layout[], oldItem: Layout, newItem: Layout, placeholder: Layout, e: MouseEvent, element: HTMLElement) => {
+    console.log('Resize stopped - newItem:', newItem)
+    updateLayout(layout)
+  }
+
+  const updateLayout = (layout: Layout[]) => {
+    if (onLayoutChange && isEditing) {
+      console.log('Updating dashboard with new layout:', layout)
       const updatedItems = items.map((item) => {
-        const layoutItem = lgLayout.find((l) => l.i === item.id)
+        const layoutItem = layout.find((l) => l.i === item.id)
         if (layoutItem) {
+          console.log(`Item ${item.id}: x=${layoutItem.x}, y=${layoutItem.y}, w=${layoutItem.w}, h=${layoutItem.h}`)
           return {
             ...item,
             layout: {
@@ -106,6 +131,8 @@ export function DashboardGrid({
       <Responsive
         className={isEditing ? 'layout dashboard-grid-editing' : 'layout'}
         layouts={layouts}
+        onDragStop={handleDragStop}
+        onResizeStop={handleResizeStop}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 24, md: 12, sm: 8, xs: 4, xxs: 2 }}
         rowHeight={60}
