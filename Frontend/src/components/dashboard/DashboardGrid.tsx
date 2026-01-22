@@ -87,20 +87,20 @@ export function DashboardGrid({
   }
 
   return (
-    <div ref={containerRef} style={{ width: '100%' }}>
-      <GridLayout
-        key={`grid-24-${width}`}
-        className={isEditing ? 'layout dashboard-grid-editing' : 'layout'}
-        layout={layout}
-        cols={24}
-        rowHeight={60}
-        wstyle={{ width: '100%' }}>
+    <div style={{ width: '100%' }}>
       <ResponsiveGridLayout
         className={isEditing ? 'layout dashboard-grid-editing' : 'layout'}
         layouts={layouts}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 24, md: 12, sm: 8, xs: 4, xxs: 2 }}
-        rowHeight={608]}
+        rowHeight={60}
+        onLayoutChange={handleLayoutChange}
+        isDraggable={isEditing}
+        isResizable={isEditing}
+        compactType="vertical"
+        preventCollision={false}
+        resizeHandles={['se', 's', 'e', 'sw', 'ne', 'nw', 'n', 'w']}
+        margin={[8, 8]}
         containerPadding={[0, 0]}
       >
         {items.map((item) => (
@@ -142,8 +142,7 @@ export function DashboardGrid({
             <div className="h-full w-full overflow-auto">{renderWidget(item)}</div>
           </div>
         ))}
-      </GridLayout>
+      </ResponsiveGridLayout>
     </div>
   )
 }
-Responsive
