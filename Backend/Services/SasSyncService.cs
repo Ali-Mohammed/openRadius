@@ -1146,7 +1146,7 @@ public class SasSyncService : ISasSyncService
             {
                 billingProfile.IsActive = false;
                 billingProfile.UpdatedAt = DateTime.UtcNow;
-                billingProfile.UpdatedBy = "System-Sync";
+                billingProfile.UpdatedBy = null; // System sync
             }
 
             await context.SaveChangesAsync(cancellationToken);
@@ -1574,7 +1574,7 @@ public class SasSyncService : ISasSyncService
                                     if (existingUserIpReservation != null)
                                     {
                                         existingUserIpReservation.DeletedAt = DateTime.UtcNow;
-                                        existingUserIpReservation.DeletedBy = "System (Sync)";
+                                        existingUserIpReservation.DeletedBy = null; // System sync
                                     }
                                 }
                                 
