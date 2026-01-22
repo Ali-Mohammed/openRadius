@@ -33,8 +33,12 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
             return principal;
 
         var impersonatedUserIdStr = httpContext.Request.Headers["X-Impersonated-User-Id"].FirstOrDefault();
+        
+        // If no impersonation, enrich the principal with system user ID for normal users
         if (string.IsNullOrEmpty(impersonatedUserIdStr) || !int.TryParse(impersonatedUserIdStr, out var impersonatedUserId))
-            return principal;
+        {
+            return await EnrichPrincipalWithSystemUserId(principal);
+        }
 
         // Get the impersonated user from the master database
         var impersonatedUser = await _masterContext.Users
@@ -64,6 +68,8 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
         // Add impersonated user claims that will be used by all APIs
         impersonatedIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, impersonatedUser.KeycloakUserId ?? ""));
         impersonatedIdentity.AddClaim(new Claim("sub", impersonatedUser.KeycloakUserId ?? ""));
+        impersonatedIdentity.AddClaim(new Claim("UserKeycloakId", impersonatedUser.KeycloakUserId ?? ""));
+        impersonatedIdentity.AddClaim(new Claim("systemUserId", impersonatedUserId.ToString()));
         impersonatedIdentity.AddClaim(new Claim(ClaimTypes.Email, impersonatedUser.Email ?? ""));
         impersonatedIdentity.AddClaim(new Claim("email", impersonatedUser.Email ?? ""));
         impersonatedIdentity.AddClaim(new Claim("preferred_username", impersonatedUser.Email?.Split('@')[0] ?? ""));
@@ -81,4 +87,43 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
 
         return new ClaimsPrincipal(impersonatedIdentity);
     }
-}
+
+    /// <summary>
+    /// Enriches the principal with system user ID for non-impersonation scenarios
+    /// </summary>
+    private async Task<ClaimsPrincipal> EnrichPrincipalWithSystemUserId(ClaimsPrincipal principal)
+    {
+        var identity = principal.Identity as ClaimsIdentity;
+        if (identity == null)
+            return principal;
+
+        // Check if claims are already enriched
+        if (identity.FindFirst("systemUserId") != null)
+            return principal;
+
+        // Get Keycloak user ID from token
+        var keycloakUserId = identity.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(keycloakUserId))
+            return principal;
+
+        // Look up system user by Keycloak ID
+        var systemUser = await _masterContext.Users
+            .Where(u => u.KeycloakUserId == keycloakUserId)
+            .FirstOrDefaultAsync();
+
+        if (systemUser == null)
+        {
+            _logger.LogWarning("System user not found for Keycloak ID: {KeycloakId}", keycloakUserId);
+            return principal;
+        }
+
+        // Add system user ID and Keycloak ID claims
+        identity.AddClaim(new Claim("systemUserId", systemUser.Id.ToString()));
+        identity.AddClaim(new Claim("UserKeycloakId", keycloakUserId));
+
+        _logger.LogDebug(
+            "Enriched claims for user: SystemUserId={SystemUserId}, KeycloakId={KeycloakId}",
+            systemUser.Id, keycloakUserId);
+
+        return principal;
+    }
