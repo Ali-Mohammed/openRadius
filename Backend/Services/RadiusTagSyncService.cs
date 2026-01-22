@@ -510,6 +510,31 @@ public class RadiusTagSyncService : IRadiusTagSyncService
             "expiration" => BuildExpirationPredicate(op, value, condition.Value2?.ToString()),
             "createdat" => BuildCreatedAtPredicate(op, value, condition.Value2?.ToString()),
             "lastonline" => BuildLastOnlinePredicate(op, value, condition.Value2?.ToString()),
+            "profileid" => BuildProfilePredicate(op, value),
+            _ => null
+        };
+    }
+
+    private System.Linq.Expressions.Expression<Func<RadiusUser, bool>>? BuildProfilePredicate(
+        string? op, string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+
+        // Handle multiple values separated by commas (for multi-select)
+        var profileIds = value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(v => v.Trim())
+            .Where(v => int.TryParse(v, out _))
+            .Select(v => int.Parse(v))
+            .ToList();
+
+        if (profileIds.Count == 0) return null;
+
+        return op switch
+        {
+            "equals" or "is" or "in" => u => u.ProfileId != null && profileIds.Contains(u.ProfileId.Value),
+            "not_equals" or "is_not" or "not_in" => u => u.ProfileId == null || !profileIds.Contains(u.ProfileId.Value),
+            "is_empty" => u => u.ProfileId == null,
+            "is_not_empty" => u => u.ProfileId != null,
             _ => null
         };
     }

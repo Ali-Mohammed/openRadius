@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,8 +15,9 @@ import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { apiClient } from '@/lib/api'
 import * as signalR from '@microsoft/signalr'
-import { QueryBuilder, type FilterGroup, type FilterColumn, filtersToQueryString } from '@/components/QueryBuilder'
-import { radiusTagApi, type RadiusTag } from '@/api/radiusTagApi'
+import { QueryBuilder, type FilterGroup, type FilterColumn } from '@/components/QueryBuilder'
+import { radiusTagApi } from '@/api/radiusTagApi'
+import { type RadiusProfile } from '@/api/radiusProfileApi'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -127,13 +128,37 @@ export default function GeneralSettings() {
     },
   })
 
+  // Fetch available radius profiles for filter
+  const { data: radiusProfilesData } = useQuery({
+    queryKey: ['radius-profiles'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/radius/profiles?pageSize=1000')
+      return response.data
+    },
+  })
+
+  const radiusProfiles = useMemo(() => radiusProfilesData?.data || [], [radiusProfilesData?.data])
+
   const filterColumns: FilterColumn[] = useMemo(() => [
     { key: 'enabled', label: 'Enabled', type: 'boolean' },
     { key: 'expiration', label: 'Expiration Date', type: 'date' },
     { key: 'createdAt', label: 'Created At', type: 'date' },
     { key: 'lastOnline', label: 'Last Online', type: 'date' },
     { key: 'balance', label: 'Balance', type: 'number' },
-  ], [])
+    { 
+      key: 'profileId', 
+      label: 'Profile', 
+      type: 'select',
+      options: radiusProfiles
+        .filter((profile: RadiusProfile) => profile.id !== undefined)
+        .map((profile: RadiusProfile) => ({
+          value: profile.id!.toString(),
+          label: profile.name,
+          color: profile.color,
+          icon: profile.icon
+        }))
+    },
+  ], [radiusProfiles])
 
   const handleSave = () => {
     updateMutation.mutate({ currency, churnDays, dateFormat })
