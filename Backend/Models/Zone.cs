@@ -39,7 +39,7 @@ public class Zone
 public class UserZone
 {
     public int Id { get; set; }
-    public string UserId { get; set; } = null!; // Keycloak user ID
+    public int UserId { get; set; } // System user ID (from Users table)
     public int ZoneId { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

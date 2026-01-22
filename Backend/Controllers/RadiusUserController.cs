@@ -427,9 +427,9 @@ public class RadiusUserController : ControllerBase
         
         if (!isAdmin && systemUserId.HasValue)
         {
-            // Get zones managed by this user using system user ID
+            // Get zones managed by this user
             var userZoneIds = await _context.UserZones
-                .Where(uz => uz.UserId == userKeycloakId)
+                .Where(uz => uz.UserId == systemUserId.Value)
                 .Select(uz => uz.ZoneId)
                 .ToListAsync();
             
@@ -1090,14 +1090,14 @@ public class RadiusUserController : ControllerBase
             .Where(u => u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.GetUserKeycloakId();
+        var systemUserId = User.GetSystemUserId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         
-        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        if (!isAdmin && systemUserId.HasValue)
         {
             // Get zones managed by this user
             var userZoneIds = await _context.UserZones
-                .Where(uz => uz.UserId == userKeycloakId)
+                .Where(uz => uz.UserId == systemUserId.Value)
                 .Select(uz => uz.ZoneId)
                 .ToListAsync();
             
@@ -1238,14 +1238,14 @@ public class RadiusUserController : ControllerBase
             .Where(u => !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.GetUserKeycloakId();
+        var systemUserId = User.GetSystemUserId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         
-        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        if (!isAdmin && systemUserId.HasValue)
         {
             // Get zones managed by this user
             var userZoneIds = await _context.UserZones
-                .Where(uz => uz.UserId == userKeycloakId)
+                .Where(uz => uz.UserId == systemUserId.Value)
                 .Select(uz => uz.ZoneId)
                 .ToListAsync();
             
@@ -1389,14 +1389,14 @@ public class RadiusUserController : ControllerBase
             .Where(u => !u.IsDeleted);
 
         // Zone-based filtering for non-admin users
-        var userKeycloakId = User.GetUserKeycloakId();
+        var systemUserId = User.GetSystemUserId();
         var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
         
-        if (!isAdmin && !string.IsNullOrEmpty(userKeycloakId))
+        if (!isAdmin && systemUserId.HasValue)
         {
             // Get zones managed by this user
             var userZoneIds = await _context.UserZones
-                .Where(uz => uz.UserId == userKeycloakId)
+                .Where(uz => uz.UserId == systemUserId.Value)
                 .Select(uz => uz.ZoneId)
                 .ToListAsync();
             
