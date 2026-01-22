@@ -324,6 +324,37 @@ namespace Backend.Controllers
                 return StatusCode(500, new { message = "Failed to sync tags", error = ex.Message });
             }
         }
+
+        // POST: api/radius/tags/sync-with-rules
+        [HttpPost("sync-with-rules")]
+        public async Task<ActionResult<object>> SyncTagsWithRules()
+        {
+            try
+            {
+                var workspaceId = await GetCurrentWorkspaceIdAsync();
+                if (workspaceId == null)
+                {
+                    return Unauthorized(new { message = "No workspace context" });
+                }
+
+                _logger.LogInformation("Starting RADIUS tag sync with saved rules for workspace {WorkspaceId}", workspaceId);
+                var result = await _tagSyncService.SyncTagsWithRulesAsync(workspaceId.Value);
+
+                return Ok(new
+                {
+                    totalUsers = result.TotalUsers,
+                    usersProcessed = result.UsersProcessed,
+                    tagsAssigned = result.TagsAssigned,
+                    tagsRemoved = result.TagsRemoved,
+                    errors = result.Errors
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error syncing RADIUS tags with rules");
+                return StatusCode(500, new { message = "Failed to sync tags", error = ex.Message });
+            }
+        }
     }
 
     public class CreateRadiusTagRequest
