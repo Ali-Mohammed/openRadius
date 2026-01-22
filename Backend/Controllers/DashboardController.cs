@@ -422,7 +422,8 @@ public class DashboardController : ControllerBase
         {
             IQueryable<RadiusUser> query = _context.RadiusUsers
                 .Include(r => r.Profile)
-                .Include(r => r.Tags)
+                .Include(r => r.RadiusUserTags)
+                    .ThenInclude(rut => rut.RadiusTag)
                 .Where(r => !r.IsDeleted);
 
             // Apply filters if provided
@@ -509,8 +510,8 @@ public class DashboardController : ControllerBase
                     if (condition.Value != null && condition.Value.Value.ValueKind == JsonValueKind.String)
                     {
                         var value = condition.Value.Value.GetString();
-                        var isActive = value == "active";
-                        query = query.Where(r => r.IsActive == isActive);
+                        var enabled = value == "active";
+                        query = query.Where(r => r.Enabled == enabled);
                     }
                     break;
             }
@@ -543,7 +544,7 @@ public class DashboardController : ControllerBase
 
             case "status":
                 var byStatus = await query
-                    .GroupBy(r => r.IsActive)
+                    .GroupBy(r => r.Enabled)
                     .Select(g => new
                     {
                         name = g.Key ? "Active" : "Inactive",
@@ -558,8 +559,8 @@ public class DashboardController : ControllerBase
 
             case "tags":
                 var byTags = await query
-                    .SelectMany(r => r.Tags.Select(t => new { User = r, Tag = t }))
-                    .GroupBy(x => x.Tag.Name)
+                    .SelectMany(r => r.RadiusUserTags.Select(rut => new { User = r, Tag = rut.RadiusTag }))
+                    .GroupBy(x => x.Tag.Title)
                     .Select(g => new
                     {
                         name = g.Key,

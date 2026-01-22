@@ -18,7 +18,7 @@ export function AddItemDialog({ open, onClose, onAdd }: AddItemDialogProps) {
   const [title, setTitle] = useState('')
   const [chartType, setChartType] = useState<ChartConfig['chartType']>('bar')
   const [dataSource, setDataSource] = useState<ChartConfig['dataSource']>('radius-users')
-  const [disaggregationField, setDisaggregationField] = useState<string>('')
+  const [disaggregationField, setDisaggregationField] = useState<string>('none')
   const [aggregationType, setAggregationType] = useState<'count' | 'sum' | 'avg'>('count')
   const [valueField, setValueField] = useState<string>('balance')
   const [filterGroup, setFilterGroup] = useState<FilterGroup>({
@@ -51,7 +51,7 @@ export function AddItemDialog({ open, onClose, onAdd }: AddItemDialogProps) {
     setTitle('')
     setChartType('bar')
     setDataSource('radius-users')
-    setDisaggregationField('')
+    setDisaggregationField('none')
     setAggregationType('count')
     setValueField('balance')
     setFilterGroup({ id: 'root', logic: 'and', conditions: [] })
@@ -64,7 +64,7 @@ export function AddItemDialog({ open, onClose, onAdd }: AddItemDialogProps) {
           chartType,
           dataSource,
           filterGroup: filterGroup.conditions.length > 0 ? filterGroup : undefined,
-          disaggregationField: disaggregationField || undefined,
+          disaggregationField: disaggregationField !== 'none' ? disaggregationField : undefined,
           aggregationType,
           valueField: aggregationType !== 'count' ? valueField : undefined,
           options: {},
@@ -186,7 +186,7 @@ export function AddItemDialog({ open, onClose, onAdd }: AddItemDialogProps) {
                         <SelectValue placeholder="No grouping (single value)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No grouping</SelectItem>
+                        <SelectItem value="none">No grouping</SelectItem>
                         <SelectItem value="profile">Profile</SelectItem>
                         <SelectItem value="status">Status</SelectItem>
                         <SelectItem value="tags">Tags</SelectItem>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import ReactECharts from 'echarts-for-react'
+import type { EChartsOption } from 'echarts'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Loader2 } from 'lucide-react'
 import { apiClient } from '../../lib/api'
@@ -44,6 +45,153 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
       setError('Failed to load data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getChartOption = (): EChartsOption => {
+    const chartData = Array.isArray(data) ? data : []
+    
+    const valueLabel = config.aggregationType === 'count' ? 'Count' :
+                      config.aggregationType === 'sum' ? `Total ${config.valueField}` :
+                      `Average ${config.valueField}`
+
+    switch (config.chartType) {
+      case 'bar':
+        return {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: chartData.map(item => item.name),
+            axisLabel: { interval: 0, rotate: 30 }
+          },
+          yAxis: {
+            type: 'value'
+          },
+          series: [{
+            name: valueLabel,
+            type: 'bar',
+            data: chartData.map(item => item.value),
+            itemStyle: {
+              color: COLORS[0]
+            }
+          }]
+        }
+
+      case 'line':
+        return {
+          tooltip: {
+            trigger: 'axis'
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: chartData.map(item => item.name),
+            boundaryGap: false
+          },
+          yAxis: {
+            type: 'value'
+          },
+          series: [{
+            name: valueLabel,
+            type: 'line',
+            data: chartData.map(item => item.value),
+            smooth: true,
+            itemStyle: {
+              color: COLORS[0]
+            },
+            areaStyle: {
+              opacity: 0.1
+            }
+          }]
+        }
+
+      case 'area':
+        return {
+          tooltip: {
+            trigger: 'axis'
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: chartData.map(item => item.name),
+            boundaryGap: false
+          },
+          yAxis: {
+            type: 'value'
+          },
+          series: [{
+            name: valueLabel,
+            type: 'line',
+            data: chartData.map(item => item.value),
+            smooth: true,
+            itemStyle: {
+              color: COLORS[0]
+            },
+            areaStyle: {
+              color: COLORS[0],
+              opacity: 0.5
+            }
+          }]
+        }
+
+      case 'pie':
+      case 'donut':
+        return {
+          tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)'
+          },
+          legend: {
+            orient: 'vertical',
+            left: 'left',
+            top: 'middle'
+          },
+          series: [{
+            name: valueLabel,
+            type: 'pie',
+            radius: config.chartType === 'donut' ? ['40%', '70%'] : '70%',
+            center: ['60%', '50%'],
+            data: chartData.map((item, index) => ({
+              name: item.name,
+              value: item.value,
+              itemStyle: {
+                color: COLORS[index % COLORS.length]
+              }
+            })),
+            label: {
+              formatter: '{b}: {d}%'
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }]
+        }
+
+      default:
+        return {}
     }
   }
 
@@ -105,97 +253,11 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
             <p className="text-sm text-muted-foreground">No data available</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            {config.chartType === 'bar' && (
-              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="name" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="value" fill="#3b82f6" name={
-                  config.aggregationType === 'count' ? 'Count' :
-                  config.aggregationType === 'sum' ? `Total ${config.valueField}` :
-                  `Average ${config.valueField}`
-                } />
-              </BarChart>
-            )}
-            
-            {config.chartType === 'line' && (
-              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="name" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} name={
-                  config.aggregationType === 'count' ? 'Count' :
-                  config.aggregationType === 'sum' ? `Total ${config.valueField}` :
-                  `Average ${config.valueField}`
-                } />
-              </LineChart>
-            )}
-            
-            {config.chartType === 'area' && (
-              <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="name" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Legend />
-                <Area type="monotone" dataKey="value" fill="#3b82f6" stroke="#3b82f6" name={
-                  config.aggregationType === 'count' ? 'Count' :
-                  config.aggregationType === 'sum' ? `Total ${config.valueField}` :
-                  `Average ${config.valueField}`
-                } />
-              </AreaChart>
-            )}
-            
-            {(config.chartType === 'pie' || config.chartType === 'donut') && (
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={config.chartType === 'donut' ? 80 : 100}
-                  innerRadius={config.chartType === 'donut' ? 50 : 0}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
-                />
-              </PieChart>
-            )}
-          </ResponsiveContainer>
+          <ReactECharts 
+            option={getChartOption()} 
+            style={{ height: '100%', width: '100%' }}
+            opts={{ renderer: 'canvas' }}
+          />
         )}
       </CardContent>
     </Card>
