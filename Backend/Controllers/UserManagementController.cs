@@ -187,12 +187,12 @@ public class UserManagementController : ControllerBase
                     
                     // Fetch zones for this user
                     List<ZoneInfo>? userZones = null;
-                    if (!string.IsNullOrEmpty(userId))
+                    if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var systemUserId))
                     {
                         try
                         {
                             var zones = await _context.UserZones
-                                .Where(uz => uz.UserId == userId)
+                                .Where(uz => uz.UserId == systemUserId)
                                 .Join(_context.Zones,
                                     uz => uz.ZoneId,
                                     z => z.Id,
@@ -871,9 +871,13 @@ public class UserManagementController : ControllerBase
         {
             var currentUserId = GetCurrentUserId();
 
+            // Convert userId to int (system user ID)
+            if (!int.TryParse(userId, out var systemUserId))
+                return BadRequest(new { message = "Invalid user ID format" });
+
             // Remove existing assignments for this user
             var existingAssignments = await _context.UserZones
-                .Where(uz => uz.UserId == userId)
+                .Where(uz => uz.UserId == systemUserId)
                 .ToListAsync();
             _context.UserZones.RemoveRange(existingAssignments);
 
@@ -891,7 +895,7 @@ public class UserManagementController : ControllerBase
 
                 var userZone = new UserZone
                 {
-                    UserId = userId,
+                    UserId = systemUserId,
                     ZoneId = zoneId,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = currentUserId
@@ -916,8 +920,11 @@ public class UserManagementController : ControllerBase
     {
         try
         {
+            if (!int.TryParse(userId, out var systemUserId))
+                return BadRequest(new { message = "Invalid user ID format" });
+                
             var zoneIds = await _context.UserZones
-                .Where(uz => uz.UserId == userId)
+                .Where(uz => uz.UserId == systemUserId)
                 .Select(uz => uz.ZoneId)
                 .ToListAsync();
 

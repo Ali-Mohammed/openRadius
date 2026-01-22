@@ -90,12 +90,12 @@ public class ZoneController : ControllerBase
 
         // Fetch users from master context
         var users = await _masterContext.Users
-            .Where(u => u.KeycloakUserId != null && userIds.Contains(u.KeycloakUserId))
-            .Select(u => new { u.KeycloakUserId, u.FirstName, u.LastName, u.Email })
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email })
             .ToListAsync();
 
         var userDict = users
-            .GroupBy(u => u.KeycloakUserId!)
+            .GroupBy(u => u.Id)
             .ToDictionary(g => g.Key, g => g.First());
 
         // Populate user information for each zone
@@ -110,7 +110,7 @@ public class ZoneController : ControllerBase
                 .Where(uid => userDict.ContainsKey(uid))
                 .Select(uid => new UserBasicInfo
                 {
-                    Id = uid,
+                    Id = uid.ToString(),
                     Name = $"{userDict[uid].FirstName} {userDict[uid].LastName}",
                     Email = userDict[uid].Email
                 })
@@ -395,9 +395,13 @@ public class ZoneController : ControllerBase
         // Add new assignments
         foreach (var managementUserId in dto.UserIds)
         {
+            // Parse user ID string to int (system user ID)
+            if (!int.TryParse(managementUserId, out var systemUserId))
+                continue;
+                
             var userZone = new UserZone
             {
-                UserId = managementUserId,
+                UserId = systemUserId,
                 ZoneId = id,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = userId

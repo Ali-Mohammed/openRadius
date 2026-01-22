@@ -533,21 +533,26 @@ public class SasSyncService : ISasSyncService
                     _logger.LogInformation("Found matching user for zone '{ZoneName}' -> UserId: {UserId}", zone.Name, localUserId);
                     try
                     {
-                        // Check if zone assignment already exists
-                        var existingAssignment = await context.UserZones
-                            .FirstOrDefaultAsync(uz => uz.UserId == localUserId && uz.ZoneId == zone.Id);
-                        
-                        if (existingAssignment == null)
+                        // Convert localUserId to int (system user ID)
+                        if (int.TryParse(localUserId, out var systemUserId))
                         {
-                            var userZone = new UserZone
+                            // Check if zone assignment already exists
+                            var existingAssignment = await context.UserZones
+                                .FirstOrDefaultAsync(uz => uz.UserId == systemUserId && uz.ZoneId == zone.Id);
+                            
+                            if (existingAssignment == null)
                             {
-                                UserId = localUserId,
-                                ZoneId = zone.Id,
+                                var userZone = new UserZone
+                                {
+                                    UserId = systemUserId,
+                                    ZoneId = zone.Id,
                                 CreatedAt = DateTime.UtcNow,
                                 CreatedBy = "sync"
                             };
-                            context.UserZones.Add(userZone);
-                            await context.SaveChangesAsync();
+                                context.UserZones.Add(userZone);
+                                await context.SaveChangesAsync();
+                            }
+                        }
                             result.ZonesAssigned++;
                             _logger.LogInformation("Assigned zone '{ZoneName}' (ID: {ZoneId}) to user ID {UserId}", zone.Name, zone.Id, localUserId);
                         }

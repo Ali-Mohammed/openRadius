@@ -367,9 +367,16 @@ public class UserManagementDbController : ControllerBase
             {
                 try
                 {
+                    // Convert string user IDs to integers
+                    var systemUserIds = localUserIds
+                        .Select(id => int.TryParse(id, out var num) ? (int?)num : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToList();
+                        
                     var userZones = await _appContext.UserZones
                         .AsNoTracking()
-                        .Where(uz => localUserIds.Contains(uz.UserId))
+                        .Where(uz => systemUserIds.Contains(uz.UserId))
                         .Join(_appContext.Zones,
                             uz => uz.ZoneId,
                             z => z.Id,
