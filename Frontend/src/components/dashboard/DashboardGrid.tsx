@@ -59,7 +59,7 @@ export function DashboardGrid({
   }
 
   const handleLayoutChange = (currentLayout: Layout[], allLayouts: Layouts) => {
-    if (onLayoutChange && isEditing) {
+    if (onLayoutChange) {
       // Use lg layout as the source of truth
       const lgLayout = allLayouts.lg || currentLayout
       const updatedItems = items.map((item) => {

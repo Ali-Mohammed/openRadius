@@ -25,12 +25,53 @@ export default function DashboardView() {
   const [showFilters, setShowFilters] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [draggedTabIndex, setDraggedTabIndex] = useState<number | null>(null)
+  const [originalDashboard, setOriginalDashboard] = useState<Dashboard | null>(null)
 
   useEffect(() => {
     if (id) {
       loadDashboard()
     }
   }, [id])
+
+  // Save layout changes when exiting edit mode
+  useEffect(() => {
+    const handleEditModeChange = async () => {
+      if (!isEditing && dashboard && originalDashboard) {
+        await saveLayoutChanges()
+        setOriginalDashboard(null)
+      }
+      if (isEditing && dashboard) {
+        setOriginalDashboard(JSON.parse(JSON.stringify(dashboard)))
+      }
+    }
+    handleEditModeChange()
+  }, [isEditing])
+
+  const saveLayoutChanges = async () => {
+    if (!dashboard || !originalDashboard) return
+
+    try {
+      for (const tab of dashboard.tabs) {
+        const originalTab = originalDashboard.tabs.find(t => t.id === tab.id)
+        if (originalTab) {
+          for (const item of tab.items) {
+            const originalItem = originalTab.items.find(i => i.id === item.id)
+            if (originalItem &&
+                (originalItem.layout.x !== item.layout.x ||
+                 originalItem.layout.y !== item.layout.y ||
+                 originalItem.layout.w !== item.layout.w ||
+                 originalItem.layout.h !== item.layout.h)) {
+              await dashboardApi.updateItemLayout(dashboard.id, item.id, item.layout)
+            }
+          }
+        }
+      }
+      toast.success('Layout saved successfully')
+    } catch (error) {
+      console.error('Error saving layout:', error)
+      toast.error('Failed to save layout changes')
+    }
+  }
 
   const loadDashboard = async () => {
     try {
@@ -179,7 +220,7 @@ export default function DashboardView() {
   }
 
   const handleLayoutChange = async (updatedItems: DashboardItem[]) => {
-    if (!dashboard) return
+    if (!dashboard || !isEditing) return
 
     // Update local state immediately for smooth UX
     const updatedTabs = dashboard.tabs.map((tab) =>
@@ -188,27 +229,8 @@ export default function DashboardView() {
 
     setDashboard({ ...dashboard, tabs: updatedTabs })
 
-    // Persist layout changes to backend
-    try {
-      // Update all items that changed position
-      const currentTab = dashboard.tabs.find(tab => tab.id === activeTabId)
-      if (currentTab) {
-        for (const item of updatedItems) {
-          const originalItem = currentTab.items.find(i => i.id === item.id)
-          // Only update if layout actually changed
-          if (originalItem && 
-              (originalItem.layout.x !== item.layout.x ||
-               originalItem.layout.y !== item.layout.y ||
-               originalItem.layout.w !== item.layout.w ||
-               originalItem.layout.h !== item.layout.h)) {
-            await dashboardApi.updateItemLayout(dashboard.id, item.id, item.layout)
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error updating layout:', error)
-      // Don't show error toast for layout updates to avoid spam
-    }
+    // Debounce backend save - only save after user stops dragging/resizing
+    // The save will happen when user exits edit mode or changes tabs
   }
 
   const handleFilterChange = (filterId: string, value: any) => {
@@ -275,6 +297,14 @@ export default function DashboardView() {
     )
   }
 
+  const handleToggleEdit = async () => {
+    if (isEditing) {
+      // Save changes before exiting edit mode
+      await saveLayoutChanges()
+    }
+    setIsEditing(!isEditing)
+  }
+
   const activeTab = dashboard.tabs.find((tab) => tab.id === activeTabId)
 
   return (
@@ -300,7 +330,7 @@ export default function DashboardView() {
           <Button
             variant={isEditing ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={handleToggleEdit}
           >
             <Edit className="mr-2 h-4 w-4" />
             {isEditing ? 'Done Editing' : 'Edit'}
