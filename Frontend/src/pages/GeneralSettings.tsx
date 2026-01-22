@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,11 +40,20 @@ interface TagSyncRule {
 export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [currency, setCurrency] = useState('USD')
   const [churnDays, setChurnDays] = useState(20)
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncProgress, setSyncProgress] = useState<TagSyncProgress | null>(null)
+  
+  // Get current tab from URL or default to 'general'
+  const currentTab = searchParams.get('tab') || 'general'
+  
+  // Handler to update tab in URL
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value })
+  }
   
   // Tag Sync Rules state
   const [tagSyncRules, setTagSyncRules] = useState<TagSyncRule[]>([])
@@ -233,7 +242,7 @@ export default function GeneralSettings() {
         <p className="text-muted-foreground">Configure general workspace preferences</p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="radius-user">Radius User</TabsTrigger>
