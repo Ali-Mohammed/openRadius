@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import GridLayout from 'react-grid-layout'
 import type { Layout } from 'react-grid-layout'
-import type { DashboardItem } from '../../types/dashboard'
+import type { DashboardItem, ChartConfig } from '../../types/dashboard'
 import { ChartWidget } from './widgets/ChartWidget'
 import { TextWidget } from './widgets/TextWidget'
 import { MetricWidget } from './widgets/MetricWidget'
 import { TableWidget } from './widgets/TableWidget'
+import { RadiusDashboardWidget } from './RadiusDashboardWidget'
 import { Button } from '../ui/button'
 import { Pencil, Trash2, GripVertical } from 'lucide-react'
 import 'react-grid-layout/css/styles.css'
@@ -73,6 +74,11 @@ export function DashboardGrid({
   const renderWidget = (item: DashboardItem) => {
     switch (item.type) {
       case 'chart':
+        // Check if this is a RADIUS data source chart
+        const chartConfig = item.config as ChartConfig
+        if (chartConfig.dataSource === 'radius-users') {
+          return <RadiusDashboardWidget title={item.title} config={chartConfig} />
+        }
         return <ChartWidget item={item} />
       case 'text':
         return <TextWidget item={item} />

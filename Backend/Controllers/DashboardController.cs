@@ -413,6 +413,225 @@ public class DashboardController : ControllerBase
             return StatusCode(500, new { message = "Error deleting item" });
         }
     }
+
+    // POST: api/dashboard/radius-data
+    [HttpPost("radius-data")]
+    public async Task<ActionResult<object>> GetRadiusDashboardData([FromBody] RadiusDashboardDataRequest request)
+    {
+        try
+        {
+            IQueryable<RadiusUser> query = _context.RadiusUsers
+                .Include(r => r.Profile)
+                .Include(r => r.Tags)
+                .Where(r => !r.IsDeleted);
+
+            // Apply filters if provided
+            if (request.FilterGroup != null && request.FilterGroup.Conditions.Any())
+            {
+                query = ApplyRadiusFilters(query, request.FilterGroup);
+            }
+
+            // Disaggregate and aggregate data
+            if (!string.IsNullOrEmpty(request.DisaggregationField))
+            {
+                var results = await GetDisaggregatedData(query, request);
+                return Ok(results);
+            }
+            else
+            {
+                // No disaggregation - return single aggregated value
+                var value = await GetAggregatedValue(query, request);
+                return Ok(new { value });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting RADIUS dashboard data");
+            return StatusCode(500, new { message = "Error retrieving dashboard data" });
+        }
+    }
+
+    private IQueryable<RadiusUser> ApplyRadiusFilters(IQueryable<RadiusUser> query, FilterGroupDto filterGroup)
+    {
+        foreach (var condition in filterGroup.Conditions)
+        {
+            var columnLower = condition.Column.ToLower();
+            
+            switch (columnLower)
+            {
+                case "profileid":
+                case "profile":
+                    if (condition.Value != null && condition.Value.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var profileIds = condition.Value.Value.GetString()?.Split(',')
+                            .Select(id => int.TryParse(id.Trim(), out var pid) ? pid : 0)
+                            .Where(id => id > 0)
+                            .ToList();
+
+                        if (profileIds != null && profileIds.Any())
+                        {
+                            query = query.Where(r => r.ProfileId != null && profileIds.Contains(r.ProfileId.Value));
+                        }
+                    }
+                    break;
+
+                case "username":
+                    if (condition.Value != null && condition.Value.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var value = condition.Value.Value.GetString();
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            if (condition.Operator == "contains")
+                                query = query.Where(r => r.Username.Contains(value));
+                            else if (condition.Operator == "equals")
+                                query = query.Where(r => r.Username == value);
+                        }
+                    }
+                    break;
+
+                case "balance":
+                    if (condition.Value != null)
+                    {
+                        var value = GetNumericValue(condition.Value.Value);
+                        if (value.HasValue)
+                        {
+                            if (condition.Operator == "greater_than")
+                                query = query.Where(r => r.Balance > value.Value);
+                            else if (condition.Operator == "less_than")
+                                query = query.Where(r => r.Balance < value.Value);
+                            else if (condition.Operator == "equals")
+                                query = query.Where(r => r.Balance == value.Value);
+                        }
+                    }
+                    break;
+
+                case "status":
+                    if (condition.Value != null && condition.Value.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var value = condition.Value.Value.GetString();
+                        var isActive = value == "active";
+                        query = query.Where(r => r.IsActive == isActive);
+                    }
+                    break;
+            }
+        }
+
+        return query;
+    }
+
+    private async Task<object> GetDisaggregatedData(IQueryable<RadiusUser> query, RadiusDashboardDataRequest request)
+    {
+        var field = request.DisaggregationField!.ToLower();
+
+        switch (field)
+        {
+            case "profileid":
+            case "profile":
+                var byProfile = await query
+                    .GroupBy(r => r.Profile != null ? r.Profile.Name : "No Profile")
+                    .Select(g => new
+                    {
+                        name = g.Key,
+                        value = request.AggregationType == "count" ? g.Count() :
+                               request.AggregationType == "sum" && !string.IsNullOrEmpty(request.ValueField) ?
+                               GetGroupSum(g, request.ValueField) :
+                               request.AggregationType == "avg" && !string.IsNullOrEmpty(request.ValueField) ?
+                               GetGroupAvg(g, request.ValueField) : g.Count()
+                    })
+                    .ToListAsync();
+                return byProfile;
+
+            case "status":
+                var byStatus = await query
+                    .GroupBy(r => r.IsActive)
+                    .Select(g => new
+                    {
+                        name = g.Key ? "Active" : "Inactive",
+                        value = request.AggregationType == "count" ? g.Count() :
+                               request.AggregationType == "sum" && !string.IsNullOrEmpty(request.ValueField) ?
+                               GetGroupSum(g, request.ValueField) :
+                               request.AggregationType == "avg" && !string.IsNullOrEmpty(request.ValueField) ?
+                               GetGroupAvg(g, request.ValueField) : g.Count()
+                    })
+                    .ToListAsync();
+                return byStatus;
+
+            case "tags":
+                var byTags = await query
+                    .SelectMany(r => r.Tags.Select(t => new { User = r, Tag = t }))
+                    .GroupBy(x => x.Tag.Name)
+                    .Select(g => new
+                    {
+                        name = g.Key,
+                        value = g.Count()
+                    })
+                    .ToListAsync();
+                return byTags;
+
+            default:
+                return new List<object>();
+        }
+    }
+
+    private async Task<int> GetAggregatedValue(IQueryable<RadiusUser> query, RadiusDashboardDataRequest request)
+    {
+        if (request.AggregationType == "count")
+        {
+            return await query.CountAsync();
+        }
+        else if (request.AggregationType == "sum" && request.ValueField == "balance")
+        {
+            return (int)await query.SumAsync(r => r.Balance);
+        }
+        else if (request.AggregationType == "avg" && request.ValueField == "balance")
+        {
+            var avg = await query.AverageAsync(r => (double?)r.Balance);
+            return (int)(avg ?? 0);
+        }
+
+        return await query.CountAsync();
+    }
+
+    private decimal? GetNumericValue(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Number)
+            return element.GetDecimal();
+        if (element.ValueKind == JsonValueKind.String)
+        {
+            var str = element.GetString();
+            if (decimal.TryParse(str, out var result))
+                return result;
+        }
+        return null;
+    }
+
+    private double GetGroupSum(IGrouping<string, RadiusUser> group, string field)
+    {
+        if (field.ToLower() == "balance")
+            return (double)group.Sum(r => r.Balance);
+        return 0;
+    }
+
+    private double GetGroupAvg(IGrouping<string, RadiusUser> group, string field)
+    {
+        if (field.ToLower() == "balance")
+            return (double)group.Average(r => (decimal?)r.Balance ?? 0);
+        return 0;
+    }
+
+    private double GetGroupSum(IGrouping<bool, RadiusUser> group, string field)
+    {
+        if (field.ToLower() == "balance")
+            return (double)group.Sum(r => r.Balance);
+        return 0;
+    }
+
+    private double GetGroupAvg(IGrouping<bool, RadiusUser> group, string field)
+    {
+        if (field.ToLower() == "balance")
+            return (double)group.Average(r => (decimal?)r.Balance ?? 0);
+        return 0;
+    }
 }
 
 // DTOs
@@ -463,4 +682,29 @@ public class LayoutDto
     public int Y { get; set; }
     public int W { get; set; }
     public int H { get; set; }
+}
+
+public class RadiusDashboardDataRequest
+{
+    public string? DisaggregationField { get; set; }
+    public string AggregationType { get; set; } = "count";
+    public string? ValueField { get; set; }
+    public FilterGroupDto? FilterGroup { get; set; }
+}
+
+public class FilterGroupDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Logic { get; set; } = "and";
+    public List<FilterConditionDto> Conditions { get; set; } = new();
+}
+
+public class FilterConditionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Field { get; set; } = string.Empty;
+    public string Column { get; set; } = string.Empty;
+    public string Operator { get; set; } = string.Empty;
+    public JsonElement? Value { get; set; }
+    public JsonElement? Value2 { get; set; }
 }

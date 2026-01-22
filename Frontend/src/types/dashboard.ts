@@ -1,6 +1,25 @@
-﻿export interface ChartConfig {
-  chartType: 'line' | 'bar' | 'pie' | 'area' | 'scatter' | 'gauge' | 'radar'
-  dataSource?: string
+﻿export interface FilterCondition {
+  id: string
+  field: string
+  column: string
+  operator: string
+  value: string | string[] | number | boolean | null
+  value2?: string | number | null
+}
+
+export interface FilterGroup {
+  id: string
+  logic: 'and' | 'or'
+  conditions: FilterCondition[]
+}
+
+export interface ChartConfig {
+  chartType: 'line' | 'bar' | 'pie' | 'area' | 'scatter' | 'gauge' | 'radar' | 'donut' | 'number'
+  dataSource?: 'radius-users' | 'manual'
+  filterGroup?: FilterGroup
+  disaggregationField?: string // Field to group by (e.g., 'profileId', 'tags', 'status')
+  aggregationType?: 'count' | 'sum' | 'avg' // How to aggregate data
+  valueField?: string // Which field to aggregate (for sum/avg)
   options?: any
 }
 
