@@ -255,6 +255,8 @@ export function RadiusDashboardWidget({ title, config }: RadiusDashboardWidgetPr
             option={getChartOption()} 
             style={{ height: '100%', width: '100%' }}
             opts={{ renderer: 'canvas' }}
+            notMerge={true}
+            lazyUpdate={true}
           />
         )}
       </div>

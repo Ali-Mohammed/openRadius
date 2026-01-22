@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import GridLayout from 'react-grid-layout'
-import type { Layout } from 'react-grid-layout'
+import { Responsive, WidthProvider } from 'react-grid-layout'
+import type { Layout, Layouts } from 'react-grid-layout'
 import type { DashboardItem, ChartConfig } from '../../types/dashboard'
 import { ChartWidget } from './widgets/ChartWidget'
 import { TextWidget } from './widgets/TextWidget'
@@ -11,6 +11,8 @@ import { Button } from '../ui/button'
 import { Pencil, Trash2, GripVertical } from 'lucide-react'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
+
+const ResponsiveGridLayout = WidthProvider(Responsive)
 
 interface DashboardGridProps {
   items: DashboardItem[]
@@ -25,28 +27,21 @@ export function DashboardGrid({
   onLayoutChange,
   onEditItem,
   onDeleteItem,
-  isEditing = false,
-}: DashboardGridProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(1200)
-
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setWidth(containerRef.current.offsetWidth)
-      }
-    }
-    
-    updateWidth()
-    window.addEventListener('resize', updateWidth)
-    return () => window.removeEventListener('resize', updateWidth)
-  }, [])
-
-  const layout: Layout[] = items.map((item) => ({
+  isEditlayout: Layout[] = items.map((item) => ({
     i: item.id,
     x: item.layout.x,
     y: item.layout.y,
     w: item.layout.w,
+    h: item.layout.h,
+  }))
+
+  const layouts: Layouts = {
+    lg: layout,
+    md: layout.map(l => ({ ...l, w: Math.min(l.w, 12) })),
+    sm: layout.map(l => ({ ...l, w: Math.min(l.w, 8), x: 0 })),
+    xs: layout.map(l => ({ ...l, w: 4, x: 0 })),
+    xxs: layout.map(l => ({ ...l, w: 2, x: 0 }))
+  }: item.layout.w,
     h: item.layout.h,
   }))
 
@@ -99,15 +94,14 @@ export function DashboardGrid({
         layout={layout}
         cols={24}
         rowHeight={60}
-        width={width}
-        onLayoutChange={handleLayoutChange}
-        isDraggable={isEditing}
-        isResizable={isEditing}
-        compactType="vertical"
-        preventCollision={false}
-        resizeHandles={['se', 's', 'e', 'sw', 'ne', 'nw', 'n', 'w']}
-        margin={[10, 10]}
-        containerPadding={[10, 10]}
+        wstyle={{ width: '100%' }}>
+      <ResponsiveGridLayout
+        className={isEditing ? 'layout dashboard-grid-editing' : 'layout'}
+        layouts={layouts}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 24, md: 12, sm: 8, xs: 4, xxs: 2 }}
+        rowHeight={608]}
+        containerPadding={[0, 0]}
       >
         {items.map((item) => (
           <div
@@ -152,3 +146,4 @@ export function DashboardGrid({
     </div>
   )
 }
+Responsive

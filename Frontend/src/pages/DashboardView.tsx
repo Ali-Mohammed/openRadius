@@ -278,7 +278,7 @@ export default function DashboardView() {
   const activeTab = dashboard.tabs.find((tab) => tab.id === activeTabId)
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -362,7 +362,7 @@ export default function DashboardView() {
         </div>
 
         {dashboard.tabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id} className="mt-6">
+          <TabsContent key={tab.id} value={tab.id} className="mt-4">
             {tab.items.length > 0 ? (
               <DashboardGrid
                 items={tab.items}
