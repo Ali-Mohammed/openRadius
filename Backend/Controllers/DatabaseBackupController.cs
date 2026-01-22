@@ -140,7 +140,7 @@ public class DatabaseBackupController : ControllerBase
                 FilePath = backupFilePath,
                 SizeBytes = fileBytes.Length,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = User.GetSystemUserId()
+                CreatedBy = User.GetSystemUserId() ?? 0
             };
 
             _masterContext.BackupHistories.Add(backupHistory);
@@ -442,7 +442,7 @@ public class DatabaseBackupController : ControllerBase
                 FilePath = filePath,
                 SizeBytes = file.Length,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = User.GetSystemUserId()
+                CreatedBy = User.GetSystemUserId() ?? 0
             };
 
             _masterContext.BackupHistories.Add(backupHistory);
@@ -530,7 +530,7 @@ public class BackupHistoryDto
     public string FileName { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public DateTime CreatedAt { get; set; }
-    public string CreatedBy { get; set; } = string.Empty;
+    public int CreatedBy { get; set; }
 }
 
 public class RestoreRequest
