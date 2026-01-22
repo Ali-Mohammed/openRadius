@@ -329,7 +329,7 @@ export default function DashboardView() {
   const activeTab = dashboard.tabs.find((tab) => tab.id === activeTabId)
 
   return (
-    <div className="p-2 space-y-2">
+    <div className="">
       <div className="flex items-center justify-between">
         <Tabs value={activeTabId} onValueChange={setActiveTabId}>
           <div className="flex items-center gap-2">
