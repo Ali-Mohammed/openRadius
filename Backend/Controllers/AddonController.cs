@@ -127,8 +127,6 @@ public class AddonController : ControllerBase
     {
         try
         {
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             // Validate custom wallet exists if provided
             if (addon.CustomWalletId.HasValue)
             {
@@ -140,7 +138,7 @@ public class AddonController : ControllerBase
             }
 
             addon.CreatedAt = DateTime.UtcNow;
-            addon.CreatedBy = userEmail;
+            addon.CreatedBy = User.GetSystemUserId();
             addon.IsDeleted = false;
 
             _context.Addons.Add(addon);
@@ -182,8 +180,6 @@ public class AddonController : ControllerBase
                 }
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             existingAddon.Name = addon.Name;
             existingAddon.Description = addon.Description;
             existingAddon.Icon = addon.Icon;
@@ -191,7 +187,7 @@ public class AddonController : ControllerBase
             existingAddon.Price = addon.Price;
             existingAddon.CustomWalletId = addon.CustomWalletId;
             existingAddon.UpdatedAt = DateTime.UtcNow;
-            existingAddon.UpdatedBy = userEmail;
+            existingAddon.UpdatedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
@@ -216,11 +212,9 @@ public class AddonController : ControllerBase
                 return NotFound(new { error = "Addon not found" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             addon.IsDeleted = true;
             addon.DeletedAt = DateTime.UtcNow;
-            addon.DeletedBy = userEmail;
+            addon.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
@@ -253,13 +247,11 @@ public class AddonController : ControllerBase
                 return BadRequest(new { error = "Addon is not deleted" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             addon.IsDeleted = false;
             addon.DeletedAt = null;
             addon.DeletedBy = null;
             addon.UpdatedAt = DateTime.UtcNow;
-            addon.UpdatedBy = userEmail;
+            addon.UpdatedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 

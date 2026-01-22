@@ -169,18 +169,14 @@ namespace Backend.Controllers
         {
             try
             {
-                var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            var cashback = await _context.UserCashbacks.FindAsync(id);
+            if (cashback == null)
+            {
+                return NotFound(new { error = "User cashback not found" });
+            }
 
-                var cashback = await _context.UserCashbacks.FindAsync(id);
-                if (cashback == null)
-                {
-                    return NotFound(new { error = "User cashback not found" });
-                }
-
-                cashback.DeletedAt = DateTime.UtcNow;
-                cashback.DeletedBy = userEmail;
-
-                await _context.SaveChangesAsync();
+            cashback.DeletedAt = DateTime.UtcNow;
+            cashback.DeletedBy = User.GetSystemUserId();
 
                 return Ok(new { message = "User cashback deleted successfully" });
             }

@@ -331,7 +331,7 @@ public class TransactionController : ControllerBase
                 Reference = request.Reference,
                 PaymentMethod = request.PaymentMethod,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.Transactions.Add(transaction);
@@ -352,7 +352,7 @@ public class TransactionController : ControllerBase
                 Reason = request.Reason,
                 Reference = request.Reference,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.WalletHistories.Add(history);
@@ -372,7 +372,7 @@ public class TransactionController : ControllerBase
                     balanceBefore,
                     balanceAfter
                 }),
-                PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                PerformedBy = User.GetSystemUserId(),
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(transactionHistory);
@@ -458,7 +458,7 @@ public class TransactionController : ControllerBase
             // Mark original transaction as reversed
             transaction.Status = "reversed";
             transaction.UpdatedAt = DateTime.UtcNow;
-            transaction.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            transaction.UpdatedBy = User.GetSystemUserId();
 
             // Create reversal transaction (also mark as deleted so it doesn't show in main view)
             var reversalTransaction = new Models.Transaction
@@ -479,9 +479,9 @@ public class TransactionController : ControllerBase
                 RelatedTransactionId = transaction.Id,
                 IsDeleted = true, // Mark reversal as deleted too
                 DeletedAt = DateTime.UtcNow,
-                DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                DeletedBy = User.GetSystemUserId(),
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.Transactions.Add(reversalTransaction);
@@ -502,7 +502,7 @@ public class TransactionController : ControllerBase
                 Reason = deleteReason,
                 Reference = transaction.Reference,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.WalletHistories.Add(reversalHistory);
@@ -510,7 +510,7 @@ public class TransactionController : ControllerBase
             // Soft delete the original transaction
             transaction.IsDeleted = true;
             transaction.DeletedAt = DateTime.UtcNow;
-            transaction.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            transaction.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
@@ -525,7 +525,7 @@ public class TransactionController : ControllerBase
                     reversalTransactionId = reversalTransaction.Id,
                     balanceAfterReversal = reversedBalanceAfter
                 }),
-                PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                PerformedBy = User.GetSystemUserId(),
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(deletionHistory);
@@ -619,14 +619,14 @@ public class TransactionController : ControllerBase
             transaction.DeletedBy = null;
             transaction.Status = "completed";
             transaction.UpdatedAt = DateTime.UtcNow;
-            transaction.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            transaction.UpdatedBy = User.GetSystemUserId();
 
             // Delete the reversal transaction if it exists
             if (reversalTransaction != null)
             {
                 reversalTransaction.IsDeleted = true;
                 reversalTransaction.DeletedAt = DateTime.UtcNow;
-                reversalTransaction.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+                reversalTransaction.DeletedBy = User.GetSystemUserId();
             }
 
             // Create history record for restoration
@@ -645,7 +645,7 @@ public class TransactionController : ControllerBase
                 Reason = "Transaction restored",
                 Reference = transaction.Reference,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.WalletHistories.Add(restorationHistory);
@@ -663,7 +663,7 @@ public class TransactionController : ControllerBase
                     balanceAfter = restoredBalanceAfter,
                     reversalTransactionId = reversalTransaction?.Id
                 }),
-                PerformedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                PerformedBy = User.GetSystemUserId(),
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(transactionHistory);

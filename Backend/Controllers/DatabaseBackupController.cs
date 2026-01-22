@@ -129,9 +129,6 @@ public class DatabaseBackupController : ControllerBase
             // Save backup to disk
             await System.IO.File.WriteAllBytesAsync(backupFilePath, fileBytes);
 
-            // Get current user email from claims
-            var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "system";
-
             // Save backup history to database
             var backupHistory = new Models.BackupHistory
             {
@@ -141,7 +138,7 @@ public class DatabaseBackupController : ControllerBase
                 FilePath = backupFilePath,
                 SizeBytes = fileBytes.Length,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userEmail
+                CreatedBy = User.GetSystemUserId()
             };
 
             _masterContext.BackupHistories.Add(backupHistory);
@@ -434,9 +431,6 @@ public class DatabaseBackupController : ControllerBase
                 await file.CopyToAsync(stream);
             }
 
-            // Get current user email from claims
-            var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "system";
-
             // Save backup history to database
             var backupHistory = new Models.BackupHistory
             {
@@ -446,7 +440,7 @@ public class DatabaseBackupController : ControllerBase
                 FilePath = filePath,
                 SizeBytes = file.Length,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userEmail
+                CreatedBy = User.GetSystemUserId()
             };
 
             _masterContext.BackupHistories.Add(backupHistory);

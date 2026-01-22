@@ -94,7 +94,7 @@ public class TopUpController : ControllerBase
                 Reason = request.Reason,
                 Reference = request.Reference,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.WalletHistories.Add(history);
@@ -179,7 +179,7 @@ public class TopUpController : ControllerBase
                 Reason = request.Reason,
                 Reference = request.Reference,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system"
+                CreatedBy = User.GetSystemUserId()
             };
 
             _context.WalletHistories.Add(history);

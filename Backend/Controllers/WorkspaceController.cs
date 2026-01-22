@@ -122,8 +122,6 @@ public class WorkspaceController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Workspace>> CreateWorkspace(WorkspaceDto dto)
     {
-        var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
-        
         var workspace = new Workspace
         {
             Title = dto.Title,
@@ -136,8 +134,8 @@ public class WorkspaceController : ControllerBase
             Icon = dto.Icon,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            CreatedBy = userName,
-            UpdatedBy = userName
+            CreatedBy = User.GetSystemUserId(),
+            UpdatedBy = User.GetSystemUserId()
         };
         
         _masterContext.Workspaces.Add(workspace);
@@ -229,8 +227,6 @@ public class WorkspaceController : ControllerBase
             return NotFound();
         }
 
-        var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
-        
         workspace.Title = dto.Title;
         workspace.Name = dto.Name;
         workspace.Location = dto.Location;
@@ -240,7 +236,7 @@ public class WorkspaceController : ControllerBase
         workspace.Color = dto.Color;
         workspace.Icon = dto.Icon;
         workspace.UpdatedAt = DateTime.UtcNow;
-        workspace.UpdatedBy = userName;
+        workspace.UpdatedBy = User.GetSystemUserId();
 
         try
         {
@@ -270,10 +266,8 @@ public class WorkspaceController : ControllerBase
             return NotFound();
         }
 
-        var userName = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
-        
         workspace.DeletedAt = DateTime.UtcNow;
-        workspace.DeletedBy = userName;
+        workspace.DeletedBy = User.GetSystemUserId();
         await _masterContext.SaveChangesAsync();
 
         return NoContent();
@@ -296,7 +290,7 @@ public class WorkspaceController : ControllerBase
         workspace.DeletedAt = null;
         workspace.DeletedBy = null;
         workspace.UpdatedAt = DateTime.UtcNow;
-        workspace.UpdatedBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value ?? "Unknown";
+        workspace.UpdatedBy = User.GetSystemUserId();
         await _masterContext.SaveChangesAsync();
 
         return NoContent();

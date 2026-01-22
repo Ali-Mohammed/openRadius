@@ -158,8 +158,6 @@ public class AutomationController : ControllerBase
                 return NotFound(new { error = "Automation not found" });
             }
 
-            var userId = GetCurrentUserId();
-
             automation.Title = request.Title;
             automation.Description = request.Description;
             automation.Icon = request.Icon;
@@ -168,7 +166,7 @@ public class AutomationController : ControllerBase
             automation.IsActive = request.IsActive ?? automation.IsActive;
             automation.WorkflowJson = request.WorkflowJson ?? automation.WorkflowJson;
             automation.UpdatedAt = DateTime.UtcNow;
-            automation.UpdatedBy = userId;
+            automation.UpdatedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
@@ -194,11 +192,9 @@ public class AutomationController : ControllerBase
                 return NotFound(new { error = "Automation not found" });
             }
 
-            var userId = GetCurrentUserId();
-
             automation.IsDeleted = true;
             automation.DeletedAt = DateTime.UtcNow;
-            automation.DeletedBy = userId;
+            automation.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 

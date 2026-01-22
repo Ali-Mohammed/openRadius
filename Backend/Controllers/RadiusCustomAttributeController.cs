@@ -332,7 +332,7 @@ public class RadiusCustomAttributeController : ControllerBase
         // Soft delete
         attribute.IsDeleted = true;
         attribute.DeletedAt = DateTime.UtcNow;
-        attribute.DeletedBy = User.Identity?.Name ?? "system";
+        attribute.DeletedBy = User.GetSystemUserId();
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -380,7 +380,7 @@ public class RadiusCustomAttributeController : ControllerBase
         {
             attribute.IsDeleted = true;
             attribute.DeletedAt = DateTime.UtcNow;
-            attribute.DeletedBy = User.Identity?.Name ?? "system";
+            attribute.DeletedBy = User.GetSystemUserId();
         }
 
         await _context.SaveChangesAsync();

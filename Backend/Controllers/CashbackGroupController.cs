@@ -261,11 +261,8 @@ public class CashbackGroupController : ControllerBase
             return NotFound(new { message = "Cashback group not found" });
         }
 
-        var userEmail = _httpContextAccessor.HttpContext?.User?.Claims
-            .FirstOrDefault(c => c.Type == "email")?.Value ?? "System";
-
-        group.DeletedAt = DateTime.UtcNow;
-        group.DeletedBy = userEmail;
+group.DeletedAt = DateTime.UtcNow;
+        group.DeletedBy = User.GetSystemUserId();
 
         await _context.SaveChangesAsync();
 

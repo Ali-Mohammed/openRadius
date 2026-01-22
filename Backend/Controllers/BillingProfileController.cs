@@ -40,7 +40,7 @@ public class BillingProfileController : ControllerBase
 
             profile.IsActive = !profile.IsActive;
             profile.UpdatedAt = DateTime.UtcNow;
-            profile.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+            profile.UpdatedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
             
@@ -250,8 +250,6 @@ public class BillingProfileController : ControllerBase
                 }
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             var profile = new BillingProfile
             {
                 Name = request.Name,
@@ -260,7 +258,7 @@ public class BillingProfileController : ControllerBase
                 RadiusProfileId = request.RadiusProfileId,
                 BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId, // null means all groups
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userEmail,
+                CreatedBy = User.GetSystemUserId(),
                 IsDeleted = false
             };
 
@@ -337,15 +335,13 @@ public class BillingProfileController : ControllerBase
                 return BadRequest(new { error = "A billing profile with this name already exists" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             existingProfile.Name = request.Name;
             existingProfile.Description = request.Description;
             existingProfile.Price = request.Price;
             existingProfile.RadiusProfileId = request.RadiusProfileId;
             existingProfile.BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId; // null means all groups
             existingProfile.UpdatedAt = DateTime.UtcNow;
-            existingProfile.UpdatedBy = userEmail;
+            existingProfile.UpdatedBy = User.GetSystemUserId();
 
             // Update wallets - remove old ones and add new ones
             _context.BillingProfileWallets.RemoveRange(existingProfile.ProfileWallets);
@@ -407,11 +403,9 @@ public class BillingProfileController : ControllerBase
                 return NotFound(new { error = "Billing profile not found" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             profile.IsDeleted = true;
             profile.DeletedAt = DateTime.UtcNow;
-            profile.DeletedBy = userEmail;
+            profile.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 

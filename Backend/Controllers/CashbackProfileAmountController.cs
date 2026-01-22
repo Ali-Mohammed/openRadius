@@ -118,12 +118,8 @@ namespace Backend.Controllers
                     return NotFound(new { error = "Cashback amount not found" });
                 }
 
-                var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-                amount.DeletedAt = DateTime.UtcNow;
-                amount.DeletedBy = userEmail;
-
-                await _context.SaveChangesAsync();
-
+            amount.DeletedAt = DateTime.UtcNow;
+            amount.DeletedBy = User.GetSystemUserId();
                 return NoContent();
             }
             catch (Exception ex)

@@ -224,7 +224,7 @@ public class UserWalletController : ControllerBase
                 CustomWalletColor = request.CustomWalletColor,
                 CustomWalletIcon = request.CustomWalletIcon,
                 AllowNegativeBalance = request.AllowNegativeBalance,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system",
+                CreatedBy = User.GetSystemUserId(),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -275,7 +275,7 @@ public class UserWalletController : ControllerBase
             existingWallet.Status = request.Status;
             existingWallet.AllowNegativeBalance = request.AllowNegativeBalance;
             existingWallet.UpdatedAt = DateTime.UtcNow;
-            existingWallet.UpdatedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            existingWallet.UpdatedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
@@ -303,7 +303,7 @@ public class UserWalletController : ControllerBase
             // Soft delete
             userWallet.IsDeleted = true;
             userWallet.DeletedAt = DateTime.UtcNow;
-            userWallet.DeletedBy = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+            userWallet.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 

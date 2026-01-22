@@ -230,8 +230,6 @@ public class ZoneController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ZoneResponse>> CreateZone(int workspaceId, [FromBody] ZoneCreateDto dto)
     {
-        var userId = GetCurrentUserId();
-
         var zone = new Zone
         {
             Name = dto.Name,
@@ -277,8 +275,6 @@ public class ZoneController : ControllerBase
             return NotFound(new { message = "Zone not found" });
         }
 
-        var userId = GetCurrentUserId();
-
         if (dto.Name != null) zone.Name = dto.Name;
         if (dto.Description != null) zone.Description = dto.Description;
         if (dto.Color != null) zone.Color = dto.Color;
@@ -286,7 +282,7 @@ public class ZoneController : ControllerBase
         if (dto.ParentZoneId.HasValue) zone.ParentZoneId = dto.ParentZoneId;
         
         zone.UpdatedAt = DateTime.UtcNow;
-        zone.UpdatedBy = userId;
+        zone.UpdatedBy = User.GetSystemUserId();
 
         await _context.SaveChangesAsync();
 
@@ -326,11 +322,9 @@ public class ZoneController : ControllerBase
             return NotFound(new { message = "Zone not found" });
         }
 
-        var userId = GetCurrentUserId();
-
         zone.IsDeleted = true;
         zone.DeletedAt = DateTime.UtcNow;
-        zone.DeletedBy = userId;
+        zone.DeletedBy = User.GetSystemUserId();
 
         // Remove zone assignment from radius users
         var radiusUsers = await _context.RadiusUsers
@@ -360,13 +354,11 @@ public class ZoneController : ControllerBase
             return NotFound(new { message = "Deleted zone not found" });
         }
 
-        var userId = GetCurrentUserId();
-
         zone.IsDeleted = false;
         zone.DeletedAt = null;
         zone.DeletedBy = null;
         zone.UpdatedAt = DateTime.UtcNow;
-        zone.UpdatedBy = userId;
+        zone.UpdatedBy = User.GetSystemUserId();
 
         await _context.SaveChangesAsync();
 

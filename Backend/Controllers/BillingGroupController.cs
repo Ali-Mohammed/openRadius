@@ -148,8 +148,6 @@ public class BillingGroupController : ControllerBase
                 return BadRequest(new { error = "A group with this name already exists" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             var group = new BillingGroup
             {
                 Name = request.Name,
@@ -158,7 +156,7 @@ public class BillingGroupController : ControllerBase
                 Color = request.Color,
                 IsActive = request.IsActive,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userEmail,
+                CreatedBy = User.GetSystemUserId(),
                 IsDeleted = false
             };
 
@@ -175,7 +173,7 @@ public class BillingGroupController : ControllerBase
                         GroupId = group.Id,
                         UserId = userId,
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
+                        CreatedBy = User.GetSystemUserId()
                     };
                     _context.Set<BillingGroupUser>().Add(groupUser);
                 }
@@ -217,15 +215,13 @@ public class BillingGroupController : ControllerBase
                 return BadRequest(new { error = "A group with this name already exists" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             existingGroup.Name = request.Name;
             existingGroup.Description = request.Description;
             existingGroup.Icon = request.Icon;
             existingGroup.Color = request.Color;
             existingGroup.IsActive = request.IsActive;
             existingGroup.UpdatedAt = DateTime.UtcNow;
-            existingGroup.UpdatedBy = userEmail;
+            existingGroup.UpdatedBy = User.GetSystemUserId();
 
             // Update users - remove old ones and add new ones
             var existingGroupUsers = existingGroup.GroupUsers.ToList();
@@ -240,7 +236,7 @@ public class BillingGroupController : ControllerBase
                         GroupId = existingGroup.Id,
                         UserId = userId,
                         CreatedAt = DateTime.UtcNow,
-                        CreatedBy = userEmail
+                        CreatedBy = User.GetSystemUserId()
                     };
                     _context.Set<BillingGroupUser>().Add(groupUser);
                 }
@@ -269,11 +265,9 @@ public class BillingGroupController : ControllerBase
                 return NotFound(new { error = "Group not found" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             group.IsDeleted = true;
             group.DeletedAt = DateTime.UtcNow;
-            group.DeletedBy = userEmail;
+            group.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
@@ -301,13 +295,11 @@ public class BillingGroupController : ControllerBase
                 return NotFound(new { error = "Group not found" });
             }
 
-            var userEmail = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
-
             group.IsDeleted = false;
             group.DeletedAt = null;
             group.DeletedBy = null;
             group.UpdatedAt = DateTime.UtcNow;
-            group.UpdatedBy = userEmail;
+            group.UpdatedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
 
