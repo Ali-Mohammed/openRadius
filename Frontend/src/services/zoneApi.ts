@@ -105,7 +105,7 @@ export const zoneApi = {
   },
 
   // Get zone users
-  getZoneUsers: async (zoneId: number): Promise<string[]> => {
+  getZoneUsers: async (zoneId: number): Promise<number[]> => {
     const response = await apiClient.get(`/api/zone/${zoneId}/users`)
     return response.data
   },

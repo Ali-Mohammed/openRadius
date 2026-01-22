@@ -50,7 +50,7 @@ export default function Zones() {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [editingZone, setEditingZone] = useState<Zone | null>(null)
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null)
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([])
   const [userSearchQuery, setUserSearchQuery] = useState('')
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
   const [formData, setFormData] = useState<ZoneCreateDto>({
@@ -246,7 +246,7 @@ export default function Zones() {
 
   // Assign users mutation
   const assignUsersMutation = useMutation({
-    mutationFn: ({ zoneId, userIds }: { zoneId: number; userIds: string[] }) =>
+    mutationFn: ({ zoneId, userIds }: { zoneId: number; userIds: number[] }) =>
       zoneApi.assignUsersToZone(zoneId, { UserIds: userIds }),
     onSuccess: () => {
       toast.success('Users assigned successfully')
@@ -380,7 +380,7 @@ export default function Zones() {
     }
   }
 
-  const handleToggleUser = (userId: string) => {
+  const handleToggleUser = (userId: number) => {
     setSelectedUserIds(prev =>
       prev.includes(userId)
         ? prev.filter(id => id !== userId)
@@ -1059,12 +1059,12 @@ export default function Zones() {
                   ) : (
                     filteredUsers.map((user) => (
                       <div
-                        key={user.keycloakUserId || user.id}
+                        key={user.id}
                         className='flex items-center space-x-2 p-2 hover:bg-accent rounded-md'
                       >
                         <Checkbox
-                          checked={selectedUserIds.includes(user.keycloakUserId || user.id.toString())}
-                          onCheckedChange={() => handleToggleUser(user.keycloakUserId || user.id.toString())}
+                          checked={selectedUserIds.includes(user.id)}
+                          onCheckedChange={() => handleToggleUser(user.id)}
                         />
                         <div className='flex-1 min-w-0'>
                           <div className='font-medium truncate'>

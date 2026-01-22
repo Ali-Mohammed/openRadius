@@ -369,42 +369,56 @@ public class ZoneController : ControllerBase
     [HttpPost("{id}/assign-users")]
     public async Task<IActionResult> AssignUsersToZone(int id, [FromBody] AssignUsersToZoneDto dto)
     {
+        Console.WriteLine($"[AssignUsersToZone] ZoneId: {id}, UserIds: [{string.Join(", ", dto.UserIds)}]");
+        
         var zone = await _context.Zones
             .FirstOrDefaultAsync(z => z.Id == id && !z.IsDeleted);
 
         if (zone == null)
         {
+            Console.WriteLine($"[AssignUsersToZone] Zone {id} not found");
             return NotFound(new { message = "Zone not found" });
         }
-
-        var userId = GetCurrentUserId();
 
         // Remove existing assignments
         var existingAssignments = await _context.UserZones
             .Where(uz => uz.ZoneId == id)
             .ToListAsync();
+        Console.WriteLine($"[AssignUsersToZone] Removing {existingAssignments.Count} existing assignments");
         _context.UserZones.RemoveRange(existingAssignments);
 
         // Add new assignments
-        foreach (var managementUserId in dto.UserIds)
+        int addedCount = 0;
+        foreach (var keycloakUserId in dto.UserIds)
         {
-            // Parse user ID string to int (system user ID)
-            if (!int.TryParse(managementUserId, out var systemUserId))
+            // Look up system user ID from Keycloak user ID in master database
+            var user = await _masterContext.Users
+                .Where(u => u.KeycloakUserId == keycloakUserId)
+                .FirstOrDefaultAsync();
+                
+            if (user == null)
+            {
+                Console.WriteLine($"[AssignUsersToZone] User not found for Keycloak ID: {keycloakUserId}");
                 continue;
+            }
                 
             var userZone = new UserZone
             {
-                UserId = systemUserId,
+                UserId = user.Id, // Use system user ID
                 ZoneId = id,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = User.GetSystemUserId()
             };
             _context.UserZones.Add(userZone);
+            addedCount++;
+            Console.WriteLine($"[AssignUsersToZone] Added UserZone: UserId={user.Id}, ZoneId={id}, Keycloak={keycloakUserId}");
         }
 
-        await _context.SaveChangesAsync();
+        Console.WriteLine($"[AssignUsersToZone] About to save {addedCount} new assignments");
+        var savedCount = await _context.SaveChangesAsync();
+        Console.WriteLine($"[AssignUsersToZone] SaveChanges returned: {savedCount} rows affected");
 
-        return Ok(new { message = "Users assigned successfully", count = dto.UserIds.Count });
+        return Ok(new { message = "Users assigned successfully", count = addedCount });
     }
 
     // GET: api/zone/{id}/users
