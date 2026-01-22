@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 // Column definitions
 const COLUMN_DEFINITIONS = {
   name: { label: 'Name', sortable: true, defaultWidth: 180 },
+  username: { label: 'Username', sortable: true, defaultWidth: 150 },
   email: { label: 'Email', sortable: true, defaultWidth: 220 },
   status: { label: 'Status', sortable: true, defaultWidth: 100 },
   supervisor: { label: 'Supervisor', sortable: true, defaultWidth: 180 },
@@ -42,6 +43,7 @@ const COLUMN_DEFINITIONS = {
 
 const DEFAULT_COLUMN_VISIBILITY = {
   name: true,
+  username: true,
   email: true,
   status: true,
   supervisor: true,
@@ -52,7 +54,7 @@ const DEFAULT_COLUMN_VISIBILITY = {
   workspaces: true,
 }
 
-const DEFAULT_COLUMN_ORDER = ['name', 'email', 'status', 'supervisor', 'groups', 'roles', 'zones', 'defaultWorkspace', 'workspaces', 'actions']
+const DEFAULT_COLUMN_ORDER = ['name', 'username', 'email', 'status', 'supervisor', 'groups', 'roles', 'zones', 'defaultWorkspace', 'workspaces', 'actions']
 
 export default function UserManagement() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -475,9 +477,10 @@ export default function UserManagement() {
   }
 
   const handleExportCsv = () => {
-    const headers = ['Name', 'Email', 'Status', 'Supervisor', 'Groups', 'Roles', 'Zones', 'Default Workspace', 'Workspaces']
+    const headers = ['Name', 'Username', 'Email', 'Status', 'Supervisor', 'Groups', 'Roles', 'Zones', 'Default Workspace', 'Workspaces']
     const rows = filteredUsers.map(user => [
       `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+      user.username || '',
       user.email || '',
       user.enabled !== false ? 'Active' : 'Disabled',
       user.supervisor ? `${user.supervisor.firstName || ''} ${user.supervisor.lastName || ''}`.trim() : '',
@@ -659,6 +662,8 @@ export default function UserManagement() {
               : user.email}
           </TableCell>
         )
+      case 'username':
+        return <TableCell key={column} className="h-12 px-4">{user.username || '-'}</TableCell>
       case 'email':
         return <TableCell key={column} className="h-12 px-4">{user.email}</TableCell>
       case 'status':
