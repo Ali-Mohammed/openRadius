@@ -35,18 +35,28 @@ public class RadiusUserController : ControllerBase
     // Filter condition model for advanced filtering
     public class FilterCondition
     {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string? Id { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("field")]
         public string? Field { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("column")]
         public string? Column { get; set; }  // Support both "field" and "column" from frontend
+        
+        [System.Text.Json.Serialization.JsonPropertyName("operator")]
         public string? Operator { get; set; }
         
         // Value can be a single value (string) or an array of values
         [System.Text.Json.Serialization.JsonConverter(typeof(ValueConverter))]
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
         public object? Value { get; set; }
         
         // Second value for between operator
+        [System.Text.Json.Serialization.JsonPropertyName("value2")]
         public string? Value2 { get; set; }
         
+        [System.Text.Json.Serialization.JsonPropertyName("values")]
         public List<string>? Values { get; set; }
         
         // Helper to get the field name (supports both "field" and "column" properties)
@@ -117,8 +127,13 @@ public class RadiusUserController : ControllerBase
 
     public class FilterGroup
     {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string? Id { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("logic")]
         public string Logic { get; set; } = "and";
+        
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
         public List<object>? Conditions { get; set; }
     }
 
