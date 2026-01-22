@@ -240,7 +240,13 @@ public class ZoneController : ControllerBase
             Icon = dto.Icon,
             ParentZoneId = dto.ParentZoneId,
             CreatedAt = DateTime.UtcNow,
-        CreatedBy = User.GetSystemUserId()
+            CreatedBy = User.GetSystemUserId()
+        };
+
+        _context.Zones.Add(zone);
+        await _context.SaveChangesAsync();
+
+        var response = new ZoneResponse
         {
             Id = zone.Id,
             Name = zone.Name,
