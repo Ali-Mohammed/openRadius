@@ -115,7 +115,7 @@ public class UserBasicInfo
 
 public class AssignUsersToZoneDto
 {
-    public List<string> UserIds { get; set; } = new();
+    public List<int> UserIds { get; set; } = new();
 }
 
 public class AssignZonesToUserDto

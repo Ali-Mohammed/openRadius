@@ -389,29 +389,18 @@ public class ZoneController : ControllerBase
 
         // Add new assignments
         int addedCount = 0;
-        foreach (var keycloakUserId in dto.UserIds)
+        foreach (var userId in dto.UserIds)
         {
-            // Look up system user ID from Keycloak user ID in master database
-            var user = await _masterContext.Users
-                .Where(u => u.KeycloakUserId == keycloakUserId)
-                .FirstOrDefaultAsync();
-                
-            if (user == null)
-            {
-                Console.WriteLine($"[AssignUsersToZone] User not found for Keycloak ID: {keycloakUserId}");
-                continue;
-            }
-                
             var userZone = new UserZone
             {
-                UserId = user.Id, // Use system user ID
+                UserId = userId,
                 ZoneId = id,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = User.GetSystemUserId()
             };
             _context.UserZones.Add(userZone);
             addedCount++;
-            Console.WriteLine($"[AssignUsersToZone] Added UserZone: UserId={user.Id}, ZoneId={id}, Keycloak={keycloakUserId}");
+            Console.WriteLine($"[AssignUsersToZone] Added UserZone: UserId={userId}, ZoneId={id}");
         }
 
         Console.WriteLine($"[AssignUsersToZone] About to save {addedCount} new assignments");

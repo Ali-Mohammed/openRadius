@@ -164,7 +164,7 @@ export default function Zones() {
   // Fetch zone users when dialog opens
   const { data: zoneUserIds = [], refetch: refetchZoneUsers } = useQuery({
     queryKey: ['zone-users', selectedZone?.id],
-    queryFn: () => selectedZone ? zoneApi.getZoneUsers(workspaceIdNum, selectedZone.id) : Promise.resolve([]),
+    queryFn: () => selectedZone ? zoneApi.getZoneUsers(selectedZone.id) : Promise.resolve([]),
     enabled: !!selectedZone && assignUsersDialogOpen,
   })
 
