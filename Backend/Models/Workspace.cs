@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Models;
 
@@ -26,12 +27,15 @@ public class Workspace
     
     // Navigation Properties
     [ForeignKey(nameof(CreatedBy))]
+    [JsonIgnore]
     public User? CreatedByUser { get; set; }
     
     [ForeignKey(nameof(UpdatedBy))]
+    [JsonIgnore]
     public User? UpdatedByUser { get; set; }
     
     [ForeignKey(nameof(DeletedBy))]
+    [JsonIgnore]
     public User? DeletedByUser { get; set; }
     
     public DateTime? DeletedAt { get; set; }

@@ -130,6 +130,62 @@ public class WorkspaceController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Workspace>> CreateWorkspace(WorkspaceDto dto)
     {
+        // Log all claims for debugging
+        var claims = User.Claims.Select(c => $"{c.Type}={c.Value}").ToList();
+        _logger.LogInformation("CreateWorkspace - User claims: {Claims}", string.Join(", ", claims));
+        
+        var systemUserId = User.GetSystemUserId();
+        _logger.LogInformation("CreateWorkspace - systemUserId from claims: {SystemUserId}", systemUserId);
+        
+        // If systemUserId is null, try to get or create user from Keycloak ID
+        if (systemUserId == null)
+        {
+            var keycloakUserId = User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(keycloakUserId))
+            {
+                return Unauthorized(new { message = "User not found. Please log in again." });
+            }
+
+            // Try to find existing user by Keycloak ID
+            var existingUser = await _masterContext.Users
+                .FirstOrDefaultAsync(u => u.KeycloakUserId == keycloakUserId);
+
+            if (existingUser != null)
+            {
+                systemUserId = existingUser.Id;
+                _logger.LogInformation("Found existing user by KeycloakId: {SystemUserId}", systemUserId);
+            }
+            else
+            {
+                // Auto-create user from token claims
+                var email = User.FindFirst("email")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var firstName = User.FindFirst("given_name")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? "";
+                var lastName = User.FindFirst("family_name")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value ?? "";
+                
+                var newUser = new Models.User
+                {
+                    KeycloakUserId = keycloakUserId,
+                    Email = email ?? $"{keycloakUserId}@unknown.com",
+                    FirstName = firstName,
+                    LastName = lastName,
+                    CreatedAt = DateTime.UtcNow
+                };
+                
+                _masterContext.Users.Add(newUser);
+                await _masterContext.SaveChangesAsync();
+                
+                systemUserId = newUser.Id;
+                _logger.LogInformation("Auto-created user: Email={Email}, SystemId={SystemId}", newUser.Email, systemUserId);
+            }
+        }
+
+        // Ensure user exists in database
+        var userExists = await _masterContext.Users.AnyAsync(u => u.Id == systemUserId.Value);
+        if (!userExists)
+        {
+            return BadRequest(new { message = "User record not found in database. Please contact support." });
+        }
+
         var workspace = new Workspace
         {
             Title = dto.Title,
@@ -142,8 +198,8 @@ public class WorkspaceController : ControllerBase
             Icon = dto.Icon,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            CreatedBy = User.GetSystemUserId() ?? 0,
-            UpdatedBy = User.GetSystemUserId() ?? 0
+            CreatedBy = systemUserId.Value,
+            UpdatedBy = systemUserId.Value
         };
         
         _masterContext.Workspaces.Add(workspace);

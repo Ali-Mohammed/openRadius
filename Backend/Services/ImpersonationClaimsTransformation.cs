@@ -27,18 +27,26 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
 
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
-        // Check if impersonation header is present
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null)
-            return principal;
-
-        var impersonatedUserIdStr = httpContext.Request.Headers["X-Impersonated-User-Id"].FirstOrDefault();
-        
-        // If no impersonation, enrich the principal with system user ID for normal users
-        if (string.IsNullOrEmpty(impersonatedUserIdStr) || !int.TryParse(impersonatedUserIdStr, out var impersonatedUserId))
+        try
         {
-            return await EnrichPrincipalWithSystemUserId(principal);
-        }
+            _logger.LogInformation("=== ClaimsTransformation.TransformAsync called ===");
+            
+            // Check if impersonation header is present
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                _logger.LogWarning("HttpContext is null in TransformAsync");
+                return principal;
+            }
+
+            var impersonatedUserIdStr = httpContext.Request.Headers["X-Impersonated-User-Id"].FirstOrDefault();
+            
+            // If no impersonation, enrich the principal with system user ID for normal users
+            if (string.IsNullOrEmpty(impersonatedUserIdStr) || !int.TryParse(impersonatedUserIdStr, out var impersonatedUserId))
+            {
+                _logger.LogInformation("No impersonation header, enriching with systemUserId");
+                return await EnrichPrincipalWithSystemUserId(principal);
+            }
 
         // Get the impersonated user from the master database
         var impersonatedUser = await _masterContext.Users
@@ -86,6 +94,12 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
             impersonatedUser.Email);
 
         return new ClaimsPrincipal(impersonatedIdentity);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in ClaimsTransformation.TransformAsync");
+            return principal;
+        }
     }
 
     /// <summary>
@@ -95,33 +109,65 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
     {
         var identity = principal.Identity as ClaimsIdentity;
         if (identity == null)
+        {
+            _logger.LogWarning("Identity is null in EnrichPrincipalWithSystemUserId");
             return principal;
+        }
 
         // Check if claims are already enriched
         if (identity.FindFirst("systemUserId") != null)
+        {
+            _logger.LogDebug("systemUserId claim already exists");
             return principal;
+        }
 
-        // Get Keycloak user ID from token
-        var keycloakUserId = identity.FindFirst("sub")?.Value;
+        // Get Keycloak user ID from token (sub claim is REQUIRED)
+        var keycloakUserId = identity.FindFirst("sub")?.Value 
+            ?? identity.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value
+            ?? identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
         if (string.IsNullOrEmpty(keycloakUserId))
-            return principal;
+        {
+            _logger.LogError("❌ CRITICAL: 'sub' claim is missing from JWT token. Keycloak configuration is incorrect!");
+            _logger.LogError("Please add 'sub' claim mapper to Keycloak: Client scopes → openid → Mappers → Create 'sub' mapper");
+            throw new UnauthorizedAccessException("Missing required 'sub' claim in token. Please check Keycloak configuration.");
+        }
 
-        // Look up system user by Keycloak ID
+        // Extract additional user claims
+        var email = identity.FindFirst("email")?.Value ?? identity.FindFirst(ClaimTypes.Email)?.Value;
+        var firstName = identity.FindFirst("given_name")?.Value ?? identity.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
+        var lastName = identity.FindFirst("family_name")?.Value ?? identity.FindFirst(ClaimTypes.Surname)?.Value ?? "";
+        var preferredUsername = identity.FindFirst("preferred_username")?.Value;
+        
+        _logger.LogInformation("✓ EnrichPrincipalWithSystemUserId - KeycloakId={KeycloakId}, Email={Email}, Username={Username}", 
+            keycloakUserId, email, preferredUsername);
+
+        // Look up system user by Keycloak UUID (PRIMARY and ONLY lookup method)
         var systemUser = await _masterContext.Users
             .Where(u => u.KeycloakUserId == keycloakUserId)
             .FirstOrDefaultAsync();
+        
+        if (systemUser != null)
+        {
+            _logger.LogInformation("✓ User found by KeycloakId: User ID {UserId}, Email {Email}", systemUser.Id, systemUser.Email);
+        }
 
         // Auto-create user if doesn't exist
         if (systemUser == null)
         {
-            var email = identity.FindFirst("email")?.Value ?? identity.FindFirst(ClaimTypes.Email)?.Value;
-            var firstName = identity.FindFirst("given_name")?.Value ?? identity.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
-            var lastName = identity.FindFirst("family_name")?.Value ?? identity.FindFirst(ClaimTypes.Surname)?.Value ?? "";
+            if (string.IsNullOrEmpty(email))
+            {
+                _logger.LogError("Cannot auto-create user without email address");
+                throw new UnauthorizedAccessException("Missing required 'email' claim for user creation.");
+            }
+            
+            _logger.LogInformation("🆕 Creating new user: KeycloakId={KeycloakId}, Email={Email}, Name={FirstName} {LastName}", 
+                keycloakUserId, email, firstName, lastName);
             
             systemUser = new Models.User
             {
                 KeycloakUserId = keycloakUserId,
-                Email = email ?? $"{keycloakUserId}@unknown.com",
+                Email = email,
                 FirstName = firstName,
                 LastName = lastName,
                 CreatedAt = DateTime.UtcNow
@@ -130,17 +176,17 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
             _masterContext.Users.Add(systemUser);
             await _masterContext.SaveChangesAsync();
             
-            _logger.LogInformation("Auto-created user: Email={Email}, KeycloakId={KeycloakId}, SystemId={SystemId}", 
-                systemUser.Email, keycloakUserId, systemUser.Id);
+            _logger.LogInformation("✓ Auto-created user: ID={UserId}, Email={Email}, KeycloakId={KeycloakId}", 
+                systemUser.Id, systemUser.Email, keycloakUserId);
         }
 
         // Add system user ID and Keycloak ID claims
         identity.AddClaim(new Claim("systemUserId", systemUser.Id.ToString()));
         identity.AddClaim(new Claim("UserKeycloakId", keycloakUserId));
 
-        _logger.LogDebug(
-            "Enriched claims for user: SystemUserId={SystemUserId}, KeycloakId={KeycloakId}",
-            systemUser.Id, keycloakUserId);
+        _logger.LogInformation(
+            "✅ Enriched claims successfully: SystemUserId={SystemUserId}, Email={Email}, KeycloakId={KeycloakId}",
+            systemUser.Id, systemUser.Email, keycloakUserId);
 
         return principal;
     }

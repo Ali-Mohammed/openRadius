@@ -165,8 +165,9 @@ export default function WorkspaceView() {
       setOpen(false)
       resetForm()
     },
-    onError: () => {
-      toast.error('Failed to create Workspace')
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || error?.response?.data || 'Failed to create Workspace'
+      toast.error(errorMessage)
     },
   })
 

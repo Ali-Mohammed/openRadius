@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Models;
 
 public class User
@@ -13,7 +15,6 @@ public class User
     
     // Supervisor relationship
     public int? SupervisorId { get; set; }
-    public User? Supervisor { get; set; }
     
     // Multi-tenant support: Default and current workspace selection
     public int? DefaultWorkspaceId { get; set; }
@@ -24,12 +25,20 @@ public class User
     public DateTime? DisabledAt { get; set; }
     public string? DisabledBy { get; set; }
     
-    // Navigation properties
+    // Navigation properties - Only ignore circular references
+    [JsonIgnore]
     public Workspace? DefaultWorkspace { get; set; }
+    [JsonIgnore]
     public Workspace? CurrentWorkspace { get; set; }
+    [JsonIgnore]
+    public User? Supervisor { get; set; }
+    [JsonIgnore]
     public ICollection<User> Subordinates { get; set; } = new List<User>();
+    [JsonIgnore]
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    [JsonIgnore]
     public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
+    [JsonIgnore]
     public ICollection<UserWorkspace> UserWorkspaces { get; set; } = new List<UserWorkspace>();
 }
 

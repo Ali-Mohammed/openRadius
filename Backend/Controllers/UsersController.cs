@@ -131,6 +131,31 @@ public class UsersController : ControllerBase
                 .Include(u => u.DefaultWorkspace)
                 .Include(u => u.CurrentWorkspace)
                 .FirstOrDefaultAsync(u => u.Email == email);
+            
+            // Auto-create user if doesn't exist
+            if (dbUser == null)
+            {
+                var keycloakUserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                if (!string.IsNullOrEmpty(keycloakUserId))
+                {
+                    var firstName = User.Claims.FirstOrDefault(c => c.Type == "given_name")?.Value ?? "";
+                    var lastName = User.Claims.FirstOrDefault(c => c.Type == "family_name")?.Value ?? "";
+                    
+                    dbUser = new User
+                    {
+                        KeycloakUserId = keycloakUserId,
+                        Email = email,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    
+                    _context.Users.Add(dbUser);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Auto-created user on first login: Email={Email}, SystemId={SystemId}", email, dbUser.Id);
+                }
+            }
         }
         
         // Extract realm roles from JSON
