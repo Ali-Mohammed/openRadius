@@ -27,7 +27,9 @@ export function DashboardGrid({
   onLayoutChange,
   onEditItem,
   onDeleteItem,
-  isEditlayout: Layout[] = items.map((item) => ({
+  isEditing = false,
+}: DashboardGridProps) {
+  const layout: Layout[] = items.map((item) => ({
     i: item.id,
     x: item.layout.x,
     y: item.layout.y,
@@ -41,9 +43,7 @@ export function DashboardGrid({
     sm: layout.map(l => ({ ...l, w: Math.min(l.w, 8), x: 0 })),
     xs: layout.map(l => ({ ...l, w: 4, x: 0 })),
     xxs: layout.map(l => ({ ...l, w: 2, x: 0 }))
-  }: item.layout.w,
-    h: item.layout.h,
-  }))
+  }
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     if (onLayoutChange) {
