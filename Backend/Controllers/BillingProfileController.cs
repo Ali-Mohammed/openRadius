@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 

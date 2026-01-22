@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using static Backend.Models.TransactionType;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 

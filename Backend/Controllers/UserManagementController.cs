@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 
@@ -898,7 +899,7 @@ public class UserManagementController : ControllerBase
                     UserId = systemUserId,
                     ZoneId = zoneId,
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = currentUserId
+                    CreatedBy = User.GetSystemUserId()
                 };
                 _context.UserZones.Add(userZone);
             }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 
@@ -239,13 +240,7 @@ public class ZoneController : ControllerBase
             Icon = dto.Icon,
             ParentZoneId = dto.ParentZoneId,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = userId
-        };
-
-        _context.Zones.Add(zone);
-        await _context.SaveChangesAsync();
-
-        var response = new ZoneResponse
+        CreatedBy = User.GetSystemUserId()
         {
             Id = zone.Id,
             Name = zone.Name,
@@ -404,7 +399,7 @@ public class ZoneController : ControllerBase
                 UserId = systemUserId,
                 ZoneId = id,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId
+                CreatedBy = User.GetSystemUserId()
             };
             _context.UserZones.Add(userZone);
         }

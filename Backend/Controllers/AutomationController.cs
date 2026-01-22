@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 
@@ -129,13 +130,7 @@ public class AutomationController : ControllerBase
                 Status = request.Status ?? "draft",
                 IsActive = request.IsActive ?? true,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId
-            };
-
-            _context.Automations.Add(automation);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetAutomation), new { id = automation.Id }, automation);
+            CreatedBy = User.GetSystemUserId()
         }
         catch (Exception ex)
         {

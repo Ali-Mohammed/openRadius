@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 
@@ -73,13 +74,7 @@ public class WorkflowHistoryController : ControllerBase
                 NodeCount = request.NodeCount,
                 EdgeCount = request.EdgeCount,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId
-            };
-
-            _context.WorkflowHistories.Add(history);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Created workflow history {HistoryId} for automation {AutomationId}", 
+            CreatedBy = User.GetSystemUserId()
                 history.Id, request.AutomationId);
 
             return CreatedAtAction(nameof(GetHistoryByAutomation), 

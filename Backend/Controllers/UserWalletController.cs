@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using System.Security.Claims;
+using Backend.Helpers;
 
 namespace Backend.Controllers;
 
