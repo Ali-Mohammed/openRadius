@@ -372,7 +372,7 @@ public class TransactionController : ControllerBase
                     balanceBefore,
                     balanceAfter
                 }),
-                PerformedBy = User.GetSystemUserId(),
+                PerformedBy = userEmail,
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(transactionHistory);
@@ -525,7 +525,7 @@ public class TransactionController : ControllerBase
                     reversalTransactionId = reversalTransaction.Id,
                     balanceAfterReversal = reversedBalanceAfter
                 }),
-                PerformedBy = User.GetSystemUserId(),
+                PerformedBy = userEmail,
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(deletionHistory);
@@ -663,7 +663,7 @@ public class TransactionController : ControllerBase
                     balanceAfter = restoredBalanceAfter,
                     reversalTransactionId = reversalTransaction?.Id
                 }),
-                PerformedBy = User.GetSystemUserId(),
+                PerformedBy = userEmail,
                 PerformedAt = DateTime.UtcNow
             };
             _context.TransactionHistories.Add(transactionHistory);
