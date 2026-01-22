@@ -172,18 +172,20 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
                     email, existingUserByEmail.KeycloakUserId ?? "NULL", keycloakUserId);
                 
                 existingUserByEmail.KeycloakUserId = keycloakUserId;
+                existingUserByEmail.Username = preferredUsername;
                 await _masterContext.SaveChangesAsync();
                 systemUser = existingUserByEmail;
             }
             else
             {
-                _logger.LogInformation("🆕 Creating new user: KeycloakId={KeycloakId}, Email={Email}, Name={FirstName} {LastName}", 
-                    keycloakUserId, email, firstName, lastName);
+                _logger.LogInformation("🆕 Creating new user: KeycloakId={KeycloakId}, Email={Email}, Username={Username}, Name={FirstName} {LastName}", 
+                    keycloakUserId, email, preferredUsername, firstName, lastName);
                 
                 systemUser = new Models.User
                 {
                     KeycloakUserId = keycloakUserId,
                     Email = email,
+                    Username = preferredUsername,
                     FirstName = firstName,
                     LastName = lastName,
                     CreatedAt = DateTime.UtcNow
@@ -192,8 +194,8 @@ public class ImpersonationClaimsTransformation : IClaimsTransformation
                 _masterContext.Users.Add(systemUser);
                 await _masterContext.SaveChangesAsync();
                 
-                _logger.LogInformation("✓ Auto-created user: ID={UserId}, Email={Email}, KeycloakId={KeycloakId}", 
-                    systemUser.Id, systemUser.Email, keycloakUserId);
+                _logger.LogInformation("✓ Auto-created user: ID={UserId}, Email={Email}, Username={Username}, KeycloakId={KeycloakId}", 
+                    systemUser.Id, systemUser.Email, systemUser.Username, keycloakUserId);
             }
         }
 

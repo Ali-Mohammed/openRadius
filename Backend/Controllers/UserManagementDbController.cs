@@ -100,6 +100,7 @@ public class UserManagementDbController : ControllerBase
                     {
                         KeycloakUserId = keycloakUserId,
                         Email = finalEmail,
+                        Username = username,
                         FirstName = firstName ?? string.Empty,
                         LastName = lastName ?? string.Empty,
                         CreatedAt = DateTime.UtcNow
@@ -107,7 +108,7 @@ public class UserManagementDbController : ControllerBase
 
                     _context.Users.Add(newUser);
                     syncedCount++;
-                    _logger.LogInformation("Adding new user: {Email}", finalEmail);
+                    _logger.LogInformation("Adding new user: {Email}, Username: {Username}", finalEmail, username);
                 }
                 else
                 {
@@ -123,10 +124,11 @@ public class UserManagementDbController : ControllerBase
                         existingUser.KeycloakUserId = keycloakUserId;
                     }
                     existingUser.Email = finalEmail;
+                    existingUser.Username = username;
                     existingUser.FirstName = firstName ?? string.Empty;
                     existingUser.LastName = lastName ?? string.Empty;
                     updatedCount++;
-                    _logger.LogInformation("Updating existing user: {Email}", finalEmail);
+                    _logger.LogInformation("Updating existing user: {Email}, Username: {Username}", finalEmail, username);
                 }
             }
 
@@ -226,6 +228,7 @@ public class UserManagementDbController : ControllerBase
 
             // Create user in Keycloak first to get proper KeycloakUserId
             string? keycloakUserId = null;
+            string? keycloakUsername = null;
             try
             {
                 var client = await GetAuthenticatedKeycloakClient();
@@ -233,9 +236,10 @@ public class UserManagementDbController : ControllerBase
                 var realm = authority?.Split("/").Last();
                 var createUserUrl = $"{authority?.Replace($"/realms/{realm}", "")}/admin/realms/{realm}/users";
 
+                keycloakUsername = request.Email ?? $"{request.FirstName?.ToLower()}.{request.LastName?.ToLower()}";
                 var keycloakUser = new
                 {
-                    username = request.Email ?? $"{request.FirstName?.ToLower()}.{request.LastName?.ToLower()}",
+                    username = keycloakUsername,
                     email = request.Email,
                     firstName = request.FirstName,
                     lastName = request.LastName,
@@ -271,6 +275,7 @@ public class UserManagementDbController : ControllerBase
                 FirstName = request.FirstName ?? string.Empty,
                 LastName = request.LastName ?? string.Empty,
                 Email = request.Email ?? string.Empty,
+                Username = keycloakUsername,
                 KeycloakUserId = keycloakUserId, // Set the Keycloak ID if we got it
                 SupervisorId = request.SupervisorId,
                 CreatedAt = DateTime.UtcNow
