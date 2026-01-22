@@ -219,9 +219,8 @@ export default function GeneralSettings() {
 
       await connection.start()
 
-      // Include filters in the request if applied
-      const requestData = appliedFilters ? { filters: filtersToQueryString(appliedFilters) } : {}
-      const response = await apiClient.post('/api/radius/tags/sync', requestData)
+      // Use saved tag sync rules
+      const response = await apiClient.post('/api/radius/tags/sync-with-rules')
       
       toast.success(`Tag Sync Complete: Processed ${response.data.usersProcessed} users. Assigned ${response.data.tagsAssigned} tags, removed ${response.data.tagsRemoved} tags.`)
     } catch (error: any) {
