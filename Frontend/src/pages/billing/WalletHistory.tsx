@@ -168,60 +168,6 @@ export default function WalletHistory() {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-4">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Total Transactions</p>
-                <p className="text-2xl font-bold">{stats.totalTransactions.toLocaleString()}</p>
-              </div>
-              <History className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                <p className="text-2xl font-bold">
-                  {currencySymbol} {formatCurrency(stats.totalAmount)}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Top Ups</p>
-                <p className="text-2xl font-bold">
-                  {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.count || 0}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {currencySymbol} {formatCurrency(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.TOP_UP)?.totalAmount || 0)}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Payments</p>
-                <p className="text-2xl font-bold">
-                  {stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.PAYMENT)?.count || 0}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {currencySymbol} {formatCurrency(stats.byType.find((t) => t.transactionType === TRANSACTION_TYPES.PAYMENT)?.totalAmount || 0)}
-                </p>
-              </div>
-              <CreditCard className="h-8 w-8 text-blue-500" />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 flex items-center gap-2">

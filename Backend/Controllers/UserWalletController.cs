@@ -104,9 +104,22 @@ public class UserWalletController : ControllerBase
                 .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
                 .ToListAsync();
 
+            // Calculate pending cashback for each user
+            var pendingCashbackByUser = await _context.Transactions
+                .Where(t => 
+                    t.UserId != null &&
+                    userIds.Contains(t.UserId.Value) &&
+                    t.TransactionType == TransactionType.Cashback &&
+                    (t.CashbackStatus == "Pending" || t.CashbackStatus == "WaitingForApproval") &&
+                    t.DeletedAt == null)
+                .GroupBy(t => t.UserId!.Value)
+                .Select(g => new { UserId = g.Key, PendingCashback = g.Sum(t => t.Amount) })
+                .ToListAsync();
+
             var result = userWallets.Select(uw =>
             {
                 var user = users.FirstOrDefault(u => u.Id == uw.UserId);
+                var pendingCashback = pendingCashbackByUser.FirstOrDefault(pc => pc.UserId == uw.UserId)?.PendingCashback ?? 0;
                 return new
                 {
                     uw.Id,
@@ -123,6 +136,7 @@ public class UserWalletController : ControllerBase
                     uw.DailySpendingLimit,
                     uw.Status,
                     uw.AllowNegativeBalance,
+                    PendingCashback = pendingCashback,
                     uw.CreatedAt,
                     uw.UpdatedAt
                 };
