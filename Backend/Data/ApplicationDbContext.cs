@@ -552,7 +552,38 @@ public class ApplicationDbContext : DbContext
                   .HasForeignKey(e => e.PreviousBillingProfileId)
                   .OnDelete(DeleteBehavior.SetNull);
 
+            // Relationship: Many RadiusActivations to One BillingActivation
+            entity.HasOne(e => e.BillingActivation)
+                  .WithMany(ba => ba.RadiusActivations)
+                  .HasForeignKey(e => e.BillingActivationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
             // Add query filter to exclude soft-deleted activations by default
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        modelBuilder.Entity<BillingActivation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.RadiusUserId);
+            entity.HasIndex(e => e.BillingProfileId);
+            entity.HasIndex(e => e.ActionById);
+            entity.HasIndex(e => e.ActivationType);
+            entity.HasIndex(e => e.ActivationStatus);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.RadiusUserId, e.CreatedAt });
+
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Transaction)
+                  .WithMany()
+                  .HasForeignKey(e => e.TransactionId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // Add query filter to exclude soft-deleted billing activations
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
     }

@@ -12,11 +12,8 @@ public class BillingActivation
     [Key]
     public int Id { get; set; }
 
-    // Reference to the activation (nullable since BillingActivation is created first)
-    public int? RadiusActivationId { get; set; }
-    
-    [ForeignKey("RadiusActivationId")]
-    public RadiusActivation? RadiusActivation { get; set; }
+    // Navigation property - collection of RADIUS activations linked to this billing activation
+    public ICollection<RadiusActivation> RadiusActivations { get; set; } = new List<RadiusActivation>();
 
     // Billing profile information
     public int? BillingProfileId { get; set; }

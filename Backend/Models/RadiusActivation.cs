@@ -25,8 +25,9 @@ public class RadiusActivation
     // Was this action done on behalf of another user
     public bool IsActionBehalf { get; set; } = false;
 
-    // Reference to the master billing activation record
-    public int? BillingActivationId { get; set; }
+    // Reference to the master billing activation record (many RadiusActivations to one BillingActivation)
+    [Required]
+    public int BillingActivationId { get; set; }
     
     [ForeignKey("BillingActivationId")]
     public BillingActivation? BillingActivation { get; set; }
@@ -168,6 +169,7 @@ public class RadiusActivation
 public class RadiusActivationResponse
 {
     public int Id { get; set; }
+    public int BillingActivationId { get; set; }
     public int? ActionById { get; set; }
     public string? ActionByUsername { get; set; }
     public int? ActionForId { get; set; }
