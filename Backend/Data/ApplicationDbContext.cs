@@ -267,6 +267,11 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.RelatedTransactionId);
+            entity.HasIndex(e => e.CashbackStatus);
+            entity.HasIndex(e => e.DeletedAt);
+            
+            // Composite index for pending cashback queries (enterprise optimization)
+            entity.HasIndex(e => new { e.WalletType, e.TransactionType, e.CashbackStatus, e.DeletedAt });
             
             // Add query filter to exclude soft-deleted transactions by default
             entity.HasQueryFilter(e => !e.IsDeleted);
