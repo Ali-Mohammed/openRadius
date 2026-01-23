@@ -113,6 +113,7 @@ const COLUMN_DEFINITIONS = {
   user: { label: 'User', sortable: true, defaultWidth: 200 },
   wallet: { label: 'Wallet', sortable: false, defaultWidth: 120 },
   currentBalance: { label: 'Balance', sortable: true, defaultWidth: 140 },
+  pendingCashback: { label: 'Pending Cashback', sortable: true, defaultWidth: 140 },
   maxFillLimit: { label: 'Max Fill', sortable: true, defaultWidth: 120 },
   dailySpendingLimit: { label: 'Daily Limit', sortable: true, defaultWidth: 120 },
   status: { label: 'Status', sortable: true, defaultWidth: 100 },
@@ -124,6 +125,7 @@ const DEFAULT_COLUMN_VISIBILITY = {
   user: true,
   wallet: true,
   currentBalance: true,
+  pendingCashback: true,
   maxFillLimit: true,
   dailySpendingLimit: true,
   status: true,
@@ -131,7 +133,7 @@ const DEFAULT_COLUMN_VISIBILITY = {
   createdAt: false,
 }
 
-const DEFAULT_COLUMN_ORDER = ['user', 'wallet', 'currentBalance', 'maxFillLimit', 'dailySpendingLimit', 'status', 'allowOverdraft', 'createdAt', 'actions']
+const DEFAULT_COLUMN_ORDER = ['user', 'wallet', 'currentBalance', 'pendingCashback', 'maxFillLimit', 'dailySpendingLimit', 'status', 'allowOverdraft', 'createdAt', 'actions']
 
 // Custom User Combobox Component
 interface UserComboboxProps {
@@ -666,6 +668,16 @@ export default function UserWallets() {
           <TableCell key={column} className="h-12 px-4 font-medium">
             <span className={wallet.currentBalance < 0 ? 'text-red-600' : ''}>
               {currencySymbol} {formatCurrency(wallet.currentBalance)}
+            </span>
+          </TableCell>
+        )
+      case 'pendingCashback':
+        return (
+          <TableCell key={column} className="h-12 px-4 font-medium">
+            <span className={wallet.pendingCashback && wallet.pendingCashback > 0 ? 'text-orange-600' : 'text-muted-foreground'}>
+              {wallet.pendingCashback && wallet.pendingCashback > 0
+                ? `${currencySymbol} ${formatCurrency(wallet.pendingCashback)}`
+                : '-'}
             </span>
           </TableCell>
         )

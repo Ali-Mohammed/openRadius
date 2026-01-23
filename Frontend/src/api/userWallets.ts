@@ -15,6 +15,7 @@ export interface UserWallet {
   dailySpendingLimit?: number | null
   status: string
   allowNegativeBalance?: boolean | null
+  pendingCashback?: number
   createdAt?: string
   updatedAt?: string
 }
