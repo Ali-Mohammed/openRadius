@@ -30,6 +30,7 @@
     "addons": "Addons",
     "cashbacks": "Cashbacks",
     "cashbackGroups": "Cashback Groups",
+    "subAgentCashbacks": "SubAgent Cashback",
     "customWallets": "Custom Wallets",
     "userWallets": "User Wallets",
     "topUp": "Top Up",
