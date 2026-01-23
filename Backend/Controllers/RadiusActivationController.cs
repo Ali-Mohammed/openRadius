@@ -346,6 +346,7 @@ public class RadiusActivationController : ControllerBase
 
             // Wallet payment validation
             int? transactionId = null;
+            var activationTransactionIds = new List<int>(); // Track all transaction IDs created in this activation
             decimal cashbackAmountForRemaining = 0; // Track cashback to deduct from remaining amount
             if (request.PaymentMethod?.ToLower() == "wallet")
             {
@@ -448,6 +449,7 @@ public class RadiusActivationController : ControllerBase
                 _context.WalletHistories.Add(walletHistory);
                 await _context.SaveChangesAsync(); // Save to get transaction ID
 
+                activationTransactionIds.Add(transaction.Id); // Track this transaction
                 transactionId = transaction.Id;
 
                 _logger.LogInformation($"Created wallet transaction {transaction.Id} for user {walletOwnerId} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
@@ -556,7 +558,9 @@ public class RadiusActivationController : ControllerBase
 
                     _context.WalletHistories.Add(cashbackHistory);
                     await _context.SaveChangesAsync();
+activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transaction
 
+                    
                     _logger.LogInformation($"Applied cashback of {calculatedCashbackAmount:F2} to user {walletOwnerId} wallet for activation. Balance: {cashbackBalanceBefore:F2} -> {userWallet.CurrentBalance:F2}");
                 }
 
@@ -632,7 +636,25 @@ public class RadiusActivationController : ControllerBase
                     _logger.LogInformation($"Added {depositAmount:F2} to custom wallet '{customWallet.Name}' (ID: {customWallet.Id}) from RADIUS profile. Balance: {customBalanceBefore:F2} -> {customWallet.CurrentBalance:F2}");
                 }
 
-                if (profileWallets.Any())
+                if (
+                    // Track all custom wallet transaction IDs
+                    foreach (var profileWallet in profileWallets)
+                    {
+                        var lastTransaction = await _context.Transactions
+                            .Where(t => t.CustomWalletId == profileWallet.CustomWalletId && 
+                                      t.RadiusUserId == radiusUser.Id &&
+                                      t.Reference == $"ACTIVATION-{radiusUser.Id}" &&
+                                      t.Description.Contains("RADIUS profile wallet deposit"))
+                            .OrderByDescending(t => t.Id)
+                            .FirstOrDefaultAsync();
+                        
+                        if (lastTransaction != null)
+                        {
+                            activationTransactionIds.Add(lastTransaction.Id);
+                        }
+                    }
+                    
+                    profileWallets.Any())
                 {
                     await _context.SaveChangesAsync();
                     _logger.LogInformation($"Processed {profileWallets.Count} RADIUS profile wallet deposit(s) for activation. Total: {radiusProfileWalletTotal:F2}");
@@ -843,6 +865,20 @@ public class RadiusActivationController : ControllerBase
                             {
                                 WalletType = "custom",
                                 CustomWalletId = customWallet.Id,
+                        
+                        // Track all billing profile transaction IDs
+                        var billingTransactions = await _context.Transactions
+                            .Where(t => t.RadiusUserId == radiusUser.Id &&
+                                      t.Reference == $"ACTIVATION-{radiusUser.Id}" &&
+                                      t.BillingProfileId == billingProfileId &&
+                                      (t.Description.Contains("Billing profile deduction") ||
+                                       t.Description.Contains("Billing profile distribution") ||
+                                       t.Description.Contains("Remaining balance")))
+                            .Select(t => t.Id)
+                            .ToListAsync();
+                        
+                        activationTransactionIds.AddRange(billingTransactions);
+                        
                                 UserId = null,
                                 TransactionType = TransactionType.TopUp,
                                 AmountType = "credit",
@@ -908,24 +944,19 @@ public class RadiusActivationController : ControllerBase
             else if (request.DurationDays.HasValue)
             {
                 var now = DateTime.UtcNow;
-                var baseDate = now;
-                
-                if (radiusUser.Expiration.HasValue && radiusUser.Expiration.Value > now)
+                activationTransactionIds.Any())
+            {
+                var transactionsToUpdate = await _context.Transactions
+                    .Where(t => activationTransactionIds.Contains(t.Id))
+                    .ToListAsync();
+
+                foreach (var transaction in transactionsToUpdate)
                 {
-                    baseDate = radiusUser.Expiration.Value;
+                    transaction.ActivationId = activation.Id;
                 }
                 
-                var newExpireDate = baseDate.AddDays(request.DurationDays.Value);
-                radiusUser.Expiration = newExpireDate;
-                activation.NextExpireDate = newExpireDate;
-                activation.CurrentExpireDate = newExpireDate;
-            }
-            
-            if (request.RadiusProfileId.HasValue)
-            {
-                radiusUser.ProfileId = request.RadiusProfileId.Value;
-            }
-            
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             if (request.BillingProfileId.HasValue)
             {
                 radiusUser.ProfileBillingId = request.BillingProfileId.Value;
@@ -940,6 +971,27 @@ public class RadiusActivationController : ControllerBase
             await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Created activation {activation.Id} for user {radiusUser.Username}, updated expiration to {radiusUser.Expiration}");
+
+            // Update all transactions created during this activation with the ActivationId
+            if (transactionId.HasValue)
+            {
+                // Get all transactions created in this request (they will have RadiusUserId matching and recent timestamp)
+                var activationTransactions = await _context.Transactions
+                    .Where(t => t.RadiusUserId == radiusUser.Id && 
+                                t.CreatedAt >= activation.CreatedAt.AddMinutes(-1) &&
+                                t.ActivationId == null)
+                    .ToListAsync();
+
+                if (activationTransactions.Any())
+                {
+                    foreach (var transaction in activationTransactions)
+                    {
+                        transaction.ActivationId = activation.Id;
+                    }
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Linked {activationTransactions.Count} transactions to activation {activation.Id}");
+                }
+            }
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {
