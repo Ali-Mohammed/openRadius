@@ -125,7 +125,7 @@ public class BillingActivationsController : ControllerBase
                 .Select(h => new
                 {
                     h.Id,
-                    h.RadiusActivationId,
+                    RadiusActivationsCount = h.RadiusActivations.Count,
                     h.BillingProfileId,
                     h.BillingProfileName,
                     h.RadiusUserId,
@@ -179,10 +179,17 @@ public class BillingActivationsController : ControllerBase
         {
             var history = await _context.BillingActivations
                 .Where(h => h.Id == id && !h.IsDeleted)
+                .Include(h => h.RadiusActivations)
                 .Select(h => new
                 {
                     h.Id,
-                    h.RadiusActivationId,
+                    RadiusActivations = h.RadiusActivations.Select(ra => new {
+                        ra.Id,
+                        ra.Type,
+                        ra.Status,
+                        ra.Amount,
+                        ra.CreatedAt
+                    }).ToList(),
                     h.BillingProfileId,
                     h.BillingProfileName,
                     h.RadiusUserId,
@@ -262,7 +269,7 @@ public class BillingActivationsController : ControllerBase
                 .Select(h => new
                 {
                     h.Id,
-                    h.RadiusActivationId,
+                    RadiusActivationsCount = h.RadiusActivations.Count,
                     h.RadiusUserId,
                     h.RadiusUsername,
                     h.ActionByUsername,

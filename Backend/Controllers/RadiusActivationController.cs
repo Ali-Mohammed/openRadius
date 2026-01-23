@@ -146,6 +146,7 @@ public class RadiusActivationController : ControllerBase
                 .Select(a => new RadiusActivationResponse
                 {
                     Id = a.Id,
+                    BillingActivationId = a.BillingActivationId,
                     ActionById = a.ActionById,
                     ActionByUsername = a.ActionByUsername,
                     ActionForId = a.ActionForId,
@@ -1225,8 +1226,7 @@ public class RadiusActivationController : ControllerBase
                 _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             }
 
-            // Update billing activation record with RadiusActivation ID now that it's created
-            billingActivation.RadiusActivationId = activation.Id;
+            // Update billing activation record status now that RadiusActivation is created
             billingActivation.ActivationStatus = activation.Status;
             billingActivation.CashbackAmount = totalCashbackAmount; // Track total cashback (instant or collected)
             billingActivation.NewExpireDate = activation.NextExpireDate;
