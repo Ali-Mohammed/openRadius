@@ -183,10 +183,6 @@ export default function SubAgentCashbacks() {
       subAgentId: selectedSubAgent,
       profiles
     })
-      billingProfileId: selectedBillingProfile,
-      amount: parseFloat(amount),
-      notes: notes || undefined
-    })
   }
 
   const handleDelete = (id: number) => {
