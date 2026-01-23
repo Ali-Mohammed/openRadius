@@ -496,6 +496,10 @@ public class RadiusActivationController : ControllerBase
                 activationTransactionIds.Add(userWalletTransaction.Id); // Track this transaction
                 transactionId = userWalletTransaction.Id;
 
+                // Update BillingActivation with the primary payment transaction ID
+                billingActivation.TransactionId = transactionId;
+                await _context.SaveChangesAsync();
+
                 _logger.LogInformation($"Created wallet transaction {userWalletTransaction.Id} for user {walletOwnerId} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
 
                 // Calculate cashback amount FIRST (before processing custom wallet deposits)

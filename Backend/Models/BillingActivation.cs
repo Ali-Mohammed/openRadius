@@ -12,8 +12,8 @@ public class BillingActivation
     [Key]
     public int Id { get; set; }
 
-    // Reference to the activation
-    public int RadiusActivationId { get; set; }
+    // Reference to the activation (nullable since BillingActivation is created first)
+    public int? RadiusActivationId { get; set; }
     
     [ForeignKey("RadiusActivationId")]
     public RadiusActivation? RadiusActivation { get; set; }
@@ -74,8 +74,11 @@ public class BillingActivation
     [MaxLength(255)]
     public string? RadiusProfileName { get; set; }
 
-    // Transaction reference
+    // Primary transaction reference (typically the main payment transaction)
     public int? TransactionId { get; set; }
+    
+    [ForeignKey("TransactionId")]
+    public Transaction? Transaction { get; set; }
 
     // Source of activation
     [MaxLength(50)]
