@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Search, Download, Calendar, DollarSign, TrendingUp, Activity } from 'lucide-react';
-import { activationHistoryApi, type ActivationHistory } from '../api/activationHistory';
+import { billingActivationsApi, type BillingActivation } from '../api/billingActivations';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -28,7 +28,7 @@ import {
   CardTitle,
 } from '../components/ui/card';
 
-export default function ActivationHistoryPage() {
+export default function BillingActivationsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -39,10 +39,10 @@ export default function ActivationHistoryPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const { data: historiesData, isLoading } = useQuery({
-    queryKey: ['activationHistories', page, pageSize, search, activationType, activationStatus, paymentMethod, startDate, endDate],
+  const { data: activationsData, isLoading } = useQuery({
+    queryKey: ['billingActivations', page, pageSize, search, activationType, activationStatus, paymentMethod, startDate, endDate],
     queryFn: () =>
-      activationHistoryApi.getActivationHistories({
+      billingActivationsApi.getBillingActivations({
         page,
         pageSize,
         search,
@@ -55,9 +55,9 @@ export default function ActivationHistoryPage() {
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['activationHistoryStats', startDate, endDate],
+    queryKey: ['billingActivationStats', startDate, endDate],
     queryFn: () =>
-      activationHistoryApi.getActivationHistoryStats({
+      billingActivationsApi.getBillingActivationStats({
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
@@ -76,7 +76,7 @@ export default function ActivationHistoryPage() {
   return (
     <div className="flex flex-1 flex-col">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Activation History</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Billing Activations</h1>
         <p className="text-muted-foreground">
           View detailed billing and activation history for auditing and reporting
         </p>
@@ -196,7 +196,7 @@ export default function ActivationHistoryPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Activation History Records</CardTitle>
+              <CardTitle>Billing Activation Records</CardTitle>
               <CardDescription>
                 {historiesData?.totalCount || 0} total records
               </CardDescription>
@@ -273,7 +273,7 @@ export default function ActivationHistoryPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      No activation history found
+                      No billing activations found
                     </TableCell>
                   </TableRow>
                 )}

@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Backend.Models;
 
 /// <summary>
-/// Tracks detailed history of activations for billing and audit purposes
-/// Stores snapshot of activation data for historical reporting
+/// Tracks detailed billing activations for reporting and audit purposes
+/// Stores complete activation data for billing analysis
 /// </summary>
-public class ActivationHistory
+public class BillingActivation
 {
     [Key]
     public int Id { get; set; }

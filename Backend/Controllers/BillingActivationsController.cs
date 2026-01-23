@@ -10,14 +10,14 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ActivationHistoryController : ControllerBase
+public class BillingActivationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-    private readonly ILogger<ActivationHistoryController> _logger;
+    private readonly ILogger<BillingActivationsController> _logger;
 
-    public ActivationHistoryController(
+    public BillingActivationsController(
         ApplicationDbContext context,
-        ILogger<ActivationHistoryController> logger)
+        ILogger<BillingActivationsController> logger)
     {
         _context = context;
         _logger = logger;
@@ -41,7 +41,7 @@ public class ActivationHistoryController : ControllerBase
     {
         try
         {
-            var query = _context.ActivationHistories
+            var query = _context.BillingActivations
                 .Where(h => !h.IsDeleted)
                 .AsQueryable();
 
@@ -177,7 +177,7 @@ public class ActivationHistoryController : ControllerBase
     {
         try
         {
-            var history = await _context.ActivationHistories
+            var history = await _context.BillingActivations
                 .Where(h => h.Id == id && !h.IsDeleted)
                 .Select(h => new
                 {
@@ -239,7 +239,7 @@ public class ActivationHistoryController : ControllerBase
     {
         try
         {
-            var query = _context.ActivationHistories
+            var query = _context.BillingActivations
                 .Where(h => h.BillingProfileId == billingProfileId && !h.IsDeleted);
 
             if (startDate.HasValue)
@@ -302,7 +302,7 @@ public class ActivationHistoryController : ControllerBase
     {
         try
         {
-            var query = _context.ActivationHistories
+            var query = _context.BillingActivations
                 .Where(h => !h.IsDeleted);
 
             if (billingProfileId.HasValue)

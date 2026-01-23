@@ -1,6 +1,6 @@
 import { api } from '../lib/api';
 
-export interface ActivationHistory {
+export interface BillingActivation {
   id: number;
   radiusActivationId: number;
   billingProfileId?: number;
@@ -33,7 +33,7 @@ export interface ActivationHistory {
   processingCompletedAt?: string;
 }
 
-export interface ActivationHistoryStats {
+export interface BillingActivationStats {
   totalActivations: number;
   totalRevenue: number;
   totalCashback: number;
@@ -69,24 +69,24 @@ export interface GetActivationHistoriesParams {
   sortDirection?: 'asc' | 'desc';
 }
 
-export const activationHistoryApi = {
-  getActivationHistories: async (params: GetActivationHistoriesParams = {}) => {
+export const billingActivationsApi = {
+  getBillingActivations: async (params: GetActivationHistoriesParams = {}) => {
     const response = await api.get<{
-      data: ActivationHistory[];
+      data: BillingActivation[];
       page: number;
       pageSize: number;
       totalCount: number;
       totalPages: number;
-    }>('/api/activationhistory', { params });
+    }>('/api/billingactivations', { params });
     return response.data;
   },
 
-  getActivationHistory: async (id: number) => {
-    const response = await api.get<ActivationHistory>(`/api/activationhistory/${id}`);
+  getBillingActivation: async (id: number) => {
+    const response = await api.get<BillingActivation>(`/api/billingactivations/${id}`);
     return response.data;
   },
 
-  getBillingProfileActivationHistories: async (
+  getBillingProfileActivations: async (
     billingProfileId: number,
     params: {
       page?: number;
@@ -96,21 +96,21 @@ export const activationHistoryApi = {
     } = {}
   ) => {
     const response = await api.get<{
-      data: ActivationHistory[];
+      data: BillingActivation[];
       page: number;
       pageSize: number;
       totalCount: number;
       totalPages: number;
-    }>(`/api/activationhistory/billing-profile/${billingProfileId}`, { params });
+    }>(`/api/billingactivations/billing-profile/${billingProfileId}`, { params });
     return response.data;
   },
 
-  getActivationHistoryStats: async (params: {
+  getBillingActivationStats: async (params: {
     billingProfileId?: number;
     startDate?: string;
     endDate?: string;
   } = {}) => {
-    const response = await api.get<ActivationHistoryStats>('/api/activationhistory/stats', { params });
+    const response = await api.get<BillingActivationStats>('/api/billingactivations/stats', { params });
     return response.data;
   },
 };

@@ -997,8 +997,8 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                 _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             }
 
-            // Create activation history record for billing/audit trail
-            var activationHistory = new ActivationHistory
+            // Create billing activation record for billing/audit trail
+            var billingActivation = new BillingActivation
             {
                 RadiusActivationId = activation.Id,
                 BillingProfileId = activation.BillingProfileId,
@@ -1030,9 +1030,9 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                 ProcessingCompletedAt = activation.ProcessingCompletedAt
             };
             
-            _context.ActivationHistories.Add(activationHistory);
+            _context.BillingActivations.Add(billingActivation);
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"Created activation history record {activationHistory.Id} for activation {activation.Id}");
+            _logger.LogInformation($"Created billing activation record {billingActivation.Id} for activation {activation.Id}");
 
             // Commit the database transaction - all changes are now permanent
             await dbTransaction.CommitAsync();
