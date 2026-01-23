@@ -64,7 +64,7 @@ import { workspaceApi, usersApi } from '../../lib/api'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Workspace, WorkspaceCreateDto } from '../../lib/api'
 import { toast } from 'sonner'
-import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent, getColorLabel } from '../utils/iconColorHelper'
+import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent, getColorLabel } from '../../utils/iconColorHelper'
 
 export default function WorkspaceView() {
   const { t } = useTranslation()

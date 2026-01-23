@@ -56,7 +56,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
-import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../utils/iconColorHelper';
+import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../../utils/iconColorHelper';
 
 export default function BillingGroups() {
   const queryClient = useQueryClient();

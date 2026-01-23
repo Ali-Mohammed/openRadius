@@ -42,7 +42,7 @@ import {
 } from '../../components/ui/select'
 import { toast } from 'sonner'
 import { oltDeviceApi, type OltDevice } from '../../api/oltDeviceApi'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '../../utils/errorHandler'
 
 export default function NetworkSettings() {
   const queryClient = useQueryClient()

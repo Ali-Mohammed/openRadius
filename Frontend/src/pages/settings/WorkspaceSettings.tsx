@@ -42,9 +42,9 @@ import { workspaceApi } from '../../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../../api/sasRadiusApi'
 import { SyncProgressDialog } from '../../components/SyncProgressDialog'
 import { toast } from 'sonner'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '../../utils/errorHandler'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { appConfig } from '../config/app.config'
+import { appConfig } from '../../config/app.config'
 import * as signalR from '@microsoft/signalr'
 
 export default function WorkspaceSettings() {

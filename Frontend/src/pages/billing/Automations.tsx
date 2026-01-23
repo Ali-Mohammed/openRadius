@@ -52,7 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../utils/iconColorHelper';
+import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../../utils/iconColorHelper';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft', variant: 'secondary' as const },
