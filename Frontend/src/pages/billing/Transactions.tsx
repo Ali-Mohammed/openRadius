@@ -27,6 +27,7 @@ import {
   Package,
   DollarSign,
   Search,
+  Info,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -135,7 +136,9 @@ export default function Transactions() {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false)
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false)
+  const [isActivationDetailsDialogOpen, setIsActivationDetailsDialogOpen] = useState(false)
   const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null)
+  const [selectedActivationId, setSelectedActivationId] = useState<number | null>(null)
   const [selectedTransactions, setSelectedTransactions] = useState<number[]>([])
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
   const [isBulkRestoreDialogOpen, setIsBulkRestoreDialogOpen] = useState(false)
@@ -890,6 +893,20 @@ export default function Transactions() {
                         )}
                         <TableCell className="sticky right-0 bg-background px-2 py-1 text-right">
                           <div className="flex items-center justify-end gap-0">
+                            {(transaction.activationId || transaction.billingActivationId) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  setSelectedActivationId(transaction.activationId || transaction.billingActivationId || null)
+                                  setIsActivationDetailsDialogOpen(true)
+                                }}
+                                title="View Activation Details"
+                              >
+                                <Info className="h-3.5 w-3.5 text-blue-600" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1638,6 +1655,15 @@ export default function Transactions() {
           open={isHistoryDialogOpen}
           onOpenChange={setIsHistoryDialogOpen}
           transactionId={selectedTransactionId}
+        />
+      )}
+
+      {/* Activation Details Dialog */}
+      {selectedActivationId && (
+        <ActivationDetailsDialog
+          open={isActivationDetailsDialogOpen}
+          onOpenChange={setIsActivationDetailsDialogOpen}
+          activationId={selectedActivationId}
         />
       )}
 

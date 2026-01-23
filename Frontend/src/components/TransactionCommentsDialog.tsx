@@ -156,7 +156,7 @@ export function TransactionCommentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -167,9 +167,9 @@ export function TransactionCommentsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 h-full">
+        <div className="flex flex-col gap-4 flex-1 overflow-hidden">
           {/* Comments List */}
-          <ScrollArea className="flex-1 pr-4" style={{ maxHeight: '300px' }}>
+          <ScrollArea className="h-[400px] pr-4">
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading comments...</div>
             ) : comments.length === 0 ? (
@@ -177,7 +177,7 @@ export function TransactionCommentsDialog({
                 No comments yet. Be the first to add one!
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-4">
                 {comments.map((comment) => {
                   const commentTags = parseCommentTags(comment.comment)
                   const commentText = getCommentText(comment.comment)
