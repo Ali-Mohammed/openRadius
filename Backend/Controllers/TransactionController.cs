@@ -1123,6 +1123,17 @@ public class TransactionController : ControllerBase
 
             await _context.SaveChangesAsync();
 
+            // Get user details for the response
+            var userId = comment.CreatedBy ?? 0;
+            var user = await _masterContext.Users
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
+                .FirstOrDefaultAsync();
+
+            var userName = user != null 
+                ? $"{user.FirstName} {user.LastName}".Trim() 
+                : (user?.Email ?? "Unknown");
+
             return Ok(new
             {
                 id = comment.Id,
@@ -1130,6 +1141,7 @@ public class TransactionController : ControllerBase
                 tags = comment.Tags,
                 attachments = comment.Attachments,
                 createdBy = comment.CreatedBy,
+                createdByName = userName,
                 createdAt = comment.CreatedAt
             });
         }
