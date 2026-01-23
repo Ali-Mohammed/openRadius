@@ -272,7 +272,7 @@ public class TransactionController : ControllerBase
             decimal balanceAfter = 0;
             int? userId = null;
 
-            if (request.WalletType == "custom")
+            if (request.WalletType == WalletType.Custom)
             {
                 if (!request.CustomWalletId.HasValue)
                 {
@@ -287,11 +287,11 @@ public class TransactionController : ControllerBase
 
                 balanceBefore = wallet.CurrentBalance;
                 var amountType = Backend.Models.TransactionType.GetAmountType(request.TransactionType);
-                wallet.CurrentBalance += amountType == "credit" ? request.Amount : -request.Amount;
+                wallet.CurrentBalance += amountType == AmountType.Credit ? request.Amount : -request.Amount;
                 balanceAfter = wallet.CurrentBalance;
                 wallet.UpdatedAt = DateTime.UtcNow;
             }
-            else if (request.WalletType == "user")
+            else if (request.WalletType == WalletType.User)
             {
                 if (!request.UserWalletId.HasValue)
                 {
@@ -306,7 +306,7 @@ public class TransactionController : ControllerBase
 
                 balanceBefore = wallet.CurrentBalance;
                 var amountType = Backend.Models.TransactionType.GetAmountType(request.TransactionType);
-                wallet.CurrentBalance += amountType == "credit" ? request.Amount : -request.Amount;
+                wallet.CurrentBalance += amountType == AmountType.Credit ? request.Amount : -request.Amount;
                 balanceAfter = wallet.CurrentBalance;
                 wallet.UpdatedAt = DateTime.UtcNow;
                 userId = wallet.UserId;
@@ -325,7 +325,7 @@ public class TransactionController : ControllerBase
                 TransactionType = request.TransactionType,
                 AmountType = Backend.Models.TransactionType.GetAmountType(request.TransactionType),
                 Amount = request.Amount,
-                Status = "completed",
+                Status = TransactionStatus.Completed,
                 BalanceBefore = balanceBefore,
                 BalanceAfter = balanceAfter,
                 Description = request.Description,
@@ -370,7 +370,7 @@ public class TransactionController : ControllerBase
                     transactionType = request.TransactionType,
                     amount = request.Amount,
                     walletType = request.WalletType,
-                    status = "completed",
+                    status = TransactionStatus.Completed,
                     balanceBefore,
                     balanceAfter
                 }),
@@ -421,7 +421,7 @@ public class TransactionController : ControllerBase
                 return NotFound(new { error = "Transaction not found" });
             }
 
-            if (transaction.Status == "reversed")
+            if (transaction.Status == TransactionStatus.Reversed)
             {
                 return BadRequest(new { error = "Transaction already reversed" });
             }
@@ -432,33 +432,33 @@ public class TransactionController : ControllerBase
             decimal reversedBalanceBefore = 0;
             decimal reversedBalanceAfter = 0;
 
-            if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+            if (transaction.WalletType == WalletType.Custom && transaction.CustomWalletId.HasValue)
             {
                 var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
                 if (wallet != null && !wallet.IsDeleted)
                 {
                     reversedBalanceBefore = wallet.CurrentBalance;
                     // Reverse: if it was credit, deduct; if it was debit, add back
-                    wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
+                    wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? -transaction.Amount : transaction.Amount;
                     reversedBalanceAfter = wallet.CurrentBalance;
                     wallet.UpdatedAt = DateTime.UtcNow;
                 }
             }
-            else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+            else if (transaction.WalletType == WalletType.User && transaction.UserWalletId.HasValue)
             {
                 var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
                 if (wallet != null && !wallet.IsDeleted)
                 {
                     reversedBalanceBefore = wallet.CurrentBalance;
                     // Reverse: if it was credit, deduct; if it was debit, add back
-                    wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
+                    wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? -transaction.Amount : transaction.Amount;
                     reversedBalanceAfter = wallet.CurrentBalance;
                     wallet.UpdatedAt = DateTime.UtcNow;
                 }
             }
 
             // Mark original transaction as reversed
-            transaction.Status = "reversed";
+            transaction.Status = TransactionStatus.Reversed;
             transaction.UpdatedAt = DateTime.UtcNow;
             transaction.UpdatedBy = User.GetSystemUserId();
 
@@ -470,9 +470,9 @@ public class TransactionController : ControllerBase
                 UserWalletId = transaction.UserWalletId,
                 UserId = transaction.UserId,
                 TransactionType = transaction.TransactionType,
-                AmountType = transaction.AmountType == "credit" ? "debit" : "credit", // Opposite of original
+                AmountType = transaction.AmountType == AmountType.Credit ? AmountType.Debit : AmountType.Credit, // Opposite of original
                 Amount = transaction.Amount,
-                Status = "completed",
+                Status = TransactionStatus.Completed,
                 BalanceBefore = reversedBalanceBefore,
                 BalanceAfter = reversedBalanceAfter,
                 Description = $"Reversal of transaction #{transaction.Id}",
@@ -595,26 +595,26 @@ public class TransactionController : ControllerBase
             decimal restoredBalanceBefore = 0;
             decimal restoredBalanceAfter = 0;
 
-            if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+            if (transaction.WalletType == WalletType.Custom && transaction.CustomWalletId.HasValue)
             {
                 var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
                 if (wallet != null && !wallet.IsDeleted)
                 {
                     restoredBalanceBefore = wallet.CurrentBalance;
                     // Restore: reapply the original transaction
-                    wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                    wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? transaction.Amount : -transaction.Amount;
                     restoredBalanceAfter = wallet.CurrentBalance;
                     wallet.UpdatedAt = DateTime.UtcNow;
                 }
             }
-            else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+            else if (transaction.WalletType == WalletType.User && transaction.UserWalletId.HasValue)
             {
                 var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
                 if (wallet != null && !wallet.IsDeleted)
                 {
                     restoredBalanceBefore = wallet.CurrentBalance;
                     // Restore: reapply the original transaction
-                    wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                    wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? transaction.Amount : -transaction.Amount;
                     restoredBalanceAfter = wallet.CurrentBalance;
                     wallet.UpdatedAt = DateTime.UtcNow;
                 }
@@ -624,7 +624,7 @@ public class TransactionController : ControllerBase
             transaction.IsDeleted = false;
             transaction.DeletedAt = null;
             transaction.DeletedBy = null;
-            transaction.Status = "completed";
+            transaction.Status = TransactionStatus.Completed;
             transaction.UpdatedAt = DateTime.UtcNow;
             transaction.UpdatedBy = User.GetSystemUserId();
 
@@ -719,7 +719,7 @@ public class TransactionController : ControllerBase
                         continue;
                     }
 
-                    if (transaction.Status == "reversed")
+                    if (transaction.Status == TransactionStatus.Reversed)
                     {
                         errors.Add($"Transaction {id} already reversed");
                         continue;
@@ -729,30 +729,30 @@ public class TransactionController : ControllerBase
                     decimal reversedBalanceBefore = 0;
                     decimal reversedBalanceAfter = 0;
 
-                    if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+                    if (transaction.WalletType == WalletType.Custom && transaction.CustomWalletId.HasValue)
                     {
                         var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
                         if (wallet != null && !wallet.IsDeleted)
                         {
                             reversedBalanceBefore = wallet.CurrentBalance;
-                            wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
+                            wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? -transaction.Amount : transaction.Amount;
                             reversedBalanceAfter = wallet.CurrentBalance;
                             wallet.UpdatedAt = DateTime.UtcNow;
                         }
                     }
-                    else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+                    else if (transaction.WalletType == WalletType.User && transaction.UserWalletId.HasValue)
                     {
                         var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
                         if (wallet != null && !wallet.IsDeleted)
                         {
                             reversedBalanceBefore = wallet.CurrentBalance;
-                            wallet.CurrentBalance += transaction.AmountType == "credit" ? -transaction.Amount : transaction.Amount;
+                            wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? -transaction.Amount : transaction.Amount;
                             reversedBalanceAfter = wallet.CurrentBalance;
                             wallet.UpdatedAt = DateTime.UtcNow;
                         }
                     }
 
-                    transaction.Status = "reversed";
+                    transaction.Status = TransactionStatus.Reversed;
                     transaction.UpdatedAt = DateTime.UtcNow;
                     transaction.UpdatedBy = User.GetSystemUserId();
 
@@ -764,9 +764,9 @@ public class TransactionController : ControllerBase
                         UserWalletId = transaction.UserWalletId,
                         UserId = transaction.UserId,
                         TransactionType = transaction.TransactionType,
-                        AmountType = transaction.AmountType == "credit" ? "debit" : "credit",
+                        AmountType = transaction.AmountType == AmountType.Credit ? AmountType.Debit : AmountType.Credit,
                         Amount = transaction.Amount,
-                        Status = "completed",
+                        Status = TransactionStatus.Completed,
                         BalanceBefore = reversedBalanceBefore,
                         BalanceAfter = reversedBalanceAfter,
                         Description = $"Reversal of transaction #{transaction.Id}",
@@ -871,24 +871,24 @@ public class TransactionController : ControllerBase
                     decimal restoredBalanceBefore = 0;
                     decimal restoredBalanceAfter = 0;
 
-                    if (transaction.WalletType == "custom" && transaction.CustomWalletId.HasValue)
+                    if (transaction.WalletType == WalletType.Custom && transaction.CustomWalletId.HasValue)
                     {
                         var wallet = await _context.CustomWallets.FindAsync(transaction.CustomWalletId.Value);
                         if (wallet != null && !wallet.IsDeleted)
                         {
                             restoredBalanceBefore = wallet.CurrentBalance;
-                            wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                            wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? transaction.Amount : -transaction.Amount;
                             restoredBalanceAfter = wallet.CurrentBalance;
                             wallet.UpdatedAt = DateTime.UtcNow;
                         }
                     }
-                    else if (transaction.WalletType == "user" && transaction.UserWalletId.HasValue)
+                    else if (transaction.WalletType == WalletType.User && transaction.UserWalletId.HasValue)
                     {
                         var wallet = await _context.UserWallets.FindAsync(transaction.UserWalletId.Value);
                         if (wallet != null && !wallet.IsDeleted)
                         {
                             restoredBalanceBefore = wallet.CurrentBalance;
-                            wallet.CurrentBalance += transaction.AmountType == "credit" ? transaction.Amount : -transaction.Amount;
+                            wallet.CurrentBalance += transaction.AmountType == AmountType.Credit ? transaction.Amount : -transaction.Amount;
                             restoredBalanceAfter = wallet.CurrentBalance;
                             wallet.UpdatedAt = DateTime.UtcNow;
                         }
@@ -897,7 +897,7 @@ public class TransactionController : ControllerBase
                     transaction.IsDeleted = false;
                     transaction.DeletedAt = null;
                     transaction.DeletedBy = null;
-                    transaction.Status = "completed";
+                    transaction.Status = TransactionStatus.Completed;
                     transaction.UpdatedAt = DateTime.UtcNow;
                     transaction.UpdatedBy = User.GetSystemUserId();
 
@@ -959,7 +959,7 @@ public class TransactionController : ControllerBase
     {
         try
         {
-            var query = _context.Transactions.Where(t => !t.IsDeleted && t.Status == "completed");
+            var query = _context.Transactions.Where(t => !t.IsDeleted && t.Status == TransactionStatus.Completed);
 
             if (!string.IsNullOrEmpty(walletType))
             {
@@ -987,8 +987,8 @@ public class TransactionController : ControllerBase
             }
 
             var totalTransactions = await query.CountAsync();
-            var totalCredit = await query.Where(t => t.AmountType == "credit").SumAsync(t => t.Amount);
-            var totalDebit = await query.Where(t => t.AmountType == "debit").SumAsync(t => t.Amount);
+            var totalCredit = await query.Where(t => t.AmountType == AmountType.Credit).SumAsync(t => t.Amount);
+            var totalDebit = await query.Where(t => t.AmountType == AmountType.Debit).SumAsync(t => t.Amount);
 
             var byType = await query
                 .GroupBy(t => t.TransactionType)
