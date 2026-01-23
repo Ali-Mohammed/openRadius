@@ -1034,18 +1034,35 @@ public class TransactionController : ControllerBase
             var comments = await _context.TransactionComments
                 .Where(c => c.TransactionId == id)
                 .OrderByDescending(c => c.CreatedAt)
-                .Select(c => new
+                .ToListAsync();
+
+            // Get user details from MasterDbContext
+            var userIds = comments.Where(c => c.CreatedBy.HasValue).Select(c => c.CreatedBy!.Value).Distinct().ToList();
+            var users = await _masterContext.Users
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
+                .ToListAsync();
+
+            var result = comments.Select(c =>
+            {
+                var user = users.FirstOrDefault(u => u.Id == c.CreatedBy);
+                var userName = user != null 
+                    ? $"{user.FirstName} {user.LastName}".Trim() 
+                    : (user?.Email ?? "Unknown");
+                
+                return new
                 {
                     c.Id,
                     c.Comment,
                     c.Tags,
                     c.Attachments,
                     c.CreatedBy,
+                    CreatedByName = userName,
                     c.CreatedAt
-                })
-                .ToListAsync();
+                };
+            }).ToList();
 
-            return Ok(new { data = comments, totalCount = comments.Count });
+            return Ok(new { data = result, totalCount = result.Count });
         }
         catch (Exception ex)
         {

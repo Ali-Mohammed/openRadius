@@ -186,12 +186,12 @@ export function TransactionCommentsDialog({
                     <div key={comment.id} className="flex gap-3 p-3 rounded-lg border bg-muted/30">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                          {comment.createdBy?.substring(0, 2).toUpperCase() || 'UN'}
+                          {comment.createdByName ? comment.createdByName.substring(0, 2).toUpperCase() : 'UN'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{comment.createdBy || 'Unknown'}</span>
+                          <span className="font-medium text-sm">{comment.createdByName || 'Unknown'}</span>
                           <span className="text-xs text-muted-foreground">
                             {format(new Date(comment.createdAt), 'MMM dd, yyyy HH:mm')}
                           </span>
