@@ -401,11 +401,20 @@ public class SubAgentCashbackController : ControllerBase
             {
                 _logger.LogInformation($"Processing BillingProfileId: {item.BillingProfileId}, Amount: {item.Amount}");
                 
-                // Validate billing profile exists
-                var billingProfile = await _context.BillingProfiles.FindAsync(item.BillingProfileId);
+                // Validate billing profile exists (ignoring query filters to include inactive profiles)
+                var billingProfile = await _context.BillingProfiles
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(bp => bp.Id == item.BillingProfileId);
+                    
                 if (billingProfile == null)
                 {
                     _logger.LogWarning($"Billing profile {item.BillingProfileId} not found, skipping");
+                    continue;
+                }
+                
+                if (billingProfile.DeletedAt != null)
+                {
+                    _logger.LogWarning($"Billing profile {item.BillingProfileId} is deleted, skipping");
                     continue;
                 }
 
