@@ -71,7 +71,7 @@ export interface GetActivationHistoriesParams {
 
 export const billingActivationsApi = {
   getBillingActivations: async (params: GetActivationHistoriesParams = {}) => {
-    const response = await api.get<{
+    const response = await apiClient.get<{
       data: BillingActivation[];
       page: number;
       pageSize: number;
@@ -82,7 +82,7 @@ export const billingActivationsApi = {
   },
 
   getBillingActivation: async (id: number) => {
-    const response = await api.get<BillingActivation>(`/api/billingactivations/${id}`);
+    const response = await apiClient.get<BillingActivation>(`/api/billingactivations/${id}`);
     return response.data;
   },
 
@@ -95,7 +95,7 @@ export const billingActivationsApi = {
       endDate?: string;
     } = {}
   ) => {
-    const response = await api.get<{
+    const response = await apiClient.get<{
       data: BillingActivation[];
       page: number;
       pageSize: number;
@@ -110,7 +110,7 @@ export const billingActivationsApi = {
     startDate?: string;
     endDate?: string;
   } = {}) => {
-    const response = await api.get<BillingActivationStats>('/api/billingactivations/stats', { params });
+    const response = await apiClient.get<BillingActivationStats>('/api/billingactivations/stats', { params });
     return response.data;
   },
 };

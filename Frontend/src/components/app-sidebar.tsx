@@ -111,7 +111,7 @@ const getNavData = (workspaceId: number) => ({
           icon: FileText,
         },
         {
-          titleKey: "navigation.activationHistory",
+          titleKey: "navigation.activations",
           url: '/billing/activations',
           icon: History,
         },
