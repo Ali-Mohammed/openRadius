@@ -30,7 +30,7 @@ import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { toast } from 'sonner'
 import { subAgentCashbackApi, type SubAgentCashback, type SubAgent } from '../../api/subAgentCashbackApi'
-import { billingProfilesApi, type BillingProfile } from '../../api/billingProfiles'
+import { getProfiles, type BillingProfile } from '../../api/billingProfiles'
 
 export default function SubAgentCashbacks() {
   const queryClient = useQueryClient()
@@ -55,7 +55,7 @@ export default function SubAgentCashbacks() {
 
   const { data: billingProfiles = [] } = useQuery<BillingProfile[]>({
     queryKey: ['billing-profiles'],
-    queryFn: billingProfilesApi.getAll
+    queryFn: () => getProfiles()
   })
 
   // Mutations
