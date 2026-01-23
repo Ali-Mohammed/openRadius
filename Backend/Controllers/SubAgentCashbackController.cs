@@ -362,6 +362,8 @@ public class SubAgentCashbackController : ControllerBase
     {
         try
         {
+            _logger.LogInformation($"Bulk update request received for SubAgentId: {request.SubAgentId}, Profiles count: {request.Profiles?.Count ?? 0}");
+            
             var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
             if (string.IsNullOrEmpty(userEmail))
             {
@@ -375,11 +377,21 @@ public class SubAgentCashbackController : ControllerBase
                 return NotFound(new { error = "Current user not found" });
             }
 
+            _logger.LogInformation($"Current user: {currentUser.Email} (Id: {currentUser.Id})");
+
             // Verify the sub-agent belongs to this supervisor
             var subAgent = await _masterContext.Users.FirstOrDefaultAsync(u => u.Id == request.SubAgentId);
             if (subAgent == null || subAgent.SupervisorId != currentUser.Id)
             {
+                _logger.LogWarning($"Invalid sub-agent {request.SubAgentId} or not supervised by {currentUser.Id}");
                 return BadRequest(new { error = "Invalid sub-agent or you don't have permission" });
+            }
+
+            _logger.LogInformation($"Sub-agent validated: {subAgent.Email} (SupervisorId: {subAgent.SupervisorId})");
+
+            if (request.Profiles == null || !request.Profiles.Any())
+            {
+                return BadRequest(new { error = "No profiles provided" });
             }
 
             var created = 0;
@@ -387,6 +399,8 @@ public class SubAgentCashbackController : ControllerBase
 
             foreach (var item in request.Profiles)
             {
+                _logger.LogInformation($"Processing BillingProfileId: {item.BillingProfileId}, Amount: {item.Amount}");
+                
                 // Validate billing profile exists
                 var billingProfile = await _context.BillingProfiles.FindAsync(item.BillingProfileId);
                 if (billingProfile == null)
@@ -404,6 +418,7 @@ public class SubAgentCashbackController : ControllerBase
 
                 if (existing != null)
                 {
+                    _logger.LogInformation($"Updating existing cashback Id: {existing.Id}");
                     existing.Amount = item.Amount;
                     existing.Notes = item.Notes;
                     existing.UpdatedAt = DateTime.UtcNow;
@@ -412,6 +427,7 @@ public class SubAgentCashbackController : ControllerBase
                 }
                 else
                 {
+                    _logger.LogInformation($"Creating new cashback for profile {item.BillingProfileId}");
                     var cashback = new SubAgentCashback
                     {
                         SupervisorId = currentUser.Id,
@@ -427,9 +443,10 @@ public class SubAgentCashbackController : ControllerBase
                 }
             }
 
+            _logger.LogInformation($"Saving changes to database...");
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation($"Bulk update: created {created}, updated {updated} sub-agent cashbacks");
+            _logger.LogInformation($"Bulk update completed: created {created}, updated {updated} sub-agent cashbacks");
 
             return Ok(new { created, updated });
         }
