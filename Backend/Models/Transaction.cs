@@ -11,6 +11,7 @@ public class Transaction
     public string AmountType { get; set; } = "credit"; // "credit" or "debit"
     public decimal Amount { get; set; }
     public string Status { get; set; } = "completed"; // completed, pending, cancelled, reversed
+    public string? CashbackStatus { get; set; } // "Completed", "Pending", or "WaitingForApproval"
     
     // Wallet references
     public string WalletType { get; set; } = null!; // 'custom' or 'user'

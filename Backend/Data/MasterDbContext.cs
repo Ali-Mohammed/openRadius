@@ -17,6 +17,7 @@ public class MasterDbContext : DbContext
     public DbSet<Workspace> Workspaces { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<OidcSettings> OidcSettings { get; set; }
+    public DbSet<CashbackSettings> CashbackSettings { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<Permission> Permissions { get; set; }
