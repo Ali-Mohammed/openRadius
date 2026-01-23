@@ -388,6 +388,10 @@ public class RadiusActivationController : ControllerBase
             await _context.SaveChangesAsync(); // Save to get BillingActivation ID
             _logger.LogInformation($"Created master billing activation record {billingActivation.Id} for user {radiusUser.Username}");
 
+            // Generate a unique transaction group ID for all related transactions in this activation
+            var transactionGroupId = Guid.NewGuid();
+            _logger.LogInformation($"Generated transaction group ID {transactionGroupId} for activation {billingActivation.Id}");
+
             // Wallet payment validation
             int? transactionId = null;
             var activationTransactionIds = new List<int>(); // Track all transaction IDs created in this activation
@@ -470,7 +474,8 @@ public class RadiusActivationController : ControllerBase
                     RadiusUsername = radiusUser.Username,
                     RadiusProfileId = radiusProfileId,
                     RadiusProfileName = radiusProfileName,
-                    BillingActivationId = billingActivation.Id  // Link to master billing record
+                    BillingActivationId = billingActivation.Id,  // Link to master billing record
+                    TransactionGroupId = transactionGroupId  // Link all related transactions
                 };
 
                 _context.Transactions.Add(userWalletTransaction);
@@ -643,7 +648,8 @@ public class RadiusActivationController : ControllerBase
                         RadiusProfileName = radiusProfileName,
                         BillingProfileId = request.BillingProfileId,
                         BillingProfileName = request.BillingProfileId.HasValue ? (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name : null,
-                        BillingActivationId = billingActivation.Id  // Link to master billing record
+                        BillingActivationId = billingActivation.Id,  // Link to master billing record
+                        TransactionGroupId = transactionGroupId  // Link all related transactions
                     };
                     _context.Transactions.Add(cashbackTransaction);
 
@@ -752,7 +758,8 @@ public class RadiusActivationController : ControllerBase
                             RadiusProfileName = radiusProfileName,
                             BillingProfileId = request.BillingProfileId,
                             BillingProfileName = request.BillingProfileId.HasValue ? (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name : null,
-                            BillingActivationId = billingActivation.Id
+                            BillingActivationId = billingActivation.Id,
+                            TransactionGroupId = transactionGroupId  // Link all related transactions
                         };
                         _context.Transactions.Add(subAgentCashbackTransaction);
 
@@ -837,7 +844,8 @@ public class RadiusActivationController : ControllerBase
                         RadiusUsername = radiusUser.Username,
                         RadiusProfileId = radiusProfileId,
                         RadiusProfileName = radiusProfileName,
-                        BillingActivationId = billingActivation.Id  // Link to master billing record
+                        BillingActivationId = billingActivation.Id,  // Link to master billing record
+                        TransactionGroupId = transactionGroupId  // Link all related transactions
                     };
 
                     _context.Transactions.Add(customTransaction);
@@ -947,7 +955,8 @@ public class RadiusActivationController : ControllerBase
                             RadiusProfileName = radiusProfileName,
                             BillingProfileId = billingProfileId,
                             BillingProfileName = billingProfile.Name,
-                            BillingActivationId = billingActivation.Id  // Link to master billing record
+                            BillingActivationId = billingActivation.Id,  // Link to master billing record
+                            TransactionGroupId = transactionGroupId  // Link all related transactions
                         };
                         _context.Transactions.Add(outTransaction);
 
@@ -1015,7 +1024,8 @@ public class RadiusActivationController : ControllerBase
                             RadiusProfileName = radiusProfileName,
                             BillingProfileId = billingProfileId,
                             BillingProfileName = billingProfile.Name,
-                            BillingActivationId = billingActivation.Id  // Link to master billing record
+                            BillingActivationId = billingActivation.Id,  // Link to master billing record
+                            TransactionGroupId = transactionGroupId  // Link all related transactions
                         };
                         _context.Transactions.Add(inTransaction);
 
@@ -1089,7 +1099,8 @@ public class RadiusActivationController : ControllerBase
                                 RadiusProfileName = radiusProfileName,
                                 BillingProfileId = billingProfileId,
                                 BillingProfileName = billingProfile.Name,
-                                BillingActivationId = billingActivation.Id  // Link to master billing record
+                                BillingActivationId = billingActivation.Id,  // Link to master billing record
+                                TransactionGroupId = transactionGroupId  // Link all related transactions
                             };
                             _context.Transactions.Add(remainingTransaction);
 

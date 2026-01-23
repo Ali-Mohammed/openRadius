@@ -44,6 +44,9 @@ public class Transaction
     // Related transaction for reversals
     public int? RelatedTransactionId { get; set; } // Link to original transaction when reversed
     
+    // Transaction grouping - links multiple transactions that are part of the same operation
+    public Guid? TransactionGroupId { get; set; } // Same UUID for all transactions in an activation
+    
     // Activation references (for activation-related transactions)
     public int? ActivationId { get; set; } // DEPRECATED: Legacy link to RadiusActivation
     public int? BillingActivationId { get; set; } // Link to master BillingActivation record

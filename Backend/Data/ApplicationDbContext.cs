@@ -267,6 +267,7 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.RelatedTransactionId);
+            entity.HasIndex(e => e.TransactionGroupId);
             entity.HasIndex(e => e.CashbackStatus);
             entity.HasIndex(e => e.DeletedAt);
             
