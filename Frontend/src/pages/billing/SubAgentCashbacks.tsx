@@ -321,13 +321,15 @@ export default function SubAgentCashbacks() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingCashback ? 'Edit Sub-Agent Cashback' : 'Add Sub-Agent Cashback'}
+              {editingCashback ? 'Edit Sub-Agent Cashback' : 'Set Sub-Agent Cashbacks'}
             </DialogTitle>
             <DialogDescription>
-              Set cashback amount for a sub-agent and billing profile
+              {editingCashback 
+                ? 'Update cashback amount for this billing profile'
+                : 'Set cashback amounts for all billing profiles at once'}
             </DialogDescription>
           </DialogHeader>
 
@@ -336,7 +338,7 @@ export default function SubAgentCashbacks() {
               <Label htmlFor="sub-agent">Sub-Agent *</Label>
               <Select
                 value={selectedSubAgent?.toString()}
-                onValueChange={(value) => setSelectedSubAgent(parseInt(value))}
+                onValueChange={(value) => handleSubAgentChange(parseInt(value))}
                 disabled={!!editingCashback}
               >
                 <SelectTrigger id="sub-agent">
@@ -352,12 +354,76 @@ export default function SubAgentCashbacks() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="billing-profile">Billing Profile *</Label>
-              <Select
-                value={selectedBillingProfile?.toString()}
-                onValueChange={(value) => setSelectedBillingProfile(parseInt(value))}
-                disabled={!!editingCashback}
+            {selectedSubAgent && (
+              <div className="space-y-2">
+                <Label>Billing Profiles</Label>
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Profile Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Cashback Amount</TableHead>
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {billingProfiles
+                        .filter(profile => !editingCashback || profile.id === editingCashback.billingProfileId)
+                        .map((profile) => (
+                        <TableRow key={profile.id}>
+                          <TableCell className="font-medium">{profile.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            ${profile.price?.toFixed(2) || '0.00'}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              value={profileAmounts[profile.id] || ''}
+                              onChange={(e) => setProfileAmounts(prev => ({
+                                ...prev,
+                                [profile.id]: e.target.value
+                              }))}
+                              className="w-32"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="text"
+                              placeholder="Optional notes..."
+                              value={profileNotes[profile.id] || ''}
+                              onChange={(e) => setProfileNotes(prev => ({
+                                ...prev,
+                                [profile.id]: e.target.value
+                              }))}
+                              className="w-48"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Enter amounts for the profiles you want to set cashback for. Leave empty to skip.
+                </p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeDialog}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={bulkMutation.isPending || createMutation.isPending}>
+                {(bulkMutation.isPending || createMutation.isPending) ? 'Saving...' : editingCashback ? 'Update' : 'Save All'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
               >
                 <SelectTrigger id="billing-profile">
                   <SelectValue placeholder="Select billing profile" />
