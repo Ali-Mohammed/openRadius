@@ -100,12 +100,16 @@ public class UserWalletController : ControllerBase
 
             var userIds = userWallets.Select(uw => uw.UserId).Distinct().ToList();
             var walletIds = userWallets.Select(uw => uw.Id).ToList();
+            
+            _logger.LogDebug("Fetching user details for {UserCount} users", userIds.Count);
             var users = await _masterContext.Users
                 .Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
                 .ToListAsync();
 
             // Calculate pending cashback for each wallet (by UserWalletId or UserId)
+            // Enterprise optimization: Uses composite index on (WalletType, TransactionType, CashbackStatus, DeletedAt)
+            _logger.LogDebug("Calculating pending cashback for {WalletCount} wallets", walletIds.Count);
             var pendingCashbackByWallet = await _context.Transactions
                 .Where(t => 
                     ((t.UserWalletId != null && walletIds.Contains(t.UserWalletId.Value)) ||
@@ -115,6 +119,8 @@ public class UserWalletController : ControllerBase
                     (t.CashbackStatus == "Pending" || t.CashbackStatus == "WaitingForApproval") &&
                     t.DeletedAt == null)
                 .ToListAsync();
+            
+            _logger.LogDebug("Found {PendingCount} pending cashback transactions", pendingCashbackByWallet.Count);
 
             var result = userWallets.Select(uw =>
             {
