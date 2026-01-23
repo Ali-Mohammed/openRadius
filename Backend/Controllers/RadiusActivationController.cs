@@ -320,6 +320,9 @@ public class RadiusActivationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RadiusActivationResponse>> CreateActivation([FromBody] CreateRadiusActivationRequest request)
     {
+        // Use database transaction to ensure atomicity - all changes succeed or all are rolled back
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
         try
         {
             var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email") ?? "system";
@@ -992,6 +995,10 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                 _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             }
 
+            // Commit the transaction - all changes are now permanent
+            await transaction.CommitAsync();
+            _logger.LogInformation($"Successfully committed all changes for activation {activation.Id}");
+
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {
                 Id = activation.Id,
@@ -1013,7 +1020,9 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating activation");
+            // Rollback transaction on any error - all changes will be reverted
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Error creating activation - transaction rolled back");
             return StatusCode(500, new { error = "An error occurred while creating the activation" });
         }
     }
