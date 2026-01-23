@@ -1,4 +1,4 @@
-import { api } from '../lib/api';
+import { apiClient } from '../lib/api';
 
 export interface BillingActivation {
   id: number;
