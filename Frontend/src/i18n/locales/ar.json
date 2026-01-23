@@ -26,6 +26,7 @@
     "addons": "الإضافات",
     "cashbacks": "الاسترداد النقدي",
     "cashbackGroups": "مجموعات الاسترداد النقدي",
+    "subAgentCashbacks": "استرداد نقدي للوكلاء الفرعيين",
     "customWallets": "المحافظ المخصصة",
     "userWallets": "محافظ المستخدمين",
     "topUp": "إعادة الشحن",
