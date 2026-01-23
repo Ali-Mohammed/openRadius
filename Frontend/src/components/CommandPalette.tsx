@@ -101,6 +101,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       title: t("navigation.billing"),
       items: [
         { title: t("navigation.billingProfiles"), url: "/billing/profiles", icon: FileText, keywords: ["billing plans", "pricing"] },
+        { title: t("navigation.activationHistory"), url: "/billing/activation-history", icon: History, keywords: ["activations", "history", "audit"] },
         { title: t("navigation.addons"), url: "/billing/addons", icon: Package, keywords: ["extras", "add-ons"] },
         { title: t("navigation.groups"), url: "/billing/groups", icon: TrendingUp, keywords: ["billing groups"] },
         { title: t("navigation.cashbacks"), url: "/billing/cashbacks", icon: Gift, keywords: ["rewards", "refunds"] },

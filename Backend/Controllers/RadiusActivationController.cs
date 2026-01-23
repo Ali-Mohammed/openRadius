@@ -667,9 +667,11 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
 
             // Process billing profile wallets if applicable (AFTER RADIUS profile wallets)
             var billingProfileId = request.BillingProfileId ?? radiusUser.ProfileBillingId;
+            BillingProfile? billingProfile = null;
+            
             if (billingProfileId.HasValue && request.PaymentMethod?.ToLower() == "wallet")
             {
-                var billingProfile = await _context.BillingProfiles
+                billingProfile = await _context.BillingProfiles
                     .Include(bp => bp.ProfileWallets)
                     .ThenInclude(pw => pw.CustomWallet)
                     .FirstOrDefaultAsync(bp => bp.Id == billingProfileId.Value);

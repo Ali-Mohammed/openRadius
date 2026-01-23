@@ -196,6 +196,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     }
     if (location.pathname.includes('/billing/profiles')) return { parent: null, current: 'Billing Profiles', icon: Settings }
+    if (location.pathname.includes('/billing/activation-history')) return { parent: null, current: 'Activation History', icon: History }
     if (location.pathname.includes('/billing/addons')) return { parent: null, current: 'Addons', icon: Package }
     if (location.pathname.includes('/billing/groups')) return { parent: null, current: 'Billing Groups', icon: Users }
     if (location.pathname.includes('/billing/cashbacks')) return { parent: null, current: 'Cashback Profiles', icon: DollarSign }

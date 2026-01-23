@@ -111,6 +111,11 @@ const getNavData = (workspaceId: number) => ({
           icon: FileText,
         },
         {
+          titleKey: "navigation.activationHistory",
+          url: '/billing/activation-history',
+          icon: History,
+        },
+        {
           titleKey: "navigation.addons",
           url: "/billing/addons",
           icon: Package,

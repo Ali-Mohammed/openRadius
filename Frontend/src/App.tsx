@@ -42,6 +42,7 @@ import WorkflowDesigner from './pages/WorkflowDesigner'
 import BillingGroups from './pages/BillingGroups'
 import BillingProfiles from './pages/BillingProfiles'
 import BillingProfileForm from './pages/BillingProfileForm'
+import ActivationHistory from './pages/ActivationHistory'
 import CashbackGroups from './pages/CashbackGroups'
 import CashbackProfiles from './pages/CashbackProfiles'
 import Dashboards from './pages/Dashboards'
@@ -124,6 +125,7 @@ function App() {
                           <Route path="/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/billing/profiles/new" element={<BillingProfileForm />} />
                           <Route path="/billing/profiles/edit" element={<BillingProfileForm />} />
+                          <Route path="/billing/activation-history" element={<ActivationHistory />} />
                           <Route path="/billing/topup" element={<TopUp />} />
                           <Route path="/billing/history" element={<WalletHistory />} />
                           <Route path="/billing/transactions" element={<Transactions />} />
