@@ -36,9 +36,8 @@ export default function SubAgentCashbacks() {
   const queryClient = useQueryClient()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedSubAgent, setSelectedSubAgent] = useState<number | null>(null)
-  const [selectedBillingProfile, setSelectedBillingProfile] = useState<number | null>(null)
-  const [amount, setAmount] = useState('')
-  const [notes, setNotes] = useState('')
+  const [profileAmounts, setProfileAmounts] = useState<Record<number, string>>({})
+  const [profileNotes, setProfileNotes] = useState<Record<number, string>>({})
   const [editingCashback, setEditingCashback] = useState<SubAgentCashback | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
 
@@ -61,11 +60,23 @@ export default function SubAgentCashbacks() {
   const billingProfiles = billingProfilesResponse?.data ?? []
 
   // Mutations
+  const bulkMutation = useMutation({
+    mutationFn: subAgentCashbackApi.bulkUpdate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sub-agent-cashbacks'] })
+      toast.success('Sub-agent cashbacks saved successfully')
+      closeDialog()
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to save sub-agent cashbacks')
+    }
+  })
+
   const createMutation = useMutation({
     mutationFn: subAgentCashbackApi.createOrUpdate,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sub-agent-cashbacks'] })
-      toast.success(editingCashback ? 'Sub-agent cashback updated successfully' : 'Sub-agent cashback created successfully')
+      toast.success('Sub-agent cashback updated successfully')
       closeDialog()
     },
     onError: (error: any) => {
@@ -89,9 +100,8 @@ export default function SubAgentCashbacks() {
     setIsAddDialogOpen(false)
     setEditingCashback(null)
     setSelectedSubAgent(null)
-    setSelectedBillingProfile(null)
-    setAmount('')
-    setNotes('')
+    setProfileAmounts({})
+    setProfileNotes({})
   }
 
   const openAddDialog = () => {
@@ -102,22 +112,77 @@ export default function SubAgentCashbacks() {
   const openEditDialog = (cashback: SubAgentCashback) => {
     setEditingCashback(cashback)
     setSelectedSubAgent(cashback.subAgentId)
-    setSelectedBillingProfile(cashback.billingProfileId)
-    setAmount(cashback.amount.toString())
-    setNotes(cashback.notes || '')
+    setProfileAmounts({ [cashback.billingProfileId]: cashback.amount.toString() })
+    setProfileNotes({ [cashback.billingProfileId]: cashback.notes || '' })
     setIsAddDialogOpen(true)
+  }
+
+  // Load existing cashback amounts when sub-agent is selected
+  const handleSubAgentChange = (subAgentId: number) => {
+    setSelectedSubAgent(subAgentId)
+    
+    // Pre-fill existing cashback amounts for this sub-agent
+    const existingCashbacks = cashbacks.filter(c => c.subAgentId === subAgentId)
+    const amounts: Record<number, string> = {}
+    const notes: Record<number, string> = {}
+    
+    existingCashbacks.forEach(c => {
+      amounts[c.billingProfileId] = c.amount.toString()
+      notes[c.billingProfileId] = c.notes || ''
+    })
+    
+    setProfileAmounts(amounts)
+    setProfileNotes(notes)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedSubAgent || !selectedBillingProfile || !amount) {
-      toast.error('Please fill in all required fields')
+    if (!selectedSubAgent) {
+      toast.error('Please select a sub-agent')
       return
     }
 
-    createMutation.mutate({
+    // If editing a single cashback
+    if (editingCashback) {
+      const amount = profileAmounts[editingCashback.billingProfileId]
+      if (!amount || parseFloat(amount) <= 0) {
+        toast.error('Please enter a valid amount')
+        return
+      }
+
+      createMutation.mutate({
+        subAgentId: selectedSubAgent,
+        billingProfileId: editingCashback.billingProfileId,
+        amount: parseFloat(amount),
+        notes: profileNotes[editingCashback.billingProfileId] || ''
+      })
+      return
+    }
+
+    // Bulk create/update - collect all profiles with amounts
+    const profiles: Array<{ billingProfileId: number; amount: number; notes: string }> = []
+    
+    Object.entries(profileAmounts).forEach(([profileId, amountStr]) => {
+      const amount = parseFloat(amountStr)
+      if (amount > 0) {
+        profiles.push({
+          billingProfileId: parseInt(profileId),
+          amount,
+          notes: profileNotes[parseInt(profileId)] || ''
+        })
+      }
+    })
+
+    if (profiles.length === 0) {
+      toast.error('Please enter at least one cashback amount')
+      return
+    }
+
+    bulkMutation.mutate({
       subAgentId: selectedSubAgent,
+      profiles
+    })
       billingProfileId: selectedBillingProfile,
       amount: parseFloat(amount),
       notes: notes || undefined
