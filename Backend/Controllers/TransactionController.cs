@@ -479,6 +479,7 @@ public class TransactionController : ControllerBase
                 Reason = deleteReason,
                 Reference = transaction.Reference,
                 RelatedTransactionId = transaction.Id,
+                TransactionGroupId = transaction.TransactionGroupId, // Maintain same group ID
                 IsDeleted = true, // Mark reversal as deleted too
                 DeletedAt = DateTime.UtcNow,
                 DeletedBy = User.GetSystemUserId(),
@@ -514,6 +515,10 @@ public class TransactionController : ControllerBase
             transaction.DeletedAt = DateTime.UtcNow;
             transaction.DeletedBy = User.GetSystemUserId();
 
+            await _context.SaveChangesAsync();
+            
+            // Now link the original transaction to the reversal transaction (after SaveChanges so we have the ID)
+            transaction.RelatedTransactionId = reversalTransaction.Id;
             await _context.SaveChangesAsync();
 
             // Create transaction history entry for deletion
