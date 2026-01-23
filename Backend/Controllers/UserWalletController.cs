@@ -99,27 +99,30 @@ public class UserWalletController : ControllerBase
                 .ToListAsync();
 
             var userIds = userWallets.Select(uw => uw.UserId).Distinct().ToList();
+            var walletIds = userWallets.Select(uw => uw.Id).ToList();
             var users = await _masterContext.Users
                 .Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
                 .ToListAsync();
 
-            // Calculate pending cashback for each user
-            var pendingCashbackByUser = await _context.Transactions
+            // Calculate pending cashback for each wallet (by UserWalletId or UserId)
+            var pendingCashbackByWallet = await _context.Transactions
                 .Where(t => 
-                    t.UserId != null &&
-                    userIds.Contains(t.UserId.Value) &&
+                    ((t.UserWalletId != null && walletIds.Contains(t.UserWalletId.Value)) ||
+                     (t.UserId != null && userIds.Contains(t.UserId.Value))) &&
+                    t.WalletType == "user" &&
                     t.TransactionType == TransactionType.Cashback &&
                     (t.CashbackStatus == "Pending" || t.CashbackStatus == "WaitingForApproval") &&
                     t.DeletedAt == null)
-                .GroupBy(t => t.UserId!.Value)
-                .Select(g => new { UserId = g.Key, PendingCashback = g.Sum(t => t.Amount) })
                 .ToListAsync();
 
             var result = userWallets.Select(uw =>
             {
                 var user = users.FirstOrDefault(u => u.Id == uw.UserId);
-                var pendingCashback = pendingCashbackByUser.FirstOrDefault(pc => pc.UserId == uw.UserId)?.PendingCashback ?? 0;
+                // Sum pending cashback for this wallet (either by UserWalletId or UserId match)
+                var pendingCashback = pendingCashbackByWallet
+                    .Where(t => (t.UserWalletId == uw.Id) || (t.UserId == uw.UserId))
+                    .Sum(t => t.Amount);
                 return new
                 {
                     uw.Id,
