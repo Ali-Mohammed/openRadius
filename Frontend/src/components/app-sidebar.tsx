@@ -136,6 +136,11 @@ const getNavData = (workspaceId: number) => ({
           icon: PiggyBank,
         },
         {
+          titleKey: "navigation.subAgentCashbacks",
+          url: "/billing/sub-agent-cashbacks",
+          icon: UsersRound,
+        },
+        {
           titleKey: "navigation.customWallets",
           url: "/billing/wallets",
           icon: Wallet,

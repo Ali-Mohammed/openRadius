@@ -507,6 +507,8 @@ public class RadiusActivationController : ControllerBase
                 // The cashback will be deducted from the remaining amount that goes to custom wallets
                 decimal calculatedCashbackAmount = 0;
                 string calculatedCashbackSource = "none";
+                decimal subAgentCashbackAmount = 0;
+                int? subAgentSupervisorId = null;
 
                 if (request.ApplyCashback && request.BillingProfileId.HasValue)
                 {
@@ -544,7 +546,27 @@ public class RadiusActivationController : ControllerBase
                         }
                     }
 
-                    _logger.LogInformation($"Calculated cashback amount: {calculatedCashbackAmount:F2} ({calculatedCashbackSource}) for user {walletOwnerId}");
+                    _logger.LogInformation($"Calculated main cashback amount: {calculatedCashbackAmount:F2} ({calculatedCashbackSource}) for user {walletOwnerId}");
+
+                    // Check for sub-agent cashback (if payer has a supervisor)
+                    var payerUser = await _masterContext.Users.FirstOrDefaultAsync(u => u.Id == walletOwnerId);
+                    if (payerUser?.SupervisorId != null)
+                    {
+                        var subAgentCashback = await _context.SubAgentCashbacks
+                            .Where(sac => 
+                                sac.SupervisorId == payerUser.SupervisorId.Value && 
+                                sac.SubAgentId == walletOwnerId && 
+                                sac.BillingProfileId == request.BillingProfileId.Value &&
+                                sac.DeletedAt == null)
+                            .FirstOrDefaultAsync();
+
+                        if (subAgentCashback != null && subAgentCashback.Amount > 0)
+                        {
+                            subAgentCashbackAmount = subAgentCashback.Amount;
+                            subAgentSupervisorId = payerUser.SupervisorId.Value;
+                            _logger.LogInformation($"Calculated sub-agent cashback amount: {subAgentCashbackAmount:F2} for supervisor {subAgentSupervisorId}");
+                        }
+                    }
                 }
 
                 // Apply cashback to wallet owner's wallet if amount > 0
@@ -659,6 +681,115 @@ public class RadiusActivationController : ControllerBase
                     if (transactionType == "Instant")
                     {
                         cashbackAmountForRemaining = calculatedCashbackAmount;
+                    }
+                }
+
+                // Apply sub-agent cashback to supervisor's wallet if amount > 0
+                if (subAgentCashbackAmount > 0 && subAgentSupervisorId.HasValue)
+                {
+                    // Get supervisor's wallet
+                    var supervisorWallet = await _context.UserWallets
+                        .FirstOrDefaultAsync(uw => uw.UserId == subAgentSupervisorId.Value && !uw.IsDeleted && uw.Status.ToLower() == "active");
+
+                    if (supervisorWallet != null)
+                    {
+                        // Get cashback settings to determine transaction type
+                        var cashbackSettings = await _masterContext.CashbackSettings
+                            .OrderByDescending(cs => cs.CreatedAt)
+                            .FirstOrDefaultAsync();
+
+                        var transactionType = cashbackSettings?.TransactionType ?? "Instant";
+                        var requiresApproval = cashbackSettings?.RequiresApprovalToCollect ?? false;
+
+                        string subAgentCashbackStatus;
+                        string subAgentTransactionStatus;
+                        decimal supervisorBalanceBefore = supervisorWallet.CurrentBalance;
+                        decimal supervisorBalanceAfter = supervisorWallet.CurrentBalance;
+
+                        if (transactionType == "Instant")
+                        {
+                            // Instant cashback: Add to supervisor's wallet immediately
+                            subAgentCashbackStatus = "Completed";
+                            subAgentTransactionStatus = "completed";
+                            supervisorWallet.CurrentBalance += subAgentCashbackAmount;
+                            supervisorBalanceAfter = supervisorWallet.CurrentBalance;
+                            supervisorWallet.UpdatedAt = DateTime.UtcNow;
+                            supervisorWallet.UpdatedBy = User.GetSystemUserId();
+                            
+                            _logger.LogInformation($"Instant sub-agent cashback: Added {subAgentCashbackAmount:F2} to supervisor {subAgentSupervisorId} wallet. Balance: {supervisorBalanceBefore:F2} -> {supervisorBalanceAfter:F2}");
+                        }
+                        else // Collected
+                        {
+                            // Collected cashback: Don't add to wallet, set status based on approval requirement
+                            subAgentCashbackStatus = requiresApproval ? "WaitingForApproval" : "Pending";
+                            subAgentTransactionStatus = "pending";
+                            
+                            _logger.LogInformation($"Collected sub-agent cashback: {subAgentCashbackAmount:F2} set to {subAgentCashbackStatus} for supervisor {subAgentSupervisorId}. Wallet balance unchanged: {supervisorWallet.CurrentBalance:F2}");
+                        }
+
+                        // Create sub-agent cashback transaction
+                        var subAgentCashbackTransaction = new Transaction
+                        {
+                            WalletType = "user",
+                            UserWalletId = supervisorWallet.Id,
+                            UserId = subAgentSupervisorId.Value,
+                            TransactionType = TransactionType.Cashback,
+                            AmountType = "credit",
+                            Amount = subAgentCashbackAmount,
+                            Status = subAgentTransactionStatus,
+                            CashbackStatus = subAgentCashbackStatus,
+                            BalanceBefore = supervisorBalanceBefore,
+                            BalanceAfter = supervisorBalanceAfter,
+                            Description = $"Sub-agent cashback for {radiusUser.Username} activation by sub-agent",
+                            Reference = $"SUBAGENT-CASHBACK-{radiusUser.Id}",
+                            PaymentMethod = "SubAgentCashback",
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = User.GetSystemUserId(),
+                            RadiusUserId = radiusUser.Id,
+                            RadiusUsername = radiusUser.Username,
+                            RadiusProfileId = radiusProfileId,
+                            RadiusProfileName = radiusProfileName,
+                            BillingProfileId = request.BillingProfileId,
+                            BillingProfileName = request.BillingProfileId.HasValue ? (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name : null,
+                            BillingActivationId = billingActivation.Id
+                        };
+                        _context.Transactions.Add(subAgentCashbackTransaction);
+
+                        // Create wallet history only for instant sub-agent cashback
+                        if (transactionType == "Instant")
+                        {
+                            var subAgentCashbackHistory = new WalletHistory
+                            {
+                                WalletType = "user",
+                                UserWalletId = supervisorWallet.Id,
+                                UserId = subAgentSupervisorId.Value,
+                                TransactionType = TransactionType.Cashback,
+                                AmountType = "credit",
+                                Amount = subAgentCashbackAmount,
+                                BalanceBefore = supervisorBalanceBefore,
+                                BalanceAfter = supervisorBalanceAfter,
+                                Description = $"Sub-agent cashback for {radiusUser.Username} activation",
+                                Reference = $"SUBAGENT-CASHBACK-{radiusUser.Id}",
+                                CreatedAt = DateTime.UtcNow,
+                                CreatedBy = User.GetSystemUserId()
+                            };
+                            _context.WalletHistories.Add(subAgentCashbackHistory);
+
+                            // Include sub-agent cashback in remaining amount deduction
+                            cashbackAmountForRemaining += subAgentCashbackAmount;
+                        }
+
+                        await _context.SaveChangesAsync();
+                        activationTransactionIds.Add(subAgentCashbackTransaction.Id);
+
+                        _logger.LogInformation($"Created sub-agent cashback transaction {subAgentCashbackTransaction.Id} with status '{subAgentCashbackStatus}' for supervisor {subAgentSupervisorId}. Amount: {subAgentCashbackAmount:F2}");
+                        
+                        // Add to total cashback amount
+                        totalCashbackAmount += subAgentCashbackAmount;
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Supervisor {subAgentSupervisorId} does not have an active wallet. Sub-agent cashback {subAgentCashbackAmount:F2} not applied.");
                     }
                 }
             }

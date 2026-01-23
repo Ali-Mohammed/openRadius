@@ -43,6 +43,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CashbackGroupUser> CashbackGroupUsers { get; set; }
     public DbSet<CashbackProfileAmount> CashbackProfileAmounts { get; set; }
     public DbSet<UserCashback> UserCashbacks { get; set; }
+    public DbSet<SubAgentCashback> SubAgentCashbacks { get; set; }
     public DbSet<WalletHistory> WalletHistories { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<TransactionComment> TransactionComments { get; set; }
@@ -92,7 +93,7 @@ public class ApplicationDbContext : DbContext
             typeof(RadiusIpReservation), typeof(RadiusNas), typeof(Transaction),
             typeof(TransactionComment), typeof(UserCashback), typeof(UserWallet),
             typeof(UserZone), typeof(WalletHistory), typeof(WorkflowHistory), typeof(Zone),
-            typeof(BillingGroupUser)
+            typeof(BillingGroupUser), typeof(SubAgentCashback)
         };
 
         foreach (var entityType in entityTypes)

@@ -32,6 +32,7 @@ import Addons from './pages/billing/Addons'
 import BillingGroups from './pages/billing/BillingGroups'
 import CashbackProfiles from './pages/billing/CashbackProfiles'
 import CashbackGroups from './pages/billing/CashbackGroups'
+import SubAgentCashbacks from './pages/billing/SubAgentCashbacks'
 import CustomWallets from './pages/billing/CustomWallets'
 import UserWallets from './pages/billing/UserWallets'
 import TopUp from './pages/billing/TopUp'
@@ -132,6 +133,7 @@ function App() {
                           <Route path="/billing/groups" element={<BillingGroups />} />
                           <Route path="/billing/cashback-groups" element={<CashbackGroups />} />
                           <Route path="/billing/cashbacks" element={<CashbackProfiles />} />
+                          <Route path="/billing/sub-agent-cashbacks" element={<SubAgentCashbacks />} />
                           <Route path="/billing/profiles" element={<BillingProfiles />} />
                           <Route path="/billing/profiles/new" element={<BillingProfileForm />} />
                           <Route path="/billing/profiles/edit" element={<BillingProfileForm />} />
