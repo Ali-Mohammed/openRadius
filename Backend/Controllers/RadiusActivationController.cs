@@ -958,6 +958,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
 
             var activation = new RadiusActivation
             {
+                BillingActivationId = billingActivation.Id,  // Link to master billing record
                 ActionByUsername = userEmail,
                 ActionForId = request.ActionForId,
                 ActionForUsername = request.ActionForUsername,
@@ -1027,7 +1028,8 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
 
             _logger.LogInformation($"Created activation {activation.Id} for user {radiusUser.Username}, updated expiration to {radiusUser.Expiration}");
 
-            // Link all tracked transactions to this activation
+            // Link all tracked transactions to this activation (legacy ActivationId for compatibility)
+            // New transactions should use BillingActivationId instead
             if (activationTransactionIds.Any())
             {
                 var transactionsToUpdate = await _context.Transactions
@@ -1036,53 +1038,26 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
 
                 foreach (var txn in transactionsToUpdate)
                 {
-                    txn.ActivationId = activation.Id;
+                    txn.ActivationId = activation.Id;  // Legacy field for backward compatibility
                 }
                 
                 await _context.SaveChangesAsync();
                 _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             }
 
-            // Create billing activation record for billing/audit trail
-            var billingActivation = new BillingActivation
-            {
-                RadiusActivationId = activation.Id,
-                BillingProfileId = activation.BillingProfileId,
-                BillingProfileName = billingProfile?.Name,
-                RadiusUserId = activation.RadiusUserId,
-                RadiusUsername = activation.RadiusUsername,
-                ActionById = activation.ActionById,
-                ActionByUsername = activation.ActionByUsername,
-                ActionForId = activation.ActionForId,
-                ActionForUsername = activation.ActionForUsername,
-                IsActionBehalf = activation.IsActionBehalf,
-                Amount = activation.Amount,
-                CashbackAmount = cashbackAmountForRemaining,
-                ActivationType = activation.Type,
-                ActivationStatus = activation.Status,
-                PaymentMethod = activation.PaymentMethod,
-                PreviousExpireDate = activation.PreviousExpireDate,
-                NewExpireDate = activation.NextExpireDate,
-                DurationDays = activation.DurationDays,
-                RadiusProfileId = activation.RadiusProfileId,
-                RadiusProfileName = radiusProfileName,
-                TransactionId = transactionId,
-                Source = activation.Source,
-                IpAddress = activation.IpAddress,
-                UserAgent = activation.UserAgent,
-                Notes = activation.Notes,
-                CreatedAt = activation.CreatedAt,
-                ProcessingStartedAt = activation.ProcessingStartedAt,
-                ProcessingCompletedAt = activation.ProcessingCompletedAt
-            };
-            
-            _context.BillingActivations.Add(billingActivation);
+            // Update billing activation record with RadiusActivation ID now that it's created
+            billingActivation.RadiusActivationId = activation.Id;
+            billingActivation.ActivationStatus = activation.Status;
+            billingActivation.CashbackAmount = cashbackAmountForRemaining;
+            billingActivation.NewExpireDate = activation.NextExpireDate;
+            billingActivation.ProcessingCompletedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"Created billing activation record {billingActivation.Id} for activation {activation.Id}");
+            _logger.LogInformation($"Updated billing activation record {billingActivation.Id} with RadiusActivation {activation.Id}");
 
             // Commit the database transaction - all changes are now permanent
             await dbTransaction.CommitAsync();
-            _logger.LogInformation($"Successfully committed all changes for activation {activation.Id}");
+            _logger.LogInformation($"Successfully committed all changes for activation {activation.Id} and billing activation {billingActivation.Id}");
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {
