@@ -385,8 +385,16 @@ public class SubAgentCashbackController : ControllerBase
             var created = 0;
             var updated = 0;
 
-            foreach (var item in request.Cashbacks)
+            foreach (var item in request.Profiles)
             {
+                // Validate billing profile exists
+                var billingProfile = await _context.BillingProfiles.FindAsync(item.BillingProfileId);
+                if (billingProfile == null)
+                {
+                    _logger.LogWarning($"Billing profile {item.BillingProfileId} not found, skipping");
+                    continue;
+                }
+
                 var existing = await _context.SubAgentCashbacks
                     .FirstOrDefaultAsync(sac =>
                         sac.SupervisorId == currentUser.Id &&
@@ -397,6 +405,7 @@ public class SubAgentCashbackController : ControllerBase
                 if (existing != null)
                 {
                     existing.Amount = item.Amount;
+                    existing.Notes = item.Notes;
                     existing.UpdatedAt = DateTime.UtcNow;
                     existing.UpdatedBy = User.GetSystemUserId() ?? currentUser.Id;
                     updated++;
@@ -409,6 +418,7 @@ public class SubAgentCashbackController : ControllerBase
                         SubAgentId = request.SubAgentId,
                         BillingProfileId = item.BillingProfileId,
                         Amount = item.Amount,
+                        Notes = item.Notes,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = User.GetSystemUserId() ?? currentUser.Id
                     };
@@ -442,11 +452,12 @@ public class SubAgentCashbackRequest
 public class BulkSubAgentCashbackRequest
 {
     public int SubAgentId { get; set; }
-    public List<BulkCashbackItem> Cashbacks { get; set; } = new();
+    public List<BulkCashbackItem> Profiles { get; set; } = new();
 }
 
 public class BulkCashbackItem
 {
     public int BillingProfileId { get; set; }
     public decimal Amount { get; set; }
+    public string? Notes { get; set; }
 }

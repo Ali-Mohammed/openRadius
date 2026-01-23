@@ -33,9 +33,10 @@ export interface CreateSubAgentCashbackRequest {
 
 export interface BulkSubAgentCashbackRequest {
   subAgentId: number
-  cashbacks: Array<{
+  profiles: Array<{
     billingProfileId: number
     amount: number
+    notes?: string
   }>
 }
 
