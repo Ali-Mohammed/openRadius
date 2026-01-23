@@ -53,10 +53,12 @@ export default function SubAgentCashbacks() {
     queryFn: subAgentCashbackApi.getSubAgents
   })
 
-  const { data: billingProfiles = [] } = useQuery<BillingProfile[]>({
+  const { data: billingProfilesResponse } = useQuery({
     queryKey: ['billing-profiles'],
     queryFn: () => getProfiles()
   })
+
+  const billingProfiles = billingProfilesResponse?.data ?? []
 
   // Mutations
   const createMutation = useMutation({
