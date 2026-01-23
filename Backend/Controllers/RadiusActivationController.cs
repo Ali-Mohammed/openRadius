@@ -636,7 +636,11 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                     _logger.LogInformation($"Added {depositAmount:F2} to custom wallet '{customWallet.Name}' (ID: {customWallet.Id}) from RADIUS profile. Balance: {customBalanceBefore:F2} -> {customWallet.CurrentBalance:F2}");
                 }
 
-                if (
+                // Save changes to get transaction IDs, then track them
+                if (profileWallets.Any())
+                {
+                    await _context.SaveChangesAsync();
+                    
                     // Track all custom wallet transaction IDs
                     foreach (var profileWallet in profileWallets)
                     {
@@ -654,9 +658,6 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                         }
                     }
                     
-                    profileWallets.Any())
-                {
-                    await _context.SaveChangesAsync();
                     _logger.LogInformation($"Processed {profileWallets.Count} RADIUS profile wallet deposit(s) for activation. Total: {radiusProfileWalletTotal:F2}");
                 }
             }
@@ -865,20 +866,6 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                             {
                                 WalletType = "custom",
                                 CustomWalletId = customWallet.Id,
-                        
-                        // Track all billing profile transaction IDs
-                        var billingTransactions = await _context.Transactions
-                            .Where(t => t.RadiusUserId == radiusUser.Id &&
-                                      t.Reference == $"ACTIVATION-{radiusUser.Id}" &&
-                                      t.BillingProfileId == billingProfileId &&
-                                      (t.Description.Contains("Billing profile deduction") ||
-                                       t.Description.Contains("Billing profile distribution") ||
-                                       t.Description.Contains("Remaining balance")))
-                            .Select(t => t.Id)
-                            .ToListAsync();
-                        
-                        activationTransactionIds.AddRange(billingTransactions);
-                        
                                 UserId = null,
                                 TransactionType = TransactionType.TopUp,
                                 AmountType = "credit",
@@ -899,6 +886,20 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                     if (billingProfile.ProfileWallets.Any())
                     {
                         await _context.SaveChangesAsync();
+                        
+                        // Track all billing profile transaction IDs
+                        var billingTransactions = await _context.Transactions
+                            .Where(t => t.RadiusUserId == radiusUser.Id &&
+                                      t.Reference == $"ACTIVATION-{radiusUser.Id}" &&
+                                      t.BillingProfileId == billingProfileId &&
+                                      (t.Description.Contains("Billing profile deduction") ||
+                                       t.Description.Contains("Billing profile distribution") ||
+                                       t.Description.Contains("Remaining balance")))
+                            .Select(t => t.Id)
+                            .ToListAsync();
+                        
+                        activationTransactionIds.AddRange(billingTransactions);
+                        
                         _logger.LogInformation($"Processed billing profile wallet distributions. Activation: {activationAmount:F2}, RADIUS Profile Wallets: {radiusProfileWalletTotal:F2}, Billing 'in': {totalInAmount:F2}, Remaining: {remainingAmount:F2}");
                     }
                 }
@@ -944,19 +945,22 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
             else if (request.DurationDays.HasValue)
             {
                 var now = DateTime.UtcNow;
-                activationTransactionIds.Any())
-            {
-                var transactionsToUpdate = await _context.Transactions
-                    .Where(t => activationTransactionIds.Contains(t.Id))
-                    .ToListAsync();
-
-                foreach (var transaction in transactionsToUpdate)
-                {
-                    transaction.ActivationId = activation.Id;
-                }
+                var currentExpiration = radiusUser.Expiration ?? now;
+                var baseDate = currentExpiration > now ? currentExpiration : now;
+                var newExpiration = baseDate.AddDays(request.DurationDays.Value);
                 
-                await _context.SaveChangesAsync();
-                _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
+                radiusUser.Expiration = newExpiration;
+                activation.CurrentExpireDate = currentExpiration;
+                activation.NextExpireDate = newExpiration;
+            }
+            
+            // Update RADIUS profile if specified
+            if (request.RadiusProfileId.HasValue)
+            {
+                radiusUser.ProfileId = request.RadiusProfileId.Value;
+            }
+            
+            // Update billing profile if specified
             if (request.BillingProfileId.HasValue)
             {
                 radiusUser.ProfileBillingId = request.BillingProfileId.Value;
@@ -972,25 +976,20 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
 
             _logger.LogInformation($"Created activation {activation.Id} for user {radiusUser.Username}, updated expiration to {radiusUser.Expiration}");
 
-            // Update all transactions created during this activation with the ActivationId
-            if (transactionId.HasValue)
+            // Link all tracked transactions to this activation
+            if (activationTransactionIds.Any())
             {
-                // Get all transactions created in this request (they will have RadiusUserId matching and recent timestamp)
-                var activationTransactions = await _context.Transactions
-                    .Where(t => t.RadiusUserId == radiusUser.Id && 
-                                t.CreatedAt >= activation.CreatedAt.AddMinutes(-1) &&
-                                t.ActivationId == null)
+                var transactionsToUpdate = await _context.Transactions
+                    .Where(t => activationTransactionIds.Contains(t.Id))
                     .ToListAsync();
 
-                if (activationTransactions.Any())
+                foreach (var transaction in transactionsToUpdate)
                 {
-                    foreach (var transaction in activationTransactions)
-                    {
-                        transaction.ActivationId = activation.Id;
-                    }
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation($"Linked {activationTransactions.Count} transactions to activation {activation.Id}");
+                    transaction.ActivationId = activation.Id;
                 }
+                
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             }
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
