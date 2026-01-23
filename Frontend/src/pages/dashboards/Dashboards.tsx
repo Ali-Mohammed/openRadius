@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, LayoutDashboard, Pencil, Trash2 } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { CreateDashboardDialog } from '../components/dashboard/dialogs/CreateDashboardDialog'
-import type { Dashboard } from '../types/dashboard'
-import { dashboardApi } from '../api/dashboardApi'
+import { Button } from '../../components/ui/button'
+import { CreateDashboardDialog } from '../../components/dashboard/dialogs/CreateDashboardDialog'
+import type { Dashboard } from '../../types/dashboard'
+import { dashboardApi } from '../../api/dashboardApi'
 import { toast } from 'sonner'
 
 export default function Dashboards() {

@@ -16,25 +16,25 @@ import {
   type CreateBillingProfileRequest,
   type BillingProfileWallet,
   type BillingProfileAddon,
-} from '../api/billingProfiles';
-import { radiusProfileApi } from '../api/radiusProfileApi';
-import { getGroups } from '../api/groups';
-import { addonApi, type Addon } from '../api/addons';
-import { customWalletApi } from '../api/customWallets';
-import userWalletApi from '../api/userWallets';
-import { workspaceApi } from '../lib/api';
-import { useWorkspace } from '../contexts/WorkspaceContext';
-import { tablePreferenceApi } from '../api/tablePreferenceApi';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Switch } from '../components/ui/switch';
+} from '../../api/billingProfiles';
+import { radiusProfileApi } from '../../api/radiusProfileApi';
+import { getGroups } from '../../api/groups';
+import { addonApi, type Addon } from '../../api/addons';
+import { customWalletApi } from '../../api/customWallets';
+import userWalletApi from '../../api/userWallets';
+import { workspaceApi } from '../../lib/api';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { tablePreferenceApi } from '../../api/tablePreferenceApi';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Switch } from '../../components/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select';
+} from '../../components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -42,7 +42,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../components/ui/dialog';
+} from '../../components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -50,7 +50,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../components/ui/table';
+} from '../../components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,17 +60,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Skeleton } from '../components/ui/skeleton';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../components/ui/command';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
-import { cn } from '../lib/utils';
+} from '../../components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Badge } from '../../components/ui/badge';
+import { Skeleton } from '../../components/ui/skeleton';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../../components/ui/command';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import { cn } from '../../lib/utils';
 
 const walletIconOptions = [
   { value: 'Wallet', label: 'Wallet', Icon: Wallet },

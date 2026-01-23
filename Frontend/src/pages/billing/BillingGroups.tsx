@@ -10,18 +10,18 @@ import {
   restoreGroup,
   type BillingGroup,
   type CreateBillingGroupRequest,
-} from '../api/groups';
-import { userManagementApi } from '../api/userManagementApi';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Checkbox } from '../components/ui/checkbox';
+} from '../../api/groups';
+import { userManagementApi } from '../../api/userManagementApi';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from '../components/ui/select';
+} from '../../components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../components/ui/dialog';
+} from '../../components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -37,12 +37,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../components/ui/table';
+} from '../../components/ui/table';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '../components/ui/popover';
+} from '../../components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,10 +52,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Label } from '../components/ui/label';
+} from '../../components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Badge } from '../../components/ui/badge';
+import { Label } from '../../components/ui/label';
 import { AVAILABLE_ICONS, PREDEFINED_COLORS, getIconComponent } from '../utils/iconColorHelper';
 
 export default function BillingGroups() {

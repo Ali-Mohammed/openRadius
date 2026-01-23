@@ -9,8 +9,8 @@ import {
   getFilteredRowModel,
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
-import { Button } from '../components/ui/button'
-import { Card, CardContent } from '../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../components/ui/table'
+} from '../../components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../components/ui/dialog'
+} from '../../components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,32 +37,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../components/ui/alert-dialog'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Checkbox } from '../components/ui/checkbox'
-import { Textarea } from '../components/ui/textarea'
+} from '../../components/ui/alert-dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Checkbox } from '../../components/ui/checkbox'
+import { Textarea } from '../../components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select'
-import { Badge } from '../components/ui/badge'
-import { Skeleton } from '../components/ui/skeleton'
+} from '../../components/ui/select'
+import { Badge } from '../../components/ui/badge'
+import { Skeleton } from '../../components/ui/skeleton'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '../components/ui/tabs'
+} from '../../components/ui/tabs'
 import { 
   Plus, Search, RefreshCw, ArrowUpDown, Trash2, Pencil, Download, Upload, Settings, AlertTriangle, RotateCcw, Clock, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, Archive, FileJson
 } from 'lucide-react'
-import { workspaceApi, usersApi } from '../lib/api'
+import { workspaceApi, usersApi } from '../../lib/api'
 import { useNavigate, useLocation } from 'react-router-dom'
-import type { Workspace, WorkspaceCreateDto } from '../lib/api'
+import type { Workspace, WorkspaceCreateDto } from '../../lib/api'
 import { toast } from 'sonner'
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent, getColorLabel } from '../utils/iconColorHelper'
 

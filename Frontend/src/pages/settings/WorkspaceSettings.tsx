@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2 } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Textarea } from '../components/ui/textarea'
-import { Switch } from '../components/ui/switch'
-import { Badge } from '../components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { Progress } from '../components/ui/progress'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Switch } from '../../components/ui/switch'
+import { Badge } from '../../components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import { Progress } from '../../components/ui/progress'
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../components/ui/table'
+} from '../../components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../components/ui/dialog'
+} from '../../components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,13 +37,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../components/ui/alert-dialog'
-import { workspaceApi } from '../lib/api'
-import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../api/sasRadiusApi'
-import { SyncProgressDialog } from '../components/SyncProgressDialog'
+} from '../../components/ui/alert-dialog'
+import { workspaceApi } from '../../lib/api'
+import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../../api/sasRadiusApi'
+import { SyncProgressDialog } from '../../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../utils/errorHandler'
-import { useWorkspace } from '../contexts/WorkspaceContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { appConfig } from '../config/app.config'
 import * as signalR from '@microsoft/signalr'
 

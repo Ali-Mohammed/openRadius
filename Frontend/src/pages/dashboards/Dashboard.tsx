@@ -1,13 +1,13 @@
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useKeycloak } from '../contexts/KeycloakContext'
-import { useTheme } from '../contexts/ThemeContext'
+import { useKeycloak } from '../../contexts/KeycloakContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useQuery } from '@tanstack/react-query'
-import { Header } from '../components/Header'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Skeleton } from '../components/ui/skeleton'
-import { Badge } from '../components/ui/badge'
-import { usersApi } from '../lib/api'
+import { Header } from '../../components/Header'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Skeleton } from '../../components/ui/skeleton'
+import { Badge } from '../../components/ui/badge'
+import { usersApi } from '../../lib/api'
 
 export default function Dashboard() {
   const { keycloak } = useKeycloak()
