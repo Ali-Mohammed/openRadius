@@ -654,7 +654,8 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                         RadiusUserId = radiusUser.Id,
                         RadiusUsername = radiusUser.Username,
                         RadiusProfileId = radiusProfileId,
-                        RadiusProfileName = radiusProfileName
+                        RadiusProfileName = radiusProfileName,
+                        BillingActivationId = billingActivation.Id  // Link to master billing record
                     };
 
                     _context.Transactions.Add(customTransaction);
@@ -764,7 +765,8 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                             RadiusProfileId = radiusProfileId,
                             RadiusProfileName = radiusProfileName,
                             BillingProfileId = billingProfileId,
-                            BillingProfileName = billingProfile.Name
+                            BillingProfileName = billingProfile.Name,
+                            BillingActivationId = billingActivation.Id  // Link to master billing record
                         };
                         _context.Transactions.Add(outTransaction);
 
@@ -831,7 +833,8 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                             RadiusProfileId = radiusProfileId,
                             RadiusProfileName = radiusProfileName,
                             BillingProfileId = billingProfileId,
-                            BillingProfileName = billingProfile.Name
+                            BillingProfileName = billingProfile.Name,
+                            BillingActivationId = billingActivation.Id  // Link to master billing record
                         };
                         _context.Transactions.Add(inTransaction);
 
@@ -904,7 +907,8 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                                 RadiusProfileId = radiusProfileId,
                                 RadiusProfileName = radiusProfileName,
                                 BillingProfileId = billingProfileId,
-                                BillingProfileName = billingProfile.Name
+                                BillingProfileName = billingProfile.Name,
+                                BillingActivationId = billingActivation.Id  // Link to master billing record
                             };
                             _context.Transactions.Add(remainingTransaction);
 
