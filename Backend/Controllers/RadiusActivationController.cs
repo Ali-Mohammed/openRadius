@@ -366,7 +366,7 @@ public class RadiusActivationController : ControllerBase
                 RadiusUsername = radiusUser.Username,
                 ActionById = User.GetSystemUserId(),
                 ActionByUsername = userEmail,
-                ActionForId = request.ActionForUserId ?? User.GetSystemUserId(),
+                ActionForId = request.ActionForId ?? User.GetSystemUserId(),
                 ActionForUsername = request.ActionForUsername ?? userEmail,
                 IsActionBehalf = request.IsActionBehalf,
                 Amount = request.Amount ?? 0,
@@ -710,7 +710,6 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
 
             // Process billing profile wallets if applicable (AFTER RADIUS profile wallets)
             var billingProfileId = request.BillingProfileId ?? radiusUser.ProfileBillingId;
-            BillingProfile? billingProfile = null;
             
             if (billingProfileId.HasValue && request.PaymentMethod?.ToLower() == "wallet")
             {
