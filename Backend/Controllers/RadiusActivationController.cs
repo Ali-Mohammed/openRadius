@@ -1140,9 +1140,10 @@ public class RadiusActivationController : ControllerBase
             var activation = new RadiusActivation
             {
                 BillingActivationId = billingActivation.Id,  // Link to master billing record
+                ActionById = User.GetSystemUserId(),
                 ActionByUsername = userEmail,
-                ActionForId = request.ActionForId,
-                ActionForUsername = request.ActionForUsername,
+                ActionForId = request.ActionForId ?? User.GetSystemUserId(),
+                ActionForUsername = request.ActionForUsername ?? userEmail,
                 IsActionBehalf = request.IsActionBehalf,
                 RadiusUserId = request.RadiusUserId,
                 RadiusUsername = radiusUser.Username,
