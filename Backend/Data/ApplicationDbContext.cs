@@ -483,6 +483,33 @@ public class ApplicationDbContext : DbContext
             entity.HasQueryFilter(e => e.DeletedAt == null);
         });
 
+        modelBuilder.Entity<SubAgentCashback>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            // Unique index: one cashback per supervisor-subagent-profile combination (excluding soft-deleted)
+            entity.HasIndex(e => new { e.SupervisorId, e.SubAgentId, e.BillingProfileId })
+                  .IsUnique()
+                  .HasFilter("\"DeletedAt\" IS NULL");
+            
+            // Indexes for lookups
+            entity.HasIndex(e => e.SupervisorId);
+            entity.HasIndex(e => e.SubAgentId);
+            entity.HasIndex(e => e.BillingProfileId);
+            entity.HasIndex(e => e.DeletedAt);
+            
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany()
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.Property(e => e.Amount)
+                  .HasColumnType("decimal(18,2)");
+            
+            // Add query filter to exclude soft-deleted cashbacks by default
+            entity.HasQueryFilter(e => e.DeletedAt == null);
+        });
+
         modelBuilder.Entity<RadiusActivation>(entity =>
         {
             entity.HasKey(e => e.Id);
