@@ -43,8 +43,9 @@ public class Transaction
     // Related transaction for reversals
     public int? RelatedTransactionId { get; set; } // Link to original transaction when reversed
     
-    // Activation reference (for activation-related transactions)
-    public int? ActivationId { get; set; } // Link to RadiusActivation
+    // Activation references (for activation-related transactions)
+    public int? ActivationId { get; set; } // DEPRECATED: Legacy link to RadiusActivation
+    public int? BillingActivationId { get; set; } // Link to master BillingActivation record
     
     // Metadata
     public string? Metadata { get; set; } // JSON for additional data

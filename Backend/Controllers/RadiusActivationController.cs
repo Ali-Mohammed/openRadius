@@ -347,6 +347,46 @@ public class RadiusActivationController : ControllerBase
                 radiusProfileName = radiusProfile?.Name;
             }
 
+            // Fetch billing profile if specified
+            BillingProfile? billingProfile = null;
+            if (request.BillingProfileId.HasValue)
+            {
+                billingProfile = await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value);
+            }
+
+            // ========================================
+            // STEP 1: Create Master Billing Activation Record FIRST
+            // This is the primary financial/billing record that all other records reference
+            // ========================================
+            var billingActivation = new BillingActivation
+            {
+                BillingProfileId = request.BillingProfileId,
+                BillingProfileName = billingProfile?.Name,
+                RadiusUserId = radiusUser.Id,
+                RadiusUsername = radiusUser.Username,
+                ActionById = User.GetSystemUserId(),
+                ActionByUsername = userEmail,
+                ActionForId = request.ActionForUserId ?? User.GetSystemUserId(),
+                ActionForUsername = request.ActionForUsername ?? userEmail,
+                IsActionBehalf = request.IsActionBehalf,
+                Amount = request.Amount ?? 0,
+                ActivationType = request.Type,
+                ActivationStatus = "processing",
+                PaymentMethod = request.PaymentMethod,
+                RadiusProfileId = radiusProfileId,
+                RadiusProfileName = radiusProfileName,
+                Source = request.Source ?? "api",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                Notes = request.Notes,
+                CreatedAt = DateTime.UtcNow,
+                ProcessingStartedAt = DateTime.UtcNow
+            };
+
+            _context.BillingActivations.Add(billingActivation);
+            await _context.SaveChangesAsync(); // Save to get BillingActivation ID
+            _logger.LogInformation($"Created master billing activation record {billingActivation.Id} for user {radiusUser.Username}");
+
             // Wallet payment validation
             int? transactionId = null;
             var activationTransactionIds = new List<int>(); // Track all transaction IDs created in this activation
@@ -427,7 +467,8 @@ public class RadiusActivationController : ControllerBase
                     RadiusUserId = radiusUser.Id,
                     RadiusUsername = radiusUser.Username,
                     RadiusProfileId = radiusProfileId,
-                    RadiusProfileName = radiusProfileName
+                    RadiusProfileName = radiusProfileName,
+                    BillingActivationId = billingActivation.Id  // Link to master billing record
                 };
 
                 _context.Transactions.Add(userWalletTransaction);
@@ -537,8 +578,9 @@ public class RadiusActivationController : ControllerBase
                         RadiusProfileId = radiusProfileId,
                         RadiusProfileName = radiusProfileName,
                         BillingProfileId = request.BillingProfileId,
-                    BillingProfileName = request.BillingProfileId.HasValue ? (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name : null
-                };
+                        BillingProfileName = request.BillingProfileId.HasValue ? (await _context.BillingProfiles.FindAsync(request.BillingProfileId.Value))?.Name : null,
+                        BillingActivationId = billingActivation.Id  // Link to master billing record
+                    };
                 _context.Transactions.Add(cashbackTransaction);
 
 
