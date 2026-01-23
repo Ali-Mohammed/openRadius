@@ -424,56 +424,6 @@ export default function SubAgentCashbacks() {
           </form>
         </DialogContent>
       </Dialog>
-              >
-                <SelectTrigger id="billing-profile">
-                  <SelectValue placeholder="Select billing profile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {billingProfiles.map((profile) => (
-                    <SelectItem key={profile.id} value={profile.id.toString()}>
-                      {profile.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="amount">Cashback Amount *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Optional notes..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? 'Saving...' : editingCashback ? 'Update' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
