@@ -321,7 +321,7 @@ public class RadiusActivationController : ControllerBase
     public async Task<ActionResult<RadiusActivationResponse>> CreateActivation([FromBody] CreateRadiusActivationRequest request)
     {
         // Use database transaction to ensure atomicity - all changes succeed or all are rolled back
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
         
         try
         {
@@ -408,7 +408,7 @@ public class RadiusActivationController : ControllerBase
                     ? $" (on behalf of {walletOwnerUsername})" 
                     : "";
 
-                var transaction = new Transaction
+                var userWalletTransaction = new Transaction
                 {
                     WalletType = "user",
                     UserWalletId = userWallet.Id,
@@ -430,7 +430,7 @@ public class RadiusActivationController : ControllerBase
                     RadiusProfileName = radiusProfileName
                 };
 
-                _context.Transactions.Add(transaction);
+                _context.Transactions.Add(userWalletTransaction);
 
                 // Also create wallet history record for tracking
                 var walletHistory = new WalletHistory
@@ -452,10 +452,10 @@ public class RadiusActivationController : ControllerBase
                 _context.WalletHistories.Add(walletHistory);
                 await _context.SaveChangesAsync(); // Save to get transaction ID
 
-                activationTransactionIds.Add(transaction.Id); // Track this transaction
-                transactionId = transaction.Id;
+                activationTransactionIds.Add(userWalletTransaction.Id); // Track this transaction
+                transactionId = userWalletTransaction.Id;
 
-                _logger.LogInformation($"Created wallet transaction {transaction.Id} for user {walletOwnerId} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
+                _logger.LogInformation($"Created wallet transaction {userWalletTransaction.Id} for user {walletOwnerId} and history record for activation. Balance: {balanceBefore:F2} -> {balanceAfter:F2}");
 
                 // Calculate cashback amount FIRST (before processing custom wallet deposits)
                 // The cashback will be deducted from the remaining amount that goes to custom wallets
@@ -699,7 +699,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                         customWallet.UpdatedAt = DateTime.UtcNow;
 
                         // Create transaction
-                        var transaction = new Transaction
+                        var outTransaction = new Transaction
                         {
                             WalletType = "custom",
                             CustomWalletId = customWallet.Id,
@@ -722,7 +722,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                             BillingProfileId = billingProfileId,
                             BillingProfileName = billingProfile.Name
                         };
-                        _context.Transactions.Add(transaction);
+                        _context.Transactions.Add(outTransaction);
 
                         // Create wallet history
                         var walletHistory = new WalletHistory
@@ -766,7 +766,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                         totalInAmount += walletAmount;
 
                         // Create transaction
-                        var transaction = new Transaction
+                        var inTransaction = new Transaction
                         {
                             WalletType = "custom",
                             CustomWalletId = customWallet.Id,
@@ -789,7 +789,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                             BillingProfileId = billingProfileId,
                             BillingProfileName = billingProfile.Name
                         };
-                        _context.Transactions.Add(transaction);
+                        _context.Transactions.Add(inTransaction);
 
                         // Create wallet history
                         var walletHistory = new WalletHistory
@@ -839,7 +839,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                             customWallet.UpdatedAt = DateTime.UtcNow;
 
                             // Create transaction
-                            var transaction = new Transaction
+                            var remainingTransaction = new Transaction
                             {
                                 WalletType = "custom",
                                 CustomWalletId = customWallet.Id,
@@ -862,7 +862,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                                 BillingProfileId = billingProfileId,
                                 BillingProfileName = billingProfile.Name
                             };
-                            _context.Transactions.Add(transaction);
+                            _context.Transactions.Add(remainingTransaction);
 
                             // Create wallet history
                             var walletHistory = new WalletHistory
@@ -986,17 +986,54 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
                     .Where(t => activationTransactionIds.Contains(t.Id))
                     .ToListAsync();
 
-                foreach (var transaction in transactionsToUpdate)
+                foreach (var txn in transactionsToUpdate)
                 {
-                    transaction.ActivationId = activation.Id;
+                    txn.ActivationId = activation.Id;
                 }
                 
                 await _context.SaveChangesAsync();
                 _logger.LogInformation($"Linked {transactionsToUpdate.Count} transactions to activation {activation.Id}");
             }
 
-            // Commit the transaction - all changes are now permanent
-            await transaction.CommitAsync();
+            // Create activation history record for billing/audit trail
+            var activationHistory = new ActivationHistory
+            {
+                RadiusActivationId = activation.Id,
+                BillingProfileId = activation.BillingProfileId,
+                BillingProfileName = billingProfile?.Name,
+                RadiusUserId = activation.RadiusUserId,
+                RadiusUsername = activation.RadiusUsername,
+                ActionById = activation.ActionById,
+                ActionByUsername = activation.ActionByUsername,
+                ActionForId = activation.ActionForId,
+                ActionForUsername = activation.ActionForUsername,
+                IsActionBehalf = activation.IsActionBehalf,
+                Amount = activation.Amount,
+                CashbackAmount = cashbackAmountForRemaining,
+                ActivationType = activation.Type,
+                ActivationStatus = activation.Status,
+                PaymentMethod = activation.PaymentMethod,
+                PreviousExpireDate = activation.PreviousExpireDate,
+                NewExpireDate = activation.NextExpireDate,
+                DurationDays = activation.DurationDays,
+                RadiusProfileId = activation.RadiusProfileId,
+                RadiusProfileName = radiusProfileName,
+                TransactionId = transactionId,
+                Source = activation.Source,
+                IpAddress = activation.IpAddress,
+                UserAgent = activation.UserAgent,
+                Notes = activation.Notes,
+                CreatedAt = activation.CreatedAt,
+                ProcessingStartedAt = activation.ProcessingStartedAt,
+                ProcessingCompletedAt = activation.ProcessingCompletedAt
+            };
+            
+            _context.ActivationHistories.Add(activationHistory);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation($"Created activation history record {activationHistory.Id} for activation {activation.Id}");
+
+            // Commit the database transaction - all changes are now permanent
+            await dbTransaction.CommitAsync();
             _logger.LogInformation($"Successfully committed all changes for activation {activation.Id}");
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
@@ -1021,7 +1058,7 @@ activationTransactionIds.Add(cashbackTransaction.Id); // Track cashback transact
         catch (Exception ex)
         {
             // Rollback transaction on any error - all changes will be reverted
-            await transaction.RollbackAsync();
+            await dbTransaction.RollbackAsync();
             _logger.LogError(ex, "Error creating activation - transaction rolled back");
             return StatusCode(500, new { error = "An error occurred while creating the activation" });
         }

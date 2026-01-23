@@ -60,6 +60,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Dashboard> Dashboards { get; set; }
     public DbSet<MicroserviceApproval> MicroserviceApprovals { get; set; }
     public DbSet<RadiusActivation> RadiusActivations { get; set; }
+    public DbSet<ActivationHistory> ActivationHistories { get; set; }
     public DbSet<DashboardTab> DashboardTabs { get; set; }
     public DbSet<DashboardItem> DashboardItems { get; set; }
     public DbSet<DashboardGlobalFilter> DashboardGlobalFilters { get; set; }
@@ -83,7 +84,7 @@ public class ApplicationDbContext : DbContext
         // These entities have CreatedBy/UpdatedBy/DeletedBy int fields but no FK constraints
         var entityTypes = new[]
         {
-            typeof(Addon), typeof(Automation), typeof(BillingGroup), typeof(BillingProfile),
+            typeof(ActivationHistory), typeof(Addon), typeof(Automation), typeof(BillingGroup), typeof(BillingProfile),
             typeof(CashbackGroup), typeof(CashbackProfileAmount), typeof(CustomWallet),
             typeof(Dashboard), typeof(DashboardItem), typeof(DashboardTab), typeof(DashboardGlobalFilter),
             typeof(Fat), typeof(FatPort), typeof(Fdt), typeof(OltDevice), typeof(Olt), typeof(PonPort),
