@@ -79,6 +79,7 @@ export default function RadiusActivations() {
     status: true,
     apiStatus: true,
     actionBy: true,
+    actionFor: true,
     source: false,
     previousBalance: false,
     newBalance: false,
@@ -89,22 +90,23 @@ export default function RadiusActivations() {
 
   const DEFAULT_COLUMN_WIDTHS = {
     checkbox: 50,
-    date: 180,
-    user: 150,
-    type: 150,
-    profile: 180,
-    amount: 120,
-    expiration: 140,
-    status: 130,
-    apiStatus: 120,
-    actionBy: 150,
-    source: 120,
-    previousBalance: 140,
-    newBalance: 140,
-    previousExpiration: 140,
-    notes: 200,
-    externalRef: 180,
-    actions: 120,
+    date: 140,
+    user: 120,
+    type: 100,
+    profile: 130,
+    amount: 100,
+    expiration: 120,
+    status: 100,
+    apiStatus: 100,
+    actionBy: 120,
+    actionFor: 120,
+    source: 100,
+    previousBalance: 120,
+    newBalance: 120,
+    previousExpiration: 130,
+    notes: 150,
+    externalRef: 130,
+    actions: 100,
   }
 
   const DEFAULT_COLUMN_ORDER = [
@@ -118,6 +120,7 @@ export default function RadiusActivations() {
     'status',
     'apiStatus',
     'actionBy',
+    'actionFor',
     'source',
     'previousBalance',
     'newBalance',
@@ -420,7 +423,6 @@ export default function RadiusActivations() {
 
   // Column resize handlers
   const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
-    console.log('🔧 handleResize called:', { column, startX, startWidth })
     setResizing(column)
     let hasMoved = false
     
@@ -428,12 +430,10 @@ export default function RadiusActivations() {
       hasMoved = true
       const diff = e.clientX - startX
       const newWidth = Math.max(60, startWidth + diff) // Minimum width of 60px
-      console.log('📏 Resizing:', { column, diff, newWidth })
       setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
     }
     
     const handleMouseUp = () => {
-      console.log('✋ Mouse up, hasMoved:', hasMoved)
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
       
@@ -594,6 +594,14 @@ export default function RadiusActivations() {
             </div>
           </TableCell>
         )
+      case 'actionFor':
+        return (
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.actionFor}px` }}>
+            <div className="text-sm">
+              {activation.actionForUsername || '-'}
+            </div>
+          </TableCell>
+        )
       case 'source':
         return (
           <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.source}px` }}>
@@ -687,6 +695,7 @@ export default function RadiusActivations() {
       status: { label: 'Status', sortable: true },
       apiStatus: { label: 'API Status', sortable: true },
       actionBy: { label: 'Action By', sortable: false },
+      actionFor: { label: 'Action For', sortable: false },
       source: { label: 'Source', sortable: false },
       previousBalance: { label: 'Prev Balance', sortable: false },
       newBalance: { label: 'New Balance', sortable: false },
@@ -958,16 +967,13 @@ export default function RadiusActivations() {
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors z-10"
                           onClick={(e) => {
-                            console.log('🖱️ Resize handle clicked')
                             e.preventDefault()
                             e.stopPropagation()
                           }}
                           onMouseDown={(e) => { 
-                            console.log('🖱️ Resize handle mousedown', { column, clientX: e.clientX })
                             e.preventDefault()
                             e.stopPropagation()
                             const width = columnWidths[column] ?? DEFAULT_COLUMN_WIDTHS[column as keyof typeof DEFAULT_COLUMN_WIDTHS] ?? 100
-                            console.log('📊 Current width:', width)
                             handleResize(column, e.clientX, width)
                           }}
                         />
