@@ -598,7 +598,11 @@ export default function RadiusActivations() {
         return (
           <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.actionFor}px` }}>
             <div className="text-sm">
-              {activation.actionForUsername || '-'}
+              {activation.isActionBehalf && activation.actionForUsername ? (
+                <span>{activation.actionForUsername}</span>
+              ) : (
+                <span className="text-muted-foreground">Self</span>
+              )}
             </div>
           </TableCell>
         )
