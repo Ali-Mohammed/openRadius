@@ -76,6 +76,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ColorPicker } from '@/components/ColorPicker'
 import { IconPicker } from '@/components/IconPicker'
+import { UserCashbackDialog } from '@/components/dialogs/UserCashbackDialog'
 import userWalletApi, { type UserWallet } from '@/api/userWallets'
 import { userManagementApi } from '@/api/userManagementApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -298,8 +299,10 @@ export default function UserWallets() {
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isUserCashbackDialogOpen, setIsUserCashbackDialogOpen] = useState(false)
   const [editingWallet, setEditingWallet] = useState<UserWallet | null>(null)
   const [deletingWallet, setDeletingWallet] = useState<UserWallet | null>(null)
+  const [selectedUserForCashback, setSelectedUserForCashback] = useState<{ userId: number; userName?: string } | null>(null)
 
   const [formData, setFormData] = useState<Partial<UserWallet>>({
     userId: 0,
@@ -763,7 +766,14 @@ export default function UserWallets() {
               </div>
             ) : wallet.hasUserCashback ? (
               <div className="space-y-1">
-                <Badge variant="outline" className="border-orange-600 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-400">
+                <Badge 
+                  variant="outline" 
+                  className="border-orange-600 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-400 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900 transition-colors"
+                  onClick={() => {
+                    setSelectedUserForCashback({ userId: wallet.userId, userName: wallet.userName })
+                    setIsUserCashbackDialogOpen(true)
+                  }}
+                >
                   Cashback by User
                 </Badge>
                 <div className="text-xs text-muted-foreground">
@@ -1399,6 +1409,14 @@ export default function UserWallets() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* User Cashback Dialog */}
+      <UserCashbackDialog
+        open={isUserCashbackDialogOpen}
+        onOpenChange={setIsUserCashbackDialogOpen}
+        userId={selectedUserForCashback?.userId || 0}
+        userName={selectedUserForCashback?.userName}
+      />
     </div>
   )
 }
