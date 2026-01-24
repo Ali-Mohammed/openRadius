@@ -550,7 +550,7 @@ export default function RadiusActivations() {
         )
       case 'amount':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.amount }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.amount}px` }}>
             {activation.amount ? (
               <span className="font-medium">{currencySymbol}{activation.amount.toLocaleString()}</span>
             ) : '-'}
@@ -573,7 +573,7 @@ export default function RadiusActivations() {
         )
       case 'status':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.status }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.status}px` }}>
             {getStatusBadge(activation.status)}
           </TableCell>
         )
