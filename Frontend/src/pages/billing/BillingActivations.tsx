@@ -631,14 +631,18 @@ export default function BillingActivations() {
             {isLoading ? (
               Array.from({ length: 10 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 10 }).map((_, j) => (
-                    <TableCell key={j} className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}
+                  {columnOrder
+                    .filter((column) => columnVisibility[column] !== false)
+                    .map((column) => (
+                      <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths[column]}px` }}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
                 </TableRow>
               ))
             ) : activations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-32 text-center">
+                <TableCell colSpan={columnOrder.filter((c) => columnVisibility[c] !== false).length} className="h-32 text-center">
                   <Activity className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-muted-foreground">No billing activations found</p>
                 </TableCell>
@@ -646,64 +650,116 @@ export default function BillingActivations() {
             ) : (
               activations.map((activation) => (
                 <TableRow key={activation.id}>
-                  <TableCell className="h-12 px-4 whitespace-nowrap">
-                    {activation.createdAt && format(new Date(activation.createdAt), 'PP p')}
-                  </TableCell>
-                  <TableCell className="h-12 px-4">
-                    {activation.radiusUsername ? (
-                      <button
-                        onClick={() => navigate(`/radius/users?search=${encodeURIComponent(activation.radiusUsername!)}`)}
-                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
-                      >
-                        <User className="h-4 w-4" />
-                        <span className="font-medium">{activation.radiusUsername}</span>
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">-</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="h-12 px-4">{getTypeBadge(activation.activationType || '')}</TableCell>
-                  <TableCell className="h-12 px-4">
-                    <div className="text-sm">
-                      {activation.billingProfileName || '-'}
-                    </div>
-                  </TableCell>
-                  <TableCell className="h-12 px-4">
-                    {activation.amount ? (
-                      <span className="font-medium">${activation.amount.toLocaleString()}</span>
-                    ) : '-'}
-                  </TableCell>
-                  <TableCell className="h-12 px-4">
-                    {activation.cashbackAmount ? (
-                      <span className="font-medium text-green-600">${activation.cashbackAmount.toLocaleString()}</span>
-                    ) : '-'}
-                  </TableCell>
-                  <TableCell className="h-12 px-4">
-                    <Badge variant="outline">{activation.paymentMethod || '-'}</Badge>
-                  </TableCell>
-                  <TableCell className="h-12 px-4">{getStatusBadge(activation.activationStatus || '')}</TableCell>
-                  <TableCell className="h-12 px-4">
-                    <div className="text-sm">
-                      {activation.actionByUsername || '-'}
-                      {activation.isActionBehalf && (
-                        <Badge variant="outline" className="ml-1 text-xs">Behalf</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="h-12 px-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSelectedActivation(activation)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {columnOrder
+                    .filter((column) => columnVisibility[column] !== false)
+                    .map((column) => {
+                      const cellStyle = { width: `${columnWidths[column]}px` }
+                      
+                      switch (column) {
+                        case 'date':
+                          return (
+                            <TableCell key={column} className="h-12 px-4 whitespace-nowrap" style={cellStyle}>
+                              {activation.createdAt && format(new Date(activation.createdAt), 'PP p')}
+                            </TableCell>
+                          )
+                        
+                        case 'user':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              {activation.radiusUsername ? (
+                                <button
+                                  onClick={() => navigate(`/radius/users?search=${encodeURIComponent(activation.radiusUsername!)}`)}
+                                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
+                                >
+                                  <User className="h-4 w-4" />
+                                  <span className="font-medium">{activation.radiusUsername}</span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">-</span>
+                                </div>
+                              )}
+                            </TableCell>
+                          )
+                        
+                        case 'type':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              {getTypeBadge(activation.activationType || '')}
+                            </TableCell>
+                          )
+                        
+                        case 'profile':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              <div className="text-sm">{activation.billingProfileName || '-'}</div>
+                            </TableCell>
+                          )
+                        
+                        case 'amount':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              {activation.amount ? (
+                                <span className="font-medium">${activation.amount.toLocaleString()}</span>
+                              ) : '-'}
+                            </TableCell>
+                          )
+                        
+                        case 'cashback':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              {activation.cashbackAmount ? (
+                                <span className="font-medium text-green-600">${activation.cashbackAmount.toLocaleString()}</span>
+                              ) : '-'}
+                            </TableCell>
+                          )
+                        
+                        case 'payment':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              <Badge variant="outline">{activation.paymentMethod || '-'}</Badge>
+                            </TableCell>
+                          )
+                        
+                        case 'status':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              {getStatusBadge(activation.activationStatus || '')}
+                            </TableCell>
+                          )
+                        
+                        case 'actionBy':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              <div className="text-sm">
+                                {activation.actionByUsername || '-'}
+                                {activation.isActionBehalf && (
+                                  <Badge variant="outline" className="ml-1 text-xs">Behalf</Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                          )
+                        
+                        case 'actions':
+                          return (
+                            <TableCell key={column} className="h-12 px-4 text-right" style={cellStyle}>
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setSelectedActivation(activation)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )
+                        
+                        default:
+                          return <TableCell key={column} style={cellStyle}>-</TableCell>
+                      }
+                    })}
                 </TableRow>
               ))
             )}
@@ -869,6 +925,22 @@ export default function BillingActivations() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Reset Columns Confirmation Dialog */}
+      <AlertDialog open={resetColumnsDialogOpen} onOpenChange={setResetColumnsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Column Settings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all column widths, visibility, and order to their default values. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetColumns}>Reset</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
