@@ -43,4 +43,17 @@ export const tablePreferenceApi = {
   deletePreference: async (tableName: string): Promise<void> => {
     await apiClient.delete(`/api/table-preferences/${tableName}`)
   },
+
+  // Aliases for plural naming convention
+  getPreferences: async (tableName: string): Promise<TablePreference | null> => {
+    return tablePreferenceApi.getPreference(tableName)
+  },
+
+  savePreferences: async (data: SaveTablePreferenceDto): Promise<TablePreference> => {
+    return tablePreferenceApi.savePreference(data)
+  },
+
+  deletePreferences: async (tableName: string): Promise<void> => {
+    return tablePreferenceApi.deletePreference(tableName)
+  },
 }
