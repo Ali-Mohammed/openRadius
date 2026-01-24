@@ -420,6 +420,7 @@ export default function RadiusActivations() {
 
   // Column resize handlers
   const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    console.log('🔧 handleResize called:', { column, startX, startWidth })
     setResizing(column)
     let hasMoved = false
     
@@ -427,10 +428,12 @@ export default function RadiusActivations() {
       hasMoved = true
       const diff = e.clientX - startX
       const newWidth = Math.max(60, startWidth + diff) // Minimum width of 60px
+      console.log('📏 Resizing:', { column, diff, newWidth })
       setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
     }
     
     const handleMouseUp = () => {
+      console.log('✋ Mouse up, hasMoved:', hasMoved)
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
       
@@ -505,7 +508,7 @@ export default function RadiusActivations() {
     switch (column) {
       case 'checkbox':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.checkbox }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.checkbox}px` }}>
             <Checkbox
               checked={selectedIds.includes(activation.id)}
               onCheckedChange={() => handleSelectRow(activation.id)}
@@ -514,13 +517,13 @@ export default function RadiusActivations() {
         )
       case 'date':
         return (
-          <TableCell key={column} className="h-12 px-4 whitespace-nowrap" style={{ width: columnWidths.date }}>
+          <TableCell key={column} className="h-12 px-4 whitespace-nowrap" style={{ width: `${columnWidths.date}px` }}>
             {format(new Date(activation.createdAt), 'PP p')}
           </TableCell>
         )
       case 'user':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.user }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.user}px` }}>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{activation.radiusUsername || '-'}</span>
@@ -529,13 +532,13 @@ export default function RadiusActivations() {
         )
       case 'type':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.type }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.type}px` }}>
             {getTypeBadge(activation.type)}
           </TableCell>
         )
       case 'profile':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.profile }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.profile}px` }}>
             <div className="text-sm">
               {activation.radiusProfileName && <div>{activation.radiusProfileName}</div>}
               {activation.billingProfileName && (
@@ -555,7 +558,7 @@ export default function RadiusActivations() {
         )
       case 'expiration':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.expiration }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.expiration}px` }}>
             <div className="text-sm">
               {activation.currentExpireDate ? (
                 <div>{format(new Date(activation.currentExpireDate), 'PP')}</div>
@@ -576,13 +579,13 @@ export default function RadiusActivations() {
         )
       case 'apiStatus':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.apiStatus }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.apiStatus}px` }}>
             {getApiStatusBadge(activation.apiStatus)}
           </TableCell>
         )
       case 'actionBy':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.actionBy }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.actionBy}px` }}>
             <div className="text-sm">
               {activation.actionByUsername || '-'}
               {activation.isActionBehalf && (
@@ -593,43 +596,43 @@ export default function RadiusActivations() {
         )
       case 'source':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.source }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.source}px` }}>
             {activation.source || '-'}
           </TableCell>
         )
       case 'previousBalance':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.previousBalance }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.previousBalance}px` }}>
             {activation.previousBalance != null ? `${currencySymbol}${activation.previousBalance.toLocaleString()}` : '-'}
           </TableCell>
         )
       case 'newBalance':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.newBalance }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.newBalance}px` }}>
             {activation.newBalance != null ? `${currencySymbol}${activation.newBalance.toLocaleString()}` : '-'}
           </TableCell>
         )
       case 'previousExpiration':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.previousExpiration }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.previousExpiration}px` }}>
             {activation.previousExpireDate ? format(new Date(activation.previousExpireDate), 'PP') : '-'}
           </TableCell>
         )
       case 'notes':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: columnWidths.notes }}>
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.notes}px` }}>
             <div className="max-w-[200px] truncate">{activation.notes || '-'}</div>
           </TableCell>
         )
       case 'externalRef':
         return (
-          <TableCell key={column} className="h-12 px-4 font-mono text-xs" style={{ width: columnWidths.externalRef }}>
+          <TableCell key={column} className="h-12 px-4 font-mono text-xs" style={{ width: `${columnWidths.externalRef}px` }}>
             <div className="max-w-[180px] truncate">{activation.externalReferenceId || '-'}</div>
           </TableCell>
         )
       case 'actions':
         return (
-          <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background" style={{ width: columnWidths.actions }}>
+          <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background" style={{ width: `${columnWidths.actions}px` }}>
             <div className="flex justify-end gap-1">
               <Button
                 variant="ghost"
@@ -933,7 +936,7 @@ export default function RadiusActivations() {
                       } ${dragOverColumn === column ? 'bg-muted' : ''} ${
                         isActions ? 'sticky right-0 bg-muted/50' : ''
                       }`}
-                      style={{ width: columnWidths[column] }}
+                      style={{ width: `${columnWidths[column]}px` }}
                       onClick={() => header.sortable && handleSort(column === 'date' ? 'createdAt' : column === 'user' ? 'radiusUsername' : column)}
                       draggable={!isCheckbox && !isActions}
                       onDragStart={() => handleDragStart(column)}
@@ -955,13 +958,16 @@ export default function RadiusActivations() {
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors z-10"
                           onClick={(e) => {
+                            console.log('🖱️ Resize handle clicked')
                             e.preventDefault()
                             e.stopPropagation()
                           }}
                           onMouseDown={(e) => { 
+                            console.log('🖱️ Resize handle mousedown', { column, clientX: e.clientX })
                             e.preventDefault()
                             e.stopPropagation()
                             const width = columnWidths[column] ?? DEFAULT_COLUMN_WIDTHS[column as keyof typeof DEFAULT_COLUMN_WIDTHS] ?? 100
+                            console.log('📊 Current width:', width)
                             handleResize(column, e.clientX, width)
                           }}
                         />
