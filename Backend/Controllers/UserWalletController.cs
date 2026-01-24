@@ -121,6 +121,13 @@ public class UserWalletController : ControllerBase
                 .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
                 .ToListAsync();
 
+            // Fetch cashback group memberships for users
+            var cashbackGroupUsers = await _context.CashbackGroupUsers
+                .Include(cgu => cgu.CashbackGroup)
+                .Where(cgu => userIds.Contains(cgu.UserId) && !cgu.CashbackGroup.Disabled)
+                .Select(cgu => new { cgu.UserId, CashbackGroupName = cgu.CashbackGroup.Name, CashbackGroupId = cgu.CashbackGroup.Id })
+                .ToListAsync();
+
             // Calculate pending cashback for each wallet (by UserWalletId or UserId)
             // Enterprise optimization: Uses composite index on (WalletType, TransactionType, CashbackStatus, DeletedAt)
             _logger.LogDebug("Calculating pending cashback for {WalletCount} wallets", walletIds.Count);
@@ -139,6 +146,7 @@ public class UserWalletController : ControllerBase
             var result = userWallets.Select(uw =>
             {
                 var user = users.FirstOrDefault(u => u.Id == uw.UserId);
+                var cashbackGroup = cashbackGroupUsers.FirstOrDefault(cgu => cgu.UserId == uw.UserId);
                 // Sum pending cashback for this wallet (either by UserWalletId or UserId match)
                 var pendingCashback = pendingCashbackByWallet
                     .Where(t => (t.UserWalletId == uw.Id) || (t.UserId == uw.UserId))
@@ -160,6 +168,9 @@ public class UserWalletController : ControllerBase
                     uw.Status,
                     uw.AllowNegativeBalance,
                     PendingCashback = pendingCashback,
+                    // Cashback Group
+                    CashbackGroupId = cashbackGroup?.CashbackGroupId,
+                    CashbackGroupName = cashbackGroup?.CashbackGroupName,
                     // Custom Cashback Settings
                     uw.UsesCustomCashbackSetting,
                     uw.CustomCashbackType,
@@ -207,6 +218,12 @@ public class UserWalletController : ControllerBase
                 .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
                 .FirstOrDefaultAsync();
 
+            var cashbackGroup = await _context.CashbackGroupUsers
+                .Include(cgu => cgu.CashbackGroup)
+                .Where(cgu => cgu.UserId == userWallet.UserId && !cgu.CashbackGroup.Disabled)
+                .Select(cgu => new { CashbackGroupName = cgu.CashbackGroup.Name, CashbackGroupId = cgu.CashbackGroup.Id })
+                .FirstOrDefaultAsync();
+
             return Ok(new
             {
                 userWallet.Id,
@@ -223,6 +240,9 @@ public class UserWalletController : ControllerBase
                 userWallet.DailySpendingLimit,
                 userWallet.Status,
                 userWallet.AllowNegativeBalance,
+                // Cashback Group
+                CashbackGroupId = cashbackGroup?.CashbackGroupId,
+                CashbackGroupName = cashbackGroup?.CashbackGroupName,
                 // Custom Cashback Settings
                 userWallet.UsesCustomCashbackSetting,
                 userWallet.CustomCashbackType,
