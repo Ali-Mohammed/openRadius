@@ -1035,19 +1035,22 @@ export default function UserWallets() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>
-              {editingWallet ? 'Edit User Wallet' : 'Assign Wallet to User'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingWallet
-                ? 'Update wallet settings for this user'
-                : 'Assign a wallet type to a user'}
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
-            <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0 flex flex-col">
+          <div className="px-6 pt-6 pb-4 border-b">
+            <DialogHeader>
+              <DialogTitle>
+                {editingWallet ? 'Edit User Wallet' : 'Assign Wallet to User'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingWallet
+                  ? 'Update wallet settings for this user'
+                  : 'Assign a wallet type to a user'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <form id="wallet-form" onSubmit={handleSubmit} className="space-y-4">
             {!editingWallet && (
               <div className="space-y-2">
                 <Label htmlFor="userId">User *</Label>
@@ -1262,22 +1265,26 @@ export default function UserWallets() {
             </div>
 
             </form>
-          </ScrollArea>
-          <DialogFooter className="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingWallet ? 'Update' : 'Create'}
-            </Button>
-          </DialogFooter>
+          </div>
+          
+          <div className="px-6 py-4 border-t bg-background">
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                form="wallet-form"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingWallet ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
