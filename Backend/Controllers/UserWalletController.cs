@@ -128,6 +128,13 @@ public class UserWalletController : ControllerBase
                 .Select(cgu => new { cgu.UserId, CashbackGroupName = cgu.CashbackGroup.Name, CashbackGroupId = cgu.CashbackGroup.Id })
                 .ToListAsync();
 
+            // Fetch user IDs with user-specific cashback configured
+            var userIdsWithCashback = await _context.UserCashbacks
+                .Where(uc => uc.DeletedAt == null && userIds.Contains(uc.UserId))
+                .Select(uc => uc.UserId)
+                .Distinct()
+                .ToListAsync();
+
             // Calculate pending cashback for each wallet (by UserWalletId or UserId)
             // Enterprise optimization: Uses composite index on (WalletType, TransactionType, CashbackStatus, DeletedAt)
             _logger.LogDebug("Calculating pending cashback for {WalletCount} wallets", walletIds.Count);
@@ -147,6 +154,7 @@ public class UserWalletController : ControllerBase
             {
                 var user = users.FirstOrDefault(u => u.Id == uw.UserId);
                 var cashbackGroup = cashbackGroupUsers.FirstOrDefault(cgu => cgu.UserId == uw.UserId);
+                var hasUserCashback = userIdsWithCashback.Contains(uw.UserId);
                 // Sum pending cashback for this wallet (either by UserWalletId or UserId match)
                 var pendingCashback = pendingCashbackByWallet
                     .Where(t => (t.UserWalletId == uw.Id) || (t.UserId == uw.UserId))
@@ -171,6 +179,8 @@ public class UserWalletController : ControllerBase
                     // Cashback Group
                     CashbackGroupId = cashbackGroup?.CashbackGroupId,
                     CashbackGroupName = cashbackGroup?.CashbackGroupName,
+                    // User-specific cashback
+                    HasUserCashback = hasUserCashback,
                     // Custom Cashback Settings
                     uw.UsesCustomCashbackSetting,
                     uw.CustomCashbackType,
@@ -224,6 +234,9 @@ public class UserWalletController : ControllerBase
                 .Select(cgu => new { CashbackGroupName = cgu.CashbackGroup.Name, CashbackGroupId = cgu.CashbackGroup.Id })
                 .FirstOrDefaultAsync();
 
+            var hasUserCashback = await _context.UserCashbacks
+                .AnyAsync(uc => uc.UserId == userWallet.UserId && uc.DeletedAt == null);
+
             return Ok(new
             {
                 userWallet.Id,
@@ -243,6 +256,8 @@ public class UserWalletController : ControllerBase
                 // Cashback Group
                 CashbackGroupId = cashbackGroup?.CashbackGroupId,
                 CashbackGroupName = cashbackGroup?.CashbackGroupName,
+                // User-specific cashback
+                HasUserCashback = hasUserCashback,
                 // Custom Cashback Settings
                 userWallet.UsesCustomCashbackSetting,
                 userWallet.CustomCashbackType,

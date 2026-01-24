@@ -19,6 +19,8 @@ export interface UserWallet {
   // Cashback Group
   cashbackGroupId?: number | null
   cashbackGroupName?: string | null
+  // User-specific cashback
+  hasUserCashback?: boolean
   // Custom Cashback Settings
   usesCustomCashbackSetting?: boolean
   customCashbackType?: string | null
