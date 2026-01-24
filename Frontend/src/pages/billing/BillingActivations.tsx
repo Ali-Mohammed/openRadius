@@ -434,6 +434,41 @@ export default function BillingActivations() {
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" title="Column visibility">
+                <Columns3 className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {columnOrder.map((column) => (
+                <DropdownMenuCheckboxItem
+                  key={column}
+                  checked={columnVisibility[column] !== false}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, [column]: checked }))
+                  }
+                >
+                  {column.charAt(0).toUpperCase() + column.slice(1).replace(/([A-Z])/g, ' $1')}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" title="Settings">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setResetColumnsDialogOpen(true)}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset Columns
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Popover open={showFilters} onOpenChange={setShowFilters}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="icon" title="Filters" className="relative">
@@ -543,29 +578,53 @@ export default function BillingActivations() {
 
       {/* Table */}
       <div className="rounded-md border">
-        <Table>
+        <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="h-12 px-4 cursor-pointer font-semibold" onClick={() => handleSort('createdAt')}>
-                <div className="flex items-center">Date {getSortIcon('createdAt')}</div>
-              </TableHead>
-              <TableHead className="h-12 px-4 cursor-pointer font-semibold" onClick={() => handleSort('radiusUsername')}>
-                <div className="flex items-center">User {getSortIcon('radiusUsername')}</div>
-              </TableHead>
-              <TableHead className="h-12 px-4 cursor-pointer font-semibold" onClick={() => handleSort('activationType')}>
-                <div className="flex items-center">Type {getSortIcon('activationType')}</div>
-              </TableHead>
-              <TableHead className="h-12 px-4 font-semibold">Profile</TableHead>
-              <TableHead className="h-12 px-4 cursor-pointer font-semibold" onClick={() => handleSort('amount')}>
-                <div className="flex items-center">Amount {getSortIcon('amount')}</div>
-              </TableHead>
-              <TableHead className="h-12 px-4 font-semibold">Cashback</TableHead>
-              <TableHead className="h-12 px-4 font-semibold">Payment</TableHead>
-              <TableHead className="h-12 px-4 cursor-pointer font-semibold" onClick={() => handleSort('activationStatus')}>
-                <div className="flex items-center">Status {getSortIcon('activationStatus')}</div>
-              </TableHead>
-              <TableHead className="h-12 px-4 font-semibold">Action By</TableHead>
-              <TableHead className="h-12 px-4 text-right font-semibold">Actions</TableHead>
+              {columnOrder
+                .filter((column) => columnVisibility[column] !== false)
+                .map((column) => {
+                  const columnConfig: Record<string, { label: string; sortKey?: string }> = {
+                    date: { label: 'Date', sortKey: 'createdAt' },
+                    user: { label: 'User', sortKey: 'radiusUsername' },
+                    type: { label: 'Type', sortKey: 'activationType' },
+                    profile: { label: 'Profile' },
+                    amount: { label: 'Amount', sortKey: 'amount' },
+                    cashback: { label: 'Cashback' },
+                    payment: { label: 'Payment' },
+                    status: { label: 'Status', sortKey: 'activationStatus' },
+                    actionBy: { label: 'Action By' },
+                    actions: { label: 'Actions' },
+                  }
+
+                  const config = columnConfig[column]
+                  const isSortable = !!config.sortKey
+                  
+                  return (
+                    <TableHead
+                      key={column}
+                      className={`h-12 px-4 font-semibold relative ${column === 'actions' ? 'text-right' : ''} ${isSortable ? 'cursor-pointer' : ''}`}
+                      style={{ width: `${columnWidths[column]}px` }}
+                      draggable
+                      onDragStart={() => handleDragStart(column)}
+                      onDragOver={(e) => handleDragOver(e, column)}
+                      onDrop={() => handleDrop(column)}
+                      onClick={() => isSortable && handleSort(config.sortKey!)}
+                    >
+                      <div className="flex items-center">
+                        {config.label} {isSortable && getSortIcon(config.sortKey!)}
+                      </div>
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500 z-10"
+                        onMouseDown={(e) => {
+                          e.stopPropagation()
+                          handleResize(column, e.clientX, columnWidths[column])
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </TableHead>
+                  )
+                })}
             </TableRow>
           </TableHeader>
           <TableBody>
