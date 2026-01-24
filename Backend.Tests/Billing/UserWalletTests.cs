@@ -314,7 +314,7 @@ public class UserWalletTests : IDisposable
             CustomWalletId = _testCustomWallet.Id,
             CurrentBalance = 100.00m,
             MaxFillLimit = 1000.00m,
-            MinFillAmount = 10.00m,
+            DailySpendingLimit = 500.00m,
             Status = "active"
         };
 
@@ -325,7 +325,7 @@ public class UserWalletTests : IDisposable
         // Assert
         var savedWallet = await _context.UserWallets.FindAsync(wallet.Id);
         savedWallet!.MaxFillLimit.Should().Be(1000.00m);
-        savedWallet.MinFillAmount.Should().Be(10.00m);
+        savedWallet.DailySpendingLimit.Should().Be(500.00m);
     }
 
     public void Dispose()
