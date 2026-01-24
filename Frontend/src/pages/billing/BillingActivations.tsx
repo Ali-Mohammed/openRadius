@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useCallback, useEffect } from 'react'
+import { useQuery } from '@tantml:react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -23,6 +23,9 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  Settings,
+  RotateCcw,
+  Columns3,
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -51,15 +54,85 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { billingActivationsApi, type BillingActivation } from '@/api/billingActivations'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 
 export default function BillingActivations() {
   const navigate = useNavigate()
+  const { currentWorkspaceId } = useWorkspace()
+  
+  // Default column settings
+  const DEFAULT_COLUMN_VISIBILITY = {
+    date: true,
+    user: true,
+    type: true,
+    profile: true,
+    amount: true,
+    cashback: true,
+    payment: true,
+    status: true,
+    actionBy: true,
+    actions: true,
+  }
+
+  const DEFAULT_COLUMN_WIDTHS = {
+    date: 160,
+    user: 150,
+    type: 120,
+    profile: 150,
+    amount: 110,
+    cashback: 110,
+    payment: 120,
+    status: 120,
+    actionBy: 130,
+    actions: 100,
+  }
+
+  const DEFAULT_COLUMN_ORDER = [
+    'date',
+    'user',
+    'type',
+    'profile',
+    'amount',
+    'cashback',
+    'payment',
+    'status',
+    'actionBy',
+    'actions',
+  ]
+
+  // Column state
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_COLUMN_WIDTHS)
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(DEFAULT_COLUMN_VISIBILITY)
+  const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
+  const [resizing, setResizing] = useState<string | null>(null)
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+
   // State
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -74,6 +147,122 @@ export default function BillingActivations() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [selectedActivation, setSelectedActivation] = useState<BillingActivation | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
+
+  // Load table preferences
+  const { data: preferences } = useQuery({
+    queryKey: ['table-preferences', 'billing-activations'],
+    queryFn: () => tablePreferenceApi.getPreferences('billing-activations'),
+    enabled: !!currentWorkspaceId,
+  })
+
+  // Apply preferences when loaded
+  useEffect(() => {
+    if (preferences) {
+      try {
+        if (preferences.columnWidths) {
+          const parsed = JSON.parse(preferences.columnWidths)
+          setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...parsed })
+        }
+        if (preferences.columnOrder) {
+          setColumnOrder(JSON.parse(preferences.columnOrder))
+        }
+        if (preferences.columnVisibility) {
+          setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
+        }
+        if (preferences.sortField) setSortField(preferences.sortField)
+        if (preferences.sortDirection) setSortDirection(preferences.sortDirection as 'asc' | 'desc')
+      } catch (err) {
+        console.error('Failed to parse preferences:', err)
+      }
+    }
+  }, [preferences])
+
+  // Auto-save preferences when columns change
+  useEffect(() => {
+    if (!currentWorkspaceId) return
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await tablePreferenceApi.savePreferences({
+          tableName: 'billing-activations',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField,
+          sortDirection,
+        })
+      } catch (err) {
+        console.error('Failed to save preferences:', err)
+      }
+    }, 1000)
+
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId])
+
+  // Column resize handler
+  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    setResizing(column)
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(60, startWidth + diff)
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      setTimeout(() => setResizing(null), 100)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
+  // Column drag and drop handlers
+  const handleDragStart = useCallback((column: string) => {
+    setDraggedColumn(column)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, column: string) => {
+    e.preventDefault()
+    setDragOverColumn(column)
+  }, [])
+
+  const handleDrop = useCallback((targetColumn: string) => {
+    if (!draggedColumn || draggedColumn === targetColumn) {
+      setDraggedColumn(null)
+      setDragOverColumn(null)
+      return
+    }
+
+    const newOrder = [...columnOrder]
+    const draggedIndex = newOrder.indexOf(draggedColumn)
+    const targetIndex = newOrder.indexOf(targetColumn)
+
+    newOrder.splice(draggedIndex, 1)
+    newOrder.splice(targetIndex, 0, draggedColumn)
+
+    setColumnOrder(newOrder)
+    setDraggedColumn(null)
+    setDragOverColumn(null)
+  }, [draggedColumn, columnOrder])
+
+  const handleResetColumns = async () => {
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS)
+    setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)
+    setColumnOrder(DEFAULT_COLUMN_ORDER)
+    setSortField('createdAt')
+    setSortDirection('desc')
+    setResetColumnsDialogOpen(false)
+    
+    try {
+      await tablePreferenceApi.deletePreferences('billing-activations')
+    } catch (err) {
+      console.error('Failed to delete preferences:', err)
+    }
+  }
 
   // Queries
   const { data, isLoading, isFetching, refetch } = useQuery({
