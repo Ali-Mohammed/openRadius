@@ -953,16 +953,16 @@ export default function RadiusActivations() {
                       )}
                       {!isCheckbox && !isActions && (
                         <div 
-                          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+                          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors z-10"
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                           }}
                           onMouseDown={(e) => { 
                             e.preventDefault()
-                            e.stopPropagation() 
-                            const currentWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTHS[column] || 100
-                            handleResize(column, e.clientX, currentWidth)
+                            e.stopPropagation()
+                            const width = columnWidths[column] ?? DEFAULT_COLUMN_WIDTHS[column as keyof typeof DEFAULT_COLUMN_WIDTHS] ?? 100
+                            handleResize(column, e.clientX, width)
                           }}
                         />
                       )}
