@@ -88,6 +88,7 @@ import { TRANSACTION_TYPES, TRANSACTION_TYPE_INFO, type TransactionType } from '
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { TransactionCommentsDialog } from '@/components/TransactionCommentsDialog'
 import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog'
+import { ActivationDetailsDialog } from '@/components/ActivationDetailsDialog'
 
 const transactionTypeIcons: Record<TransactionType, any> = {
   [TRANSACTION_TYPES.TOP_UP]: ArrowUpCircle,

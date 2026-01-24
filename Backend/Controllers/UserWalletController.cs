@@ -18,6 +18,13 @@ public class CreateUserWalletRequest
     public string? CustomWalletColor { get; set; }
     public string? CustomWalletIcon { get; set; }
     public bool? AllowNegativeBalance { get; set; }
+    
+    // Custom Cashback Settings
+    public bool UsesCustomCashbackSetting { get; set; } = false;
+    public string? CustomCashbackType { get; set; }
+    public string? CustomCashbackCollectionSchedule { get; set; }
+    public decimal? CustomCashbackMinimumCollectionAmount { get; set; }
+    public bool? CustomCashbackRequiresApproval { get; set; }
 }
 
 public class UpdateUserWalletRequest
@@ -27,6 +34,13 @@ public class UpdateUserWalletRequest
     public decimal? DailySpendingLimit { get; set; }
     public string Status { get; set; } = "active";
     public bool? AllowNegativeBalance { get; set; }
+    
+    // Custom Cashback Settings
+    public bool? UsesCustomCashbackSetting { get; set; }
+    public string? CustomCashbackType { get; set; }
+    public string? CustomCashbackCollectionSchedule { get; set; }
+    public decimal? CustomCashbackMinimumCollectionAmount { get; set; }
+    public bool? CustomCashbackRequiresApproval { get; set; }
 }
 
 [ApiController]

@@ -21,6 +21,13 @@ public class UserWallet
     // Allow negative balance for this specific user wallet
     public bool? AllowNegativeBalance { get; set; }
     
+    // Custom Cashback Settings (overrides global settings when enabled)
+    public bool UsesCustomCashbackSetting { get; set; } = false;
+    public string? CustomCashbackType { get; set; } // "Instant" or "Collected"
+    public string? CustomCashbackCollectionSchedule { get; set; } // "AnyTime", "EndOfWeek", "EndOfMonth"
+    public decimal? CustomCashbackMinimumCollectionAmount { get; set; }
+    public bool? CustomCashbackRequiresApproval { get; set; }
+    
     // User-specific color and icon (can override custom wallet defaults)
     public string? CustomWalletColor { get; set; }
     public string? CustomWalletIcon { get; set; }
