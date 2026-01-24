@@ -97,6 +97,7 @@ export default function BillingActivations() {
     payment: true,
     status: true,
     actionBy: true,
+    actionFor: true,
     actions: true,
   }
 
@@ -110,6 +111,7 @@ export default function BillingActivations() {
     payment: 120,
     status: 120,
     actionBy: 130,
+    actionFor: 130,
     actions: 100,
   }
 
@@ -123,6 +125,7 @@ export default function BillingActivations() {
     'payment',
     'status',
     'actionBy',
+    'actionFor',
     'actions',
   ]
 
@@ -303,6 +306,8 @@ export default function BillingActivations() {
   }
 
   const handleSort = (field: string) => {
+    if (resizing) return // Prevent sort during resize
+    
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -315,6 +320,24 @@ export default function BillingActivations() {
   const getSortIcon = (field: string) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1" />
     return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+  }
+
+  // Column definitions for header
+  const getColumnHeader = (column: string) => {
+    const headers: Record<string, { label: string; sortable: boolean }> = {
+      date: { label: 'Date', sortable: true },
+      user: { label: 'User', sortable: true },
+      type: { label: 'Type', sortable: true },
+      profile: { label: 'Profile', sortable: false },
+      amount: { label: 'Amount', sortable: true },
+      cashback: { label: 'Cashback', sortable: false },
+      payment: { label: 'Payment', sortable: false },
+      status: { label: 'Status', sortable: true },
+      actionBy: { label: 'Action By', sortable: false },
+      actionFor: { label: 'Action For', sortable: false },
+      actions: { label: 'Actions', sortable: false },
+    }
+    return headers[column] || { label: column, sortable: false }
   }
 
   const getStatusBadge = (status: string) => {
@@ -578,56 +601,62 @@ export default function BillingActivations() {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
-        <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              {columnOrder
-                .filter((column) => columnVisibility[column] !== false)
-                .map((column) => {
-                  const columnConfig: Record<string, { label: string; sortKey?: string }> = {
-                    date: { label: 'Date', sortKey: 'createdAt' },
-                    user: { label: 'User', sortKey: 'radiusUsername' },
-                    type: { label: 'Type', sortKey: 'activationType' },
-                    profile: { label: 'Profile' },
-                    amount: { label: 'Amount', sortKey: 'amount' },
-                    cashback: { label: 'Cashback' },
-                    payment: { label: 'Payment' },
-                    status: { label: 'Status', sortKey: 'activationStatus' },
-                    actionBy: { label: 'Action By' },
-                    actions: { label: 'Actions' },
-                  }
-
-                  const config = columnConfig[column]
-                  const isSortable = !!config.sortKey
-                  
-                  return (
-                    <TableHead
-                      key={column}
-                      className={`h-12 px-4 font-semibold relative ${column === 'actions' ? 'text-right' : ''} ${isSortable ? 'cursor-pointer' : ''}`}
-                      style={{ width: `${columnWidths[column]}px` }}
-                      draggable
-                      onDragStart={() => handleDragStart(column)}
-                      onDragOver={(e) => handleDragOver(e, column)}
-                      onDrop={() => handleDrop(column)}
-                      onClick={() => isSortable && handleSort(config.sortKey!)}
-                    >
-                      <div className="flex items-center">
-                        {config.label} {isSortable && getSortIcon(config.sortKey!)}
-                      </div>
-                      <div
-                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500 z-10"
-                        onMouseDown={(e) => {
-                          e.stopPropagation()
-                          handleResize(column, e.clientX, columnWidths[column])
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </TableHead>
-                  )
-                })}
-            </TableRow>
-          </TableHeader>
+      <div className="rounded-md border relative">
+        {isFetching && !isLoading && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                {columnOrder
+                  .filter((column) => columnVisibility[column] !== false)
+                  .map((column) => {
+                    const header = getColumnHeader(column)
+                    const isActions = column === 'actions'
+                    const sortKey = column === 'date' ? 'createdAt' : column === 'user' ? 'radiusUsername' : column === 'type' ? 'activationType' : column === 'status' ? 'activationStatus' : column
+                    
+                    return (
+                      <TableHead
+                        key={column}
+                        className={`h-12 px-4 font-semibold relative select-none ${
+                          header.sortable && !isActions ? 'cursor-pointer hover:bg-muted/80' : ''
+                        } ${dragOverColumn === column ? 'bg-muted' : ''} ${
+                          isActions ? 'text-right' : ''
+                        }`}
+                        style={{ width: `${columnWidths[column]}px` }}
+                        onClick={() => header.sortable && handleSort(sortKey)}
+                        draggable={!isActions}
+                        onDragStart={() => handleDragStart(column)}
+                        onDragOver={(e) => handleDragOver(e, column)}
+                        onDrop={() => handleDrop(column)}
+                      >
+                        <div className="flex items-center">
+                          {header.label}
+                          {header.sortable && getSortIcon(sortKey)}
+                        </div>
+                        {!isActions && (
+                          <div 
+                            className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors z-10"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                            }}
+                            onMouseDown={(e) => { 
+                              e.preventDefault()
+                              e.stopPropagation()
+                              const width = columnWidths[column] ?? DEFAULT_COLUMN_WIDTHS[column as keyof typeof DEFAULT_COLUMN_WIDTHS] ?? 100
+                              handleResize(column, e.clientX, width)
+                            }}
+                          />
+                        )}
+                      </TableHead>
+                    )
+                  })}
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 10 }).map((_, i) => (
@@ -742,6 +771,19 @@ export default function BillingActivations() {
                             </TableCell>
                           )
                         
+                        case 'actionFor':
+                          return (
+                            <TableCell key={column} className="h-12 px-4" style={cellStyle}>
+                              <div className="text-sm">
+                                {activation.actionForUsername ? (
+                                  <span className="font-medium">{activation.actionForUsername}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">Self</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          )
+                        
                         case 'actions':
                           return (
                             <TableCell key={column} className="h-12 px-4 text-right" style={cellStyle}>
@@ -766,6 +808,7 @@ export default function BillingActivations() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}
