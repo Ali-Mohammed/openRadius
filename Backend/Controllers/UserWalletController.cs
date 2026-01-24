@@ -160,6 +160,12 @@ public class UserWalletController : ControllerBase
                     uw.Status,
                     uw.AllowNegativeBalance,
                     PendingCashback = pendingCashback,
+                    // Custom Cashback Settings
+                    uw.UsesCustomCashbackSetting,
+                    uw.CustomCashbackType,
+                    uw.CustomCashbackCollectionSchedule,
+                    uw.CustomCashbackMinimumCollectionAmount,
+                    uw.CustomCashbackRequiresApproval,
                     uw.CreatedAt,
                     uw.UpdatedAt
                 };
@@ -217,6 +223,12 @@ public class UserWalletController : ControllerBase
                 userWallet.DailySpendingLimit,
                 userWallet.Status,
                 userWallet.AllowNegativeBalance,
+                // Custom Cashback Settings
+                userWallet.UsesCustomCashbackSetting,
+                userWallet.CustomCashbackType,
+                userWallet.CustomCashbackCollectionSchedule,
+                userWallet.CustomCashbackMinimumCollectionAmount,
+                userWallet.CustomCashbackRequiresApproval,
                 userWallet.CreatedAt,
                 userWallet.UpdatedAt
             });
@@ -261,6 +273,11 @@ public class UserWalletController : ControllerBase
                 CustomWalletColor = request.CustomWalletColor,
                 CustomWalletIcon = request.CustomWalletIcon,
                 AllowNegativeBalance = request.AllowNegativeBalance,
+                UsesCustomCashbackSetting = request.UsesCustomCashbackSetting,
+                CustomCashbackType = request.CustomCashbackType,
+                CustomCashbackCollectionSchedule = request.CustomCashbackCollectionSchedule,
+                CustomCashbackMinimumCollectionAmount = request.CustomCashbackMinimumCollectionAmount,
+                CustomCashbackRequiresApproval = request.CustomCashbackRequiresApproval,
                 CreatedBy = User.GetSystemUserId(),
                 CreatedAt = DateTime.UtcNow
             };
@@ -283,6 +300,11 @@ public class UserWalletController : ControllerBase
                     userWallet.DailySpendingLimit,
                     userWallet.Status,
                     userWallet.AllowNegativeBalance,
+                    userWallet.UsesCustomCashbackSetting,
+                    userWallet.CustomCashbackType,
+                    userWallet.CustomCashbackCollectionSchedule,
+                    userWallet.CustomCashbackMinimumCollectionAmount,
+                    userWallet.CustomCashbackRequiresApproval,
                     userWallet.CreatedAt
                 });
         }
@@ -311,6 +333,29 @@ public class UserWalletController : ControllerBase
             existingWallet.DailySpendingLimit = request.DailySpendingLimit;
             existingWallet.Status = request.Status;
             existingWallet.AllowNegativeBalance = request.AllowNegativeBalance;
+            
+            // Update custom cashback settings if provided
+            if (request.UsesCustomCashbackSetting.HasValue)
+            {
+                existingWallet.UsesCustomCashbackSetting = request.UsesCustomCashbackSetting.Value;
+            }
+            if (request.CustomCashbackType != null)
+            {
+                existingWallet.CustomCashbackType = request.CustomCashbackType;
+            }
+            if (request.CustomCashbackCollectionSchedule != null)
+            {
+                existingWallet.CustomCashbackCollectionSchedule = request.CustomCashbackCollectionSchedule;
+            }
+            if (request.CustomCashbackMinimumCollectionAmount.HasValue)
+            {
+                existingWallet.CustomCashbackMinimumCollectionAmount = request.CustomCashbackMinimumCollectionAmount;
+            }
+            if (request.CustomCashbackRequiresApproval.HasValue)
+            {
+                existingWallet.CustomCashbackRequiresApproval = request.CustomCashbackRequiresApproval;
+            }
+            
             existingWallet.UpdatedAt = DateTime.UtcNow;
             existingWallet.UpdatedBy = User.GetSystemUserId();
 

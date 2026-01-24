@@ -579,14 +579,29 @@ public class RadiusActivationController : ControllerBase
                 // This is done BEFORE custom wallet processing so we can track it
                 if (calculatedCashbackAmount > 0)
                 {
-                    // Get cashback settings from master database to determine transaction type
-                    var cashbackSettings = await _masterContext.CashbackSettings
-                        .OrderByDescending(cs => cs.CreatedAt)
-                        .FirstOrDefaultAsync();
+                    // Check if wallet has custom cashback settings, otherwise use global settings
+                    string transactionType;
+                    bool requiresApproval;
+                    
+                    if (userWallet.UsesCustomCashbackSetting && !string.IsNullOrEmpty(userWallet.CustomCashbackType))
+                    {
+                        // Use wallet-specific cashback settings
+                        transactionType = userWallet.CustomCashbackType;
+                        requiresApproval = userWallet.CustomCashbackRequiresApproval ?? false;
+                        _logger.LogInformation($"Using custom cashback settings for wallet {userWallet.Id}: Type={transactionType}, RequiresApproval={requiresApproval}");
+                    }
+                    else
+                    {
+                        // Get cashback settings from master database
+                        var cashbackSettings = await _masterContext.CashbackSettings
+                            .OrderByDescending(cs => cs.CreatedAt)
+                            .FirstOrDefaultAsync();
 
-                    // Default to Instant if no settings exist
-                    var transactionType = cashbackSettings?.TransactionType ?? "Instant";
-                    var requiresApproval = cashbackSettings?.RequiresApprovalToCollect ?? false;
+                        // Default to Instant if no settings exist
+                        transactionType = cashbackSettings?.TransactionType ?? "Instant";
+                        requiresApproval = cashbackSettings?.RequiresApprovalToCollect ?? false;
+                        _logger.LogInformation($"Using global cashback settings: Type={transactionType}, RequiresApproval={requiresApproval}");
+                    }
 
                     // Determine description based on whether this is on-behalf or normal activation
                     var cashbackDescription = request.IsActionBehalf && request.PayerUserId.HasValue
