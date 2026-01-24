@@ -555,7 +555,7 @@ export default function UserWallets() {
   }
 
   const handleExportCsv = () => {
-    const headers = ['User', 'Email', 'Balance', 'Pending Cashback', 'Max Fill', 'Daily Limit', 'Cashback Group', 'Custom Cashback', 'Status', 'Allow Overdraft', 'Created']
+    const headers = ['User', 'Email', 'Balance', 'Pending Cashback', 'Max Fill', 'Daily Limit', 'Cashback Group', 'User Cashback', 'Custom Cashback', 'Status', 'Allow Overdraft', 'Created']
     const rows = filteredWallets.map(wallet => [
       wallet.userName || '',
       wallet.userEmail || '',
@@ -564,9 +564,10 @@ export default function UserWallets() {
       wallet.maxFillLimit?.toString() || '',
       wallet.dailySpendingLimit?.toString() || '',
       wallet.cashbackGroupName || '-',
+      wallet.hasUserCashback ? 'Yes' : 'No',
       wallet.usesCustomCashbackSetting 
         ? `${wallet.customCashbackType || 'Instant'}${wallet.customCashbackType === 'Collected' && wallet.customCashbackRequiresApproval ? ' (Approval Required)' : ''}`
-        : 'Global',
+        : (wallet.hasUserCashback ? 'Using User-Specific' : (wallet.cashbackGroupName ? 'Using Group' : 'Using Global')),
       wallet.status || '',
       wallet.allowNegativeBalance ? 'Yes' : 'No',
       wallet.createdAt ? new Date(wallet.createdAt).toLocaleDateString() : '',
