@@ -118,8 +118,8 @@ const COLUMN_DEFINITIONS = {
   pendingCashback: { label: 'Pending Cashback', sortable: true, defaultWidth: 140 },
   maxFillLimit: { label: 'Max Fill', sortable: true, defaultWidth: 120 },
   dailySpendingLimit: { label: 'Daily Limit', sortable: true, defaultWidth: 120 },
-  cashbackGroup: { label: 'Group Cashback', sortable: false, defaultWidth: 160 },
-  customCashback: { label: 'Wallet Cashback', sortable: false, defaultWidth: 180 },
+  cashbackGroup: { label: 'Custom Cashback Settings', sortable: false, defaultWidth: 160 },
+  customCashback: { label: 'Cashback', sortable: false, defaultWidth: 180 },
   status: { label: 'Status', sortable: true, defaultWidth: 100 },
   allowOverdraft: { label: 'Allow Overdraft', sortable: true, defaultWidth: 130 },
   createdAt: { label: 'Created', sortable: true, defaultWidth: 120 },
@@ -555,7 +555,7 @@ export default function UserWallets() {
   }
 
   const handleExportCsv = () => {
-    const headers = ['User', 'Email', 'Balance', 'Pending Cashback', 'Max Fill', 'Daily Limit', 'Cashback Source', 'Has Custom Settings', 'Cashback Type', 'Status', 'Allow Overdraft', 'Created']
+    const headers = ['User', 'Email', 'Balance', 'Pending Cashback', 'Max Fill', 'Daily Limit', 'Custom Cashback Settings', 'Cashback', 'Cashback Details', 'Status', 'Allow Overdraft', 'Created']
     const rows = filteredWallets.map(wallet => [
       wallet.userName || '',
       wallet.userEmail || '',
@@ -564,12 +564,12 @@ export default function UserWallets() {
       wallet.maxFillLimit?.toString() || '',
       wallet.dailySpendingLimit?.toString() || '',
       wallet.usesCustomCashbackSetting 
-        ? 'Wallet Custom'
-        : (wallet.hasUserCashback ? 'User-Specific' : (wallet.cashbackGroupName ? `Group: ${wallet.cashbackGroupName}` : 'Global')),
-      wallet.usesCustomCashbackSetting ? 'Yes' : 'No',
-      wallet.usesCustomCashbackSetting 
-        ? `${wallet.customCashbackType || 'Instant'}${wallet.customCashbackType === 'Collected' && wallet.customCashbackRequiresApproval ? ' (Approval Required)' : ''}`
-        : '-',
+        ? `Wallet Custom (${wallet.customCashbackType || 'Instant'})`
+        : (wallet.hasUserCashback ? 'User-Specific' : (wallet.cashbackGroupName ? `Group: ${wallet.cashbackGroupName}` : 'Using Global')),
+      wallet.cashbackGroupName 
+        ? 'Cashback by Group'
+        : (wallet.hasUserCashback ? 'Cashback by User' : 'Not Set'),
+      wallet.cashbackGroupName || (wallet.hasUserCashback ? 'User-specific amounts' : '-'),
       wallet.status || '',
       wallet.allowNegativeBalance ? 'Yes' : 'No',
       wallet.createdAt ? new Date(wallet.createdAt).toLocaleDateString() : '',
@@ -752,27 +752,27 @@ export default function UserWallets() {
       case 'customCashback':
         return (
           <TableCell key={column} className="h-12 px-4">
-            {wallet.usesCustomCashbackSetting ? (
+            {wallet.cashbackGroupName ? (
               <div className="space-y-1">
-                <Badge variant="outline" className="border-blue-600 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-400">
-                  Custom: {wallet.customCashbackType || 'Instant'}
+                <Badge variant="outline" className="border-purple-600 text-purple-700 bg-purple-50 dark:bg-purple-950 dark:text-purple-400">
+                  Cashback by Group
                 </Badge>
-                {wallet.customCashbackType === 'Collected' && (
-                  <div className="text-xs text-muted-foreground">
-                    {wallet.customCashbackRequiresApproval && '• Approval Required'}
-                    {wallet.customCashbackMinimumCollectionAmount && (
-                      <div>• Min: {currencySymbol}{formatCurrency(wallet.customCashbackMinimumCollectionAmount)}</div>
-                    )}
-                  </div>
-                )}
+                <div className="text-xs text-muted-foreground">
+                  {wallet.cashbackGroupName}
+                </div>
               </div>
             ) : wallet.hasUserCashback ? (
-              <Badge variant="outline" className="border-orange-600 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-400">
-                Using User-Specific
-              </Badge>
+              <div className="space-y-1">
+                <Badge variant="outline" className="border-orange-600 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-400">
+                  Cashback by User
+                </Badge>
+                <div className="text-xs text-muted-foreground">
+                  User-specific amounts
+                </div>
+              </div>
             ) : (
               <Badge variant="outline" className="border-gray-400 text-gray-600 bg-gray-50 dark:bg-gray-950 dark:text-gray-400">
-                Using {wallet.cashbackGroupName ? 'Group' : 'Global'}
+                Not Set
               </Badge>
             )}
           </TableCell>
