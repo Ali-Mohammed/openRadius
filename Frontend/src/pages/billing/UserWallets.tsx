@@ -71,6 +71,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ColorPicker } from '@/components/ColorPicker'
 import { IconPicker } from '@/components/IconPicker'
@@ -287,6 +288,9 @@ export default function UserWallets() {
     userId: 0,
     currentBalance: 0,
     status: 'active',
+    usesCustomCashbackSetting: false,
+    customCashbackType: 'Instant',
+    customCashbackCollectionSchedule: 'AnyTime',
   })
 
   // Update URL params when state changes
@@ -458,6 +462,9 @@ export default function UserWallets() {
       userId: 0,
       currentBalance: 0,
       status: 'active',
+      usesCustomCashbackSetting: false,
+      customCashbackType: 'Instant',
+      customCashbackCollectionSchedule: 'AnyTime',
     })
     setEditingWallet(null)
   }
@@ -474,6 +481,11 @@ export default function UserWallets() {
         customWalletColor: wallet.customWalletColor,
         customWalletIcon: wallet.customWalletIcon,
         allowNegativeBalance: wallet.allowNegativeBalance,
+        usesCustomCashbackSetting: wallet.usesCustomCashbackSetting ?? false,
+        customCashbackType: wallet.customCashbackType ?? 'Instant',
+        customCashbackCollectionSchedule: wallet.customCashbackCollectionSchedule ?? 'AnyTime',
+        customCashbackMinimumCollectionAmount: wallet.customCashbackMinimumCollectionAmount,
+        customCashbackRequiresApproval: wallet.customCashbackRequiresApproval ?? false,
       })
     } else {
       resetForm()
@@ -1129,6 +1141,109 @@ export default function UserWallets() {
                 }
                 label="Wallet Icon"
               />
+            </div>
+
+            {/* Custom Cashback Settings */}
+            <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="usesCustomCashbackSetting" className="text-base font-semibold">
+                    Custom Cashback Settings
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Override global cashback settings for this wallet
+                  </p>
+                </div>
+                <Switch
+                  id="usesCustomCashbackSetting"
+                  checked={formData.usesCustomCashbackSetting ?? false}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, usesCustomCashbackSetting: checked })
+                  }
+                />
+              </div>
+
+              {formData.usesCustomCashbackSetting && (
+                <div className="space-y-4 pl-4 border-l-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="customCashbackType">Cashback Type *</Label>
+                    <Select
+                      value={formData.customCashbackType || 'Instant'}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, customCashbackType: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Instant">Instant - Credit immediately</SelectItem>
+                        <SelectItem value="Collected">Collected - Requires collection</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.customCashbackType === 'Collected' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="customCashbackCollectionSchedule">Collection Schedule</Label>
+                        <Select
+                          value={formData.customCashbackCollectionSchedule || 'AnyTime'}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, customCashbackCollectionSchedule: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AnyTime">Any Time</SelectItem>
+                            <SelectItem value="EndOfWeek">End of Week</SelectItem>
+                            <SelectItem value="EndOfMonth">End of Month</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="customCashbackMinimumCollectionAmount">
+                          Minimum Collection Amount ({currencySymbol})
+                        </Label>
+                        <Input
+                          id="customCashbackMinimumCollectionAmount"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g., 100.00"
+                          value={formData.customCashbackMinimumCollectionAmount ?? ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              customCashbackMinimumCollectionAmount:
+                                e.target.value !== '' ? parseFloat(e.target.value) : undefined,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="customCashbackRequiresApproval"
+                          checked={formData.customCashbackRequiresApproval ?? false}
+                          onCheckedChange={(checked) =>
+                            setFormData({
+                              ...formData,
+                              customCashbackRequiresApproval: checked as boolean,
+                            })
+                          }
+                        />
+                        <Label htmlFor="customCashbackRequiresApproval" className="font-normal cursor-pointer">
+                          Requires supervisor approval to collect
+                        </Label>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center space-x-2 pt-2">

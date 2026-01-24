@@ -16,6 +16,12 @@ export interface UserWallet {
   status: string
   allowNegativeBalance?: boolean | null
   pendingCashback?: number
+  // Custom Cashback Settings
+  usesCustomCashbackSetting?: boolean
+  customCashbackType?: string | null
+  customCashbackCollectionSchedule?: string | null
+  customCashbackMinimumCollectionAmount?: number | null
+  customCashbackRequiresApproval?: boolean | null
   createdAt?: string
   updatedAt?: string
 }
