@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import {
   Search,
   RefreshCw,
@@ -58,6 +59,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { billingActivationsApi, type BillingActivation } from '@/api/billingActivations'
 
 export default function BillingActivations() {
+  const navigate = useNavigate()
   // State
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -400,10 +402,20 @@ export default function BillingActivations() {
                     {activation.createdAt && format(new Date(activation.createdAt), 'PP p')}
                   </TableCell>
                   <TableCell className="h-12 px-4">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{activation.radiusUsername || '-'}</span>
-                    </div>
+                    {activation.radiusUsername ? (
+                      <button
+                        onClick={() => navigate(`/radius/users?search=${encodeURIComponent(activation.radiusUsername!)}`)}
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
+                      >
+                        <User className="h-4 w-4" />
+                        <span className="font-medium">{activation.radiusUsername}</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">-</span>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="h-12 px-4">{getTypeBadge(activation.activationType || '')}</TableCell>
                   <TableCell className="h-12 px-4">
