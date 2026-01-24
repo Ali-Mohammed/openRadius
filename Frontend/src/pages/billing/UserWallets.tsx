@@ -763,6 +763,10 @@ export default function UserWallets() {
                   </div>
                 )}
               </div>
+            ) : wallet.hasUserCashback ? (
+              <Badge variant="outline" className="border-orange-600 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-400">
+                Using User-Specific
+              </Badge>
             ) : (
               <Badge variant="outline" className="border-gray-400 text-gray-600 bg-gray-50 dark:bg-gray-950 dark:text-gray-400">
                 Using {wallet.cashbackGroupName ? 'Group' : 'Global'}
@@ -780,6 +784,15 @@ export default function UserWallets() {
                 </Badge>
                 <div className="text-xs text-muted-foreground">
                   Group assigned
+                </div>
+              </div>
+            ) : wallet.hasUserCashback ? (
+              <div className="space-y-1">
+                <Badge variant="outline" className="border-orange-600 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-400">
+                  User-Specific
+                </Badge>
+                <div className="text-xs text-muted-foreground">
+                  Direct cashback
                 </div>
               </div>
             ) : (
