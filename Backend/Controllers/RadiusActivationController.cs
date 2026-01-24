@@ -715,13 +715,28 @@ public class RadiusActivationController : ControllerBase
 
                     if (supervisorWallet != null)
                     {
-                        // Get cashback settings to determine transaction type
-                        var cashbackSettings = await _masterContext.CashbackSettings
-                            .OrderByDescending(cs => cs.CreatedAt)
-                            .FirstOrDefaultAsync();
+                        // Check if supervisor wallet has custom cashback settings, otherwise use global settings
+                        string transactionType;
+                        bool requiresApproval;
+                        
+                        if (supervisorWallet.UsesCustomCashbackSetting && !string.IsNullOrEmpty(supervisorWallet.CustomCashbackType))
+                        {
+                            // Use wallet-specific cashback settings
+                            transactionType = supervisorWallet.CustomCashbackType;
+                            requiresApproval = supervisorWallet.CustomCashbackRequiresApproval ?? false;
+                            _logger.LogInformation($"Using custom cashback settings for supervisor wallet {supervisorWallet.Id}: Type={transactionType}, RequiresApproval={requiresApproval}");
+                        }
+                        else
+                        {
+                            // Get cashback settings from master database
+                            var cashbackSettings = await _masterContext.CashbackSettings
+                                .OrderByDescending(cs => cs.CreatedAt)
+                                .FirstOrDefaultAsync();
 
-                        var transactionType = cashbackSettings?.TransactionType ?? "Instant";
-                        var requiresApproval = cashbackSettings?.RequiresApprovalToCollect ?? false;
+                            transactionType = cashbackSettings?.TransactionType ?? "Instant";
+                            requiresApproval = cashbackSettings?.RequiresApprovalToCollect ?? false;
+                            _logger.LogInformation($"Using global cashback settings for supervisor: Type={transactionType}, RequiresApproval={requiresApproval}");
+                        }
 
                         string subAgentCashbackStatus;
                         string subAgentTransactionStatus;
