@@ -131,7 +131,7 @@ export default function RadiusActivations() {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_COLUMN_WIDTHS)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(DEFAULT_COLUMN_VISIBILITY)
   const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
-  const [resizingColumn, setResizingColumn] = useState<string | null>(null)
+  const [resizing, setResizing] = useState<string | null>(null)
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
@@ -331,7 +331,7 @@ export default function RadiusActivations() {
   }
 
   const handleSort = (field: string) => {
-    if (resizingColumn) return // Prevent sort during resize
+    if (resizing) return // Prevent sort during resize
     
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -419,28 +419,28 @@ export default function RadiusActivations() {
   const hasFilters = searchQuery || filterType || filterStatus || filterApiStatus
 
   // Column resize handlers
-  const handleColumnResize = useCallback((column: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setResizingColumn(column)
-    const startX = e.clientX
-    const startWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTHS[column] || 100
-
+  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    setResizing(column)
+    let hasMoved = false
+    
     const handleMouseMove = (e: MouseEvent) => {
+      hasMoved = true
       const diff = e.clientX - startX
-      const newWidth = Math.max(60, startWidth + diff)
+      const newWidth = Math.max(60, startWidth + diff) // Minimum width of 60px
       setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
     }
-
+    
     const handleMouseUp = () => {
-      setResizingColumn(null)
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
+      
+      // Delay clearing resizing state to prevent sort from triggering
+      setTimeout(() => setResizing(null), 100)
     }
-
+    
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
-  }, [columnWidths])
+  }, [])
 
   // Column drag and drop handlers
   const handleDragStart = (column: string) => {
@@ -952,10 +952,18 @@ export default function RadiusActivations() {
                         </div>
                       )}
                       {!isCheckbox && !isActions && (
-                        <div
-                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 active:bg-primary"
-                          onMouseDown={(e) => handleColumnResize(column, e)}
-                          onClick={(e) => e.stopPropagation()}
+                        <div 
+                          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                          onMouseDown={(e) => { 
+                            e.preventDefault()
+                            e.stopPropagation() 
+                            const currentWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTHS[column] || 100
+                            handleResize(column, e.clientX, currentWidth)
+                          }}
                         />
                       )}
                     </TableHead>
