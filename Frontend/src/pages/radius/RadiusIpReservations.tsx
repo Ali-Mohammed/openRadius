@@ -16,7 +16,7 @@ import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, Che
 import { radiusIpReservationApi, type RadiusIpReservation } from '@/api/radiusIpReservationApi'
 import { radiusUserApi } from '@/api/radiusUserApi'
 import { formatApiError } from '@/utils/errorHandler'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -27,6 +27,7 @@ import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 export default function RadiusIpReservations() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const { currentWorkspaceId } = useWorkspace()
@@ -659,7 +660,16 @@ export default function RadiusIpReservations() {
         )
       case 'username':
         return (
-          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.username || '-'}>
+          <TableCell key={columnKe? (
+              <button
+                onClick={() => navigate(`/radius/users?search=${encodeURIComponent(reservation.username!)}`)}
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer text-left"
+              >
+                {reservation.username}
+              </button>
+            ) : (
+              '-'
+            )ssName="px-4 truncate" style={baseStyle} title={reservation.username || '-'}>
             {reservation.username || '-'}
           </TableCell>
         )
