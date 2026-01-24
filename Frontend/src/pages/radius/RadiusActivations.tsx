@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Eye, CheckCircle2, XCircle, Clock, AlertCircle, Activity, Calendar, User, Filter, X } from 'lucide-react'
 import { radiusActivationApi, type RadiusActivation } from '@/api/radiusActivationApi'
 import { formatApiError } from '@/utils/errorHandler'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -30,6 +30,7 @@ import { format } from 'date-fns'
 export default function RadiusActivations() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const { currentWorkspaceId } = useWorkspace()
@@ -524,10 +525,20 @@ export default function RadiusActivations() {
       case 'user':
         return (
           <TableCell key={column} className="h-12 px-4" style={{ width: `${columnWidths.user}px` }}>
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{activation.radiusUsername || '-'}</span>
-            </div>
+            {activation.radiusUsername ? (
+              <button
+                onClick={() => navigate(`/radius/users?search=${encodeURIComponent(activation.radiusUsername!)}`)}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
+              >
+                <User className="h-4 w-4" />
+                <span className="font-medium">{activation.radiusUsername}</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">-</span>
+              </div>
+            )}
           </TableCell>
         )
       case 'type':

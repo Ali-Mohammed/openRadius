@@ -660,7 +660,8 @@ export default function RadiusIpReservations() {
         )
       case 'username':
         return (
-          <TableCell key={columnKe? (
+          <TableCell key={columnKey} className="px-4 truncate" style={baseStyle} title={reservation.username || '-'}>
+            {reservation.username ? (
               <button
                 onClick={() => navigate(`/radius/users?search=${encodeURIComponent(reservation.username!)}`)}
                 className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer text-left"
@@ -669,8 +670,7 @@ export default function RadiusIpReservations() {
               </button>
             ) : (
               '-'
-            )ssName="px-4 truncate" style={baseStyle} title={reservation.username || '-'}>
-            {reservation.username || '-'}
+            )}
           </TableCell>
         )
       case 'name':
