@@ -920,7 +920,7 @@ export default function RadiusActivations() {
           </div>
         )}
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 {columnOrder.filter(col => columnVisibility[col] !== false).map((column) => {
