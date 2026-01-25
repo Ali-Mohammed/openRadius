@@ -63,26 +63,40 @@ export interface WebhookLogsResponse {
 }
 
 export const integrationWebhookApi = {
-  getAll: (workspaceId: number) =>
-    apiClient.get<IntegrationWebhook[]>(`/api/workspaces/${workspaceId}/IntegrationWebhooks`),
+  getAll: async (workspaceId: number) => {
+    const response = await apiClient.get<IntegrationWebhook[]>(`/api/workspaces/${workspaceId}/IntegrationWebhooks`)
+    return response.data
+  },
 
-  getById: (workspaceId: number, id: number) =>
-    apiClient.get<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`),
+  getById: async (workspaceId: number, id: number) => {
+    const response = await apiClient.get<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`)
+    return response.data
+  },
 
-  create: (workspaceId: number, data: CreateWebhookRequest) =>
-    apiClient.post<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks`, data),
+  create: async (workspaceId: number, data: CreateWebhookRequest) => {
+    const response = await apiClient.post<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks`, data)
+    return response.data
+  },
 
-  update: (workspaceId: number, id: number, data: UpdateWebhookRequest) =>
-    apiClient.put<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`, data),
+  update: async (workspaceId: number, id: number, data: UpdateWebhookRequest) => {
+    const response = await apiClient.put<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`, data)
+    return response.data
+  },
 
-  delete: (workspaceId: number, id: number) =>
-    apiClient.delete(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`),
+  delete: async (workspaceId: number, id: number) => {
+    const response = await apiClient.delete(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`)
+    return response.data
+  },
 
-  regenerateToken: (workspaceId: number, id: number) =>
-    apiClient.post<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}/regenerate-token`),
+  regenerateToken: async (workspaceId: number, id: number) => {
+    const response = await apiClient.post<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}/regenerate-token`)
+    return response.data
+  },
 
-  getLogs: (workspaceId: number, id: number, page = 1, pageSize = 50) =>
-    apiClient.get<WebhookLogsResponse>(
+  getLogs: async (workspaceId: number, id: number, page = 1, pageSize = 50) => {
+    const response = await apiClient.get<WebhookLogsResponse>(
       `/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}/logs?page=${page}&pageSize=${pageSize}`
-    ),
+    )
+    return response.data
+  },
 }

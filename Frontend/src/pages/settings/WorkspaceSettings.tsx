@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2, Webhook, Copy, Settings, Activity } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -40,6 +40,7 @@ import {
 } from '../../components/ui/alert-dialog'
 import { workspaceApi } from '../../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../../api/sasRadiusApi'
+import { integrationWebhookApi, type IntegrationWebhook } from '../../api/integrationWebhookApi'
 import { SyncProgressDialog } from '../../components/SyncProgressDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../../utils/errorHandler'
@@ -76,6 +77,11 @@ export default function WorkspaceSettings() {
   const [isManagerSyncDialogOpen, setIsManagerSyncDialogOpen] = useState(false)
   const [syncingIntegrationId, setSyncingIntegrationId] = useState<number | null>(null)
   const hubConnectionRef = useRef<signalR.HubConnection | null>(null)
+  
+  // Webhook state
+  const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false)
+  const [selectedIntegrationForWebhook, setSelectedIntegrationForWebhook] = useState<SasRadiusIntegration | null>(null)
+  const [currentWebhook, setCurrentWebhook] = useState<IntegrationWebhook | null>(null)
   const [formData, setFormData] = useState<SasRadiusIntegration>({
     name: '',
     url: '',
@@ -397,7 +403,7 @@ export default function WorkspaceSettings() {
     setSyncPage(1)
   }
 
-  if (isLoading || isLoadingIntegrations) {
+  if (isLoading || isLoadingIntegrations || isLoadingWorkspace) {
     return (
       <div className="space-y-6">
         <p className="text-muted-foreground">Loading...</p>
@@ -405,10 +411,18 @@ export default function WorkspaceSettings() {
     )
   }
 
+  if (!currentWorkspaceId) {
+    return (
+      <div className="space-y-6">
+        <p className="text-destructive">No workspace selected. Please select a workspace from the menu.</p>
+      </div>
+    )
+  }
+
   if (!workspace) {
     return (
       <div className="space-y-6">
-        <p className="text-destructive">workspace not found</p>
+        <p className="text-destructive">Workspace not found. Please check your workspace settings.</p>
       </div>
     )
   }
@@ -618,20 +632,20 @@ export default function WorkspaceSettings() {
               )}
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead className="text-center">HTTPS</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Sync Status</TableHead>
-                    <TableHead className="text-center">Items/Page</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="min-w-[150px]">Name</TableHead>
+                    <TableHead className="min-w-[200px]">URL</TableHead>
+                    <TableHead className="min-w-[120px]">Username</TableHead>
+                    <TableHead className="text-center w-[80px]">HTTPS</TableHead>
+                    <TableHead className="text-center w-[100px]">Status</TableHead>
+                    <TableHead className="text-center w-[120px]">Sync Status</TableHead>
+                    <TableHead className="text-center w-[100px]">Items/Page</TableHead>
+                    <TableHead className="w-[80px]">Action</TableHead>
+                    <TableHead className="min-w-[150px]">Description</TableHead>
+                    <TableHead className="text-right w-[200px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -691,7 +705,7 @@ export default function WorkspaceSettings() {
                         {integration.description || '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           {showTrash ? (
                             <Button
                               variant="ghost"
@@ -727,6 +741,34 @@ export default function WorkspaceSettings() {
                                 title={integration.isActive ? "Sync Managers to Users" : "Activate integration to sync managers"}
                               >
                                 <Users className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  if (!currentWorkspaceId) {
+                                    toast.error('No workspace selected')
+                                    return
+                                  }
+                                  setSelectedIntegrationForWebhook(integration)
+                                  // Fetch webhook for this integration
+                                  try {
+                                    const webhooks = await integrationWebhookApi.getAll(currentWorkspaceId)
+                                    const webhook = webhooks.find((w: IntegrationWebhook) => 
+                                      w.integrationName === `SAS-${integration.name}` || 
+                                      w.integrationName === integration.name
+                                    )
+                                    setCurrentWebhook(webhook || null)
+                                  } catch (error) {
+                                    console.error('Failed to fetch webhook:', error)
+                                    toast.error('Failed to load webhook settings')
+                                    setCurrentWebhook(null)
+                                  }
+                                  setIsWebhookDialogOpen(true)
+                                }}
+                                title="Webhook Callback Settings"
+                              >
+                                <Webhook className="h-4 w-4 text-purple-600" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -1100,6 +1142,159 @@ export default function WorkspaceSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Webhook Callback Settings Dialog */}
+      <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Webhook Callback Settings</DialogTitle>
+            <DialogDescription>
+              Configure webhook callback for {selectedIntegrationForWebhook?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Enable Callback Toggle */}
+            <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-semibold">Enable Callback Function</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow external systems to send data via webhook
+                  </p>
+                </div>
+                <Switch
+                  checked={currentWebhook?.callbackEnabled || false}
+                  onCheckedChange={async (checked) => {
+                    if (!currentWorkspaceId) {
+                      toast.error('No workspace selected')
+                      return
+                    }
+                    
+                    if (!currentWebhook && checked) {
+                      // Create webhook if it doesn't exist
+                      try {
+                        const newWebhook = await integrationWebhookApi.create(currentWorkspaceId, {
+                          integrationName: `SAS-${selectedIntegrationForWebhook?.name}`,
+                          integrationType: 'sas-radius',
+                          callbackEnabled: true,
+                          requireAuthentication: true,
+                          allowedIpAddresses: '',
+                          description: `Webhook for ${selectedIntegrationForWebhook?.name}`,
+                        })
+                        setCurrentWebhook(newWebhook)
+                        toast.success('Webhook created and enabled')
+                      } catch (error: any) {
+                        toast.error(error.response?.data?.message || 'Failed to create webhook')
+                      }
+                    } else if (currentWebhook) {
+                      // Update existing webhook
+                      try {
+                        const updated = await integrationWebhookApi.update(
+                          currentWorkspaceId,
+                          currentWebhook.id!,
+                          {
+                            ...currentWebhook,
+                            callbackEnabled: checked,
+                          }
+                        )
+                        setCurrentWebhook(updated)
+                        toast.success(checked ? 'Callback enabled' : 'Callback disabled')
+                      } catch (error: any) {
+                        toast.error(error.response?.data?.message || 'Failed to update webhook')
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Webhook URL - only show if callback is enabled or webhook exists */}
+            {currentWebhook && (
+              <>
+                <div className="space-y-2">
+                  <Label>Callback Endpoint</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="secondary" className="font-mono">SASCallback</Badge>
+                    <span className="text-xs text-muted-foreground">Use this endpoint from external systems</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={currentWebhook.webhookUrl}
+                      readOnly
+                      className="font-mono text-xs bg-muted"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(currentWebhook.webhookUrl)
+                        toast.success('URL copied to clipboard')
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Complete URL with workspace ID and security token - POST JSON data to this endpoint
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Example Request</Label>
+                  <div className="bg-muted p-3 rounded-md overflow-x-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+{`curl -X POST "${currentWebhook.webhookUrl}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "username": "user@example.com",
+    "password": "newpassword",
+    "isEnabled": true
+  }'`}
+                    </pre>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    The token is embedded in the URL - no additional authentication headers needed
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Activity className="h-4 w-4" />
+                      Total Requests
+                    </div>
+                    <p className="text-2xl font-semibold">{currentWebhook.requestCount || 0}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      Last Used
+                    </div>
+                    <p className="text-sm">
+                      {currentWebhook.lastUsedAt 
+                        ? new Date(currentWebhook.lastUsedAt).toLocaleString()
+                        : 'Never'}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!currentWebhook && (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>Enable callback to generate webhook URL</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsWebhookDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         </TabsContent>
       </Tabs>
     </div>
