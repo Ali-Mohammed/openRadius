@@ -22,18 +22,19 @@ public class WebhooksController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("{workspaceId}/{token}")]
-    public async Task<IActionResult> ProcessWebhook(int workspaceId, string token)
+    [HttpPost("{workspaceId}/{integrationType}/{token}")]
+    public async Task<IActionResult> ProcessWebhook(int workspaceId, string integrationType, string token)
     {
         var stopwatch = Stopwatch.StartNew();
         var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
         
         try
         {
-            // Find webhook by token and workspace
+            // Find webhook by token, workspace, and integration type
             var webhook = await _context.IntegrationWebhooks
                 .FirstOrDefaultAsync(w => 
                     w.WorkspaceId == workspaceId && 
+                    w.IntegrationType.ToLower() == integrationType.ToLower() &&
                     w.WebhookToken == token && 
                     !w.IsDeleted &&
                     w.IsActive);

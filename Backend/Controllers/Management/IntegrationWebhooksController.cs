@@ -56,7 +56,7 @@ public class IntegrationWebhooksController : ControllerBase
     {
         var token = GenerateSecureToken();
         var baseUrl = _configuration["AppSettings:BaseUrl"] ?? "http://localhost:5000";
-        var webhookUrl = $"{baseUrl}/api/webhooks/{workspaceId}/{token}";
+        var webhookUrl = $"{baseUrl}/api/webhooks/{workspaceId}/{request.IntegrationType}/{token}";
 
         var webhook = new IntegrationWebhook
         {
@@ -116,7 +116,7 @@ public class IntegrationWebhooksController : ControllerBase
         var newToken = GenerateSecureToken();
         var baseUrl = _configuration["AppSettings:BaseUrl"] ?? "http://localhost:5000";
         webhook.WebhookToken = newToken;
-        webhook.WebhookUrl = $"{baseUrl}/api/webhooks/{workspaceId}/{newToken}";
+        webhook.WebhookUrl = $"{baseUrl}/api/webhooks/{workspaceId}/{webhook.IntegrationType}/{newToken}";
         webhook.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

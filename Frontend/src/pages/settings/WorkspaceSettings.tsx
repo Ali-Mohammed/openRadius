@@ -1212,11 +1212,32 @@ export default function WorkspaceSettings() {
             {/* Webhook URL - only show if callback is enabled or webhook exists */}
             {currentWebhook && (
               <>
-                <div className="space-y-2">
-                  <Label>Callback Endpoint</Label>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="secondary" className="font-mono">SASCallback</Badge>
-                    <span className="text-xs text-muted-foreground">Use this endpoint from external systems</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>SASCallback Endpoint</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (!currentWorkspaceId) {
+                          toast.error('No workspace selected')
+                          return
+                        }
+                        try {
+                          const updated = await integrationWebhookApi.regenerateToken(
+                            currentWorkspaceId,
+                            currentWebhook.id!
+                          )
+                          setCurrentWebhook(updated)
+                          toast.success('Token regenerated successfully')
+                        } catch (error: any) {
+                          toast.error(error.response?.data?.message || 'Failed to regenerate token')
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Regenerate Token
+                    </Button>
                   </div>
                   <div className="flex gap-2">
                     <Input
@@ -1236,25 +1257,7 @@ export default function WorkspaceSettings() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Complete URL with workspace ID and security token - POST JSON data to this endpoint
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Example Request</Label>
-                  <div className="bg-muted p-3 rounded-md overflow-x-auto">
-                    <pre className="text-xs font-mono whitespace-pre-wrap break-all">
-{`curl -X POST "${currentWebhook.webhookUrl}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "username": "user@example.com",
-    "password": "newpassword",
-    "isEnabled": true
-  }'`}
-                    </pre>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    The token is embedded in the URL - no additional authentication headers needed
+                    Use this endpoint from external systems. The token is embedded in the URL.
                   </p>
                 </div>
 
