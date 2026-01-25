@@ -979,7 +979,7 @@ interface PaymentMethod {
                           ...paymentSettings, 
                           [paymentSettings.isProduction ? 'msisdnProd' : 'msisdnTest']: e.target.value 
                         })}
-                        placeholder={paymentSettings.isProduction ? "9647870022327" : "9647835077893"}
+                        placeholder={paymentSettings.isProduction ? "964XXXXXXXXXX" : "9647835077893"}
                       />
                     </div>
 
@@ -991,7 +991,7 @@ interface PaymentMethod {
                           ...paymentSettings, 
                           [paymentSettings.isProduction ? 'merchantProd' : 'merchantTest']: e.target.value 
                         })}
-                        placeholder={paymentSettings.isProduction ? "667d554f3c3d7f246e714f1d" : "5ffacf6612b5777c6d44266f"}
+                        placeholder={paymentSettings.isProduction ? "your_merchant_id_here" : "5ffacf6612b5777c6d44266f"}
                       />
                     </div>
 
@@ -1096,7 +1096,7 @@ interface PaymentMethod {
                           ...paymentSettings, 
                           [paymentSettings.isProduction ? 'usernameProd' : 'usernameTest']: e.target.value 
                         })}
-                        placeholder={paymentSettings.isProduction ? "fiberx" : "paymentgatewaytest"}
+                        placeholder={paymentSettings.isProduction ? "your_username" : "paymentgatewaytest"}
                       />
                     </div>
 
@@ -1121,7 +1121,7 @@ interface PaymentMethod {
                           ...paymentSettings, 
                           [paymentSettings.isProduction ? 'terminalIdProd' : 'terminalIdTest']: e.target.value 
                         })}
-                        placeholder={paymentSettings.isProduction ? "928582" : "237984"}
+                        placeholder={paymentSettings.isProduction ? "your_terminal_id" : "237984"}
                       />
                     </div>
 
@@ -1205,7 +1205,7 @@ interface PaymentMethod {
                           ...paymentSettings, 
                           [paymentSettings.isProduction ? 'entityIdProd' : 'entityIdTest']: e.target.value 
                         })}
-                        placeholder={paymentSettings.isProduction ? "8ac9a4ce96aa40f00196af9328c11d32" : "8a8294174d0595bb014d05d829cb01cd"}
+                        placeholder={paymentSettings.isProduction ? "your_entity_id_here" : "8a8294174d0595bb014d05d829cb01cd"}
                       />
                     </div>
 
