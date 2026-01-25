@@ -64,25 +64,25 @@ export interface WebhookLogsResponse {
 
 export const integrationWebhookApi = {
   getAll: (workspaceId: number) =>
-    apiClient.get<IntegrationWebhook[]>(`/workspaces/${workspaceId}/IntegrationWebhooks`),
+    apiClient.get<IntegrationWebhook[]>(`/api/workspaces/${workspaceId}/IntegrationWebhooks`),
 
   getById: (workspaceId: number, id: number) =>
-    apiClient.get<IntegrationWebhook>(`/workspaces/${workspaceId}/IntegrationWebhooks/${id}`),
+    apiClient.get<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`),
 
   create: (workspaceId: number, data: CreateWebhookRequest) =>
-    apiClient.post<IntegrationWebhook>(`/workspaces/${workspaceId}/IntegrationWebhooks`, data),
+    apiClient.post<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks`, data),
 
   update: (workspaceId: number, id: number, data: UpdateWebhookRequest) =>
-    apiClient.put<IntegrationWebhook>(`/workspaces/${workspaceId}/IntegrationWebhooks/${id}`, data),
+    apiClient.put<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`, data),
 
   delete: (workspaceId: number, id: number) =>
-    apiClient.delete(`/workspaces/${workspaceId}/IntegrationWebhooks/${id}`),
+    apiClient.delete(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}`),
 
   regenerateToken: (workspaceId: number, id: number) =>
-    apiClient.post<IntegrationWebhook>(`/workspaces/${workspaceId}/IntegrationWebhooks/${id}/regenerate-token`),
+    apiClient.post<IntegrationWebhook>(`/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}/regenerate-token`),
 
   getLogs: (workspaceId: number, id: number, page = 1, pageSize = 50) =>
     apiClient.get<WebhookLogsResponse>(
-      `/workspaces/${workspaceId}/IntegrationWebhooks/${id}/logs?page=${page}&pageSize=${pageSize}`
+      `/api/workspaces/${workspaceId}/IntegrationWebhooks/${id}/logs?page=${page}&pageSize=${pageSize}`
     ),
 }

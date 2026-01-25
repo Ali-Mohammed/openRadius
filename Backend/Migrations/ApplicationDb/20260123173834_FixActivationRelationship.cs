@@ -74,12 +74,20 @@ namespace Backend.Migrations.ApplicationDb
                 table: "SubAgentCashbacks",
                 column: "SupervisorId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_SubAgentCashbacks_SupervisorId_SubAgentId_BillingProfileId",
-                table: "SubAgentCashbacks",
-                columns: new[] { "SupervisorId", "SubAgentId", "BillingProfileId" },
-                unique: true,
-                filter: "\"DeletedAt\" IS NULL");
+            // Check if index exists before creating to avoid conflicts
+            migrationBuilder.Sql(@"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_indexes 
+                        WHERE indexname = 'IX_SubAgentCashbacks_SupervisorId_SubAgentId_BillingProfileId'
+                    ) THEN
+                        CREATE UNIQUE INDEX ""IX_SubAgentCashbacks_SupervisorId_SubAgentId_BillingProfileId"" 
+                        ON ""SubAgentCashbacks"" (""SupervisorId"", ""SubAgentId"", ""BillingProfileId"") 
+                        WHERE ""DeletedAt"" IS NULL;
+                    END IF;
+                END $$;
+            ");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BillingActivations_ActionById",
