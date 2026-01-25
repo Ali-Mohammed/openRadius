@@ -957,7 +957,22 @@ interface PaymentMethod {
                   <Label>Environment</Label>
                   <Select 
                     value={paymentSettings.isProduction ? 'production' : 'test'}
-                    onValueChange={(value) => setPaymentSettings({ ...paymentSettings, isProduction: value === 'production' })}
+                    onValueChange={(value) => {
+                      const isProduction = value === 'production'
+                      if (!isProduction && !paymentSettings.msisdnTest) {
+                        // Pre-fill test data
+                        setPaymentSettings({ 
+                          ...paymentSettings, 
+                          isProduction,
+                          msisdnTest: '9647835077893',
+                          merchantTest: '5ffacf6612b5777c6d44266f',
+                          secretTest: 'test_secret_key',
+                          langTest: 'ar'
+                        })
+                      } else {
+                        setPaymentSettings({ ...paymentSettings, isProduction })
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select environment" />
@@ -1074,7 +1089,23 @@ interface PaymentMethod {
                   <Label>Environment</Label>
                   <Select 
                     value={paymentSettings.isProduction ? 'production' : 'test'}
-                    onValueChange={(value) => setPaymentSettings({ ...paymentSettings, isProduction: value === 'production' })}
+                    onValueChange={(value) => {
+                      const isProduction = value === 'production'
+                      if (!isProduction && !paymentSettings.usernameTest) {
+                        // Pre-fill test data
+                        setPaymentSettings({ 
+                          ...paymentSettings, 
+                          isProduction,
+                          usernameTest: 'paymentgatewaytest',
+                          passwordTest: 'test_password_123',
+                          terminalIdTest: '237984',
+                          currencyTest: 'IQD',
+                          urlTest: 'https://uat-sandbox-3ds-api.qi.iq/api/v1'
+                        })
+                      } else {
+                        setPaymentSettings({ ...paymentSettings, isProduction })
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select environment" />
@@ -1183,7 +1214,22 @@ interface PaymentMethod {
                   <Label>Environment</Label>
                   <Select 
                     value={paymentSettings.isProduction ? 'production' : 'test'}
-                    onValueChange={(value) => setPaymentSettings({ ...paymentSettings, isProduction: value === 'production' })}
+                    onValueChange={(value) => {
+                      const isProduction = value === 'production'
+                      if (!isProduction && !paymentSettings.entityIdTest) {
+                        // Pre-fill test data
+                        setPaymentSettings({ 
+                          ...paymentSettings, 
+                          isProduction,
+                          entityIdTest: '8a8294174d0595bb014d05d829cb01cd',
+                          entityAuthTest: 'test_auth_token_123',
+                          currencyTest: 'USD',
+                          entityUrlTest: 'https://eu-test.oppwa.com/v1/checkouts'
+                        })
+                      } else {
+                        setPaymentSettings({ ...paymentSettings, isProduction })
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select environment" />
