@@ -68,6 +68,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<OltDevice> OltDevices { get; set; }
     public DbSet<Olt> Olts { get; set; }
     public DbSet<PonPort> PonPorts { get; set; }
+    public DbSet<IntegrationWebhook> IntegrationWebhooks { get; set; }
+    public DbSet<WebhookLog> WebhookLogs { get; set; }
     public DbSet<Fdt> Fdts { get; set; }
     public DbSet<Fat> Fats { get; set; }
     public DbSet<FatPort> FatPorts { get; set; }

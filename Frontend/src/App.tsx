@@ -24,6 +24,8 @@ import RadiusIpReservations from './pages/radius/RadiusIpReservations'
 import RadiusCustomAttributes from './pages/radius/RadiusCustomAttributes'
 import Zones from './pages/radius/Zones'
 import RadiusActivations from './pages/radius/RadiusActivations'
+// Integrations
+import Integrations from './pages/integrations/Integrations'
 // Billing
 import BillingProfiles from './pages/billing/BillingProfiles'
 import BillingProfileForm from './pages/billing/BillingProfileForm'
@@ -97,7 +99,8 @@ function App() {
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/profile" element={<ProfileSettings />} />
                           <Route path="/workspace/view" element={<WorkspaceView />} />
-                          <Route path="/integrations" element={<WorkspaceSettings />} />
+                          <Route path="/integrations" element={<Integrations />} />
+                          <Route path="/integrations/sas-radius" element={<WorkspaceSettings />} />
                           <Route path="/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/radius/users" element={<RadiusUsers />} />
                           <Route path="/radius/groups" element={<RadiusGroups />} />
