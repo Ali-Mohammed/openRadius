@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Backend.Models;
+using Backend.Models.Management;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.EntityFrameworkCore;
@@ -74,6 +75,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Fat> Fats { get; set; }
     public DbSet<FatPort> FatPorts { get; set; }
     public DbSet<RadiusAccounting> RadiusAccounting { get; set; }
+    public DbSet<PaymentMethod> PaymentMethods { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

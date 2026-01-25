@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -9,42 +10,93 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-
-interface PaymentMethod {
-  id?: number
-  type: 'ZainCash' | 'QICard' | 'Switch'
-  name: string
-  isActive: boolean
-  settings: any
-}
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { paymentMethodApi, type PaymentMethod, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
+import { formatApiError } from '@/utils/errorHandler'
 
 export default function PaymentMethodsTab() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const { currentWorkspaceId } = useWorkspace()
+  const queryClient = useQueryClient()
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
   const [paymentType, setPaymentType] = useState<'ZainCash' | 'QICard' | 'Switch'>('ZainCash')
   const [paymentSettings, setPaymentSettings] = useState<any>({})
 
-  const handleSavePayment = () => {
-    const newMethod: PaymentMethod = {
-      id: editingPayment?.id || Date.now(),
-      type: paymentType,
-      name: paymentType,
-      isActive: paymentSettings.isActive || true,
-      settings: paymentSettings
-    }
-    
-    if (editingPayment) {
-      setPaymentMethods(paymentMethods.map(m => m.id === editingPayment.id ? newMethod : m))
-      toast.success('Payment method updated successfully')
-    } else {
-      setPaymentMethods([...paymentMethods, newMethod])
+  // Fetch payment methods
+  const { data: paymentMethods = [], isLoading } = useQuery({
+    queryKey: ['payment-methods', currentWorkspaceId],
+    queryFn: () => paymentMethodApi.getAll(currentWorkspaceId!),
+    enabled: currentWorkspaceId !== null,
+  })
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: (dto: CreatePaymentMethodDto) => paymentMethodApi.create(currentWorkspaceId!, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentWorkspaceId] })
       toast.success('Payment method added successfully')
+      setShowPaymentDialog(false)
+      setEditingPayment(null)
+      setPaymentSettings({})
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: number; dto: UpdatePaymentMethodDto }) =>
+      paymentMethodApi.update(currentWorkspaceId!, id, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentWorkspaceId] })
+      toast.success('Payment method updated successfully')
+      setShowPaymentDialog(false)
+      setEditingPayment(null)
+      setPaymentSettings({})
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => paymentMethodApi.delete(currentWorkspaceId!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentWorkspaceId] })
+      toast.success('Payment method deleted successfully')
+    },
+    onError: (error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
+  const handleSavePayment = () => {
+    if (editingPayment && editingPayment.id) {
+      // Update existing payment method
+      const dto: UpdatePaymentMethodDto = {
+        name: paymentType,
+        isActive: paymentSettings.isActive !== undefined ? paymentSettings.isActive : true,
+        settings: paymentSettings
+      }
+      updateMutation.mutate({ id: editingPayment.id, dto })
+    } else {
+      // Create new payment method
+      const dto: CreatePaymentMethodDto = {
+        type: paymentType,
+        name: paymentType,
+        isActive: paymentSettings.isActive !== undefined ? paymentSettings.isActive : true,
+        settings: paymentSettings
+      }
+      createMutation.mutate(dto)
     }
-    
-    setShowPaymentDialog(false)
-    setEditingPayment(null)
-    setPaymentSettings({})
+  }
+
+  const handleDeletePayment = (id: number | undefined) => {
+    if (id && confirm('Are you sure you want to delete this payment method?')) {
+      deleteMutation.mutate(id)
+    }
   }
 
   return (
@@ -138,10 +190,7 @@ export default function PaymentMethodsTab() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        setPaymentMethods(paymentMethods.filter(m => m.id !== method.id))
-                        toast.success('Payment method deleted')
-                      }}
+                      onClick={() => handleDeletePayment(method.id)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
