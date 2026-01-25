@@ -1,54 +1,22 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useQuery } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DollarSign, Save, Users, Tags, Loader2, Filter, Plus, Trash2, Edit2, Coins } from 'lucide-react'
-import { Checkbox } from '@/components/ui/checkbox'
-import { cashbackSettingsApi, type CashbackSettings } from '@/api/cashbackSettingsApi'
-import { Progress } from '@/components/ui/progress'
+import { DollarSign, Users, Tags, Coins } from 'lucide-react'
+import { type FilterColumn } from '@/components/QueryBuilder'
 import { settingsApi } from '@/api/settingsApi'
-import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
-import { apiClient } from '@/lib/api'
-import * as signalR from '@microsoft/signalr'
-import { QueryBuilder, type FilterGroup, type FilterColumn } from '@/components/QueryBuilder'
-import { radiusTagApi } from '@/api/radiusTagApi'
-import { type RadiusProfile } from '@/api/radiusProfileApi'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import { getIconComponent } from '@/utils/iconColorHelper'
-
-interface TagSyncProgress {
-  phase: string
-  current: number
-  total: number
-  percentComplete: number
-  message: string
-}
-
-interface TagSyncRule {
-  id: string
-  tagId: number
-  tagName: string
-  filterGroup: FilterGroup | null
-}
+import CompanyInfoTab from './tabs/CompanyInfoTab'
+import CashbackTab from './tabs/CashbackTab'
+import TagSyncTab from './tabs/TagSyncTab'
+import PaymentMethodsTab from './tabs/PaymentMethodsTab'
 
 export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
-  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [currency, setCurrency] = useState('USD')
   const [churnDays, setChurnDays] = useState(20)
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncProgress, setSyncProgress] = useState<TagSyncProgress | null>(null)
   
   // Get current tab from URL or default to 'general'
   const currentTab = searchParams.get('tab') || 'general'
@@ -57,61 +25,11 @@ export default function GeneralSettings() {
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value })
   }
-  
-  // Tag Sync Rules state
-  const [tagSyncRules, setTagSyncRules] = useState<TagSyncRule[]>([])
-  const [showRuleDialog, setShowRuleDialog] = useState(false)
-  const [editingRule, setEditingRule] = useState<TagSyncRule | null>(null)
-  const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
-  const [ruleFilters, setRuleFilters] = useState<FilterGroup | null>(null)
-
-  // Cashback settings state
-  const [cashbackTransactionType, setCashbackTransactionType] = useState('Instant')
-  const [collectionSchedule, setCollectionSchedule] = useState('AnyTime')
-  const [minimumCollectionAmount, setMinimumCollectionAmount] = useState(0)
-  const [requiresApproval, setRequiresApproval] = useState(false)
-
-  // Payment Methods state
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-  const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
-  const [paymentType, setPaymentType] = useState<'ZainCash' | 'QICard' | 'Switch'>('ZainCash')
-  const [paymentSettings, setPaymentSettings] = useState<any>({})
-
-interface PaymentMethod {
-  id?: number
-  type: 'ZainCash' | 'QICard' | 'Switch'
-  name: string
-  isActive: boolean
-  settings: any
-}
-
-  // Fetch available tags
-  const { data: availableTags = [] } = useQuery({
-    queryKey: ['radius-tags'],
-    queryFn: () => radiusTagApi.getAll(false),
-  })
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['general-settings', currentWorkspaceId],
     queryFn: () => settingsApi.getGeneralSettings(currentWorkspaceId!),
     enabled: currentWorkspaceId !== null,
-  })
-
-  // Fetch tag sync rules from settings
-  const { data: tagSyncSettings } = useQuery({
-    queryKey: ['tag-sync-rules', currentWorkspaceId],
-    queryFn: async () => {
-      const response = await apiClient.get(`/api/workspaces/${currentWorkspaceId}/settings/tag-sync-rules`)
-      return response.data
-    },
-    enabled: currentWorkspaceId !== null,
-  })
-
-  // Fetch cashback settings
-  const { data: cashbackSettings, isLoading: isCashbackLoading } = useQuery({
-    queryKey: ['cashback-settings'],
-    queryFn: cashbackSettingsApi.getSettings,
   })
 
   // Update local state when data changes
@@ -123,31 +41,95 @@ interface PaymentMethod {
     }
   }, [settingsData])
 
-  // Load tag sync rules
-  useEffect(() => {
-    if (tagSyncSettings?.rules) {
-      // Transform Pascal case to camel case
-      const transformedRules = tagSyncSettings.rules.map((rule: any) => ({
-        id: rule.Id || rule.id,
-        tagId: rule.TagId || rule.tagId,
-        tagName: rule.TagName || rule.tagName,
-        filterGroup: rule.FilterGroup || rule.filterGroup
-      }))
-      setTagSyncRules(transformedRules)
-    }
-  }, [tagSyncSettings])
+  // Filter columns for query builder
+  const filterColumns: FilterColumn[] = useMemo(
+    () => [
+      { key: 'username', label: 'Username', type: 'string' },
+      { key: 'groupname', label: 'Group', type: 'string' },
+      { key: 'priority', label: 'Priority', type: 'number' },
+      { key: 'framedipaddress', label: 'IP Address', type: 'string' },
+      { key: 'callingstationid', label: 'MAC Address', type: 'string' },
+    ],
+    []
+  )
 
-  // Load cashback settings
-  useEffect(() => {
-    if (cashbackSettings) {
-      setCashbackTransactionType(cashbackSettings.transactionType || 'Instant')
-      setCollectionSchedule(cashbackSettings.collectionSchedule || 'AnyTime')
-      setMinimumCollectionAmount(cashbackSettings.minimumCollectionAmount || 0)
-      setRequiresApproval(cashbackSettings.requiresApprovalToCollect || false)
-    }
-  }, [cashbackSettings])
+  if (isLoadingWorkspace || isLoading) {
+    return <div className="p-6">Loading...</div>
+  }
 
-  const updateMutation = useMutation({
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">General Settings</h1>
+        <p className="text-muted-foreground">Configure general workspace preferences</p>
+      </div>
+
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="general">
+            <DollarSign className="h-4 w-4 mr-2" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="radius-user">
+            <Users className="h-4 w-4 mr-2" />
+            Radius User
+          </TabsTrigger>
+          <TabsTrigger value="cashback">
+            <Coins className="h-4 w-4 mr-2" />
+            Cashback
+          </TabsTrigger>
+          <TabsTrigger value="tag-sync">
+            <Tags className="h-4 w-4 mr-2" />
+            Tag Sync
+          </TabsTrigger>
+          <TabsTrigger value="payment-methods">
+            <Coins className="h-4 w-4 mr-2" />
+            Payment Methods
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="space-y-4">
+          <CompanyInfoTab
+            currency={currency}
+            churnDays={churnDays}
+            dateFormat={dateFormat}
+            onCurrencyChange={setCurrency}
+            onChurnDaysChange={setChurnDays}
+            onDateFormatChange={setDateFormat}
+            currentWorkspaceId={currentWorkspaceId}
+          />
+        </TabsContent>
+
+        <TabsContent value="radius-user" className="space-y-4">
+          <CompanyInfoTab
+            currency={currency}
+            churnDays={churnDays}
+            dateFormat={dateFormat}
+            onCurrencyChange={setCurrency}
+            onChurnDaysChange={setChurnDays}
+            onDateFormatChange={setDateFormat}
+            currentWorkspaceId={currentWorkspaceId}
+          />
+        </TabsContent>
+
+        <TabsContent value="cashback" className="space-y-4">
+          <CashbackTab />
+        </TabsContent>
+
+        <TabsContent value="tag-sync" className="space-y-4">
+          <TagSyncTab
+            currentWorkspaceId={currentWorkspaceId}
+            filterColumns={filterColumns}
+          />
+        </TabsContent>
+
+        <TabsContent value="payment-methods" className="space-y-4">
+          <PaymentMethodsTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
     mutationFn: (settings: { currency: string; churnDays: number; dateFormat: string }) => 
       settingsApi.updateGeneralSettings(currentWorkspaceId!, settings),
     onSuccess: () => {
@@ -956,7 +938,7 @@ interface PaymentMethod {
                 <div className="space-y-2">
                   <Label>Environment</Label>
                   <Select 
-                    value={paymentSettings.isProduction ? 'production' : 'test'}
+                    value={paymentSettings.isProduction === undefined ? '' : (paymentSettings.isProduction ? 'production' : 'test')}
                     onValueChange={(value) => {
                       const isProduction = value === 'production'
                       if (!isProduction && !paymentSettings.msisdnTest) {
@@ -1056,14 +1038,26 @@ interface PaymentMethod {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Callback URL</Label>
+                      <Label>Frontend Callback URL</Label>
                       <Input
-                        value={paymentSettings.callbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, callbackUrl: e.target.value })}
-                        placeholder="https://your-domain.com/callback"
+                        value={paymentSettings.frontendCallbackUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, frontendCallbackUrl: e.target.value })}
+                        placeholder="https://your-domain.com/payment/success"
                       />
                       <p className="text-xs text-muted-foreground">
-                        URL to receive payment notifications
+                        URL to redirect users after payment completion
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Backend Callback URL</Label>
+                      <Input
+                        value={paymentSettings.backendCallbackUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, backendCallbackUrl: e.target.value })}
+                        placeholder="https://your-api.com/webhooks/payment"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        URL to receive payment notifications on your backend
                       </p>
                     </div>
 
@@ -1088,7 +1082,7 @@ interface PaymentMethod {
                 <div className="space-y-2">
                   <Label>Environment</Label>
                   <Select 
-                    value={paymentSettings.isProduction ? 'production' : 'test'}
+                    value={paymentSettings.isProduction === undefined ? '' : (paymentSettings.isProduction ? 'production' : 'test')}
                     onValueChange={(value) => {
                       const isProduction = value === 'production'
                       if (!isProduction && !paymentSettings.usernameTest) {
@@ -1181,14 +1175,26 @@ interface PaymentMethod {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Callback URL</Label>
+                      <Label>Frontend Callback URL</Label>
                       <Input
-                        value={paymentSettings.callbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, callbackUrl: e.target.value })}
-                        placeholder="https://your-domain.com/callback"
+                        value={paymentSettings.frontendCallbackUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, frontendCallbackUrl: e.target.value })}
+                        placeholder="https://your-domain.com/payment/success"
                       />
                       <p className="text-xs text-muted-foreground">
-                        URL to receive payment notifications
+                        URL to redirect users after payment completion
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Backend Callback URL</Label>
+                      <Input
+                        value={paymentSettings.backendCallbackUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, backendCallbackUrl: e.target.value })}
+                        placeholder="https://your-api.com/webhooks/payment"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        URL to receive payment notifications on your backend
                       </p>
                     </div>
 
@@ -1213,7 +1219,7 @@ interface PaymentMethod {
                 <div className="space-y-2">
                   <Label>Environment</Label>
                   <Select 
-                    value={paymentSettings.isProduction ? 'production' : 'test'}
+                    value={paymentSettings.isProduction === undefined ? '' : (paymentSettings.isProduction ? 'production' : 'test')}
                     onValueChange={(value) => {
                       const isProduction = value === 'production'
                       if (!isProduction && !paymentSettings.entityIdTest) {
@@ -1306,14 +1312,26 @@ interface PaymentMethod {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Callback URL</Label>
+                      <Label>Frontend Callback URL</Label>
                       <Input
-                        value={paymentSettings.callbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, callbackUrl: e.target.value })}
-                        placeholder="https://your-domain.com/callback"
+                        value={paymentSettings.frontendCallbackUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, frontendCallbackUrl: e.target.value })}
+                        placeholder="https://your-domain.com/payment/success"
                       />
                       <p className="text-xs text-muted-foreground">
-                        URL to receive payment notifications
+                        URL to redirect users after payment completion
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Backend Callback URL</Label>
+                      <Input
+                        value={paymentSettings.backendCallbackUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, backendCallbackUrl: e.target.value })}
+                        placeholder="https://your-api.com/webhooks/payment"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        URL to receive payment notifications on your backend
                       </p>
                     </div>
 
