@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
-import { paymentMethodApi, type PaymentMethod, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
+import { paymentMethodApi, type PaymentMethod, type PaymentMethodSettings, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
 import { formatApiError } from '@/utils/errorHandler'
 
 export default function PaymentMethodsTab() {
@@ -20,10 +20,10 @@ export default function PaymentMethodsTab() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
   const [paymentType, setPaymentType] = useState<'ZainCash' | 'QICard' | 'Switch'>('ZainCash')
-  const [paymentSettings, setPaymentSettings] = useState<any>({})
+  const [paymentSettings, setPaymentSettings] = useState<PaymentMethodSettings>({})
 
   // Fetch payment methods
-  const { data: paymentMethods = [], isLoading } = useQuery({
+  const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods', currentWorkspaceId],
     queryFn: () => paymentMethodApi.getAll(currentWorkspaceId!),
     enabled: currentWorkspaceId !== null,
