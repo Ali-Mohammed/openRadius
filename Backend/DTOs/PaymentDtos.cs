@@ -36,10 +36,32 @@ namespace Backend.DTOs
     // Switch specific response  
     public class SwitchInitResponse
     {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string? Id { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("ndc")]
         public string? Ndc { get; set; }
-        public bool? Integrity { get; set; }
-        public string? Result { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("integrity")]
+        public string? Integrity { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("result")]
+        public SwitchResult? Result { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("buildNumber")]
+        public string? BuildNumber { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
+        public string? Timestamp { get; set; }
+    }
+    
+    public class SwitchResult
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        public string? Code { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; }
     }
 
     // Payment callback data
