@@ -58,6 +58,7 @@ import MicroserviceApprovals from './pages/microservices/MicroserviceApprovals'
 // Settings
 import WorkspaceView from './pages/settings/WorkspaceView'
 import GeneralSettings from './pages/settings/GeneralSettings'
+import PaymentInformation from './pages/settings/PaymentInformation'
 import OidcSettings from './pages/settings/OidcSettings'
 import DatabaseBackup from './pages/settings/DatabaseBackup'
 import WorkspaceSettings from './pages/settings/WorkspaceSettings'
@@ -123,6 +124,7 @@ function App() {
                           <Route path="/network/fdts" element={<Fdts />} />
                           <Route path="/network/fats" element={<Fats />} />
                           <Route path="/settings/general" element={<GeneralSettings />} />
+                          <Route path="/settings/payment-information" element={<PaymentInformation />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
                           <Route path="/settings/database-backup" element={<DatabaseBackup />} />

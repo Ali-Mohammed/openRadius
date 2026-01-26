@@ -221,39 +221,152 @@ namespace Backend.Controllers.Payments
                     ? settings.GetValueOrDefault("langProd")?.ToString() ?? "ar"
                     : settings.GetValueOrDefault("langTest")?.ToString() ?? "ar";
 
-                var zainCashUrl = isProduction
-                    ? settings.GetValueOrDefault("urlProd")?.ToString()
-                    : settings.GetValueOrDefault("urlTest")?.ToString();
-
-                if (string.IsNullOrEmpty(msisdn) || string.IsNullOrEmpty(merchantId) || string.IsNullOrEmpty(secret) || string.IsNullOrEmpty(zainCashUrl))
+                if (string.IsNullOrEmpty(msisdn) || string.IsNullOrEmpty(merchantId) || string.IsNullOrEmpty(secret))
                 {
                     return new PaymentInitiationResponse { Success = false, ErrorMessage = "Missing ZainCash configuration" };
                 }
 
-                // Build ZainCash request
-                var requestData = new
+                // Determine API URLs based on environment
+                var initUrl = isProduction
+                    ? "https://api.zaincash.iq/transaction/init"
+                    : "https://test.zaincash.iq/transaction/init";
+
+                var payUrl = isProduction
+                    ? "https://api.zaincash.iq/transaction/pay?id="
+                    : "https://test.zaincash.iq/transaction/pay?id=";
+
+                // Build callback URL
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincash/callback";
+
+                // Build JWT payload (matching PHP implementation)
+                var jwtPayload = new Dictionary<string, object>
                 {
-                    amount = amount.ToString("0"),
-                    serviceType = $"wallet_topup_user_{userId}",
-                    msisdn = msisdn,
-                    orderId = transactionId,
-                    merchantId = merchantId,
-                    redirectUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincash/callback",
-                    lang = lang
+                    ["amount"] = (int)amount,
+                    ["serviceType"] = $"wallet_topup_user_{userId}",
+                    ["msisdn"] = msisdn,
+                    ["orderId"] = transactionId,
+                    ["redirectUrl"] = callbackUrl,
+                    ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    ["exp"] = DateTimeOffset.UtcNow.AddHours(4).ToUnixTimeSeconds()
                 };
 
-                var jsonData = JsonSerializer.Serialize(requestData);
-                var token = GenerateJWT(jsonData, secret);
+                var jwtToken = GenerateJWT(JsonSerializer.Serialize(jwtPayload), secret);
 
-                var paymentUrl = $"{zainCashUrl}?token={token}&lang={lang}";
+                // Call ZainCash init API
+                var httpClient = _httpClientFactory.CreateClient("ZainCashPayment");
+                var formContent = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("token", jwtToken),
+                    new KeyValuePair<string, string>("merchantId", merchantId),
+                    new KeyValuePair<string, string>("lang", lang)
+                });
 
-                _logger.LogInformation("ZainCash payment URL generated: TransactionId={TransactionId}", transactionId);
+                _logger.LogInformation("Calling ZainCash init API: {Url}, OrderId={OrderId}", initUrl, transactionId);
+
+                var response = await httpClient.PostAsync(initUrl, formContent);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("ZainCash init response: Status={StatusCode}, Body={Body}", 
+                    response.StatusCode, responseBody);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("ZainCash API error: {StatusCode} - {Body}", response.StatusCode, responseBody);
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = $"ZainCash API error: {response.StatusCode}" 
+                    };
+                }
+
+                // Try to parse the response
+                Dictionary<string, object>? zaincashResponse = null;
+                try
+                {
+                    zaincashResponse = JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, "Failed to parse ZainCash response as JSON: {Body}", responseBody);
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Invalid JSON response from ZainCash" 
+                    };
+                }
+
+                if (zaincashResponse == null)
+                {
+                    _logger.LogError("ZainCash response deserialized to null");
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Invalid response from ZainCash" 
+                    };
+                }
+
+                // Log all response keys for debugging
+                _logger.LogInformation("ZainCash response keys: {Keys}", string.Join(", ", zaincashResponse.Keys));
+
+                // Check for error response
+                if (zaincashResponse.ContainsKey("err"))
+                {
+                    var error = zaincashResponse["err"]?.ToString();
+                    _logger.LogError("ZainCash returned error: {Error}", error);
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = $"ZainCash error: {error}" 
+                    };
+                }
+
+                if (!zaincashResponse.ContainsKey("id"))
+                {
+                    _logger.LogError("ZainCash response missing 'id' field. Response: {Response}", responseBody);
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Invalid response from ZainCash: missing transaction id" 
+                    };
+                }
+
+                var zaincashTransactionId = zaincashResponse["id"].ToString();
+                
+                if (string.IsNullOrEmpty(zaincashTransactionId))
+                {
+                    _logger.LogError("ZainCash returned empty transaction id");
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Invalid response from ZainCash: empty transaction id" 
+                    };
+                }
+
+                var paymentUrl = $"{payUrl}{zaincashTransactionId}";
+
+                // Update payment log with ZainCash transaction ID
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
+
+                if (paymentLog != null)
+                {
+                    paymentLog.GatewayTransactionId = zaincashTransactionId;
+                    paymentLog.ResponseData = responseBody;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("ZainCash payment created: OrderId={OrderId}, TransactionId={TransactionId}, PaymentUrl={PaymentUrl}", 
+                    transactionId, zaincashTransactionId, paymentUrl);
 
                 return new PaymentInitiationResponse
                 {
                     Success = true,
                     PaymentUrl = paymentUrl,
-                    TransactionId = transactionId
+                    TransactionId = transactionId,
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        ["zaincashTransactionId"] = zaincashTransactionId
+                    }
                 };
             }
             catch (ArgumentException argEx)
@@ -305,25 +418,138 @@ namespace Backend.Controllers.Payments
                     ? settings.GetValueOrDefault("terminalIdProd")?.ToString()
                     : settings.GetValueOrDefault("terminalIdTest")?.ToString();
 
+                var currency = isProduction
+                    ? settings.GetValueOrDefault("currencyProd")?.ToString() ?? "IQD"
+                    : settings.GetValueOrDefault("currencyTest")?.ToString() ?? "IQD";
+
                 var apiUrl = isProduction
                     ? settings.GetValueOrDefault("urlProd")?.ToString()
                     : settings.GetValueOrDefault("urlTest")?.ToString();
 
-                // QI Card requires server-to-server integration
-                // Return a checkout page URL that will handle the payment
-                var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/checkout/{transactionId}";
+                _logger.LogInformation("QICard Settings - IsProduction={IsProduction}, Username={Username}, TerminalId={TerminalId}, ApiUrl={ApiUrl}", 
+                    isProduction, 
+                    string.IsNullOrEmpty(username) ? "MISSING" : username, 
+                    string.IsNullOrEmpty(terminalId) ? "MISSING" : terminalId,
+                    string.IsNullOrEmpty(apiUrl) ? "MISSING" : apiUrl);
+
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || 
+                    string.IsNullOrEmpty(terminalId) || string.IsNullOrEmpty(apiUrl))
+                {
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "QICard payment method not properly configured" 
+                    };
+                }
+
+                // Create request ID
+                var requestId = Guid.NewGuid().ToString();
+
+                // Prepare callback URLs
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/callback";
+                var notificationUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/notification";
+
+                // Call QICard API to create payment
+                var httpClient = _httpClientFactory.CreateClient("QICardPayment");
+                
+                var paymentEndpoint = $"{apiUrl.TrimEnd('/')}/payment";
+                var requestBody = new
+                {
+                    requestId = requestId,
+                    amount = (int)amount,  // QICard expects integer
+                    locale = "en_US",
+                    currency = currency,
+                    finishPaymentUrl = callbackUrl,
+                    notificationUrl = notificationUrl
+                };
+
+                var request = new HttpRequestMessage(HttpMethod.Post, paymentEndpoint);
+                request.Headers.Add("X-Terminal-Id", terminalId);
+                
+                // Add Basic Authentication
+                var authBytes = Encoding.UTF8.GetBytes($"{username}:{password}");
+                var authBase64 = Convert.ToBase64String(authBytes);
+                request.Headers.Add("Authorization", $"Basic {authBase64}");
+                
+                request.Content = JsonContent.Create(requestBody);
+
+                _logger.LogInformation("Calling QICard API: {Endpoint}, RequestId={RequestId}, Amount={Amount}, Terminal={Terminal}", 
+                    paymentEndpoint, requestId, amount, terminalId);
+                _logger.LogInformation("QICard Request Body: {Body}", JsonSerializer.Serialize(requestBody));
+
+                var response = await httpClient.SendAsync(request);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("QICard API response: Status={StatusCode}, Body={Body}", 
+                    response.StatusCode, responseBody);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("QICard API error: {StatusCode} - {Body}", response.StatusCode, responseBody);
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = $"QICard API error: {response.StatusCode}" 
+                    };
+                }
+
+                var qiResponse = JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
+                if (qiResponse == null)
+                {
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Invalid response from QICard" 
+                    };
+                }
+
+                var formUrl = qiResponse.GetValueOrDefault("formUrl")?.ToString();
+                var paymentId = qiResponse.GetValueOrDefault("paymentId")?.ToString();
+
+                if (string.IsNullOrEmpty(formUrl) || string.IsNullOrEmpty(paymentId))
+                {
+                    return new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Missing formUrl or paymentId from QICard response" 
+                    };
+                }
+
+                // Update payment log with QICard payment ID
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
+
+                if (paymentLog != null)
+                {
+                    paymentLog.GatewayTransactionId = paymentId;
+                    paymentLog.RequestData = JsonSerializer.Serialize(requestBody);
+                    paymentLog.ResponseData = responseBody;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("QICard payment created: PaymentId={PaymentId}, FormUrl={FormUrl}", 
+                    paymentId, formUrl);
 
                 return new PaymentInitiationResponse
                 {
                     Success = true,
-                    PaymentUrl = checkoutUrl,
-                    TransactionId = transactionId
+                    PaymentUrl = formUrl,
+                    TransactionId = transactionId,
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        ["qiCardPaymentId"] = paymentId,
+                        ["requestId"] = requestId
+                    }
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error initiating QICard payment");
-                return new PaymentInitiationResponse { Success = false, ErrorMessage = ex.Message };
+                _logger.LogError(ex, "Error initiating QICard payment: TransactionId={TransactionId}", transactionId);
+                return new PaymentInitiationResponse 
+                { 
+                    Success = false, 
+                    ErrorMessage = "Failed to initiate QICard payment. Please try again." 
+                };
             }
         }
 
@@ -360,8 +586,13 @@ namespace Backend.Controllers.Payments
                     ? settings.GetValueOrDefault("currencyProd")?.ToString() ?? "IQD"
                     : settings.GetValueOrDefault("currencyTest")?.ToString() ?? "USD";
 
+                _logger.LogInformation("Switch Settings - IsProduction={IsProduction}, EntityId={EntityId}, EntityUrl={EntityUrl}, Currency={Currency}", 
+                    isProduction, entityId, entityUrl, currency);
+
                 if (string.IsNullOrEmpty(entityId) || string.IsNullOrEmpty(entityAuth) || string.IsNullOrEmpty(entityUrl))
                 {
+                    _logger.LogError("Missing Switch configuration - EntityId={EntityId}, EntityAuth={HasAuth}, EntityUrl={EntityUrl}", 
+                        entityId, !string.IsNullOrEmpty(entityAuth), entityUrl);
                     return new PaymentInitiationResponse { Success = false, ErrorMessage = "Missing Switch configuration" };
                 }
 
@@ -381,13 +612,13 @@ namespace Backend.Controllers.Payments
 
                 var content = new FormUrlEncodedContent(formData);
                 
-                _logger.LogInformation("Initiating Switch payment: TransactionId={TransactionId}, Amount={Amount}", 
-                    transactionId, amount);
+                _logger.LogInformation("Calling Switch API: Url={Url}, EntityId={EntityId}, Amount={Amount}, Currency={Currency}", 
+                    entityUrl, entityId, amount, currency);
 
                 var response = await httpClient.PostAsync(entityUrl, content);
                 var responseString = await response.Content.ReadAsStringAsync();
                 
-                _logger.LogDebug("Switch response: {Response}", responseString);
+                _logger.LogInformation("Switch API response: Status={Status}, Body={Body}", response.StatusCode, responseString);
                 var switchResponse = JsonSerializer.Deserialize<SwitchInitResponse>(responseString);
 
                 if (switchResponse?.Id != null)
@@ -693,15 +924,15 @@ namespace Backend.Controllers.Payments
                         return BadRequest("Missing paymentId");
                     }
 
-                    // Find payment log
+                    // Find payment log by GatewayTransactionId (QICard's paymentId)
                     var paymentLog = await _context.PaymentLogs
-                        .FirstOrDefaultAsync(p => p.TransactionId == paymentId && 
+                        .FirstOrDefaultAsync(p => p.GatewayTransactionId == paymentId && 
                                                  p.Status == "pending" && 
                                                  p.Gateway == "QICard");
 
                     if (paymentLog == null)
                     {
-                        _logger.LogWarning("Payment not found or already processed: {PaymentId}", paymentId);
+                        _logger.LogWarning("Payment not found or already processed: PaymentId={PaymentId}", paymentId);
                         return Ok("Payment not found or already processed");
                     }
 
@@ -714,7 +945,8 @@ namespace Backend.Controllers.Payments
                     // Process successful payment
                     await ProcessSuccessfulPayment(paymentLog);
 
-                    _logger.LogInformation("QICard payment processed successfully: {PaymentId}", paymentId);
+                    _logger.LogInformation("QICard payment processed successfully: TransactionId={TransactionId}, PaymentId={PaymentId}", 
+                        paymentLog.TransactionId, paymentId);
                     return Ok("Success");
                 }
                 else

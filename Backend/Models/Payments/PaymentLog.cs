@@ -19,6 +19,9 @@ namespace Backend.Models.Payments
         [MaxLength(100)]
         public string? ReferenceId { get; set; } // Gateway reference ID
 
+        [MaxLength(100)]
+        public string? GatewayTransactionId { get; set; } // Payment ID from gateway (e.g., QICard paymentId)
+
         public int UserId { get; set; }
 
         public decimal Amount { get; set; }

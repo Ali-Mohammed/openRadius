@@ -45,6 +45,7 @@
     "setting": "Setting",
     "appSetting": "App Setting",
     "general": "General",
+    "paymentInformation": "Payment Information",
     "oidc": "OIDC",
     "databaseBackup": "Database Backup",
     "userManagement": "User Management",

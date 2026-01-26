@@ -27,6 +27,7 @@ import {
   UserRound,
   Server,
   Network,
+  CreditCard,
   Package,
   Gift,
   Wallet,
@@ -140,6 +141,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       items: [
         { title: t("navigation.workspace"), url: "/workspace/view", icon: Eye, keywords: ["workspace", "tenant"] },
         { title: t("navigation.general"), url: "/settings/general", icon: DollarSign, keywords: ["general settings", "preferences"] },
+        { title: t("navigation.paymentInformation"), url: "/settings/payment-information", icon: CreditCard, keywords: ["payment", "gateway", "credentials", "zaincash", "qicard", "switch"] },
         { title: t("navigation.oidc"), url: "/settings/oidc", icon: Key, keywords: ["authentication", "sso", "login"] },
         { title: t("navigation.databaseBackup"), url: "/settings/database-backup", icon: HardDrive, keywords: ["backup", "restore", "export"] },
         { title: t("navigation.integrations"), url: "/integrations", icon: Radio, keywords: ["third party", "api"] },

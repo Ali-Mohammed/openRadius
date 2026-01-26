@@ -269,6 +269,11 @@ const getNavData = (workspaceId: number) => ({
           icon: DollarSign,
         },
         {
+          titleKey: "navigation.paymentInformation",
+          url: "/settings/payment-information",
+          icon: CreditCard,
+        },
+        {
           titleKey: "navigation.oidc",
           url: "/settings/oidc",
           icon: Key,
