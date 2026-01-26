@@ -464,26 +464,6 @@ export default function PaymentInformation() {
           )}
         </CardContent>
       </Card>
-                          ? method.settings?.merchantIdProd 
-                          : method.settings?.merchantIdTest}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {!paymentMethods || paymentMethods.length === 0 && (
-          <Card>
-            <CardContent className="py-10 text-center">
-              <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No payment methods configured</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
     </div>
   )
 }
