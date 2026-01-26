@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, XCircle, Clock, AlertCircle, RefreshCw, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, CreditCard, Settings, RotateCcw } from 'lucide-react'
 import { paymentApi, type PaymentLog } from '@/api/paymentApi'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -79,6 +80,61 @@ export default function PaymentInformation() {
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('payment-history')
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'desc')
+          }
+        }
+      } catch (error) {
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  // Auto-save preferences when they change
+  useEffect(() => {
+    if (!preferencesLoaded) return
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'payment-history',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+        console.log('Table preferences saved successfully')
+      } catch (error) {
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, preferencesLoaded])
   
   const { data: paymentHistory, isLoading: isLoadingHistory, isFetching, refetch } = useQuery({
     queryKey: ['payment-history', statusFilter, searchQuery, currentPage, pageSize, sortField, sortDirection],
