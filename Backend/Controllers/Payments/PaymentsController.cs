@@ -95,6 +95,10 @@ namespace Backend.Controllers.Payments
                 // Generate transaction ID
                 var transactionId = Guid.NewGuid().ToString();
 
+                // Parse settings to check environment
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                var isProduction = settings?.ContainsKey("isProduction") == true && settings["isProduction"].ToString()?.ToLower() == "true";
+
                 // Create payment log
                 var paymentLog = new PaymentLog
                 {
@@ -105,6 +109,7 @@ namespace Backend.Controllers.Payments
                     Currency = "IQD",
                     Status = "pending",
                     ServiceType = dto.ServiceType,
+                    Environment = isProduction ? "Production" : "Test",
                     RequestData = JsonSerializer.Serialize(dto),
                     CreatedAt = DateTime.UtcNow
                 };
@@ -1288,6 +1293,7 @@ namespace Backend.Controllers.Payments
             var totalCount = await query.CountAsync();
 
             var paymentLogs = await query
+                .Include(p => p.User)
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -1302,8 +1308,11 @@ namespace Backend.Controllers.Payments
                     p.ReferenceId,
                     p.GatewayTransactionId,
                     p.ErrorMessage,
+                    p.Environment,
                     p.CreatedAt,
-                    p.UpdatedAt
+                    p.UpdatedAt,
+                    UserName = p.User != null ? p.User.Username : null,
+                    UserEmail = p.User != null ? p.User.Email : null
                 })
                 .ToListAsync();
 

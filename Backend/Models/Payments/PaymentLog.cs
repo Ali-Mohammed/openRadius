@@ -48,6 +48,9 @@ namespace Backend.Models.Payments
         [MaxLength(100)]
         public string? ServiceType { get; set; } // wallet_topup, subscription, etc.
 
+        [MaxLength(20)]
+        public string? Environment { get; set; } // Production, Test
+
         public int? WalletTransactionId { get; set; } // Link to wallet transaction
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

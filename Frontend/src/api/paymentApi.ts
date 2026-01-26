@@ -42,8 +42,11 @@ export interface PaymentLog {
   referenceId?: string;
   gatewayTransactionId?: string;
   errorMessage?: string;
+  environment?: string;
   createdAt: string;
   updatedAt?: string;
+  userName?: string;
+  userEmail?: string;
 }
 
 export const paymentApi = {

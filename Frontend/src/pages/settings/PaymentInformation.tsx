@@ -31,9 +31,11 @@ export default function PaymentInformation() {
   // Default column settings
   const DEFAULT_COLUMN_VISIBILITY = {
     transactionId: true,
+    user: true,
     gateway: true,
     amount: true,
     status: true,
+    environment: true,
     gatewayReference: true,
     date: true,
     errorMessage: true,
@@ -41,9 +43,11 @@ export default function PaymentInformation() {
 
   const DEFAULT_COLUMN_WIDTHS = {
     transactionId: 200,
+    user: 180,
     gateway: 140,
     amount: 150,
     status: 140,
+    environment: 120,
     gatewayReference: 200,
     date: 180,
     errorMessage: 250,
@@ -51,9 +55,11 @@ export default function PaymentInformation() {
 
   const DEFAULT_COLUMN_ORDER = [
     'transactionId',
+    'user',
     'gateway',
     'amount',
     'status',
+    'environment',
     'gatewayReference',
     'date',
     'errorMessage',
@@ -254,9 +260,11 @@ export default function PaymentInformation() {
 
     const columnConfig: Record<string, { label: string; sortKey?: string; sortable?: boolean }> = {
       transactionId: { label: 'Transaction ID', sortKey: 'transactionId', sortable: true },
+      user: { label: 'User', sortKey: 'userName', sortable: true },
       gateway: { label: 'Gateway', sortKey: 'gateway', sortable: true },
       amount: { label: 'Amount', sortKey: 'amount', sortable: true },
       status: { label: 'Status', sortKey: 'status', sortable: true },
+      environment: { label: 'Environment', sortKey: 'environment', sortable: true },
       gatewayReference: { label: 'Gateway Reference', sortKey: 'gatewayTransactionId', sortable: false },
       date: { label: 'Date', sortKey: 'createdAt', sortable: true },
       errorMessage: { label: 'Error Message', sortKey: 'errorMessage', sortable: false },
@@ -316,6 +324,12 @@ export default function PaymentInformation() {
             {log.transactionId.substring(0, 16)}...
           </TableCell>
         )
+      case 'user':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            {log.userName || log.userEmail || '-'}
+          </TableCell>
+        )
       case 'gateway':
         return (
           <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
@@ -332,6 +346,14 @@ export default function PaymentInformation() {
         return (
           <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
             {getStatusBadge(log.status)}
+          </TableCell>
+        )
+      case 'environment':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Badge variant={log.environment === 'Production' ? 'destructive' : 'secondary'}>
+              {log.environment || 'Unknown'}
+            </Badge>
           </TableCell>
         )
       case 'gatewayReference':
@@ -415,6 +437,13 @@ export default function PaymentInformation() {
                 Transaction ID
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
+                checked={columnVisibility.user}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, user: checked }))}
+                onSelect={(e) => e.preventDefault()}
+              >
+                User
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
                 checked={columnVisibility.gateway}
                 onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, gateway: checked }))}
                 onSelect={(e) => e.preventDefault()}
@@ -434,6 +463,13 @@ export default function PaymentInformation() {
                 onSelect={(e) => e.preventDefault()}
               >
                 Status
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.environment}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, environment: checked }))}
+                onSelect={(e) => e.preventDefault()}
+              >
+                Environment
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={columnVisibility.gatewayReference}
