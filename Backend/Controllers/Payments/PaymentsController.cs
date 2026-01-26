@@ -643,9 +643,10 @@ namespace Backend.Controllers.Payments
                         await _context.SaveChangesAsync();
                     }
 
-                    // Get current tenant ID from HttpContext
-                    var tenantId = HttpContext.Items["TenantId"]?.ToString() ?? "1";
-                    var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/checkout/{transactionId}?checkoutId={switchResponse.Id}&tenantId={tenantId}";
+                    // Get current workspace ID from context
+                    var workspaceId = HttpContext.Items["WorkspaceId"]?.ToString() ?? "1";
+                    _logger.LogInformation("Creating Switch checkout URL with WorkspaceId={WorkspaceId}", workspaceId);
+                    var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/checkout/{transactionId}?checkoutId={switchResponse.Id}&workspaceId={workspaceId}";
 
                     return new PaymentInitiationResponse
                     {
@@ -668,28 +669,50 @@ namespace Backend.Controllers.Payments
         // GET: api/payments/switch/checkout/{transactionId}
         [AllowAnonymous]
         [HttpGet("switch/checkout/{transactionId}")]
-        public async Task<IActionResult> SwitchCheckout(string transactionId, [FromQuery] string checkoutId, [FromQuery] string tenantId)
+        public async Task<IActionResult> SwitchCheckout(string transactionId, [FromQuery] string checkoutId, [FromQuery] string? workspaceId)
         {
             try
             {
-                // Set tenant context for this anonymous request
-                if (!string.IsNullOrEmpty(tenantId))
+                // Default to workspace 1 if not provided
+                workspaceId = workspaceId ?? "1";
+                
+                _logger.LogInformation("Switch checkout page requested: TransactionId={TransactionId}, CheckoutId={CheckoutId}, WorkspaceId={WorkspaceId}", 
+                    transactionId, checkoutId, workspaceId);
+
+                // Create ApplicationDbContext for the specific workspace (anonymous endpoint needs manual setup)
+                var baseConnectionString = _configuration.GetConnectionString("DefaultConnection");
+                _logger.LogInformation("Base connection string: {BaseConnectionString}", baseConnectionString);
+                
+                // Replace master database name with workspace database name
+                var connectionString = baseConnectionString?.Replace("Database=openradius;", $"Database=openradius_workspace_{workspaceId};");
+                
+                _logger.LogInformation("Workspace connection string: {ConnectionString}", connectionString);
+                
+                if (string.IsNullOrEmpty(connectionString))
                 {
-                    HttpContext.Items["TenantId"] = tenantId;
+                    _logger.LogError("Failed to build connection string for workspace {WorkspaceId}", workspaceId);
+                    return StatusCode(500, "Database configuration error");
                 }
+                
+                var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+                optionsBuilder.UseNpgsql(connectionString);
+                
+                // Create context without multi-tenant accessor (anonymous endpoint)
+                using var workspaceContext = new ApplicationDbContext(optionsBuilder.Options, null);
 
                 // Find payment log in workspace database
-                var paymentLog = await _context.PaymentLogs
+                _logger.LogInformation("Searching for payment in workspace database...");
+                var paymentLog = await workspaceContext.PaymentLogs
                     .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
 
                 if (paymentLog == null)
                 {
-                    _logger.LogWarning("Payment not found for transactionId: {TransactionId}, TenantId: {TenantId}", transactionId, tenantId);
+                    _logger.LogWarning("Payment not found for transactionId: {TransactionId}, WorkspaceId: {WorkspaceId}", transactionId, workspaceId);
                     return NotFound($"Payment not found for transaction {transactionId}");
                 }
 
                 // Get payment method to determine environment
-                var paymentMethod = await _context.PaymentMethods
+                var paymentMethod = await workspaceContext.PaymentMethods
                     .FirstOrDefaultAsync(pm => pm.Type == "Switch" && pm.IsActive);
 
                 if (paymentMethod == null)
