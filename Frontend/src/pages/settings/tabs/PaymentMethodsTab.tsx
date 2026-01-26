@@ -12,10 +12,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge'
 import { paymentMethodApi, type PaymentMethod, type PaymentMethodSettings, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { PaymentTestDialog } from '@/components/payments/PaymentTestDialog'
 
 export default function PaymentMethodsTab() {
   const queryClient = useQueryClient()
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showPaymentTestDialog, setShowPaymentTestDialog] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
   const [paymentType, setPaymentType] = useState<'ZainCash' | 'QICard' | 'Switch'>('ZainCash')
   const [paymentSettings, setPaymentSettings] = useState<PaymentMethodSettings>({})
@@ -111,7 +113,7 @@ export default function PaymentMethodsTab() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => alert('Test button clicked!')}>
+              <Button variant="outline" onClick={() => setShowPaymentTestDialog(true)}>
                 <TestTube className="h-4 w-4 mr-2" />
                 Payment Test
               </Button>
@@ -252,7 +254,8 @@ export default function PaymentMethodsTab() {
                           msisdnTest: '9647835077893',
                           merchantTest: '5ffacf6612b5777c6d44266f',
                           secretTest: 'test_secret_key',
-                          langTest: 'ar'
+                          langTest: 'ar',
+                          urlTest: 'https://test.zaincash.iq/transaction/pay'
                         })
                       } else {
                         setPaymentSettings({ ...paymentSettings, isProduction })
@@ -314,12 +317,24 @@ export default function PaymentMethodsTab() {
                           [paymentSettings.isProduction ? 'langProd' : 'langTest']: value 
                         })}
                       >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="border"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ar">Arabic (ar)</SelectItem>
                           <SelectItem value="en">English (en)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API URL</Label>
+                      <Input
+                        value={paymentSettings.isProduction ? (paymentSettings.urlProd || '') : (paymentSettings.urlTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'urlProd' : 'urlTest']: e.target.value 
+                        })}
+                        placeholder={paymentSettings.isProduction ? "https://api.zaincash.iq/transaction/pay" : "https://test.zaincash.iq/transaction/pay"}
+                      />
+                      <p className="text-xs text-muted-foreground">ZainCash payment API endpoint URL</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Token</Label>
@@ -453,6 +468,19 @@ export default function PaymentMethodsTab() {
                         })}
                         placeholder={paymentSettings.isProduction ? "https://3ds-api.qi.iq/api/v1" : "https://uat-sandbox-3ds-api.qi.iq/api/v1"}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Public Key (RSA PEM)</Label>
+                      <textarea
+                        className="w-full min-h-[120px] p-2 border rounded-md font-mono text-xs"
+                        value={paymentSettings.isProduction ? (paymentSettings.publicKeyProd || '') : (paymentSettings.publicKeyTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'publicKeyProd' : 'publicKeyTest']: e.target.value 
+                        })}
+                        placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...&#10;-----END PUBLIC KEY-----"
+                      />
+                      <p className="text-xs text-muted-foreground">RSA public key in PEM format for signature verification</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Frontend Callback URL</Label>
@@ -623,6 +651,12 @@ export default function PaymentMethodsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Test Dialog */}
+      <PaymentTestDialog
+        open={showPaymentTestDialog}
+        onOpenChange={setShowPaymentTestDialog}
+      />
     </>
   )
 }

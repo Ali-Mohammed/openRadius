@@ -71,6 +71,8 @@ import Settings from './pages/Settings'
 import GroupsPage from './pages/GroupsPage'
 import WorkflowDesigner from './pages/WorkflowDesigner'
 import FreeRadiusLogsViewer from './pages/FreeRadiusLogsViewer'
+// Payment
+import PaymentResultPage from './pages/payments/PaymentResultPage'
 
 // Redirect component that uses dynamic workspace ID
 const WorkspaceSettingsRedirect = () => {
@@ -89,6 +91,10 @@ function App() {
             <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              {/* Payment callback routes - must be accessible without authentication */}
+              <Route path="/payment/success" element={<PaymentResultPage />} />
+              <Route path="/payment/failed" element={<PaymentResultPage />} />
+              <Route path="/payment/cancelled" element={<PaymentResultPage />} />
               <Route
                 path="/*"
                 element={
