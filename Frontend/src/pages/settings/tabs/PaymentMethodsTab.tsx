@@ -560,7 +560,7 @@ export default function PaymentMethodsTab() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Entity Auth</Label>
+                      <Label>Entity Auth (Bearer Token)</Label>
                       <Input
                         type="password"
                         value={paymentSettings.isProduction ? (paymentSettings.entityAuthProd || '') : (paymentSettings.entityAuthTest || '')}
@@ -568,7 +568,7 @@ export default function PaymentMethodsTab() {
                           ...paymentSettings, 
                           [paymentSettings.isProduction ? 'entityAuthProd' : 'entityAuthTest']: e.target.value 
                         })}
-                        placeholder={paymentSettings.isProduction ? "Production Auth Token" : "Test Auth Token"}
+                        placeholder={paymentSettings.isProduction ? "Production Bearer Token" : "Test Bearer Token"}
                       />
                     </div>
                     <div className="space-y-2">

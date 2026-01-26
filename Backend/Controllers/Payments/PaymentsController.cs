@@ -604,16 +604,22 @@ namespace Backend.Controllers.Payments
                     return new PaymentInitiationResponse { Success = false, ErrorMessage = "Missing Switch configuration" };
                 }
 
-                // Call Switch API to create checkout
+                // Call Switch API to create checkout (matches legacy PHP implementation)
                 var httpClient = _httpClientFactory.CreateClient("PaymentGateway");
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
+                
+                // Use Bearer token authentication (like legacy: Authorization:Bearer token)
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", entityAuth);
 
+                // Build form data (like legacy: entityId + amount + currency + paymentType + integrity)
                 var formData = new Dictionary<string, string>
                 {
-                    { "authentication.entityId", entityAuth },
+                    { "entityId", entityId },
                     { "amount", amount.ToString("F2") },
                     { "currency", currency },
-                    { "paymentType", "DB" }
+                    { "paymentType", "DB" },
+                    { "integrity", "true" }
                 };
 
                 var content = new FormUrlEncodedContent(formData);
@@ -780,7 +786,7 @@ namespace Backend.Controllers.Payments
                     ? settings?.GetValueOrDefault("entityUrlProd")?.ToString()
                     : settings?.GetValueOrDefault("entityUrlTest")?.ToString();
 
-                // Query payment status
+                // Query payment status (like legacy PHP)
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {entityAuth}");
 
