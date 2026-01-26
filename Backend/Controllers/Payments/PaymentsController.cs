@@ -1259,6 +1259,61 @@ namespace Backend.Controllers.Payments
             return Encoding.UTF8.GetString(Convert.FromBase64String(payload));
         }
 
+        /// <summary>
+        /// Get payment history for current user
+        /// </summary>
+        [HttpGet("history")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<PaymentLog>>> GetPaymentHistory(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? status = null)
+        {
+            var userIdClaim = User.FindFirst("systemUserId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { error = "Invalid user" });
+            }
+
+            var query = _context.PaymentLogs
+                .Where(p => p.UserId == userId)
+                .AsQueryable();
+
+            // Filter by status if provided
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(p => p.Status.ToLower() == status.ToLower());
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var paymentLogs = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.TransactionId,
+                    p.Gateway,
+                    p.Amount,
+                    p.Currency,
+                    p.Status,
+                    p.ReferenceId,
+                    p.GatewayTransactionId,
+                    p.ErrorMessage,
+                    p.CreatedAt,
+                    p.UpdatedAt
+                })
+                .ToListAsync();
+
+            Response.Headers.Append("X-Total-Count", totalCount.ToString());
+            Response.Headers.Append("X-Page-Number", pageNumber.ToString());
+            Response.Headers.Append("X-Page-Size", pageSize.ToString());
+
+            return Ok(paymentLogs);
+        }
+
         private string ComputeHMACSHA256(string data, string secret)
         {
             var keyBytes = Encoding.UTF8.GetBytes(secret);

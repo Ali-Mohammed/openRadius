@@ -2,10 +2,20 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CreditCard, DollarSign, Key, Server, Settings, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react'
+import { CreditCard, DollarSign, Key, Server, Settings, CheckCircle2, XCircle, Eye, EyeOff, History, Clock, AlertCircle } from 'lucide-react'
 import { paymentMethodApi, type PaymentMethod } from '@/api/paymentMethodApi'
+import { paymentApi, type PaymentLog } from '@/api/paymentApi'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { format } from 'date-fns'
 
 export default function PaymentInformation() {
   const [showSecrets, setShowSecrets] = useState(false)
@@ -15,10 +25,30 @@ export default function PaymentInformation() {
     queryFn: paymentMethodApi.getAll,
   })
 
+  const { data: paymentHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['payment-history'],
+    queryFn: () => paymentApi.getPaymentHistory({ pageSize: 100 }),
+  })
+
   const maskSecret = (secret: string) => {
     if (!secret) return 'Not Set'
     if (showSecrets) return secret
     return '•'.repeat(Math.min(secret.length, 20))
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'success':
+        return <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" />Completed</Badge>
+      case 'pending':
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pending</Badge>
+      case 'failed':
+      case 'error':
+        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Failed</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
   }
 
   if (isLoading) {
@@ -352,6 +382,88 @@ export default function PaymentInformation() {
                       <p className="text-muted-foreground">Active Merchant ID:</p>
                       <p className="font-mono">
                         {method.settings?.isProduction 
+                          ? method.settings?.merchantIdProd 
+                          : method.settings?.merchantIdTest}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {!paymentMethods || paymentMethods.length === 0 && (
+          <Card>
+            <CardContent className="py-10 text-center">
+              <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">No payment methods configured</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Payment History Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <History className="h-6 w-6 text-primary" />
+            <div>
+              <CardTitle>Payment History</CardTitle>
+              <CardDescription>View all payment transactions</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoadingHistory ? (
+            <div className="text-center py-8 text-muted-foreground">Loading payment history...</div>
+          ) : !paymentHistory || paymentHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">No payment history found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Gateway</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Gateway Ref</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Error</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentHistory.map((log: PaymentLog) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-xs">{log.transactionId.substring(0, 8)}...</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{log.gateway}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {log.amount.toLocaleString()} {log.currency}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(log.status)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {log.gatewayTransactionId || log.referenceId || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm')}
+                      </TableCell>
+                      <TableCell className="text-xs text-destructive max-w-[200px] truncate">
+                        {log.errorMessage || '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
                           ? method.settings?.merchantIdProd 
                           : method.settings?.merchantIdTest}
                       </p>
