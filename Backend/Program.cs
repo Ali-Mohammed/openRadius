@@ -11,11 +11,49 @@ using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.Extensions;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
 using OfficeOpenXml;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 // Configure EPPlus license for version 8.x - Noncommercial use
 ExcelPackage.License.SetNonCommercialPersonal("OpenRadius Development");
 
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Backend.Controllers.Payments", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithMachineName()
+    .Enrich.WithProperty("Application", "OpenRadius")
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        new CompactJsonFormatter(),
+        "Logs/openradius-.json",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        fileSizeLimitBytes: 100_000_000)
+    .WriteTo.File(
+        "Logs/openradius-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}")
+    .WriteTo.Seq("http://localhost:5341") // Seq UI
+    .CreateLogger();
+
+try
+{
+    Log.Information("🚀 Starting OpenRadius Payment System");
+    Log.Information("Environment: {Environment}", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production");
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Use Serilog for logging
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
@@ -295,5 +333,34 @@ app.MapHub<LogsHub>("/hubs/logs");
 app.MapHub<TagSyncHub>("/hubs/tagsync");
 app.MapHub<MicroservicesHub>("/hubs/microservices").AllowAnonymous();
 
+// Add Serilog request logging
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
+        diagnosticContext.Set("RemoteIP", httpContext.Connection.RemoteIpAddress?.ToString());
+    };
+});
+
+Log.Information("✅ OpenRadius Payment System started successfully");
+Log.Information("📊 Seq Log UI available at: http://localhost:5341");
+Log.Information("📁 Log files location: Logs/");
+
 app.Run();
+
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "💥 Application terminated unexpectedly");
+    throw;
+}
+finally
+{
+    Log.Information("🛑 Shutting down OpenRadius Payment System");
+    Log.CloseAndFlush();
+}
 
