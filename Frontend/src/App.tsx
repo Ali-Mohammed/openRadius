@@ -124,7 +124,7 @@ function App() {
                           <Route path="/network/fdts" element={<Fdts />} />
                           <Route path="/network/fats" element={<Fats />} />
                           <Route path="/settings/general" element={<GeneralSettings />} />
-                          <Route path="/settings/payment-information" element={<PaymentInformation />} />
+                          <Route path="/settings/payment-history" element={<PaymentInformation />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
                           <Route path="/settings/database-backup" element={<DatabaseBackup />} />

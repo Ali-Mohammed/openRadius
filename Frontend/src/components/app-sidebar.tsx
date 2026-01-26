@@ -270,7 +270,7 @@ const getNavData = (workspaceId: number) => ({
         },
         {
           titleKey: "navigation.paymentInformation",
-          url: "/settings/payment-information",
+          url: "/settings/payment-history",
           icon: CreditCard,
         },
         {
