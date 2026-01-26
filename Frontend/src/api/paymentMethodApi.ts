@@ -59,28 +59,28 @@ export interface UpdatePaymentMethodDto {
 }
 
 class PaymentMethodApi {
-  async getAll(workspaceId: number): Promise<PaymentMethod[]> {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/payment-methods`)
+  async getAll(): Promise<PaymentMethod[]> {
+    const response = await apiClient.get(`/api/payment-methods`)
     return response.data
   }
 
-  async getById(workspaceId: number, id: number): Promise<PaymentMethod> {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/payment-methods/${id}`)
+  async getById(id: number): Promise<PaymentMethod> {
+    const response = await apiClient.get(`/api/payment-methods/${id}`)
     return response.data
   }
 
-  async create(workspaceId: number, dto: CreatePaymentMethodDto): Promise<PaymentMethod> {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/payment-methods`, dto)
+  async create(dto: CreatePaymentMethodDto): Promise<PaymentMethod> {
+    const response = await apiClient.post(`/api/payment-methods`, dto)
     return response.data
   }
 
-  async update(workspaceId: number, id: number, dto: UpdatePaymentMethodDto): Promise<PaymentMethod> {
-    const response = await apiClient.put(`/api/workspaces/${workspaceId}/payment-methods/${id}`, dto)
+  async update(id: number, dto: UpdatePaymentMethodDto): Promise<PaymentMethod> {
+    const response = await apiClient.put(`/api/payment-methods/${id}`, dto)
     return response.data
   }
 
-  async delete(workspaceId: number, id: number): Promise<void> {
-    await apiClient.delete(`/api/workspaces/${workspaceId}/payment-methods/${id}`)
+  async delete(id: number): Promise<void> {
+    await apiClient.delete(`/api/payment-methods/${id}`)
   }
 }
 
