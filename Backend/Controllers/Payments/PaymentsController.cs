@@ -1303,39 +1303,47 @@ namespace Backend.Controllers.Payments
             var totalCount = await query.CountAsync();
 
             var paymentLogs = await query
-                .GroupJoin(
-                    _masterContext.Users,
-                    p => p.UserId,
-                    u => u.Id,
-                    (p, users) => new { Payment = p, User = users.FirstOrDefault() }
-                )
-                .OrderByDescending(x => x.Payment.CreatedAt)
+                .OrderByDescending(p => p.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new
-                {
-                    x.Payment.Id,
-                    x.Payment.TransactionId,
-                    x.Payment.Gateway,
-                    x.Payment.Amount,
-                    x.Payment.Currency,
-                    x.Payment.Status,
-                    x.Payment.ReferenceId,
-                    x.Payment.GatewayTransactionId,
-                    x.Payment.ErrorMessage,
-                    x.Payment.Environment,
-                    x.Payment.CreatedAt,
-                    x.Payment.UpdatedAt,
-                    UserName = x.User != null ? x.User.Username : null,
-                    UserEmail = x.User != null ? x.User.Email : null
-                })
                 .ToListAsync();
+
+            // Get unique user IDs from payment logs
+            var userIds = paymentLogs.Select(p => p.UserId).Distinct().ToList();
+
+            // Fetch users from master database
+            var users = await _masterContext.Users
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Username, u.Email })
+                .ToListAsync();
+
+            // Create a dictionary for fast lookup
+            var userDict = users.ToDictionary(u => u.Id);
+
+            // Join in memory and project to result
+            var result = paymentLogs.Select(p => new
+            {
+                p.Id,
+                p.TransactionId,
+                p.Gateway,
+                p.Amount,
+                p.Currency,
+                p.Status,
+                p.ReferenceId,
+                p.GatewayTransactionId,
+                p.ErrorMessage,
+                p.Environment,
+                p.CreatedAt,
+                p.UpdatedAt,
+                UserName = userDict.TryGetValue(p.UserId, out var user) ? user.Username : null,
+                UserEmail = userDict.TryGetValue(p.UserId, out var userEmail) ? userEmail.Email : null
+            }).ToList();
 
             Response.Headers.Append("X-Total-Count", totalCount.ToString());
             Response.Headers.Append("X-Page-Number", pageNumber.ToString());
             Response.Headers.Append("X-Page-Size", pageSize.ToString());
 
-            return Ok(paymentLogs);
+            return Ok(result);
         }
 
         private string ComputeHMACSHA256(string data, string secret)
