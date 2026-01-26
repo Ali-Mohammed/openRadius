@@ -10,6 +10,9 @@ All enterprise-grade features for the payment system are now **ACTIVE** and read
 ✅ Microsoft.Extensions.Http.Polly v10.0.2
 ✅ Polly.Extensions.Http v3.0.0
 ✅ AspNetCoreRateLimit (already installed)
+✅ Serilog.AspNetCore v10.0.0
+✅ Serilog.Sinks.Seq v9.0.0
+✅ Serilog.Enrichers.Environment v3.0.1
 ```
 
 ## 🚀 Active Features
@@ -90,8 +93,38 @@ All enterprise-grade features for the payment system are now **ACTIVE** and read
 4. Authentication
 5. Multi-Tenant
 6. Authorization
-7. Controllers
+7. ⭐ Serilog Request Logging ← NEW
+8. Controllers
 ```
+
+### 5. **Serilog Structured Logging** 📊
+**Location**: `Program.cs`, `appsettings.json`
+
+**Active Features:**
+- ✅ **Console Logging**: Colored, formatted output
+- ✅ **File Logging**: JSON + Text formats
+  - Daily rotation
+  - 30-day retention
+  - 100MB size limit
+- ✅ **Seq UI**: Real-time log viewer at http://localhost:5341
+- ✅ **Request Logging**: Automatic HTTP request/response logging
+- ✅ **Log Enrichment**: Machine name, environment, application name
+- ✅ **Structured Properties**: Gateway, TransactionId, Amount, UserId
+
+**Log Outputs:**
+```
+Backend/Logs/
+├── openradius-20260126.log   # Human-readable
+├── openradius-20260126.json  # Structured
+└── ...
+```
+
+**Seq UI Dashboard:**
+- 🔍 Powerful search and filtering
+- 📈 Real-time charts and dashboards
+- 🔔 Signals and alerts
+- 📊 Property-based queries
+- 🎯 Full-text search
 
 ## 🧪 Testing the Features
 
