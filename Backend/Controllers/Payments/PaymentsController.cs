@@ -9,34 +9,74 @@ using System.Security.Cryptography;
 using System.Text;
 using Backend.Helpers;
 using Backend.Models;
+using System.Diagnostics;
+// using Microsoft.AspNetCore.RateLimiting; // Uncomment when rate limiting is enabled
+using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Controllers.Payments
 {
+    /// <summary>
+    /// Payment gateway controller for processing ZainCash, QICard, and Switch payments
+    /// </summary>
     [Authorize]
     [ApiController]
     [Route("api/payments")]
+    // [EnableRateLimiting("fixed")] // Uncomment when rate limiting is configured
+    [Produces("application/json")]
     public class PaymentsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PaymentsController> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private static readonly ActivitySource ActivitySource = new("OpenRadius.Payments");
 
         public PaymentsController(
             ApplicationDbContext context,
             ILogger<PaymentsController> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHttpClientFactory httpClientFactory)
         {
-            _context = context;
-            _logger = logger;
-            _configuration = configuration;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         }
 
-        // POST: api/payments/initiate
+        /// <summary>
+        /// Initiates a payment transaction with the selected gateway
+        /// </summary>
+        /// <param name="dto">Payment initiation details including gateway, amount, and currency</param>
+        /// <returns>Payment URL and transaction ID for tracking</returns>
+        /// <response code="200">Payment initiated successfully</response>
+        /// <response code="400">Invalid request or missing configuration</response>
+        /// <response code="429">Rate limit exceeded</response>
+        /// <response code="500">Internal server error</response>
         [HttpPost("initiate")]
+        [ProducesResponseType(typeof(PaymentInitiationResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<PaymentInitiationResponse>> InitiatePayment([FromBody] InitiatePaymentDto dto)
         {
+            using var activity = ActivitySource.StartActivity("InitiatePayment");
+            activity?.SetTag("payment.gateway", dto.Gateway);
+            activity?.SetTag("payment.amount", dto.Amount);
+
             try
             {
+                // Enhanced validation
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid payment initiation request: {Errors}", 
+                        string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+                    return BadRequest(new PaymentInitiationResponse 
+                    { 
+                        Success = false, 
+                        ErrorMessage = "Invalid request data" 
+                    });
+                }
+
                 var userId = User.GetSystemUserId();
                 if (userId == null)
                 {
@@ -97,15 +137,53 @@ namespace Backend.Controllers.Payments
 
                 await _context.SaveChangesAsync();
 
+                if (response.Success)
+                {
+                    _logger.LogInformation("Payment initiated successfully: Gateway={Gateway}, TransactionId={TransactionId}, Amount={Amount}, UserId={UserId}",
+                        dto.Gateway, transactionId, dto.Amount, userId);
+                    activity?.SetTag("payment.status", "success");
+                    activity?.SetTag("payment.transaction_id", transactionId);
+                }
+                else
+                {
+                    _logger.LogWarning("Payment initiation failed: Gateway={Gateway}, Error={Error}", 
+                        dto.Gateway, response.ErrorMessage);
+                    activity?.SetTag("payment.status", "failed");
+                    activity?.SetTag("error.message", response.ErrorMessage);
+                }
+
                 return Ok(response);
             }
-            catch (Exception ex)
+            catch (DbUpdateException dbEx)
             {
-                _logger.LogError(ex, "Error initiating payment");
+                _logger.LogError(dbEx, "Database error during payment initiation: UserId={UserId}, Gateway={Gateway}", 
+                    User.GetSystemUserId(), dto.Gateway);
+                activity?.SetTag("error", true);
                 return StatusCode(500, new PaymentInitiationResponse
                 {
                     Success = false,
-                    ErrorMessage = "An error occurred while initiating payment"
+                    ErrorMessage = "Database error occurred. Please try again."
+                });
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "Payment gateway communication error: Gateway={Gateway}", dto.Gateway);
+                activity?.SetTag("error", true);
+                return StatusCode(503, new PaymentInitiationResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Payment gateway is currently unavailable. Please try again later."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error initiating payment: UserId={UserId}, Gateway={Gateway}", 
+                    User.GetSystemUserId(), dto.Gateway);
+                activity?.SetTag("error", true);
+                return StatusCode(500, new PaymentInitiationResponse
+                {
+                    Success = false,
+                    ErrorMessage = "An unexpected error occurred. Please contact support if the issue persists."
                 });
             }
         }
@@ -169,6 +247,8 @@ namespace Backend.Controllers.Payments
 
                 var paymentUrl = $"{zainCashUrl}?token={token}&lang={lang}";
 
+                _logger.LogInformation("ZainCash payment URL generated: TransactionId={TransactionId}", transactionId);
+
                 return new PaymentInitiationResponse
                 {
                     Success = true,
@@ -176,10 +256,23 @@ namespace Backend.Controllers.Payments
                     TransactionId = transactionId
                 };
             }
+            catch (ArgumentException argEx)
+            {
+                _logger.LogError(argEx, "Invalid ZainCash configuration: {Message}", argEx.Message);
+                return new PaymentInitiationResponse 
+                { 
+                    Success = false, 
+                    ErrorMessage = "Invalid payment configuration. Please contact support." 
+                };
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error initiating ZainCash payment");
-                return new PaymentInitiationResponse { Success = false, ErrorMessage = ex.Message };
+                _logger.LogError(ex, "Error initiating ZainCash payment: TransactionId={TransactionId}", transactionId);
+                return new PaymentInitiationResponse 
+                { 
+                    Success = false, 
+                    ErrorMessage = "Failed to initiate payment. Please try again." 
+                };
             }
         }
 
@@ -273,7 +366,8 @@ namespace Backend.Controllers.Payments
                 }
 
                 // Call Switch API to create checkout
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("PaymentGateway");
+                httpClient.Timeout = TimeSpan.FromSeconds(30);
                 httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {entityAuth}");
 
                 var formData = new Dictionary<string, string>
@@ -286,8 +380,14 @@ namespace Backend.Controllers.Payments
                 };
 
                 var content = new FormUrlEncodedContent(formData);
+                
+                _logger.LogInformation("Initiating Switch payment: TransactionId={TransactionId}, Amount={Amount}", 
+                    transactionId, amount);
+
                 var response = await httpClient.PostAsync(entityUrl, content);
                 var responseString = await response.Content.ReadAsStringAsync();
+                
+                _logger.LogDebug("Switch response: {Response}", responseString);
                 var switchResponse = JsonSerializer.Deserialize<SwitchInitResponse>(responseString);
 
                 if (switchResponse?.Id != null)

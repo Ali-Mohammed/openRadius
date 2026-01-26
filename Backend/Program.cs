@@ -23,6 +23,14 @@ builder.Services.AddHttpClient(); // Add HTTP client for Keycloak API calls
 builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
 builder.Services.AddControllers();
 
+// Configure Payment HTTP Clients with Resilience
+// Note: This requires Microsoft.Extensions.Http.Polly package
+// builder.Configuration.AddPaymentHttpClients();
+
+// Configure Payment Rate Limiting
+// Note: Uncomment when ready to enable rate limiting
+// builder.Services.AddPaymentRateLimiting();
+
 // Configure file upload limits
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
@@ -131,6 +139,9 @@ builder.Services.AddScoped<IRadiusTagSyncService, RadiusTagSyncService>();
 
 // Add Microservice Approval Service
 builder.Services.AddScoped<MicroserviceApprovalService>();
+
+// Add Payment Services
+builder.Services.AddScoped<PaymentAuditService>();
 
 // Add Kafka Consumer Service for CDC monitoring
 builder.Services.AddHostedService<KafkaConsumerService>();
