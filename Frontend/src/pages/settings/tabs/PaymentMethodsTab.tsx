@@ -256,7 +256,7 @@ export default function PaymentMethodsTab() {
                       }
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border">
                       <SelectValue placeholder="Select environment" />
                     </SelectTrigger>
                     <SelectContent>
@@ -385,7 +385,7 @@ export default function PaymentMethodsTab() {
                       }
                     }}
                   >
-                    <SelectTrigger><SelectValue placeholder="Select environment" /></SelectTrigger>
+                    <SelectTrigger className="border"><SelectValue placeholder="Select environment" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="production">Production</SelectItem>
                       <SelectItem value="test">Test/Sandbox</SelectItem>
@@ -507,7 +507,7 @@ export default function PaymentMethodsTab() {
                       }
                     }}
                   >
-                    <SelectTrigger><SelectValue placeholder="Select environment" /></SelectTrigger>
+                    <SelectTrigger className="border"><SelectValue placeholder="Select environment" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="production">Production</SelectItem>
                       <SelectItem value="test">Test/Sandbox</SelectItem>

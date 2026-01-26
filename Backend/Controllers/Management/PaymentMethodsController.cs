@@ -10,7 +10,7 @@ namespace Backend.Controllers.Management
 {
     [Authorize]
     [ApiController]
-    [Route("api/workspaces/{workspaceId}/payment-methods")]
+    [Route("api/payment-methods")]
     public class PaymentMethodsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -24,14 +24,13 @@ namespace Backend.Controllers.Management
             _logger = logger;
         }
 
-        // GET: api/workspaces/{workspaceId}/payment-methods
+        // GET: api/payment-methods
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PaymentMethodDto>>> GetPaymentMethods(int workspaceId)
+        public async Task<ActionResult<IEnumerable<PaymentMethodDto>>> GetPaymentMethods()
         {
             try
             {
                 var paymentMethods = await _context.PaymentMethods
-                    .Where(pm => pm.WorkspaceId == workspaceId)
                     .OrderByDescending(pm => pm.CreatedAt)
                     .ToListAsync();
 
@@ -48,19 +47,19 @@ namespace Backend.Controllers.Management
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving payment methods for workspace {WorkspaceId}", workspaceId);
+                _logger.LogError(ex, "Error retrieving payment methods");
                 return StatusCode(500, new { message = "An error occurred while retrieving payment methods" });
             }
         }
 
-        // GET: api/workspaces/{workspaceId}/payment-methods/{id}
+        // GET: api/payment-methods/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<PaymentMethodDto>> GetPaymentMethod(int workspaceId, int id)
+        public async Task<ActionResult<PaymentMethodDto>> GetPaymentMethod(int id)
         {
             try
             {
                 var paymentMethod = await _context.PaymentMethods
-                    .FirstOrDefaultAsync(pm => pm.Id == id && pm.WorkspaceId == workspaceId);
+                    .FirstOrDefaultAsync(pm => pm.Id == id);
 
                 if (paymentMethod == null)
                 {
@@ -80,12 +79,12 @@ namespace Backend.Controllers.Management
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving payment method {Id} for workspace {WorkspaceId}", id, workspaceId);
+                _logger.LogError(ex, "Error retrieving payment method {Id}", id);
                 return StatusCode(500, new { message = "An error occurred while retrieving the payment method" });
             }
         }
 
-        // POST: api/workspaces/{workspaceId}/payment-methods
+        // POST: api/payment-methods
         [HttpPost]
         public async Task<ActionResult<PaymentMethodDto>> CreatePaymentMethod(
             int workspaceId,
@@ -106,7 +105,6 @@ namespace Backend.Controllers.Management
                     Name = dto.Name,
                     IsActive = dto.IsActive,
                     Settings = JsonSerializer.Serialize(dto.Settings),
-                    WorkspaceId = workspaceId,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -125,17 +123,17 @@ namespace Backend.Controllers.Management
 
                 return CreatedAtAction(
                     nameof(GetPaymentMethod),
-                    new { workspaceId, id = paymentMethod.Id },
+                    new { id = paymentMethod.Id },
                     responseDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating payment method for workspace {WorkspaceId}", workspaceId);
+                _logger.LogError(ex, "Error creating payment method");
                 return StatusCode(500, new { message = "An error occurred while creating the payment method" });
             }
         }
 
-        // PUT: api/workspaces/{workspaceId}/payment-methods/{id}
+        // PUT: api/payment-methods/{id}
         [HttpPut("{id}")]
         public async Task<ActionResult<PaymentMethodDto>> UpdatePaymentMethod(
             int workspaceId,
@@ -184,12 +182,12 @@ namespace Backend.Controllers.Management
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating payment method {Id} for workspace {WorkspaceId}", id, workspaceId);
+                _logger.LogError(ex, "Error updating payment method {Id}", id);
                 return StatusCode(500, new { message = "An error occurred while updating the payment method" });
             }
         }
 
-        // DELETE: api/workspaces/{workspaceId}/payment-methods/{id}
+        // DELETE: api/payment-methods/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePaymentMethod(int workspaceId, int id)
         {
@@ -210,7 +208,7 @@ namespace Backend.Controllers.Management
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting payment method {Id} for workspace {WorkspaceId}", id, workspaceId);
+                _logger.LogError(ex, "Error deleting payment method {Id}", id);
                 return StatusCode(500, new { message = "An error occurred while deleting the payment method" });
             }
         }

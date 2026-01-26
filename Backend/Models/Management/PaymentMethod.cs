@@ -23,8 +23,5 @@ namespace Backend.Models.Management
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        // Workspace relationship
-        public int WorkspaceId { get; set; }
     }
 }
