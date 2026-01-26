@@ -10,12 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { paymentMethodApi, type PaymentMethod, type PaymentMethodSettings, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
 import { formatApiError } from '@/utils/errorHandler'
 
 export default function PaymentMethodsTab() {
-  const { currentWorkspaceId } = useWorkspace()
   const queryClient = useQueryClient()
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
@@ -24,16 +22,15 @@ export default function PaymentMethodsTab() {
 
   // Fetch payment methods
   const { data: paymentMethods = [] } = useQuery({
-    queryKey: ['payment-methods', currentWorkspaceId],
-    queryFn: () => paymentMethodApi.getAll(currentWorkspaceId!),
-    enabled: currentWorkspaceId !== null,
+    queryKey: ['payment-methods'],
+    queryFn: () => paymentMethodApi.getAll(),
   })
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (dto: CreatePaymentMethodDto) => paymentMethodApi.create(currentWorkspaceId!, dto),
+    mutationFn: (dto: CreatePaymentMethodDto) => paymentMethodApi.create(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       toast.success('Payment method added successfully')
       setShowPaymentDialog(false)
       setEditingPayment(null)
@@ -47,9 +44,9 @@ export default function PaymentMethodsTab() {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: UpdatePaymentMethodDto }) =>
-      paymentMethodApi.update(currentWorkspaceId!, id, dto),
+      paymentMethodApi.update(id, dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       toast.success('Payment method updated successfully')
       setShowPaymentDialog(false)
       setEditingPayment(null)
@@ -62,9 +59,9 @@ export default function PaymentMethodsTab() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => paymentMethodApi.delete(currentWorkspaceId!, id),
+    mutationFn: (id: number) => paymentMethodApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       toast.success('Payment method deleted successfully')
     },
     onError: (error) => {
@@ -113,15 +110,20 @@ export default function PaymentMethodsTab() {
                 Configure payment gateways for your workspace
               </CardDescription>
             </div>
-            <Button onClick={() => {
-              setEditingPayment(null)
-              setPaymentType('ZainCash')
-              setPaymentSettings({})
-              setShowPaymentDialog(true)
-            }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Payment Method
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => alert('Test button clicked!')}>
+                Test
+              </Button>
+              <Button onClick={() => {
+                setEditingPayment(null)
+                setPaymentType('ZainCash')
+                setPaymentSettings({})
+                setShowPaymentDialog(true)
+              }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Payment Method
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -222,7 +224,7 @@ export default function PaymentMethodsTab() {
                 }}
                 disabled={!!editingPayment}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border">
                   <SelectValue placeholder="Select payment type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,7 +352,7 @@ export default function PaymentMethodsTab() {
                       <Checkbox
                         id="zaincash-active"
                         checked={paymentSettings.isActive || false}
-                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked })}
+                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked === true })}
                       />
                       <Label htmlFor="zaincash-active" className="text-sm font-normal cursor-pointer">
                         Enable this payment method
@@ -473,7 +475,7 @@ export default function PaymentMethodsTab() {
                       <Checkbox
                         id="qicard-active"
                         checked={paymentSettings.isActive || false}
-                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked })}
+                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked === true })}
                       />
                       <Label htmlFor="qicard-active" className="text-sm font-normal cursor-pointer">
                         Enable this payment method
@@ -594,7 +596,7 @@ export default function PaymentMethodsTab() {
                       <Checkbox
                         id="switch-active"
                         checked={paymentSettings.isActive || false}
-                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked })}
+                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked === true })}
                       />
                       <Label htmlFor="switch-active" className="text-sm font-normal cursor-pointer">
                         Enable this payment method

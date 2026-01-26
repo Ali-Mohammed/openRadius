@@ -87,7 +87,6 @@ namespace Backend.Controllers.Management
         // POST: api/payment-methods
         [HttpPost]
         public async Task<ActionResult<PaymentMethodDto>> CreatePaymentMethod(
-            int workspaceId,
             [FromBody] CreatePaymentMethodDto dto)
         {
             try
@@ -136,14 +135,13 @@ namespace Backend.Controllers.Management
         // PUT: api/payment-methods/{id}
         [HttpPut("{id}")]
         public async Task<ActionResult<PaymentMethodDto>> UpdatePaymentMethod(
-            int workspaceId,
             int id,
             [FromBody] UpdatePaymentMethodDto dto)
         {
             try
             {
                 var paymentMethod = await _context.PaymentMethods
-                    .FirstOrDefaultAsync(pm => pm.Id == id && pm.WorkspaceId == workspaceId);
+                    .FirstOrDefaultAsync(pm => pm.Id == id);
 
                 if (paymentMethod == null)
                 {
@@ -189,12 +187,12 @@ namespace Backend.Controllers.Management
 
         // DELETE: api/payment-methods/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePaymentMethod(int workspaceId, int id)
+        public async Task<IActionResult> DeletePaymentMethod(int id)
         {
             try
             {
                 var paymentMethod = await _context.PaymentMethods
-                    .FirstOrDefaultAsync(pm => pm.Id == id && pm.WorkspaceId == workspaceId);
+                    .FirstOrDefaultAsync(pm => pm.Id == id);
 
                 if (paymentMethod == null)
                 {
