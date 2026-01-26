@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { paymentApi } from '@/api/paymentApi';
-import { paymentMethodApi, PaymentMethod } from '@/api/paymentMethodApi';
+import { paymentMethodApi, type PaymentMethod } from '@/api/paymentMethodApi';
 
 interface PaymentTestDialogProps {
   open: boolean;

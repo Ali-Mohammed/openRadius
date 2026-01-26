@@ -1,4 +1,4 @@
-import api from './api';
+import { apiClient } from '../lib/api';
 
 export interface InitiatePaymentRequest {
   paymentMethodId: number;
@@ -34,17 +34,17 @@ export interface WalletBalance {
 
 export const paymentApi = {
   initiatePayment: async (data: InitiatePaymentRequest): Promise<PaymentInitiationResponse> => {
-    const response = await api.post('/payments/initiate', data);
+    const response = await apiClient.post('/api/payments/initiate', data);
     return response.data;
   },
 
   getPaymentStatus: async (transactionId: string): Promise<PaymentStatus> => {
-    const response = await api.get(`/payments/status/${transactionId}`);
+    const response = await apiClient.get(`/api/payments/status/${transactionId}`);
     return response.data;
   },
 
   getWalletBalance: async (): Promise<WalletBalance> => {
-    const response = await api.get('/payments/wallet/balance');
+    const response = await apiClient.get('/api/payments/wallet/balance');
     return response.data;
   }
 };
