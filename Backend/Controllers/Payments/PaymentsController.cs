@@ -663,6 +663,100 @@ namespace Backend.Controllers.Payments
             }
         }
 
+        // GET: api/payments/switch/checkout/{transactionId}
+        [AllowAnonymous]
+        [HttpGet("switch/checkout/{transactionId}")]
+        public async Task<IActionResult> SwitchCheckout(string transactionId, [FromQuery] string checkoutId)
+        {
+            try
+            {
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
+
+                if (paymentLog == null)
+                {
+                    return NotFound("Payment not found");
+                }
+
+                // Get payment method to determine environment
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "Switch" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    return BadRequest("Switch payment method not configured");
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                var isProduction = settings?.ContainsKey("isProduction") == true &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var shopperResultUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/callback";
+
+                // Return HTML page with OPPWA payment widget (like legacy PHP)
+                var html = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Switch Payment</title>
+    <script src=""https://eu-{(isProduction ? "prod" : "test")}.oppwa.com/v1/paymentWidgets.js?checkoutId={checkoutId}""></script>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }}
+        .payment-container {{
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+        }}
+        .payment-header {{
+            text-align: center;
+            margin-bottom: 2rem;
+        }}
+        .payment-header h1 {{
+            color: #333;
+            margin: 0 0 0.5rem 0;
+        }}
+        .payment-header p {{
+            color: #666;
+            margin: 0;
+        }}
+        .wpwl-form {{
+            margin-top: 1rem;
+        }}
+    </style>
+</head>
+<body>
+    <div class=""payment-container"">
+        <div class=""payment-header"">
+            <h1>Complete Payment</h1>
+            <p>Amount: {paymentLog.Amount:F2} {paymentLog.Currency}</p>
+        </div>
+        <form action=""{shopperResultUrl}"" class=""paymentWidgets"" data-brands=""VISA MASTER AMEX""></form>
+    </div>
+</body>
+</html>";
+
+                return Content(html, "text/html");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error displaying Switch checkout page");
+                return StatusCode(500, "Error displaying payment page");
+            }
+        }
+
         // GET: api/payments/zaincash/callback
         [AllowAnonymous]
         [HttpGet("zaincash/callback")]
