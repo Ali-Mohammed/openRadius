@@ -60,7 +60,7 @@ namespace Backend.Controllers.Payments
         public async Task<ActionResult<PaymentInitiationResponse>> InitiatePayment([FromBody] InitiatePaymentDto dto)
         {
             using var activity = ActivitySource.StartActivity("InitiatePayment");
-            activity?.SetTag("payment.gateway", dto.Gateway);
+            activity?.SetTag("payment.method_id", dto.PaymentMethodId);
             activity?.SetTag("payment.amount", dto.Amount);
 
             try
@@ -140,14 +140,14 @@ namespace Backend.Controllers.Payments
                 if (response.Success)
                 {
                     _logger.LogInformation("Payment initiated successfully: Gateway={Gateway}, TransactionId={TransactionId}, Amount={Amount}, UserId={UserId}",
-                        dto.Gateway, transactionId, dto.Amount, userId);
+                        paymentMethod.Type, transactionId, dto.Amount, userId);
                     activity?.SetTag("payment.status", "success");
                     activity?.SetTag("payment.transaction_id", transactionId);
                 }
                 else
                 {
                     _logger.LogWarning("Payment initiation failed: Gateway={Gateway}, Error={Error}", 
-                        dto.Gateway, response.ErrorMessage);
+                        paymentMethod.Type, response.ErrorMessage);
                     activity?.SetTag("payment.status", "failed");
                     activity?.SetTag("error.message", response.ErrorMessage);
                 }
@@ -156,8 +156,8 @@ namespace Backend.Controllers.Payments
             }
             catch (DbUpdateException dbEx)
             {
-                _logger.LogError(dbEx, "Database error during payment initiation: UserId={UserId}, Gateway={Gateway}", 
-                    User.GetSystemUserId(), dto.Gateway);
+                _logger.LogError(dbEx, "Database error during payment initiation: UserId={UserId}, PaymentMethodId={PaymentMethodId}", 
+                    User.GetSystemUserId(), dto.PaymentMethodId);
                 activity?.SetTag("error", true);
                 return StatusCode(500, new PaymentInitiationResponse
                 {
@@ -167,7 +167,7 @@ namespace Backend.Controllers.Payments
             }
             catch (HttpRequestException httpEx)
             {
-                _logger.LogError(httpEx, "Payment gateway communication error: Gateway={Gateway}", dto.Gateway);
+                _logger.LogError(httpEx, "Payment gateway communication error: PaymentMethodId={PaymentMethodId}", dto.PaymentMethodId);
                 activity?.SetTag("error", true);
                 return StatusCode(503, new PaymentInitiationResponse
                 {
@@ -177,8 +177,8 @@ namespace Backend.Controllers.Payments
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error initiating payment: UserId={UserId}, Gateway={Gateway}", 
-                    User.GetSystemUserId(), dto.Gateway);
+                _logger.LogError(ex, "Unexpected error initiating payment: UserId={UserId}, PaymentMethodId={PaymentMethodId}", 
+                    User.GetSystemUserId(), dto.PaymentMethodId);
                 activity?.SetTag("error", true);
                 return StatusCode(500, new PaymentInitiationResponse
                 {
