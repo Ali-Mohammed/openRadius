@@ -453,16 +453,22 @@ namespace Backend.Controllers.Payments
                 var statusResult = JsonSerializer.Deserialize<Dictionary<string, object>>(responseString);
 
                 paymentLog.CallbackData = responseString;
+                paymentLog.Status = "processing";
                 paymentLog.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
 
-                if (statusResult != null)
+                if (statusResult != null && statusResult.ContainsKey("result"))
                 {
-                    var resultCode = statusResult.GetValueOrDefault("result")?.ToString();
-                    var description = statusResult.GetValueOrDefault("description")?.ToString();
+                    var result = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                        statusResult["result"].ToString() ?? "{}");
+                    
+                    var description = result?.GetValueOrDefault("description")?.ToString();
 
-                    if (description?.Contains("succeeded", StringComparison.OrdinalIgnoreCase) == true)
+                    // Check if description starts with "Transaction succeeded"
+                    if (!string.IsNullOrEmpty(description) && 
+                        description.StartsWith("Transaction succeeded", StringComparison.OrdinalIgnoreCase))
                     {
-                        paymentLog.Status = "processing";
+                        paymentLog.Status = "completed";
                         await _context.SaveChangesAsync();
 
                         await ProcessSuccessfulPayment(paymentLog);
@@ -472,7 +478,7 @@ namespace Backend.Controllers.Payments
                     else
                     {
                         paymentLog.Status = "failed";
-                        paymentLog.ErrorMessage = description;
+                        paymentLog.ErrorMessage = description ?? "Transaction failed";
                         await _context.SaveChangesAsync();
 
                         return Redirect($"/payment/failed?transactionId={paymentLog.TransactionId}");
@@ -621,6 +627,115 @@ namespace Backend.Controllers.Payments
             {
                 _logger.LogError(ex, "Error processing QICard notification");
                 return StatusCode(500, "Error processing payment notification");
+            }
+        }
+
+        /// <summary>
+        /// Webhook endpoint for encrypted Switch server callbacks
+        /// Receives AES-256-GCM encrypted payment notifications
+        /// </summary>
+        [HttpPost("switch/webhook")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SwitchWebhook()
+        {
+            try
+            {
+                // Log webhook headers and body for debugging
+                var headers = Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString());
+                using var reader = new StreamReader(Request.Body);
+                var rawBody = await reader.ReadToEndAsync();
+
+                // Log the webhook
+                var webhookLog = new PaymentLog
+                {
+                    Gateway = "Switch",
+                    TransactionId = $"webhook_{Guid.NewGuid()}",
+                    UserId = 0, // System webhook
+                    Amount = 0,
+                    Currency = "IQD",
+                    Status = "webhook",
+                    RequestData = JsonSerializer.Serialize(headers),
+                    ResponseData = rawBody,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.PaymentLogs.Add(webhookLog);
+                await _context.SaveChangesAsync();
+
+                // Extract encryption headers
+                var authTag = Request.Headers["x-authentication-tag"].FirstOrDefault();
+                var iv = Request.Headers["x-initialization-vector"].FirstOrDefault();
+
+                if (string.IsNullOrEmpty(authTag) || string.IsNullOrEmpty(iv))
+                {
+                    _logger.LogWarning("Missing encryption headers in Switch webhook");
+                    return Ok("Missing encryption headers");
+                }
+
+                // Parse encrypted body
+                var bodyData = JsonSerializer.Deserialize<Dictionary<string, string>>(rawBody);
+                var encryptedBody = bodyData?.GetValueOrDefault("encryptedBody");
+
+                if (string.IsNullOrEmpty(encryptedBody))
+                {
+                    _logger.LogWarning("Missing encryptedBody in Switch webhook");
+                    return Ok("Missing encrypted body");
+                }
+
+                // Get decryption key from configuration
+                var decryptionKey = _configuration["Switch:DecryptionKey"];
+                if (string.IsNullOrEmpty(decryptionKey))
+                {
+                    _logger.LogError("Switch decryption key not configured");
+                    return Ok("Decryption key not configured");
+                }
+
+                // Decrypt the payload
+                var decryptedData = DecryptSwitchWebhook(encryptedBody, authTag, iv, decryptionKey);
+                
+                if (!string.IsNullOrEmpty(decryptedData))
+                {
+                    _logger.LogInformation("Switch webhook decrypted: {Data}", decryptedData);
+                    
+                    // Update webhook log with decrypted data
+                    webhookLog.CallbackData = decryptedData;
+                    await _context.SaveChangesAsync();
+
+                    // Process the decrypted payment data
+                    var paymentData = JsonSerializer.Deserialize<Dictionary<string, object>>(decryptedData);
+                    // TODO: Process payment based on decrypted data
+                }
+
+                return Ok("Webhook received");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing Switch webhook");
+                return Ok("Error processing webhook");
+            }
+        }
+
+        private string? DecryptSwitchWebhook(string encryptedHex, string authTagHex, string ivHex, string keyHex)
+        {
+            try
+            {
+                // Convert hex strings to byte arrays
+                var key = Convert.FromHexString(keyHex);
+                var iv = Convert.FromHexString(ivHex);
+                var authTag = Convert.FromHexString(authTagHex);
+                var cipherText = Convert.FromHexString(encryptedHex);
+
+                // Decrypt using AES-256-GCM
+                using var aes = new System.Security.Cryptography.AesGcm(key, authTag.Length);
+                var decryptedBytes = new byte[cipherText.Length];
+                aes.Decrypt(iv, cipherText, authTag, decryptedBytes);
+
+                return Encoding.UTF8.GetString(decryptedBytes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error decrypting Switch webhook");
+                return null;
             }
         }
 
