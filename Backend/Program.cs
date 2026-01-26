@@ -23,13 +23,11 @@ builder.Services.AddHttpClient(); // Add HTTP client for Keycloak API calls
 builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
 builder.Services.AddControllers();
 
-// Configure Payment HTTP Clients with Resilience
-// Note: This requires Microsoft.Extensions.Http.Polly package
-// builder.Configuration.AddPaymentHttpClients();
+// Configure Payment HTTP Clients with Resilience (Polly)
+Backend.Configuration.HttpClientConfiguration.AddPaymentHttpClients(builder.Services);
 
 // Configure Payment Rate Limiting
-// Note: Uncomment when ready to enable rate limiting
-// builder.Services.AddPaymentRateLimiting();
+Backend.Configuration.RateLimitingConfiguration.AddPaymentRateLimiting(builder.Services);
 
 // Configure file upload limits
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
@@ -278,6 +276,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Rate limiting should be early in the pipeline
+app.UseRateLimiter();
 
 // Authentication must run first to populate claims
 app.UseAuthentication();

@@ -1,9 +1,3 @@
-// NOTE: This file requires ASP.NET Core 7.0+ with built-in rate limiting
-// For ASP.NET Core 6.0 or earlier, use AspNetCoreRateLimit package
-// 
-// To enable, uncomment the configuration call in Program.cs
-
-/*
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
@@ -71,23 +65,6 @@ namespace Backend.Configuration
                     }, cancellationToken: token);
                 };
             });
-        }
-    }
-}
-*/
-
-namespace Backend.Configuration
-{
-    /// <summary>
-    /// Rate limiting configuration placeholder
-    /// Install ASP.NET Core 7.0+ or AspNetCoreRateLimit package to enable
-    /// </summary>
-    public static class RateLimitingConfiguration
-    {
-        public static void AddPaymentRateLimiting(this IServiceCollection services)
-        {
-            // Placeholder - implement with AspNetCoreRateLimit or built-in rate limiting
-            Console.WriteLine("Payment rate limiting not configured. Install required packages.");
         }
     }
 }

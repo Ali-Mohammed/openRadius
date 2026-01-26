@@ -10,7 +10,7 @@ using System.Text;
 using Backend.Helpers;
 using Backend.Models;
 using System.Diagnostics;
-// using Microsoft.AspNetCore.RateLimiting; // Uncomment when rate limiting is enabled
+using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Controllers.Payments
@@ -21,7 +21,7 @@ namespace Backend.Controllers.Payments
     [Authorize]
     [ApiController]
     [Route("api/payments")]
-    // [EnableRateLimiting("fixed")] // Uncomment when rate limiting is configured
+    [EnableRateLimiting("fixed")]
     [Produces("application/json")]
     public class PaymentsController : ControllerBase
     {
