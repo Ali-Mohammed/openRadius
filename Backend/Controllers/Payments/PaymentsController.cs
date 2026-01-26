@@ -604,15 +604,13 @@ namespace Backend.Controllers.Payments
                 // Call Switch API to create checkout
                 var httpClient = _httpClientFactory.CreateClient("PaymentGateway");
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
-                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {entityAuth}");
 
                 var formData = new Dictionary<string, string>
                 {
-                    { "entityId", entityId },
+                    { "authentication.entityId", entityAuth },
                     { "amount", amount.ToString("F2") },
                     { "currency", currency },
-                    { "paymentType", "DB" },
-                    { "integrity", "true" }
+                    { "paymentType", "DB" }
                 };
 
                 var content = new FormUrlEncodedContent(formData);
@@ -1104,45 +1102,62 @@ namespace Backend.Controllers.Payments
             {
                 using var transaction = await _context.Database.BeginTransactionAsync();
 
-                // Get or create user wallet
-                var userWallet = await _context.UserWallets
-                    .FirstOrDefaultAsync(w => w.UserId == paymentLog.UserId);
+                // Get the payment method to find its linked wallet
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == paymentLog.Gateway);
 
-                if (userWallet == null)
+                if (paymentMethod?.WalletId == null)
                 {
-                    userWallet = new UserWallet
-                    {
-                        UserId = paymentLog.UserId,
-                        CurrentBalance = 0,
-                        Status = "active",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.UserWallets.Add(userWallet);
+                    _logger.LogWarning(
+                        "Payment method {Gateway} has no linked wallet. Payment {TransactionId} cannot be processed.",
+                        paymentLog.Gateway, paymentLog.TransactionId);
+                    
+                    paymentLog.Status = "failed";
+                    paymentLog.ErrorMessage = "Payment method has no linked wallet";
                     await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return;
                 }
 
-                // Create wallet transaction
+                // Get the payment method's custom wallet
+                var customWallet = await _context.CustomWallets
+                    .FirstOrDefaultAsync(w => w.Id == paymentMethod.WalletId);
+
+                if (customWallet == null)
+                {
+                    _logger.LogWarning(
+                        "Custom wallet {WalletId} not found for payment method {Gateway}. Payment {TransactionId} cannot be processed.",
+                        paymentMethod.WalletId, paymentLog.Gateway, paymentLog.TransactionId);
+                    
+                    paymentLog.Status = "failed";
+                    paymentLog.ErrorMessage = "Custom wallet not found";
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return;
+                }
+
+                // Create wallet transaction for the payment method's custom wallet
                 var walletTransaction = new Transaction
                 {
                     UserId = paymentLog.UserId,
                     TransactionType = TransactionType.TopUp,
                     Amount = paymentLog.Amount,
                     Status = TransactionStatus.Completed,
-                    Description = $"Wallet top-up via {paymentLog.Gateway}",
+                    Description = $"Payment received via {paymentLog.Gateway} from user {paymentLog.UserId}",
                     PaymentMethod = paymentLog.Gateway,
                     Reference = paymentLog.ReferenceId,
-                    WalletType = "user",
-                    UserWalletId = userWallet.Id,
+                    WalletType = "custom",
+                    CustomWalletId = customWallet.Id,
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _context.Transactions.Add(walletTransaction);
                 await _context.SaveChangesAsync();
 
-                // Update wallet balance
-                var balanceBefore = userWallet.CurrentBalance;
-                userWallet.CurrentBalance += paymentLog.Amount;
-                userWallet.UpdatedAt = DateTime.UtcNow;
+                // Update custom wallet balance
+                var balanceBefore = customWallet.CurrentBalance;
+                customWallet.CurrentBalance += paymentLog.Amount;
+                customWallet.UpdatedAt = DateTime.UtcNow;
 
                 // Link payment log to wallet transaction
                 paymentLog.WalletTransactionId = walletTransaction.Id;
@@ -1153,8 +1168,8 @@ namespace Backend.Controllers.Payments
                 await transaction.CommitAsync();
 
                 _logger.LogInformation(
-                    "Payment processed successfully. Transaction: {TransactionId}, User: {UserId}, Amount: {Amount}, Balance: {BalanceBefore} -> {BalanceAfter}",
-                    paymentLog.TransactionId, paymentLog.UserId, paymentLog.Amount, balanceBefore, userWallet.CurrentBalance);
+                    "Payment processed successfully. Transaction: {TransactionId}, Gateway: {Gateway}, Custom Wallet: {WalletName}, Amount: {Amount}, Balance: {BalanceBefore} -> {BalanceAfter}",
+                    paymentLog.TransactionId, paymentLog.Gateway, customWallet.Name, paymentLog.Amount, balanceBefore, customWallet.CurrentBalance);
             }
             catch (Exception ex)
             {
@@ -1285,7 +1300,6 @@ namespace Backend.Controllers.Payments
             var totalCount = await query.CountAsync();
 
             var paymentLogs = await query
-                .Include(p => p.User)
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)

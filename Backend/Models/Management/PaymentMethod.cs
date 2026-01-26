@@ -21,6 +21,8 @@ namespace Backend.Models.Management
         [Column(TypeName = "jsonb")]
         public string Settings { get; set; } = "{}";
 
+        public int? WalletId { get; set; } // Link to custom wallet for tracking received payments
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
