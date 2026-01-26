@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Coins, Plus, Trash2, Edit2, CreditCard } from 'lucide-react'
+import { Coins, Plus, Trash2, Edit2, TestTube } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -112,7 +112,7 @@ export default function PaymentMethodsTab() {
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => alert('Test button clicked!')}>
-                <CreditCard className="h-4 w-4 mr-2" />
+                <TestTube className="h-4 w-4 mr-2" />
                 Payment Test
               </Button>
               <Button onClick={() => {
