@@ -643,7 +643,9 @@ namespace Backend.Controllers.Payments
                         await _context.SaveChangesAsync();
                     }
 
-                    var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/checkout/{transactionId}?checkoutId={switchResponse.Id}";
+                    // Get current tenant ID from HttpContext
+                    var tenantId = HttpContext.Items["TenantId"]?.ToString() ?? "1";
+                    var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/checkout/{transactionId}?checkoutId={switchResponse.Id}&tenantId={tenantId}";
 
                     return new PaymentInitiationResponse
                     {
@@ -666,16 +668,24 @@ namespace Backend.Controllers.Payments
         // GET: api/payments/switch/checkout/{transactionId}
         [AllowAnonymous]
         [HttpGet("switch/checkout/{transactionId}")]
-        public async Task<IActionResult> SwitchCheckout(string transactionId, [FromQuery] string checkoutId)
+        public async Task<IActionResult> SwitchCheckout(string transactionId, [FromQuery] string checkoutId, [FromQuery] string tenantId)
         {
             try
             {
+                // Set tenant context for this anonymous request
+                if (!string.IsNullOrEmpty(tenantId))
+                {
+                    HttpContext.Items["TenantId"] = tenantId;
+                }
+
+                // Find payment log in workspace database
                 var paymentLog = await _context.PaymentLogs
                     .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
 
                 if (paymentLog == null)
                 {
-                    return NotFound("Payment not found");
+                    _logger.LogWarning("Payment not found for transactionId: {TransactionId}, TenantId: {TenantId}", transactionId, tenantId);
+                    return NotFound($"Payment not found for transaction {transactionId}");
                 }
 
                 // Get payment method to determine environment
@@ -692,6 +702,9 @@ namespace Backend.Controllers.Payments
                                  settings["isProduction"].ToString()?.ToLower() == "true";
 
                 var shopperResultUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/callback";
+
+                _logger.LogInformation("Rendering Switch checkout page: TransactionId={TransactionId}, CheckoutId={CheckoutId}, Amount={Amount}", 
+                    transactionId, checkoutId, paymentLog.Amount);
 
                 // Return HTML page with OPPWA payment widget (like legacy PHP)
                 var html = $@"
