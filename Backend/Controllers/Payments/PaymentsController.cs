@@ -26,6 +26,7 @@ namespace Backend.Controllers.Payments
     public class PaymentsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly MasterDbContext _masterContext;
         private readonly ILogger<PaymentsController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -33,11 +34,13 @@ namespace Backend.Controllers.Payments
 
         public PaymentsController(
             ApplicationDbContext context,
+            MasterDbContext masterContext,
             ILogger<PaymentsController> logger,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _masterContext = masterContext ?? throw new ArgumentNullException(nameof(masterContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
@@ -1300,25 +1303,31 @@ namespace Backend.Controllers.Payments
             var totalCount = await query.CountAsync();
 
             var paymentLogs = await query
-                .OrderByDescending(p => p.CreatedAt)
+                .GroupJoin(
+                    _masterContext.Users,
+                    p => p.UserId,
+                    u => u.Id,
+                    (p, users) => new { Payment = p, User = users.FirstOrDefault() }
+                )
+                .OrderByDescending(x => x.Payment.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(p => new
+                .Select(x => new
                 {
-                    p.Id,
-                    p.TransactionId,
-                    p.Gateway,
-                    p.Amount,
-                    p.Currency,
-                    p.Status,
-                    p.ReferenceId,
-                    p.GatewayTransactionId,
-                    p.ErrorMessage,
-                    p.Environment,
-                    p.CreatedAt,
-                    p.UpdatedAt,
-                    UserName = p.User != null ? p.User.Username : null,
-                    UserEmail = p.User != null ? p.User.Email : null
+                    x.Payment.Id,
+                    x.Payment.TransactionId,
+                    x.Payment.Gateway,
+                    x.Payment.Amount,
+                    x.Payment.Currency,
+                    x.Payment.Status,
+                    x.Payment.ReferenceId,
+                    x.Payment.GatewayTransactionId,
+                    x.Payment.ErrorMessage,
+                    x.Payment.Environment,
+                    x.Payment.CreatedAt,
+                    x.Payment.UpdatedAt,
+                    UserName = x.User != null ? x.User.Username : null,
+                    UserEmail = x.User != null ? x.User.Email : null
                 })
                 .ToListAsync();
 
