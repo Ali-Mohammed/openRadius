@@ -373,13 +373,26 @@ public class SasActivationService : ISasActivationService
             var activationData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(log.ActivationData);
             
             // Use PIN from log if available (PrepaidCard activation method), otherwise from activation data
-            var pin = !string.IsNullOrEmpty(log.Pin) 
-                ? log.Pin 
-                : activationData.GetProperty("pin").GetString();
+            string? pin = null;
+            
+            if (!string.IsNullOrEmpty(log.Pin))
+            {
+                // PIN was retrieved during enqueue phase (PrepaidCard method)
+                pin = log.Pin;
+            }
+            else if (activationData.TryGetProperty("pin", out var pinProp) && pinProp.ValueKind != System.Text.Json.JsonValueKind.Null)
+            {
+                // PIN was provided in activation data
+                pin = pinProp.GetString();
+            }
             
             if (string.IsNullOrEmpty(pin))
             {
-                throw new InvalidOperationException("PIN is required for activation but was not found in log or activation data");
+                throw new InvalidOperationException(
+                    $"PIN is required for SAS activation but was not found. " +
+                    $"Integration '{integration.Name}' has ActivationMethod={integration.ActivationMethod}. " +
+                    $"If using PrepaidCard method, ensure CardStockUserId is set and cards are available. " +
+                    $"If using other methods, ensure PIN is provided in activation data.");
             }
             
             // Get RadiusUser's ExternalId (SAS4 user ID) for the activation
