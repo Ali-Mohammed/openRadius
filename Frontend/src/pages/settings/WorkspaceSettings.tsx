@@ -656,6 +656,7 @@ export default function WorkspaceSettings() {
                     <TableHead className="text-center w-[100px]">Status</TableHead>
                     <TableHead className="text-center w-[120px]">Sync Status</TableHead>
                     <TableHead className="text-center w-[140px]">Send to SAS4</TableHead>
+                    <TableHead className="text-center w-[100px]">Callback</TableHead>
                     <TableHead className="text-center w-[100px]">Items/Page</TableHead>
                     <TableHead className="w-[80px]">Action</TableHead>
                     <TableHead className="min-w-[150px]">Description</TableHead>
