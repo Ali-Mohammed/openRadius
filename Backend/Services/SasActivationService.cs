@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Backend.Helpers;
+using System.Text.Json;
 
 namespace Backend.Services;
 
@@ -465,13 +466,11 @@ public class SasActivationService : ISasActivationService
             var encryptedPayload = EncryptionHelper.EncryptAES(jsonPayload, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
-            // Add authentication headers (Basic Auth)
-            var authString = $"{integration.Username}:{integration.Password}";
-            var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
-            var authBase64 = Convert.ToBase64String(authBytes);
+            // Authenticate and get Bearer token
+            var token = await AuthenticateAsync(integration);
             
             var request = new HttpRequestMessage(HttpMethod.Post, activateUrl);
-            request.Headers.Add("Authorization", $"Basic {authBase64}");
+            request.Headers.Add("Authorization", $"Bearer {token}");
             request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
             request.Content = new StringContent(
@@ -680,8 +679,46 @@ public class SasActivationService : ISasActivationService
         return isHealthy;
     }
     
-    /// <summary>
-    /// Get available card series for a profile from SAS4
+    /// <summary>    /// Authenticate with SAS4 API and get Bearer token
+    /// </summary>
+    private async Task<string> AuthenticateAsync(SasRadiusIntegration integration)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = integration.Url.TrimEnd('/');
+        
+        // Parse the URL to extract the base (handle cases where URL might include path)
+        string loginUrl;
+        try
+        {
+            var uri = new Uri(baseUrl.StartsWith("http") ? baseUrl : $"http://{baseUrl}");
+            loginUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/login";
+        }
+        catch
+        {
+            // Fallback if URL parsing fails
+            var protocol = integration.UseHttps ? "https" : "http";
+            loginUrl = $"{protocol}://{baseUrl.Replace("http://", "").Replace("https://", "").Split('/')[0]}/admin/api/index.php/api/login";
+        }
+        
+        _logger.LogInformation($"🔐 Authenticating to: {loginUrl}");
+        
+        var loginData = new { username = integration.Username, password = integration.Password };
+        var loginJson = System.Text.Json.JsonSerializer.Serialize(loginData);
+        var encryptedPayload = EncryptionHelper.EncryptAES(loginJson, AES_KEY);
+        var requestBody = new { payload = encryptedPayload };
+        
+        var response = await client.PostAsJsonAsync(loginUrl, requestBody);
+        response.EnsureSuccessStatusCode();
+        
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var token = result.GetProperty("token").GetString();
+        
+        _logger.LogInformation($"✅ Authentication successful, got token");
+        
+        return token;
+    }
+
+    /// <summary>    /// Get available card series for a profile from SAS4
     /// </summary>
     private async Task<List<SasCardSeriesData>> GetAvailableCardSeriesAsync(
         SasRadiusIntegration integration, 
@@ -726,13 +763,11 @@ public class SasActivationService : ISasActivationService
             var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
-            // Add authentication headers
-            var authString = $"{integration.Username}:{integration.Password}";
-            var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
-            var authBase64 = Convert.ToBase64String(authBytes);
+            // Authenticate and get Bearer token
+            var token = await AuthenticateAsync(integration);
             
             var request = new HttpRequestMessage(HttpMethod.Post, seriesUrl);
-            request.Headers.Add("Authorization", $"Basic {authBase64}");
+            request.Headers.Add("Authorization", $"Bearer {token}");
             request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
             request.Content = new StringContent(
@@ -808,13 +843,11 @@ public class SasActivationService : ISasActivationService
             var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
-            // Add authentication headers
-            var authString = $"{integration.Username}:{integration.Password}";
-            var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
-            var authBase64 = Convert.ToBase64String(authBytes);
+            // Authenticate and get Bearer token
+            var token = await AuthenticateAsync(integration);
             
             var request = new HttpRequestMessage(HttpMethod.Post, cardUrl);
-            request.Headers.Add("Authorization", $"Basic {authBase64}");
+            request.Headers.Add("Authorization", $"Bearer {token}");
             request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
             request.Content = new StringContent(
