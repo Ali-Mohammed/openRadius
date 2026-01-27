@@ -181,6 +181,34 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "IntegrationWebhooks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    IntegrationName = table.Column<string>(type: "text", nullable: false),
+                    IntegrationType = table.Column<string>(type: "text", nullable: false),
+                    CallbackEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    WebhookToken = table.Column<string>(type: "text", nullable: false),
+                    WebhookUrl = table.Column<string>(type: "text", nullable: false),
+                    RequireAuthentication = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowedIpAddresses = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastUsedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RequestCount = table.Column<int>(type: "integer", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IntegrationWebhooks", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MicroserviceApprovals",
                 columns: table => new
                 {
@@ -281,6 +309,55 @@ namespace Backend.Migrations.ApplicationDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Olts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PaymentLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Gateway = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    TransactionId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ReferenceId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    GatewayTransactionId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Currency = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    RequestData = table.Column<string>(type: "jsonb", nullable: true),
+                    ResponseData = table.Column<string>(type: "jsonb", nullable: true),
+                    CallbackData = table.Column<string>(type: "jsonb", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ServiceType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Environment = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    WalletTransactionId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PaymentLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PaymentMethods",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Settings = table.Column<string>(type: "jsonb", nullable: false),
+                    WalletId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PaymentMethods", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -477,6 +554,12 @@ namespace Backend.Migrations.ApplicationDb
                     MaxItemInPagePerRequest = table.Column<int>(type: "integer", nullable: false),
                     Action = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
+                    SendActivationsToSas = table.Column<bool>(type: "boolean", nullable: false),
+                    ActivationMaxRetries = table.Column<int>(type: "integer", nullable: false),
+                    ActivationRetryDelayMinutes = table.Column<int>(type: "integer", nullable: false),
+                    ActivationUseExponentialBackoff = table.Column<bool>(type: "boolean", nullable: false),
+                    ActivationTimeoutSeconds = table.Column<int>(type: "integer", nullable: false),
+                    ActivationMaxConcurrency = table.Column<int>(type: "integer", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -560,6 +643,30 @@ namespace Backend.Migrations.ApplicationDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_TablePreferences", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WebhookLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebhookId = table.Column<int>(type: "integer", nullable: false),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    Method = table.Column<string>(type: "text", nullable: false),
+                    IpAddress = table.Column<string>(type: "text", nullable: true),
+                    Headers = table.Column<string>(type: "text", nullable: true),
+                    RequestBody = table.Column<string>(type: "text", nullable: true),
+                    StatusCode = table.Column<int>(type: "integer", nullable: false),
+                    ResponseBody = table.Column<string>(type: "text", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
+                    Success = table.Column<bool>(type: "boolean", nullable: false),
+                    ProcessingTimeMs = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WebhookLogs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -698,6 +805,11 @@ namespace Backend.Migrations.ApplicationDb
                     DailySpendingLimit = table.Column<decimal>(type: "numeric", nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
                     AllowNegativeBalance = table.Column<bool>(type: "boolean", nullable: true),
+                    UsesCustomCashbackSetting = table.Column<bool>(type: "boolean", nullable: false),
+                    CustomCashbackType = table.Column<string>(type: "text", nullable: true),
+                    CustomCashbackCollectionSchedule = table.Column<string>(type: "text", nullable: true),
+                    CustomCashbackMinimumCollectionAmount = table.Column<decimal>(type: "numeric", nullable: true),
+                    CustomCashbackRequiresApproval = table.Column<bool>(type: "boolean", nullable: true),
                     CustomWalletColor = table.Column<string>(type: "text", nullable: true),
                     CustomWalletIcon = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -863,6 +975,40 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "SasActivationLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IntegrationId = table.Column<int>(type: "integer", nullable: false),
+                    IntegrationName = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    Username = table.Column<string>(type: "text", nullable: false),
+                    ActivationData = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    RetryCount = table.Column<int>(type: "integer", nullable: false),
+                    MaxRetries = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DurationMs = table.Column<long>(type: "bigint", nullable: false),
+                    ResponseBody = table.Column<string>(type: "text", nullable: true),
+                    ResponseStatusCode = table.Column<int>(type: "integer", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
+                    JobId = table.Column<string>(type: "text", nullable: true),
+                    NextRetryAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SasActivationLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SasActivationLogs_SasRadiusIntegrations_IntegrationId",
+                        column: x => x.IntegrationId,
+                        principalTable: "SasRadiusIntegrations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RadiusUsers",
                 columns: table => new
                 {
@@ -967,6 +1113,7 @@ namespace Backend.Migrations.ApplicationDb
                     AmountType = table.Column<string>(type: "text", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
+                    CashbackStatus = table.Column<string>(type: "text", nullable: true),
                     WalletType = table.Column<string>(type: "text", nullable: false),
                     CustomWalletId = table.Column<int>(type: "integer", nullable: true),
                     UserWalletId = table.Column<int>(type: "integer", nullable: true),
@@ -984,6 +1131,7 @@ namespace Backend.Migrations.ApplicationDb
                     Reference = table.Column<string>(type: "text", nullable: true),
                     PaymentMethod = table.Column<string>(type: "text", nullable: true),
                     RelatedTransactionId = table.Column<int>(type: "integer", nullable: true),
+                    TransactionGroupId = table.Column<Guid>(type: "uuid", nullable: true),
                     ActivationId = table.Column<int>(type: "integer", nullable: true),
                     BillingActivationId = table.Column<int>(type: "integer", nullable: true),
                     Metadata = table.Column<string>(type: "text", nullable: true),
@@ -1217,6 +1365,35 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "SubAgentCashbacks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SupervisorId = table.Column<int>(type: "integer", nullable: false),
+                    SubAgentId = table.Column<int>(type: "integer", nullable: false),
+                    BillingProfileId = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubAgentCashbacks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SubAgentCashbacks_BillingProfiles_BillingProfileId",
+                        column: x => x.BillingProfileId,
+                        principalTable: "BillingProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserCashbacks",
                 columns: table => new
                 {
@@ -1327,6 +1504,61 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "BillingActivations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BillingProfileId = table.Column<int>(type: "integer", nullable: true),
+                    BillingProfileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    RadiusUserId = table.Column<int>(type: "integer", nullable: false),
+                    RadiusUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    ActionById = table.Column<int>(type: "integer", nullable: true),
+                    ActionByUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    ActionForId = table.Column<int>(type: "integer", nullable: true),
+                    ActionForUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsActionBehalf = table.Column<bool>(type: "boolean", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    CashbackAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    ActivationType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ActivationStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    PaymentMethod = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    PreviousExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    NewExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DurationDays = table.Column<int>(type: "integer", nullable: true),
+                    RadiusProfileId = table.Column<int>(type: "integer", nullable: true),
+                    RadiusProfileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    TransactionId = table.Column<int>(type: "integer", nullable: true),
+                    Source = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IpAddress = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    WalletDistribution = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProcessingStartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessingCompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BillingActivations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BillingActivations_BillingProfiles_BillingProfileId",
+                        column: x => x.BillingProfileId,
+                        principalTable: "BillingProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_BillingActivations_Transactions_TransactionId",
+                        column: x => x.TransactionId,
+                        principalTable: "Transactions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TransactionComments",
                 columns: table => new
                 {
@@ -1409,85 +1641,6 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
-                name: "FatPorts",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FatId = table.Column<Guid>(type: "uuid", nullable: false),
-                    PortNumber = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    SubscriberId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FatPorts", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_FatPorts_Fats_FatId",
-                        column: x => x.FatId,
-                        principalTable: "Fats",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "BillingActivations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RadiusActivationId = table.Column<int>(type: "integer", nullable: true),
-                    BillingProfileId = table.Column<int>(type: "integer", nullable: true),
-                    BillingProfileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    RadiusUserId = table.Column<int>(type: "integer", nullable: false),
-                    RadiusUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    ActionById = table.Column<int>(type: "integer", nullable: true),
-                    ActionByUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    ActionForId = table.Column<int>(type: "integer", nullable: true),
-                    ActionForUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    IsActionBehalf = table.Column<bool>(type: "boolean", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    CashbackAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    ActivationType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ActivationStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    PaymentMethod = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    PreviousExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    NewExpireDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DurationDays = table.Column<int>(type: "integer", nullable: true),
-                    RadiusProfileId = table.Column<int>(type: "integer", nullable: true),
-                    RadiusProfileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    TransactionId = table.Column<int>(type: "integer", nullable: true),
-                    Source = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    IpAddress = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    WalletDistribution = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ProcessingStartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ProcessingCompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BillingActivations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BillingActivations_BillingProfiles_BillingProfileId",
-                        column: x => x.BillingProfileId,
-                        principalTable: "BillingProfiles",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BillingActivations_Transactions_TransactionId",
-                        column: x => x.TransactionId,
-                        principalTable: "Transactions",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "RadiusActivations",
                 columns: table => new
                 {
@@ -1498,7 +1651,7 @@ namespace Backend.Migrations.ApplicationDb
                     ActionForId = table.Column<int>(type: "integer", nullable: true),
                     ActionForUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     IsActionBehalf = table.Column<bool>(type: "boolean", nullable: false),
-                    BillingActivationId = table.Column<int>(type: "integer", nullable: true),
+                    BillingActivationId = table.Column<int>(type: "integer", nullable: false),
                     RadiusUserId = table.Column<int>(type: "integer", nullable: false),
                     RadiusUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     PreviousRadiusProfileId = table.Column<int>(type: "integer", nullable: true),
@@ -1542,7 +1695,8 @@ namespace Backend.Migrations.ApplicationDb
                         name: "FK_RadiusActivations_BillingActivations_BillingActivationId",
                         column: x => x.BillingActivationId,
                         principalTable: "BillingActivations",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RadiusActivations_BillingProfiles_BillingProfileId",
                         column: x => x.BillingProfileId,
@@ -1575,10 +1729,50 @@ namespace Backend.Migrations.ApplicationDb
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "FatPorts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    FatId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PortNumber = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SubscriberId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FatPorts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_FatPorts_Fats_FatId",
+                        column: x => x.FatId,
+                        principalTable: "Fats",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Addons_CustomWalletId",
                 table: "Addons",
                 column: "CustomWalletId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BillingActivations_ActionById",
+                table: "BillingActivations",
+                column: "ActionById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BillingActivations_ActivationStatus",
+                table: "BillingActivations",
+                column: "ActivationStatus");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BillingActivations_ActivationType",
+                table: "BillingActivations",
+                column: "ActivationType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BillingActivations_BillingProfileId",
@@ -1586,9 +1780,19 @@ namespace Backend.Migrations.ApplicationDb
                 column: "BillingProfileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BillingActivations_RadiusActivationId",
+                name: "IX_BillingActivations_CreatedAt",
                 table: "BillingActivations",
-                column: "RadiusActivationId");
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BillingActivations_RadiusUserId",
+                table: "BillingActivations",
+                column: "RadiusUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BillingActivations_RadiusUserId_CreatedAt",
+                table: "BillingActivations",
+                columns: new[] { "RadiusUserId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_BillingActivations_TransactionId",
@@ -1868,6 +2072,38 @@ namespace Backend.Migrations.ApplicationDb
                 column: "RadiusTagId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SasActivationLogs_IntegrationId",
+                table: "SasActivationLogs",
+                column: "IntegrationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubAgentCashbacks_BillingProfileId",
+                table: "SubAgentCashbacks",
+                column: "BillingProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubAgentCashbacks_DeletedAt",
+                table: "SubAgentCashbacks",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubAgentCashbacks_SubAgentId",
+                table: "SubAgentCashbacks",
+                column: "SubAgentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubAgentCashbacks_SupervisorId",
+                table: "SubAgentCashbacks",
+                column: "SupervisorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubAgentCashbacks_SupervisorId_SubAgentId_BillingProfileId",
+                table: "SubAgentCashbacks",
+                columns: new[] { "SupervisorId", "SubAgentId", "BillingProfileId" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TablePreferences_UserId_TableName",
                 table: "TablePreferences",
                 columns: new[] { "UserId", "TableName" },
@@ -1899,6 +2135,11 @@ namespace Backend.Migrations.ApplicationDb
                 column: "TransactionId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Transactions_CashbackStatus",
+                table: "Transactions",
+                column: "CashbackStatus");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_CreatedAt",
                 table: "Transactions",
                 column: "CreatedAt");
@@ -1909,6 +2150,11 @@ namespace Backend.Migrations.ApplicationDb
                 column: "CustomWalletId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Transactions_DeletedAt",
+                table: "Transactions",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_RelatedTransactionId",
                 table: "Transactions",
                 column: "RelatedTransactionId");
@@ -1917,6 +2163,11 @@ namespace Backend.Migrations.ApplicationDb
                 name: "IX_Transactions_Status",
                 table: "Transactions",
                 column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_TransactionGroupId",
+                table: "Transactions",
+                column: "TransactionGroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_TransactionType",
@@ -1937,6 +2188,11 @@ namespace Backend.Migrations.ApplicationDb
                 name: "IX_Transactions_WalletType",
                 table: "Transactions",
                 column: "WalletType");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_WalletType_TransactionType_CashbackStatus_Dele~",
+                table: "Transactions",
+                columns: new[] { "WalletType", "TransactionType", "CashbackStatus", "DeletedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserCashbacks_BillingProfileId",
@@ -2020,42 +2276,11 @@ namespace Backend.Migrations.ApplicationDb
                 name: "IX_Zones_ParentZoneId",
                 table: "Zones",
                 column: "ParentZoneId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_BillingActivations_RadiusActivations_RadiusActivationId",
-                table: "BillingActivations",
-                column: "RadiusActivationId",
-                principalTable: "RadiusActivations",
-                principalColumn: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_CustomWallets_CustomWalletId",
-                table: "Transactions");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserWallets_CustomWallets_CustomWalletId",
-                table: "UserWallets");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_BillingActivations_BillingProfiles_BillingProfileId",
-                table: "BillingActivations");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_RadiusActivations_BillingProfiles_BillingProfileId",
-                table: "RadiusActivations");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_RadiusActivations_BillingProfiles_PreviousBillingProfileId",
-                table: "RadiusActivations");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_BillingActivations_RadiusActivations_RadiusActivationId",
-                table: "BillingActivations");
-
             migrationBuilder.DropTable(
                 name: "Addons");
 
@@ -2090,16 +2315,28 @@ namespace Backend.Migrations.ApplicationDb
                 name: "FatPorts");
 
             migrationBuilder.DropTable(
+                name: "IntegrationWebhooks");
+
+            migrationBuilder.DropTable(
                 name: "MicroserviceApprovals");
 
             migrationBuilder.DropTable(
                 name: "OltDevices");
 
             migrationBuilder.DropTable(
+                name: "PaymentLogs");
+
+            migrationBuilder.DropTable(
+                name: "PaymentMethods");
+
+            migrationBuilder.DropTable(
                 name: "radacct");
 
             migrationBuilder.DropTable(
                 name: "radius_ip_pools");
+
+            migrationBuilder.DropTable(
+                name: "RadiusActivations");
 
             migrationBuilder.DropTable(
                 name: "RadiusCustomAttributes");
@@ -2117,7 +2354,10 @@ namespace Backend.Migrations.ApplicationDb
                 name: "RadiusUserTags");
 
             migrationBuilder.DropTable(
-                name: "SasRadiusIntegrations");
+                name: "SasActivationLogs");
+
+            migrationBuilder.DropTable(
+                name: "SubAgentCashbacks");
 
             migrationBuilder.DropTable(
                 name: "SyncProgresses");
@@ -2141,6 +2381,9 @@ namespace Backend.Migrations.ApplicationDb
                 name: "WalletHistories");
 
             migrationBuilder.DropTable(
+                name: "WebhookLogs");
+
+            migrationBuilder.DropTable(
                 name: "WorkflowHistories");
 
             migrationBuilder.DropTable(
@@ -2153,7 +2396,16 @@ namespace Backend.Migrations.ApplicationDb
                 name: "Fats");
 
             migrationBuilder.DropTable(
+                name: "BillingActivations");
+
+            migrationBuilder.DropTable(
                 name: "RadiusTags");
+
+            migrationBuilder.DropTable(
+                name: "RadiusUsers");
+
+            migrationBuilder.DropTable(
+                name: "SasRadiusIntegrations");
 
             migrationBuilder.DropTable(
                 name: "Automations");
@@ -2165,28 +2417,7 @@ namespace Backend.Migrations.ApplicationDb
                 name: "Fdts");
 
             migrationBuilder.DropTable(
-                name: "PonPorts");
-
-            migrationBuilder.DropTable(
-                name: "Olts");
-
-            migrationBuilder.DropTable(
-                name: "CustomWallets");
-
-            migrationBuilder.DropTable(
                 name: "BillingProfiles");
-
-            migrationBuilder.DropTable(
-                name: "BillingGroups");
-
-            migrationBuilder.DropTable(
-                name: "RadiusActivations");
-
-            migrationBuilder.DropTable(
-                name: "BillingActivations");
-
-            migrationBuilder.DropTable(
-                name: "RadiusUsers");
 
             migrationBuilder.DropTable(
                 name: "Transactions");
@@ -2195,13 +2426,25 @@ namespace Backend.Migrations.ApplicationDb
                 name: "RadiusGroups");
 
             migrationBuilder.DropTable(
-                name: "RadiusProfiles");
-
-            migrationBuilder.DropTable(
                 name: "Zones");
 
             migrationBuilder.DropTable(
+                name: "PonPorts");
+
+            migrationBuilder.DropTable(
+                name: "BillingGroups");
+
+            migrationBuilder.DropTable(
+                name: "RadiusProfiles");
+
+            migrationBuilder.DropTable(
                 name: "UserWallets");
+
+            migrationBuilder.DropTable(
+                name: "Olts");
+
+            migrationBuilder.DropTable(
+                name: "CustomWallets");
         }
     }
 }

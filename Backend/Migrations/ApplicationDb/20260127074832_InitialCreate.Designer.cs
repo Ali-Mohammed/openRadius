@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.ApplicationDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260126053010_AddPaymentLogs")]
-    partial class AddPaymentLogs
+    [Migration("20260127074832_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1241,6 +1241,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("WalletId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("PaymentMethods");
@@ -1557,6 +1560,10 @@ namespace Backend.Migrations.ApplicationDb
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<string>("Environment")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1565,6 +1572,10 @@ namespace Backend.Migrations.ApplicationDb
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("GatewayTransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("ReferenceId")
                         .HasMaxLength(100)
@@ -2591,6 +2602,72 @@ namespace Backend.Migrations.ApplicationDb
                     b.ToTable("RadiusUserTags");
                 });
 
+            modelBuilder.Entity("Backend.Models.SasActivationLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActivationData")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<int>("IntegrationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IntegrationName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("JobId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NextRetryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResponseBody")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ResponseStatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntegrationId");
+
+                    b.ToTable("SasActivationLogs");
+                });
+
             modelBuilder.Entity("Backend.Models.SasRadiusIntegration", b =>
                 {
                     b.Property<int>("Id")
@@ -2601,6 +2678,21 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<string>("Action")
                         .HasColumnType("text");
+
+                    b.Property<int>("ActivationMaxConcurrency")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ActivationMaxRetries")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ActivationRetryDelayMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ActivationTimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ActivationUseExponentialBackoff")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2627,6 +2719,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("SendActivationsToSas")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -3802,6 +3897,17 @@ namespace Backend.Migrations.ApplicationDb
                     b.Navigation("RadiusTag");
 
                     b.Navigation("RadiusUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.SasActivationLog", b =>
+                {
+                    b.HasOne("Backend.Models.SasRadiusIntegration", "Integration")
+                        .WithMany()
+                        .HasForeignKey("IntegrationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Integration");
                 });
 
             modelBuilder.Entity("Backend.Models.SubAgentCashback", b =>
