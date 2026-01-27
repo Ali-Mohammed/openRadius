@@ -1316,7 +1316,7 @@ public class RadiusActivationController : ControllerBase
                         createdAt = activation.CreatedAt
                     };
 
-                    await _sasActivationService.EnqueueActivationAsync(
+                    _= _sasActivationService.EnqueueActivationAsync(
                         activeIntegration.Id,
                         activeIntegration.Name,
                         radiusUser.Id,

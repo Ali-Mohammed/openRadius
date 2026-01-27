@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { DollarSign, Save } from 'lucide-react'
+import { DollarSign, Save, ExternalLink, Activity, Briefcase } from 'lucide-react'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
+import { Separator } from '@/components/ui/separator'
 
 interface CompanyInfoTabProps {
   currency: string
@@ -108,6 +109,47 @@ export default function CompanyInfoTab({
             </div>
           </RadioGroup>
         </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Development Tools</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Access logging and background job monitoring tools
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            <Button
+              variant="outline"
+              className="justify-start"
+              onClick={() => window.open('http://localhost:5341', '_blank')}
+            >
+              <Activity className="mr-2 h-4 w-4" />
+              Seq Logs
+              <ExternalLink className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+            <p className="text-sm text-muted-foreground -mt-2 ml-10">
+              View structured application logs and diagnostics
+            </p>
+
+            <Button
+              variant="outline"
+              className="justify-start"
+              onClick={() => window.open('http://localhost:5000/hangfire', '_blank')}
+            >
+              <Briefcase className="mr-2 h-4 w-4" />
+              Hangfire Dashboard
+              <ExternalLink className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+            <p className="text-sm text-muted-foreground -mt-2 ml-10">
+              Monitor and manage background jobs and scheduled tasks
+            </p>
+          </div>
+        </div>
+
+        <Separator />
 
         <Button onClick={handleSave} disabled={updateMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
