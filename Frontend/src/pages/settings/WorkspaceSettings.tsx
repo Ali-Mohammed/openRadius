@@ -764,6 +764,17 @@ export default function WorkspaceSettings() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  setSelectedIntegrationForLogs(integration)
+                                  setIsActivationLogsDialogOpen(true)
+                                }}
+                                title="View Activation Logs"
+                              >
+                                <Activity className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={async () => {
                                   if (!currentWorkspaceId) {
                                     toast.error('No workspace selected')
@@ -1351,6 +1362,16 @@ export default function WorkspaceSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Activation Logs Dialog */}
+      {selectedIntegrationForLogs && (
+        <ActivationLogsDialog
+          open={isActivationLogsDialogOpen}
+          onOpenChange={setIsActivationLogsDialogOpen}
+          integrationId={selectedIntegrationForLogs.id}
+          integrationName={selectedIntegrationForLogs.name}
+        />
+      )}
         </TabsContent>
       </Tabs>
     </div>
