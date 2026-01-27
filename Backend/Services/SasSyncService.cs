@@ -1491,7 +1491,7 @@ public class SasSyncService : ISasSyncService
                                     Street = sasUser.Street,
                                     SiteId = sasUser.SiteId,
                                     PinTries = sasUser.PinTries,
-                                    RemainingDays = sasUser.RemainingDays,
+                                    RemainingDays = sasUser.RemainingDays ?? 0,
                                     OnlineStatus = sasUser.OnlineStatus,
                                     UsedTraffic = sasUser.UsedTraffic,
                                     AvailableTraffic = sasUser.AvailableTraffic,
@@ -1593,7 +1593,7 @@ public class SasSyncService : ISasSyncService
                                 existingUser.Street = sasUser.Street;
                                 existingUser.SiteId = sasUser.SiteId;
                                 existingUser.PinTries = sasUser.PinTries;
-                                existingUser.RemainingDays = sasUser.RemainingDays;
+                                existingUser.RemainingDays = sasUser.RemainingDays ?? 0;
                                 existingUser.OnlineStatus = sasUser.OnlineStatus;
                                 existingUser.UsedTraffic = sasUser.UsedTraffic;
                                 existingUser.AvailableTraffic = sasUser.AvailableTraffic;

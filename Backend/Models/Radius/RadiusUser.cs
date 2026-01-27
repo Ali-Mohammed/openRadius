@@ -142,7 +142,7 @@ namespace Backend.Models
         public int NRow { get; set; }
 
         [JsonPropertyName("remaining_days")]
-        public int RemainingDays { get; set; }
+        public int? RemainingDays { get; set; }
 
         [JsonPropertyName("status")]
         public SasUserStatus? Status { get; set; }
