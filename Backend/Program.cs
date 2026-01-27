@@ -365,6 +365,7 @@ using (var scope = app.Services.CreateScope())
     // Each workspace has jobs stored in its own database, so we need one server per workspace
     app.Services.GetRequiredService<IServiceProvider>().GetService<IRecurringJobManager>();
     
+    var hangfireServers = new List<BackgroundJobServer>();
     foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
     {
         try
@@ -389,12 +390,14 @@ using (var scope = app.Services.CreateScope())
             {
                 WorkerCount = Math.Max(2, Environment.ProcessorCount / workspaces.Count),
                 ServerName = $"OpenRadius-{Environment.MachineName}-W{workspace.Id}",
-                Queues = workspaceQueues,
-                Storage = storage  // Specify storage for this server
+                Queues = workspaceQueues
             };
             
             Console.WriteLine($"🔄 Starting Hangfire server for workspace {workspace.Id} with {workspaceQueues.Length} queues: {string.Join(", ", workspaceQueues)}");
-            app.UseHangfireServer(serverOptions);
+            
+            // Create and start a background job server for this workspace
+            var server = new BackgroundJobServer(serverOptions, storage);
+            hangfireServers.Add(server);
         }
         catch (Exception ex)
         {
