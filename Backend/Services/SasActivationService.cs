@@ -761,6 +761,8 @@ public class SasActivationService : ISasActivationService
             var response = await httpClient.SendAsync(request);
             var responseBody = await response.Content.ReadAsStringAsync();
             
+            _logger.LogInformation($"📥 Card series response: Status={response.StatusCode}, Body={responseBody}");
+            
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError($"Failed to fetch card series: {response.StatusCode} - {responseBody}");
