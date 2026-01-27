@@ -450,27 +450,33 @@ app.UseAuthorization();
 
 // Configure Hangfire Dashboard with authentication
 // Create a dashboard for each workspace so you can view workspace-specific jobs
-foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
+using (var scope = app.Services.CreateScope())
 {
-    var workspaceConnection = GetTenantConnectionString(
-        builder.Configuration.GetConnectionString("DefaultConnection")!,
-        workspace.Id
-    );
-    var workspaceStorage = new PostgreSqlStorage(workspaceConnection, new PostgreSqlStorageOptions
-    {
-        SchemaName = "hangfire"
-    });
+    var masterContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+    var activeWorkspaces = masterContext.Workspaces.Where(w => w.DeletedAt == null).ToList();
     
-    // Create a route for each workspace: /hangfire/workspace/1, /hangfire/workspace/2, etc.
-    app.UseHangfireDashboard($"/hangfire/workspace/{workspace.Id}", new DashboardOptions
+    foreach (var workspace in activeWorkspaces)
     {
-        Authorization = new[] { new HangfireAuthorizationFilter() },
-        DashboardTitle = $"OpenRadius Jobs - {workspace.Name ?? workspace.Title} (Workspace {workspace.Id})",
-        DisplayStorageConnectionString = false,
-        AppPath = null
-    }, workspaceStorage);
-    
-    Console.WriteLine($"📊 Hangfire dashboard available at: /hangfire/workspace/{workspace.Id} ({workspace.Name ?? workspace.Title})");
+        var workspaceConnection = GetTenantConnectionString(
+            builder.Configuration.GetConnectionString("DefaultConnection")!,
+            workspace.Id
+        );
+        var workspaceStorage = new PostgreSqlStorage(workspaceConnection, new PostgreSqlStorageOptions
+        {
+            SchemaName = "hangfire"
+        });
+        
+        // Create a route for each workspace: /hangfire/workspace/1, /hangfire/workspace/2, etc.
+        app.UseHangfireDashboard($"/hangfire/workspace/{workspace.Id}", new DashboardOptions
+        {
+            Authorization = new[] { new HangfireAuthorizationFilter() },
+            DashboardTitle = $"OpenRadius Jobs - {workspace.Name ?? workspace.Title} (Workspace {workspace.Id})",
+            DisplayStorageConnectionString = false,
+            AppPath = null
+        }, workspaceStorage);
+        
+        Console.WriteLine($"📊 Hangfire dashboard available at: /hangfire/workspace/{workspace.Id} ({workspace.Name ?? workspace.Title})");
+    }
 }
 
 // Also create a default dashboard pointing to workspace 1 for convenience
