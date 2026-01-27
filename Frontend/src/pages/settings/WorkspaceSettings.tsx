@@ -1341,7 +1341,7 @@ export default function WorkspaceSettings() {
                       max="50"
                       value={selectedIntegrationForWebhook?.activationMaxConcurrency ?? 1}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1;
+                        const value = Math.max(1, Math.min(50, parseInt(e.target.value) || 1));
                         setSelectedIntegrationForWebhook({ 
                           ...selectedIntegrationForWebhook!, 
                           activationMaxConcurrency: value 
@@ -1363,9 +1363,9 @@ export default function WorkspaceSettings() {
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {selectedIntegrationForWebhook?.activationMaxConcurrency === 1 
+                      {(selectedIntegrationForWebhook?.activationMaxConcurrency ?? 1) === 1 
                         ? 'Sequential: Process one activation at a time' 
-                        : `Parallel: Process up to ${selectedIntegrationForWebhook?.activationMaxConcurrency} activations simultaneously`}
+                        : `Parallel: Process up to ${selectedIntegrationForWebhook?.activationMaxConcurrency ?? 1} activations simultaneously`}
                     </p>
                   </div>
 
