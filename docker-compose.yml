@@ -154,6 +154,24 @@ services:
     networks:
       - openradius-network
 
+  cloudflared:
+    image: cloudflare/cloudflared:2026.1.1
+    container_name: openradius-cloudflared
+    command:
+      - tunnel
+      - --config
+      - /etc/cloudflared/config.yml
+      - run
+      - openradius
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+    networks:
+      - openradius-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   seq_data:

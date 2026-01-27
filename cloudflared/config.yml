@@ -1,0 +1,7 @@
+tunnel: 1598e77b-1d35-4029-b285-b1530cf420ed
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: r-b.mytest123.com
+    service: http://host.docker.internal:5000
+  - service: http_status:404
