@@ -6,7 +6,7 @@ import {
   DialogDescription, 
   DialogHeader, 
   DialogTitle 
-} from '../../components/ui/dialog';
+} from './ui/dialog';
 import { 
   Table,
   TableBody,
@@ -14,16 +14,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../components/ui/table';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
+} from './ui/table';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/ui/select';
+} from './ui/select';
 import { sasActivationsApi } from '../../api/sasActivationsApi';
 import { ActivationStatus, type SasActivationLog } from '../../types/sasActivation';
 import { formatDistance } from 'date-fns';

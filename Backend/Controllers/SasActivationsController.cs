@@ -124,6 +124,84 @@ public class SasActivationsController : ControllerBase
         }
     }
     
+    /// <summary>
+    /// Batch enqueue multiple activations for better performance
+    /// </summary>
+    [HttpPost("batch/{integrationId}")]
+    public async Task<IActionResult> BatchEnqueueActivations(int integrationId, [FromBody] BatchActivationRequest request)
+    {
+        try
+        {
+            var activations = request.Activations.Select(a => (a.UserId, a.Username, (object)a.Data)).ToList();
+            
+            var jobIds = await _activationService.EnqueueBatchActivationsAsync(
+                integrationId,
+                request.IntegrationName,
+                activations);
+            
+            return Ok(new { 
+                jobIds, 
+                count = jobIds.Count,
+                message = $"Enqueued {jobIds.Count} activations successfully" 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to enqueue batch activations");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+    
+    /// <summary>
+    /// Get activation metrics for monitoring
+    /// </summary>
+    [HttpGet("{integrationId}/metrics")]
+    public async Task<IActionResult> GetMetrics(int integrationId, [FromQuery] string? fromDate = null)
+    {
+        try
+        {
+            DateTime? parsedDate = null;
+            
+            if (!string.IsNullOrEmpty(fromDate))
+            {
+                parsedDate = ParseRelativeDate(fromDate);
+            }
+            
+            var metrics = await _activationService.GetMetricsAsync(integrationId, parsedDate);
+            
+            return Ok(metrics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to get metrics for integration {integrationId}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+    
+    /// <summary>
+    /// Check integration health status (circuit breaker pattern)
+    /// </summary>
+    [HttpGet("{integrationId}/health")]
+    public async Task<IActionResult> GetHealth(int integrationId)
+    {
+        try
+        {
+            var isHealthy = await _activationService.IsIntegrationHealthyAsync(integrationId);
+            
+            return Ok(new { 
+                integrationId,
+                isHealthy,
+                status = isHealthy ? "healthy" : "unhealthy",
+                timestamp = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to check health for integration {integrationId}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+    
     private DateTime? ParseRelativeDate(string dateStr)
     {
         var now = DateTime.UtcNow;
@@ -160,5 +238,18 @@ public class TestActivationRequest
     public int UserId { get; set; }
     public string? Username { get; set; }
     public string? IntegrationName { get; set; }
+    public object? Data { get; set; }
+}
+
+public class BatchActivationRequest
+{
+    public required string IntegrationName { get; set; }
+    public required List<ActivationItem> Activations { get; set; }
+}
+
+public class ActivationItem
+{
+    public int UserId { get; set; }
+    public required string Username { get; set; }
     public object? Data { get; set; }
 }
