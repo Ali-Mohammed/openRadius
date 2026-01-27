@@ -102,6 +102,37 @@ public class WorkspaceJobService : IWorkspaceJobService
         return client.Enqueue(methodCall);
     }
     
+    public string Enqueue<T>(System.Linq.Expressions.Expression<Action<T>> methodCall, string queueName)
+    {
+        var client = GetWorkspaceJobClient();
+        
+        _logger.LogInformation($"Enqueuing job for queue: {queueName}");
+        
+        return client.Create(methodCall, new EnqueuedState(queueName));
+    }
+    
+    public string GetIntegrationQueue(int integrationId, int maxConcurrency)
+    {
+        var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+        if (tenantInfo == null)
+        {
+            throw new InvalidOperationException("No tenant context available");
+        }
+        
+        // For sequential processing (maxConcurrency=1), use integration-specific queue
+        // For parallel processing, use workspace queue to allow concurrent jobs
+        if (maxConcurrency == 1)
+        {
+            return $"workspace_{tenantInfo.WorkspaceId}_integration_{integrationId}";
+        }
+        else
+        {
+            // Use workspace queue for parallel processing
+            // Hangfire worker count will limit actual concurrency
+            return $"workspace_{tenantInfo.WorkspaceId}";
+        }
+    }
+    
     public string Schedule<T>(System.Linq.Expressions.Expression<Action<T>> methodCall, TimeSpan delay)
     {
         var client = GetWorkspaceJobClient();
