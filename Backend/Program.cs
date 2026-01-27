@@ -361,17 +361,46 @@ using (var scope = app.Services.CreateScope())
         }
     }
     
-    // Start Hangfire server with dynamically discovered queues
+    // Start Hangfire servers for each workspace database
+    // Each workspace has jobs stored in its own database, so we need one server per workspace
     app.Services.GetRequiredService<IServiceProvider>().GetService<IRecurringJobManager>();
-    var hangfireOptions = new BackgroundJobServerOptions
-    {
-        WorkerCount = Environment.ProcessorCount * 2,
-        ServerName = $"OpenRadius-{Environment.MachineName}",
-        Queues = queues.ToArray()
-    };
     
-    Console.WriteLine($"🔄 Starting Hangfire server with {queues.Count} queues: {string.Join(", ", queues.Take(10))}{(queues.Count > 10 ? "..." : "")}");
-    app.UseHangfireServer(hangfireOptions);
+    foreach (var workspace in workspaces)
+    {
+        try
+        {
+            var tenantConnectionString = GetTenantConnectionString(
+                builder.Configuration.GetConnectionString("DefaultConnection")!,
+                workspace.Id
+            );
+            
+            // Create workspace-specific storage
+            var storage = new PostgreSqlStorage(tenantConnectionString, new PostgreSqlStorageOptions
+            {
+                SchemaName = "hangfire"
+            });
+            
+            // Get queues for this workspace
+            var workspaceQueues = queues
+                .Where(q => q.StartsWith($"workspace_{workspace.Id}") || q == "default")
+                .ToArray();
+            
+            var serverOptions = new BackgroundJobServerOptions
+            {
+                WorkerCount = Math.Max(2, Environment.ProcessorCount / workspaces.Count),
+                ServerName = $"OpenRadius-{Environment.MachineName}-W{workspace.Id}",
+                Queues = workspaceQueues,
+                Storage = storage  // Specify storage for this server
+            };
+            
+            Console.WriteLine($"🔄 Starting Hangfire server for workspace {workspace.Id} with {workspaceQueues.Length} queues: {string.Join(", ", workspaceQueues)}");
+            app.UseHangfireServer(serverOptions);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"✗ Failed to start Hangfire server for workspace {workspace.Id}: {ex.Message}");
+        }
+    }
 }
 
 static string GetTenantConnectionString(string baseConnectionString, int WorkspaceId)
