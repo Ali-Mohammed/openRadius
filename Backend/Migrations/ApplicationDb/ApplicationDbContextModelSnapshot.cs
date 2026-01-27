@@ -74,7 +74,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("CustomWalletId");
 
-                    b.ToTable("Addons");
+                    b.ToTable("Addons", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Automation", b =>
@@ -131,7 +131,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("Automations");
+                    b.ToTable("Automations", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BillingActivation", b =>
@@ -265,7 +265,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("RadiusUserId", "CreatedAt");
 
-                    b.ToTable("BillingActivations");
+                    b.ToTable("BillingActivations", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BillingGroup", b =>
@@ -319,7 +319,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("Name");
 
-                    b.ToTable("BillingGroups");
+                    b.ToTable("BillingGroups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BillingGroupUser", b =>
@@ -340,7 +340,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("BillingGroupUser");
+                    b.ToTable("BillingGroupUser", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BillingProfile", b =>
@@ -399,7 +399,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("RadiusProfileId");
 
-                    b.ToTable("BillingProfiles");
+                    b.ToTable("BillingProfiles", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BillingProfileAddon", b =>
@@ -430,7 +430,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("BillingProfileId");
 
-                    b.ToTable("BillingProfileAddons");
+                    b.ToTable("BillingProfileAddons", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.BillingProfileWallet", b =>
@@ -477,7 +477,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("UserWalletId");
 
-                    b.ToTable("BillingProfileWallets");
+                    b.ToTable("BillingProfileWallets", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.CashbackGroup", b =>
@@ -521,7 +521,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("Name");
 
-                    b.ToTable("CashbackGroups");
+                    b.ToTable("CashbackGroups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.CashbackGroupUser", b =>
@@ -539,7 +539,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CashbackGroupUsers");
+                    b.ToTable("CashbackGroupUsers", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.CashbackProfileAmount", b =>
@@ -583,7 +583,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("CashbackGroupId", "BillingProfileId");
 
-                    b.ToTable("CashbackProfileAmounts");
+                    b.ToTable("CashbackProfileAmounts", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.CustomWallet", b =>
@@ -665,7 +665,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("Type");
 
-                    b.ToTable("CustomWallets");
+                    b.ToTable("CustomWallets", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Dashboard", b =>
@@ -712,7 +712,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("Dashboards");
+                    b.ToTable("Dashboards", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.DashboardGlobalFilter", b =>
@@ -758,7 +758,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("DashboardId");
 
-                    b.ToTable("DashboardGlobalFilters");
+                    b.ToTable("DashboardGlobalFilters", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.DashboardItem", b =>
@@ -811,7 +811,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("TabId");
 
-                    b.ToTable("DashboardItems");
+                    b.ToTable("DashboardItems", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.DashboardTab", b =>
@@ -840,7 +840,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("DashboardId");
 
-                    b.ToTable("DashboardTabs");
+                    b.ToTable("DashboardTabs", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.DebeziumConnector", b =>
@@ -917,7 +917,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("DebeziumConnectors");
+                    b.ToTable("DebeziumConnectors", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.DebeziumSettings", b =>
@@ -949,7 +949,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("DebeziumSettings");
+                    b.ToTable("DebeziumSettings", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Fat", b =>
@@ -1022,7 +1022,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("FdtId");
 
-                    b.ToTable("Fats");
+                    b.ToTable("Fats", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.FatPort", b =>
@@ -1061,7 +1061,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("FatId");
 
-                    b.ToTable("FatPorts");
+                    b.ToTable("FatPorts", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Fdt", b =>
@@ -1139,7 +1139,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("PonPortId");
 
-                    b.ToTable("Fdts");
+                    b.ToTable("Fdts", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.IntegrationWebhook", b =>
@@ -1204,7 +1204,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("IntegrationWebhooks");
+                    b.ToTable("IntegrationWebhooks", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Management.PaymentMethod", b =>
@@ -1243,7 +1243,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("PaymentMethods");
+                    b.ToTable("PaymentMethods", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.MicroserviceApproval", b =>
@@ -1299,7 +1299,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("MicroserviceApprovals");
+                    b.ToTable("MicroserviceApprovals", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Olt", b =>
@@ -1491,7 +1491,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("Olts");
+                    b.ToTable("Olts", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.OltDevice", b =>
@@ -1529,7 +1529,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("OltDevices");
+                    b.ToTable("OltDevices", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Payments.PaymentLog", b =>
@@ -1609,7 +1609,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("PaymentLogs");
+                    b.ToTable("PaymentLogs", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.PonPort", b =>
@@ -1659,7 +1659,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("OltId");
 
-                    b.ToTable("PonPorts");
+                    b.ToTable("PonPorts", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusAccounting", b =>
@@ -1785,7 +1785,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("RadAcctId");
 
-                    b.ToTable("radacct");
+                    b.ToTable("radacct", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusActivation", b =>
@@ -1958,7 +1958,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("RadiusUserId", "CreatedAt");
 
-                    b.ToTable("RadiusActivations");
+                    b.ToTable("RadiusActivations", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusCustomAttribute", b =>
@@ -2011,7 +2011,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("RadiusUserId");
 
-                    b.ToTable("RadiusCustomAttributes");
+                    b.ToTable("RadiusCustomAttributes", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusGroup", b =>
@@ -2066,7 +2066,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("RadiusGroups");
+                    b.ToTable("RadiusGroups", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusIpPool", b =>
@@ -2116,7 +2116,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("Name");
 
-                    b.ToTable("radius_ip_pools");
+                    b.ToTable("radius_ip_pools", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusIpReservation", b =>
@@ -2163,7 +2163,7 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasIndex("RadiusUserId", "DeletedAt")
                         .HasFilter("\"DeletedAt\" IS NULL");
 
-                    b.ToTable("RadiusIpReservations");
+                    b.ToTable("RadiusIpReservations", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusNas", b =>
@@ -2267,7 +2267,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("Shortname");
 
-                    b.ToTable("RadiusNasDevices");
+                    b.ToTable("RadiusNasDevices", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusProfile", b =>
@@ -2352,7 +2352,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("RadiusProfiles");
+                    b.ToTable("RadiusProfiles", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusProfileWallet", b =>
@@ -2384,7 +2384,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("RadiusProfileId");
 
-                    b.ToTable("RadiusProfileWallets");
+                    b.ToTable("RadiusProfileWallets", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusTag", b =>
@@ -2427,7 +2427,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("Title");
 
-                    b.ToTable("RadiusTags");
+                    b.ToTable("RadiusTags", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusUser", b =>
@@ -2578,7 +2578,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("ZoneId");
 
-                    b.ToTable("RadiusUsers");
+                    b.ToTable("RadiusUsers", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.RadiusUserTag", b =>
@@ -2596,7 +2596,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("RadiusTagId");
 
-                    b.ToTable("RadiusUserTags");
+                    b.ToTable("RadiusUserTags", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.SasActivationLog", b =>
@@ -2662,7 +2662,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("IntegrationId");
 
-                    b.ToTable("SasActivationLogs");
+                    b.ToTable("SasActivationLogs", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.SasRadiusIntegration", b =>
@@ -2682,9 +2682,6 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int>("ActivationMaxRetries")
                         .HasColumnType("integer");
 
-                    b.Property<int>("ActivationMethod")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ActivationRetryDelayMinutes")
                         .HasColumnType("integer");
 
@@ -2693,12 +2690,6 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<bool>("ActivationUseExponentialBackoff")
                         .HasColumnType("boolean");
-
-                    b.Property<bool>("AllowAnyCardStockUser")
-                        .HasColumnType("boolean");
-
-                    b.Property<int?>("CardStockUserId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2736,9 +2727,6 @@ namespace Backend.Migrations.ApplicationDb
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("UseFreeCardsOnly")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("UseHttps")
                         .HasColumnType("boolean");
 
@@ -2748,7 +2736,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("SasRadiusIntegrations");
+                    b.ToTable("SasRadiusIntegrations", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.SubAgentCashback", b =>
@@ -2806,7 +2794,7 @@ namespace Backend.Migrations.ApplicationDb
                         .IsUnique()
                         .HasFilter("\"DeletedAt\" IS NULL");
 
-                    b.ToTable("SubAgentCashbacks");
+                    b.ToTable("SubAgentCashbacks", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.SyncProgress", b =>
@@ -2947,7 +2935,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("SyncId");
 
-                    b.ToTable("SyncProgresses");
+                    b.ToTable("SyncProgresses", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.TablePreference", b =>
@@ -2992,7 +2980,7 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasIndex("UserId", "TableName")
                         .IsUnique();
 
-                    b.ToTable("TablePreferences");
+                    b.ToTable("TablePreferences", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Transaction", b =>
@@ -3132,7 +3120,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("WalletType", "TransactionType", "CashbackStatus", "DeletedAt");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.TransactionComment", b =>
@@ -3168,7 +3156,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("TransactionId");
 
-                    b.ToTable("TransactionComments");
+                    b.ToTable("TransactionComments", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.TransactionHistory", b =>
@@ -3204,7 +3192,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("TransactionId");
 
-                    b.ToTable("TransactionHistories");
+                    b.ToTable("TransactionHistories", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserCashback", b =>
@@ -3246,7 +3234,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("BillingProfileId");
 
-                    b.ToTable("UserCashbacks");
+                    b.ToTable("UserCashbacks", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserWallet", b =>
@@ -3333,7 +3321,7 @@ namespace Backend.Migrations.ApplicationDb
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false");
 
-                    b.ToTable("UserWallets");
+                    b.ToTable("UserWallets", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.UserZone", b =>
@@ -3363,7 +3351,7 @@ namespace Backend.Migrations.ApplicationDb
                     b.HasIndex("UserId", "ZoneId")
                         .IsUnique();
 
-                    b.ToTable("UserZones");
+                    b.ToTable("UserZones", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.WalletHistory", b =>
@@ -3433,7 +3421,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("WalletType");
 
-                    b.ToTable("WalletHistories");
+                    b.ToTable("WalletHistories", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.WebhookLog", b =>
@@ -3483,7 +3471,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("WebhookLogs");
+                    b.ToTable("WebhookLogs", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.WorkflowHistory", b =>
@@ -3517,7 +3505,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("AutomationId");
 
-                    b.ToTable("WorkflowHistories");
+                    b.ToTable("WorkflowHistories", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Zone", b =>
@@ -3574,7 +3562,7 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.HasIndex("ParentZoneId");
 
-                    b.ToTable("Zones");
+                    b.ToTable("Zones", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Addon", b =>

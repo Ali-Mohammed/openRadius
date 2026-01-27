@@ -111,13 +111,13 @@ public class SasActivationService : ISasActivationService
                         throw new InvalidOperationException($"Radius profile {radiusProfileId} not found");
                     }
                     
-                    if (radiusProfile.ExternalId == null)
+                    if (radiusProfile.ExternalId == 0)
                     {
                         throw new InvalidOperationException($"Radius profile '{radiusProfile.Name}' does not have an ExternalId (SAS4 profile ID). Please sync profiles first.");
                     }
                     
                     // Fetch PIN from card inventory
-                    var (pin, series, serialNumber) = await GetPrepaidCardPinAsync(integration, radiusProfile.ExternalId.Value, _context);
+                    var (pin, series, serialNumber) = await GetPrepaidCardPinAsync(integration, radiusProfile.ExternalId, _context);
                     
                     if (pin == null)
                     {
@@ -808,15 +808,9 @@ public class SasActivationService : ISasActivationService
             int? ownerId = null;
             if (!integration.AllowAnyCardStockUser && integration.CardStockUserId.HasValue)
             {
-                // Get the manager ID from SAS4 based on our user ID
-                var user = await context.Users.FirstOrDefaultAsync(u => u.Id == integration.CardStockUserId.Value);
-                if (user != null)
-                {
-                    // Assuming ExternalManagerId is stored on the user - you may need to adjust this
-                    // For now, we'll use the CardStockUserId directly as the owner
-                    ownerId = integration.CardStockUserId.Value;
-                    _logger.LogInformation($"Using specific card stock user: {ownerId}");
-                }
+                // CardStockUserId is the SAS4 manager ID
+                ownerId = integration.CardStockUserId.Value;
+                _logger.LogInformation($"Using specific card stock user: {ownerId}");
             }
             
             // Get available card series
