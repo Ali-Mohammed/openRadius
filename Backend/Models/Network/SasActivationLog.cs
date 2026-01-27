@@ -9,6 +9,11 @@ public class SasActivationLog
     public required string Username { get; set; }
     public required string ActivationData { get; set; }
     
+    // PIN tracking for prepaid card activations
+    public string? Pin { get; set; }
+    public string? CardSeries { get; set; }
+    public string? CardSerialNumber { get; set; }
+    
     // Status tracking
     public ActivationStatus Status { get; set; }
     public int RetryCount { get; set; }

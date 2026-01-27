@@ -1099,6 +1099,9 @@ public class SasSyncService : ISasSyncService
                                     Type = sasProfile.Type,
                                     ExpirationAmount = sasProfile.ExpirationAmount,
                                     ExpirationUnit = sasProfile.ExpirationUnit,
+                                    SiteId = sasProfile.SiteId,
+                                    OnlineUsersCount = sasProfile.OnlineUsersCount,
+                                    UsersCount = sasProfile.UsersCount,
                                     Enabled = sasProfile.Enabled == 1,
                                     BurstEnabled = sasProfile.BurstEnabled == 1,
                                     Monthly = sasProfile.Monthly,
@@ -1114,6 +1117,7 @@ public class SasSyncService : ISasSyncService
                             else
                             {
                                 radiusProfile = existingProfile;
+                                radiusProfile.ExternalId = sasProfile.Id; // Ensure ExternalId is always set/updated
                                 radiusProfile.Name = sasProfile.Name ?? string.Empty;
                                 radiusProfile.Downrate = sasProfile.Downrate;
                                 radiusProfile.Uprate = sasProfile.Uprate;
@@ -1122,6 +1126,9 @@ public class SasSyncService : ISasSyncService
                                 radiusProfile.Type = sasProfile.Type;
                                 radiusProfile.ExpirationAmount = sasProfile.ExpirationAmount;
                                 radiusProfile.ExpirationUnit = sasProfile.ExpirationUnit;
+                                radiusProfile.SiteId = sasProfile.SiteId;
+                                radiusProfile.OnlineUsersCount = sasProfile.OnlineUsersCount;
+                                radiusProfile.UsersCount = sasProfile.UsersCount;
                                 radiusProfile.Enabled = sasProfile.Enabled == 1;
                                 radiusProfile.BurstEnabled = sasProfile.BurstEnabled == 1;
                                 radiusProfile.Monthly = sasProfile.Monthly;

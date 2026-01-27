@@ -88,6 +88,64 @@ public class SasActivationService : ISasActivationService
             CreatedAt = DateTime.UtcNow
         };
         
+        // If activation method is PrepaidCard, fetch PIN from card inventory
+        if (integration.ActivationMethod == ActivationMethod.PrepaidCard)
+        {
+            try
+            {
+                // Parse activation data to get profile ID
+                var activationDataJson = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(
+                    System.Text.Json.JsonSerializer.Serialize(activationData));
+                
+                if (activationDataJson != null && activationDataJson.TryGetValue("radiusProfileId", out var profileIdElement))
+                {
+                    var radiusProfileId = profileIdElement.GetInt32();
+                    
+                    // Get the radius profile to fetch its ExternalId (SAS4 profile ID)
+                    var radiusProfile = await _context.RadiusProfiles
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Id == radiusProfileId);
+                    
+                    if (radiusProfile == null)
+                    {
+                        throw new InvalidOperationException($"Radius profile {radiusProfileId} not found");
+                    }
+                    
+                    if (radiusProfile.ExternalId == null)
+                    {
+                        throw new InvalidOperationException($"Radius profile '{radiusProfile.Name}' does not have an ExternalId (SAS4 profile ID). Please sync profiles first.");
+                    }
+                    
+                    // Fetch PIN from card inventory
+                    var (pin, series, serialNumber) = await GetPrepaidCardPinAsync(integration, radiusProfile.ExternalId.Value, _context);
+                    
+                    if (pin == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"No available prepaid cards found for profile '{radiusProfile.Name}' (ID: {radiusProfile.ExternalId}). " +
+                            "Please check card stock or contact administrator.");
+                    }
+                    
+                    // Store PIN information in the log
+                    log.Pin = pin;
+                    log.CardSeries = series;
+                    log.CardSerialNumber = serialNumber;
+                    
+                    _logger.LogInformation(
+                        $"Retrieved PIN {pin} from series {series} (serial: {serialNumber}) for user {username} activation");
+                }
+                else
+                {
+                    throw new InvalidOperationException("Activation data does not contain radiusProfileId");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve prepaid card PIN for user {username}");
+                throw; // Fail the activation if we can't get a PIN
+            }
+        }
+        
         _context.SasActivationLogs.Add(log);
         await _context.SaveChangesAsync();
         
@@ -311,29 +369,53 @@ public class SasActivationService : ISasActivationService
         
         try
         {
-            // Parse activation data to extract pin and other details
+            // Parse activation data to extract details
             var activationData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(log.ActivationData);
             
-            var pin = activationData.GetProperty("pin").GetString();
+            // Use PIN from log if available (PrepaidCard activation method), otherwise from activation data
+            var pin = !string.IsNullOrEmpty(log.Pin) 
+                ? log.Pin 
+                : activationData.GetProperty("pin").GetString();
+            
+            if (string.IsNullOrEmpty(pin))
+            {
+                throw new InvalidOperationException("PIN is required for activation but was not found in log or activation data");
+            }
+            
             var userId = activationData.GetProperty("userId").GetString() ?? log.UserId.ToString();
             var comment = activationData.TryGetProperty("comment", out var commentProp) 
                 ? commentProp.GetString() 
                 : $"Activation via integration {log.IntegrationName}";
             
+            // If using prepaid card, add series info to comment
+            if (!string.IsNullOrEmpty(log.CardSeries))
+            {
+                comment = $"{comment} [Card Series: {log.CardSeries}, Serial: {log.CardSerialNumber}]";
+            }
+            
             // Build SAS4 API URL
             var protocol = integration.UseHttps ? "https" : "http";
             var baseUrl = integration.Url.TrimEnd('/');
-            var activateUrl = $"{protocol}://{baseUrl}/api/card/activate";
+            var activateUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/user/activate";
             
             _logger.LogInformation($"Activating user {log.Username} (ID: {userId}) with PIN {pin} on {activateUrl}");
             
-            // Prepare multipart form data (SAS4 uses form data, not JSON)
-            var formData = new MultipartFormDataContent();
-            formData.Add(new StringContent("card"), "method");
-            formData.Add(new StringContent(pin ?? ""), "pin");
-            formData.Add(new StringContent(userId), "user_id");
-            formData.Add(new StringContent("1"), "money_collected");
-            formData.Add(new StringContent(comment ?? ""), "comments");
+            // Prepare JSON payload for SAS4 activation
+            var payload = new
+            {
+                method = "card",
+                pin = pin,
+                user_id = userId,
+                money_collected = 1,
+                comments = comment,
+                user_price = 0, // Can be set based on activation data if needed
+                issue_invoice = 0,
+                transaction_id = Guid.NewGuid().ToString(),
+                activation_units = 1
+            };
+            
+            var jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
+            _logger.LogInformation($"SAS4 activation payload: {jsonPayload}");
             
             // Add authentication headers (Basic Auth)
             var authString = $"{integration.Username}:{integration.Password}";
@@ -342,10 +424,9 @@ public class SasActivationService : ISasActivationService
             
             var request = new HttpRequestMessage(HttpMethod.Post, activateUrl);
             request.Headers.Add("Authorization", $"Basic {authBase64}");
-            request.Headers.Add("Accept", "*/*");
-            request.Headers.Add("Connection", "keep-alive");
+            request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
-            request.Content = formData;
+            request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
             
             // Send request
             var response = await httpClient.SendAsync(request);
@@ -366,29 +447,27 @@ public class SasActivationService : ISasActivationService
             }
             
             // Parse JSON response to check for SAS4-specific errors
-            if (response.Content.Headers.ContentType?.MediaType == "application/json")
+            var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(responseBody);
+            
+            // Check for status field (200 = success, -1 or other = error)
+            if (jsonResponse.TryGetProperty("status", out var statusProp))
             {
-                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(responseBody);
+                var status = statusProp.GetInt32();
+                var message = jsonResponse.TryGetProperty("message", out var msgProp) 
+                    ? msgProp.GetString() 
+                    : "Unknown response";
                 
-                // Check for error fields in response
-                if (jsonResponse.TryGetProperty("error", out var errorProp))
+                if (status != 200)
                 {
-                    var errorMsg = errorProp.GetString();
-                    throw new HttpRequestException($"SAS4 API error: {errorMsg}");
+                    _logger.LogError($"SAS4 activation failed for user {log.Username}: status={status}, message={message}");
+                    throw new HttpRequestException($"SAS4 activation failed: {message} (status: {status})");
                 }
                 
-                // Check for status field indicating failure
-                if (jsonResponse.TryGetProperty("status", out var statusProp))
-                {
-                    var status = statusProp.GetInt32();
-                    if (status != 200)
-                    {
-                        var message = jsonResponse.TryGetProperty("message", out var msgProp) 
-                            ? msgProp.GetString() 
-                            : "Unknown error";
-                        throw new HttpRequestException($"SAS4 activation failed with status {status}: {message}");
-                    }
-                }
+                _logger.LogInformation($"SAS4 activation successful: {message}");
+            }
+            else
+            {
+                _logger.LogWarning($"SAS4 response missing status field: {responseBody}");
             }
             
             _logger.LogInformation($"SAS4 activation successful for user {log.Username}");
@@ -548,6 +627,233 @@ public class SasActivationService : ISasActivationService
         }
         
         return isHealthy;
+    }
+    
+    /// <summary>
+    /// Get available card series for a profile from SAS4
+    /// </summary>
+    private async Task<List<SasCardSeriesData>> GetAvailableCardSeriesAsync(
+        SasRadiusIntegration integration, 
+        int profileExternalId, 
+        int? ownerId = null, 
+        bool freeCardsOnly = false)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds);
+        
+        try
+        {
+            // Build SAS4 API URL for card series
+            var protocol = integration.UseHttps ? "https" : "http";
+            var baseUrl = integration.Url.TrimEnd('/');
+            var seriesUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/index/series";
+            
+            _logger.LogInformation($"Fetching card series for profile {profileExternalId} from {seriesUrl}");
+            
+            // Prepare payload
+            var payload = new
+            {
+                page = 1,
+                count = 500,
+                sortBy = "series_date",
+                direction = "desc",
+                search = "",
+                columns = new[] { "series_date", "series", "type", "value", "qty", "used", "username", "name", "name", "expiration" },
+                parent_id = ownerId ?? -1, // -1 means all owners
+                type = -1, // -1 means all types
+                profile_id = profileExternalId
+            };
+            
+            // Add authentication headers
+            var authString = $"{integration.Username}:{integration.Password}";
+            var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
+            var authBase64 = Convert.ToBase64String(authBytes);
+            
+            var request = new HttpRequestMessage(HttpMethod.Post, seriesUrl);
+            request.Headers.Add("Authorization", $"Basic {authBase64}");
+            request.Headers.Add("Accept", "application/json");
+            request.Headers.Add("User-Agent", "OpenRadius/1.0");
+            request.Content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(payload),
+                System.Text.Encoding.UTF8,
+                "application/json");
+            
+            var response = await httpClient.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Failed to fetch card series: {response.StatusCode} - {responseBody}");
+                return new List<SasCardSeriesData>();
+            }
+            
+            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<SasCardSeriesApiResponse>(responseBody);
+            if (apiResponse == null || apiResponse.Data == null)
+            {
+                _logger.LogWarning($"No card series data returned for profile {profileExternalId}");
+                return new List<SasCardSeriesData>();
+            }
+            
+            // Filter for available cards (qty > used)
+            var availableSeries = apiResponse.Data
+                .Where(s => {
+                    var usedCount = string.IsNullOrWhiteSpace(s.Used) ? 0 : int.Parse(s.Used);
+                    return s.Qty > usedCount;
+                })
+                .ToList();
+            
+            _logger.LogInformation($"Found {availableSeries.Count} series with available cards for profile {profileExternalId}");
+            
+            return availableSeries;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching card series for profile {profileExternalId}");
+            return new List<SasCardSeriesData>();
+        }
+    }
+    
+    /// <summary>
+    /// Get unused PIN from a card series
+    /// </summary>
+    private async Task<SasCardPinData?> GetUnusedPinFromSeriesAsync(SasRadiusIntegration integration, string series)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds);
+        
+        try
+        {
+            // Build SAS4 API URL for card PINs
+            var protocol = integration.UseHttps ? "https" : "http";
+            var baseUrl = integration.Url.TrimEnd('/');
+            var cardUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/index/card/{series}";
+            
+            _logger.LogInformation($"Fetching unused PINs from series {series} at {cardUrl}");
+            
+            // Prepare payload
+            var payload = new
+            {
+                page = 1,
+                count = 10,
+                sortBy = "id",
+                direction = "asc",
+                search = "",
+                columns = new[] { "id", "serialnumber", "pin", "username", "password", "used_at", "username", "username" }
+            };
+            
+            // Add authentication headers
+            var authString = $"{integration.Username}:{integration.Password}";
+            var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
+            var authBase64 = Convert.ToBase64String(authBytes);
+            
+            var request = new HttpRequestMessage(HttpMethod.Post, cardUrl);
+            request.Headers.Add("Authorization", $"Basic {authBase64}");
+            request.Headers.Add("Accept", "application/json");
+            request.Headers.Add("User-Agent", "OpenRadius/1.0");
+            request.Content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(payload),
+                System.Text.Encoding.UTF8,
+                "application/json");
+            
+            var response = await httpClient.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Failed to fetch PINs from series {series}: {response.StatusCode} - {responseBody}");
+                return null;
+            }
+            
+            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<SasCardPinApiResponse>(responseBody);
+            if (apiResponse == null || apiResponse.Data == null || apiResponse.Data.Count == 0)
+            {
+                _logger.LogWarning($"No PIN data returned for series {series}");
+                return null;
+            }
+            
+            // Find first unused PIN (where username is null)
+            var unusedPin = apiResponse.Data.FirstOrDefault(p => string.IsNullOrWhiteSpace(p.Username));
+            
+            if (unusedPin != null)
+            {
+                _logger.LogInformation($"Found unused PIN {unusedPin.Pin} from series {series}");
+            }
+            else
+            {
+                _logger.LogWarning($"No unused PINs found in series {series}");
+            }
+            
+            return unusedPin;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching PINs from series {series}");
+            return null;
+        }
+    }
+    
+    /// <summary>
+    /// Get PIN for prepaid card activation based on integration settings
+    /// </summary>
+    private async Task<(string? pin, string? series, string? serialNumber)> GetPrepaidCardPinAsync(
+        SasRadiusIntegration integration, 
+        int profileExternalId,
+        ApplicationDbContext context)
+    {
+        try
+        {
+            _logger.LogInformation($"Getting prepaid card PIN for profile {profileExternalId}");
+            
+            // Determine owner ID based on integration settings
+            int? ownerId = null;
+            if (!integration.AllowAnyCardStockUser && integration.CardStockUserId.HasValue)
+            {
+                // Get the manager ID from SAS4 based on our user ID
+                var user = await context.Users.FirstOrDefaultAsync(u => u.Id == integration.CardStockUserId.Value);
+                if (user != null)
+                {
+                    // Assuming ExternalManagerId is stored on the user - you may need to adjust this
+                    // For now, we'll use the CardStockUserId directly as the owner
+                    ownerId = integration.CardStockUserId.Value;
+                    _logger.LogInformation($"Using specific card stock user: {ownerId}");
+                }
+            }
+            
+            // Get available card series
+            var availableSeries = await GetAvailableCardSeriesAsync(
+                integration, 
+                profileExternalId, 
+                ownerId, 
+                integration.UseFreeCardsOnly);
+            
+            if (availableSeries.Count == 0)
+            {
+                _logger.LogWarning($"No available card series found for profile {profileExternalId}");
+                return (null, null, null);
+            }
+            
+            // Try to get a PIN from each series until we find an unused one
+            foreach (var series in availableSeries)
+            {
+                if (string.IsNullOrWhiteSpace(series.Series))
+                    continue;
+                    
+                var pinData = await GetUnusedPinFromSeriesAsync(integration, series.Series);
+                if (pinData != null && !string.IsNullOrWhiteSpace(pinData.Pin))
+                {
+                    _logger.LogInformation($"Found PIN {pinData.Pin} from series {series.Series} for profile {profileExternalId}");
+                    return (pinData.Pin, series.Series, pinData.SerialNumber);
+                }
+            }
+            
+            _logger.LogWarning($"No unused PINs found in any available series for profile {profileExternalId}");
+            return (null, null, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting prepaid card PIN for profile {profileExternalId}");
+            return (null, null, null);
+        }
     }
 }
 
