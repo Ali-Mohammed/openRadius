@@ -570,21 +570,6 @@ export default function WorkspaceSettings() {
                     </Label>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 rounded-lg border p-3 bg-muted/50">
-                  <Switch
-                    id="sendActivations"
-                    checked={formData.sendActivationsToSas || false}
-                    onCheckedChange={(checked) => setFormData({ ...formData, sendActivationsToSas: checked })}
-                  />
-                  <div className="flex-1">
-                    <Label htmlFor="sendActivations" className="cursor-pointer font-medium">
-                      Send Activations to SAS4
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Automatically send user activations to SAS4 for active users
-                    </p>
-                  </div>
-                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="maxPages">Items Per Page</Label>
                   <Input
@@ -715,27 +700,15 @@ export default function WorkspaceSettings() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
-                          <Switch
-                            checked={integration.sendActivationsToSas || false}
-                            onCheckedChange={async (checked) => {
-                              if (!integration.id) return
-                              try {
-                                await sasRadiusApi.update(
-                                  Number(currentWorkspaceId),
-                                  integration.id,
-                                  { ...integration, sendActivationsToSas: checked }
-                                )
-                                queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
-                                toast.success(checked ? 'Activations will be sent to SAS4' : 'Activations sending disabled')
-                              } catch (error) {
-                                toast.error(formatApiError(error) || 'Failed to update setting')
-                              }
-                            }}
-                            disabled={!integration.isActive || showTrash}
-                            title={integration.isActive ? (integration.sendActivationsToSas ? "Sending activations to SAS4" : "Not sending activations") : "Activate integration to enable"}
-                          />
-                        </div>
+                        {integration.sendActivationsToSas ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
+                            Enabled
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                            Disabled
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="font-medium">{integration.maxItemInPagePerRequest || 100}</span>
@@ -1194,6 +1167,40 @@ export default function WorkspaceSettings() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {/* Send Activations to SAS4 Toggle */}
+            <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-semibold">Send Activations to SAS4</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically send user activations to SAS4 for active users
+                  </p>
+                </div>
+                <Switch
+                  checked={selectedIntegrationForWebhook?.sendActivationsToSas || false}
+                  onCheckedChange={async (checked) => {
+                    if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) {
+                      toast.error('No integration selected')
+                      return
+                    }
+                    try {
+                      await sasRadiusApi.update(
+                        Number(currentWorkspaceId),
+                        selectedIntegrationForWebhook.id,
+                        { ...selectedIntegrationForWebhook, sendActivationsToSas: checked }
+                      )
+                      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
+                      setSelectedIntegrationForWebhook({ ...selectedIntegrationForWebhook, sendActivationsToSas: checked })
+                      toast.success(checked ? 'Activations will be sent to SAS4' : 'Activations sending disabled')
+                    } catch (error) {
+                      toast.error(formatApiError(error) || 'Failed to update setting')
+                    }
+                  }}
+                  disabled={!selectedIntegrationForWebhook?.isActive}
+                />
+              </div>
+            </div>
+
             {/* Enable Callback Toggle */}
             <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
               <div className="flex items-center justify-between">
@@ -1249,8 +1256,8 @@ export default function WorkspaceSettings() {
               </div>
             </div>
 
-            {/* Webhook URL - only show if callback is enabled or webhook exists */}
-            {currentWebhook && (
+            {/* Webhook URL - only show if callback is enabled */}
+            {currentWebhook && currentWebhook.callbackEnabled && (
               <>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
