@@ -15,7 +15,7 @@ public class SasCardSeriesApiResponse
     public string? FirstPageUrl { get; set; }
 
     [JsonPropertyName("from")]
-    public int From { get; set; }
+    public int? From { get; set; }
 
     [JsonPropertyName("last_page")]
     public int LastPage { get; set; }
@@ -36,7 +36,7 @@ public class SasCardSeriesApiResponse
     public string? PrevPageUrl { get; set; }
 
     [JsonPropertyName("to")]
-    public int To { get; set; }
+    public int? To { get; set; }
 
     [JsonPropertyName("total")]
     public int Total { get; set; }
@@ -118,7 +118,7 @@ public class SasCardPinApiResponse
     public string? FirstPageUrl { get; set; }
 
     [JsonPropertyName("from")]
-    public int From { get; set; }
+    public int? From { get; set; }
 
     [JsonPropertyName("last_page")]
     public int LastPage { get; set; }
@@ -139,7 +139,7 @@ public class SasCardPinApiResponse
     public string? PrevPageUrl { get; set; }
 
     [JsonPropertyName("to")]
-    public int To { get; set; }
+    public int? To { get; set; }
 
     [JsonPropertyName("total")]
     public int Total { get; set; }

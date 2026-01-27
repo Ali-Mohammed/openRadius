@@ -742,6 +742,7 @@ public class SasActivationService : ISasActivationService
             
             // Encrypt payload using AES (SAS API requirement)
             var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            _logger.LogInformation($"📦 Card series request payload: {payloadJson}");
             var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
