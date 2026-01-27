@@ -1,4 +1,4 @@
-import api from './client';
+import { apiClient } from '../lib/api';
 import type { 
   SasActivationLog, 
   ActivationLogResponse, 
@@ -9,7 +9,7 @@ import type {
 export const sasActivationsApi = {
   // Test activation
   testActivation: async (integrationId: number, request: TestActivationRequest) => {
-    const response = await api.post<{ jobId: string; message: string }>(
+    const response = await apiClient.post<{ jobId: string; message: string }>(
       `/api/SasActivations/test/${integrationId}`, 
       request
     );
@@ -18,7 +18,7 @@ export const sasActivationsApi = {
 
   // Get activation logs for an integration
   getActivationLogs: async (integrationId: number, page = 1, pageSize = 50) => {
-    const response = await api.get<SasActivationLog[]>(
+    const response = await apiClient.get<SasActivationLog[]>(
       `/api/SasActivations/${integrationId}`,
       {
         params: { page, pageSize }
@@ -29,13 +29,13 @@ export const sasActivationsApi = {
 
   // Get a single activation log
   getActivationLog: async (logId: number) => {
-    const response = await api.get<SasActivationLog>(`/api/SasActivations/log/${logId}`);
+    const response = await apiClient.get<SasActivationLog>(`/api/SasActivations/log/${logId}`);
     return response.data;
   },
 
   // Retry failed activations
   retryFailedActivations: async (integrationId: number, fromDate?: string) => {
-    const response = await api.post<RetryResponse>(
+    const response = await apiClient.post<RetryResponse>(
       `/api/SasActivations/${integrationId}/retry-failed`,
       null,
       {

@@ -24,8 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { sasActivationsApi } from '../../api/sasActivationsApi';
-import { ActivationStatus, type SasActivationLog } from '../../types/sasActivation';
+import { sasActivationsApi } from '../api/sasActivationsApi';
+import { ActivationStatus, type SasActivationLog } from '../types/sasActivation';
 import { formatDistance } from 'date-fns';
 import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban } from 'lucide-react';
 import { toast } from 'sonner';
