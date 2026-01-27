@@ -32,6 +32,11 @@ public class SasActivationService : ISasActivationService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
     
+    // Token cache to avoid re-authenticating for every API call
+    // Key format: "workspaceId:integrationId" to support multi-tenant scenarios
+    private static readonly Dictionary<string, (string token, DateTime expiresAt)> _tokenCache = new();
+    private static readonly SemaphoreSlim _tokenCacheLock = new(1, 1);
+    
     public SasActivationService(
         ApplicationDbContext context,
         IWorkspaceJobService jobService,
@@ -59,7 +64,7 @@ public class SasActivationService : ISasActivationService
         
         if (existingPending)
         {
-            _logger.LogWarning($"Duplicate activation prevented for user {username} (ID: {userId}) via integration {integrationName}");
+            _logger.LogWarning($"[SAS_Activation_005] Duplicate activation prevented for user {username} (ID: {userId}) via integration {integrationName}");
             return "duplicate-prevented";
         }
         
@@ -75,7 +80,7 @@ public class SasActivationService : ISasActivationService
         
         if (!integration.SendActivationsToSas)
         {
-            _logger.LogInformation($"Activation skipped - SendActivationsToSas is disabled for integration {integrationName}");
+            _logger.LogInformation($"[SAS_Activation_006] Activation skipped - SendActivationsToSas is disabled for integration {integrationName}");
             return "disabled";
         }
         
@@ -92,13 +97,13 @@ public class SasActivationService : ISasActivationService
             CreatedAt = DateTime.UtcNow
         };
         
-         _logger.LogInformation("integration.ActivationMethod: {ActivationMethod}", integration.ActivationMethod);
+         _logger.LogInformation("[SAS_Activation_001] integration.ActivationMethod: {ActivationMethod}", integration.ActivationMethod);
 
         // If activation method is PrepaidCard, fetch PIN from card inventory
         if (integration.ActivationMethod == "PrepaidCard")
         {
 
-            _logger.LogInformation("Fetching prepaid card PIN for activation");
+            _logger.LogInformation("[SAS_Activation_002] Fetching prepaid card PIN for activation");
 
             try
             {
@@ -131,7 +136,7 @@ public class SasActivationService : ISasActivationService
                     if (pin == null)
                     {
                         _logger.LogWarning(
-                            $"No available prepaid cards found for profile '{radiusProfile.Name}' (ID: {radiusProfile.ExternalId}). " +
+                            $"[SAS_Activation_003] No available prepaid cards found for profile '{radiusProfile.Name}' (ID: {radiusProfile.ExternalId}). " +
                             "Activation will proceed but will likely fail without a PIN.");
                     }
                     else
@@ -143,7 +148,7 @@ public class SasActivationService : ISasActivationService
                     }
                     
                     _logger.LogInformation(
-                        $"Retrieved PIN {pin} from series {series} (serial: {serialNumber}) for user {username} activation");
+                        $"[SAS_Activation_004] Retrieved PIN {pin} from series {series} (serial: {serialNumber}) for user {username} activation");
                 }
                 else
                 {
@@ -152,7 +157,7 @@ public class SasActivationService : ISasActivationService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to retrieve prepaid card PIN for user {username}");
+                _logger.LogError(ex, $"[SAS_Activation_057] Failed to retrieve prepaid card PIN for user {username}");
                 throw; // Fail the activation if we can't get a PIN
             }
         }
@@ -176,7 +181,7 @@ public class SasActivationService : ISasActivationService
         log.JobId = jobId;
         await _context.SaveChangesAsync();
         
-        _logger.LogInformation($"Enqueued activation for user {username} (ID: {userId}) via integration {integrationName} with priority {priority} in queue {queueName}");
+        _logger.LogInformation($"[SAS_Activation_007] Enqueued activation for user {username} (ID: {userId}) via integration {integrationName} with priority {priority} in queue {queueName}");
         
         return jobId;
     }
@@ -204,7 +209,7 @@ public class SasActivationService : ISasActivationService
         
         if (!integration.SendActivationsToSas)
         {
-            _logger.LogInformation($"Batch activation skipped - SendActivationsToSas is disabled for integration {integrationName}");
+            _logger.LogInformation($"[SAS_Activation_008] Batch activation skipped - SendActivationsToSas is disabled for integration {integrationName}");
             return new List<string>();
         }
         
@@ -225,7 +230,7 @@ public class SasActivationService : ISasActivationService
             // Skip if already pending
             if (existingPending.Contains(activation.userId))
             {
-                _logger.LogWarning($"Skipping duplicate activation for user {activation.username} (ID: {activation.userId})");
+                _logger.LogWarning($"[SAS_Activation_009] Skipping duplicate activation for user {activation.username} (ID: {activation.userId})");
                 continue;
             }
             
@@ -268,7 +273,7 @@ public class SasActivationService : ISasActivationService
         
         await _context.SaveChangesAsync();
         
-        _logger.LogInformation($"Enqueued {logs.Count} activations in batch for integration {integrationName}");
+        _logger.LogInformation($"[SAS_Activation_010] Enqueued {logs.Count} activations in batch for integration {integrationName}");
         
         return jobIds;
     }
@@ -279,7 +284,7 @@ public class SasActivationService : ISasActivationService
     [AutomaticRetry(Attempts = 0)] // We handle retries manually
     public async Task ProcessActivationAsync(int logId, int workspaceId, string connectionString)
     {
-        _logger.LogInformation($"Processing activation {logId} for workspace {workspaceId}");
+        _logger.LogInformation($"[SAS_Activation_011] Processing activation {logId} for workspace {workspaceId}");
         
         // Create workspace-specific context (Hangfire jobs don't have HTTP context/tenant info)
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
@@ -292,13 +297,13 @@ public class SasActivationService : ISasActivationService
         
         if (log == null)
         {
-            _logger.LogError($"Activation log {logId} not found in workspace {workspaceId}");
+            _logger.LogError($"[SAS_Activation_012] Activation log {logId} not found in workspace {workspaceId}");
             return;
         }
         
         if (log.Integration == null)
         {
-            _logger.LogError($"Integration {log.IntegrationId} not found for activation {logId}");
+            _logger.LogError($"[SAS_Activation_013] Integration {log.IntegrationId} not found for activation {logId}");
             return;
         }
         
@@ -312,7 +317,7 @@ public class SasActivationService : ISasActivationService
             log.ProcessedAt = DateTime.UtcNow;
             await workspaceContext.SaveChangesAsync();
             
-            _logger.LogInformation($"Processing activation {logId} for user {log.Username}");
+            _logger.LogInformation($"[SAS_Activation_014] Processing activation {logId} for user {log.Username}");
             
             // Send HTTP request to SAS4
             var response = await SendActivationToSas4Async(integration, log);
@@ -324,7 +329,7 @@ public class SasActivationService : ISasActivationService
             log.ResponseBody = response.Body;
             log.DurationMs = stopwatch.ElapsedMilliseconds;
             
-            _logger.LogInformation($"Activation {logId} completed successfully in {stopwatch.ElapsedMilliseconds}ms");
+            _logger.LogInformation($"[SAS_Activation_015] Activation {logId} completed successfully in {stopwatch.ElapsedMilliseconds}ms");
         }
         catch (Exception ex)
         {
@@ -335,7 +340,7 @@ public class SasActivationService : ISasActivationService
             log.DurationMs = stopwatch.ElapsedMilliseconds;
             log.RetryCount++;
             
-            _logger.LogError(ex, $"Activation {logId} failed (attempt {log.RetryCount}/{log.MaxRetries})");
+            _logger.LogError(ex, $"[SAS_Activation_016] Activation {logId} failed (attempt {log.RetryCount}/{log.MaxRetries})");
             
             // Schedule retry if not exceeded max retries
             if (log.RetryCount < log.MaxRetries)
@@ -352,14 +357,14 @@ public class SasActivationService : ISasActivationService
                 
                 // Cannot use _jobService here because we don't have tenant context
                 // For now, log the retry need - proper retry mechanism would need workspace context
-                _logger.LogWarning($"Activation {logId} needs retry but retry scheduling requires workspace context");
+                _logger.LogWarning($"[SAS_Activation_017] Activation {logId} needs retry but retry scheduling requires workspace context");
                 
-                _logger.LogInformation($"Would schedule retry for activation {logId} in {delay.TotalMinutes} minutes");
+                _logger.LogInformation($"[SAS_Activation_018] Would schedule retry for activation {logId} in {delay.TotalMinutes} minutes");
             }
             else
             {
                 log.Status = ActivationStatus.MaxRetriesReached;
-                _logger.LogWarning($"Activation {logId} reached max retries ({log.MaxRetries})");
+                _logger.LogWarning($"[SAS_Activation_019] Activation {logId} reached max retries ({log.MaxRetries})");
             }
         }
         finally
@@ -373,7 +378,7 @@ public class SasActivationService : ISasActivationService
     /// </summary>
     private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log)
     {
-        _logger.LogInformation($"Sending activation to SAS4: {integration.Url} for user {log.Username}");
+        _logger.LogInformation($"[SAS_Activation_020] Sending activation to SAS4: {integration.Url} for user {log.Username}");
         
         var httpClient = _httpClientFactory.CreateClient();
         httpClient.Timeout = TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds);
@@ -406,26 +411,20 @@ public class SasActivationService : ISasActivationService
                     $"If using other methods, ensure PIN is provided in activation data.");
             }
             
-            // Get RadiusUser's ExternalId (SAS4 user ID) for the activation
-            string? sasUserId = null;
-            if (activationData.TryGetProperty("radiusUserId", out var radiusUserIdProp))
-            {
-                var radiusUserId = radiusUserIdProp.GetInt32();
-                var radiusUser = await _context.RadiusUsers
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.Id == radiusUserId);
-                
-                if (radiusUser != null && radiusUser.ExternalId > 0)
-                {
-                    sasUserId = radiusUser.ExternalId.ToString();
-                }
-            }
+            // Get RadiusUser's ExternalId (SAS4 user ID) based on log.UserId
+            var radiusUser = await _context.RadiusUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == log.UserId);
             
-            // Fallback to log.UserId if no RadiusUser found
-            if (string.IsNullOrEmpty(sasUserId))
+            string sasUserId;
+            if (radiusUser != null && radiusUser.ExternalId > 0)
+            {
+                sasUserId = radiusUser.ExternalId.ToString();
+            }
+            else
             {
                 sasUserId = log.UserId.ToString();
-                _logger.LogWarning($"Could not find RadiusUser ExternalId, using fallback UserId: {sasUserId}");
+                _logger.LogWarning($"[SAS_Activation_021] Could not find RadiusUser ExternalId for UserId {log.UserId}, using fallback: {sasUserId}");
             }
             
             var comment = activationData.TryGetProperty("comment", out var commentProp) 
@@ -443,7 +442,7 @@ public class SasActivationService : ISasActivationService
             var uri = new Uri(baseUrl);
             var activateUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/user/activate";
             
-            _logger.LogInformation($"Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
+            _logger.LogInformation($"[SAS_Activation_022] Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
             
             // Prepare JSON payload for SAS4 activation
             var payload = new
@@ -459,35 +458,29 @@ public class SasActivationService : ISasActivationService
                 activation_units = 1
             };
             
-            var jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
-            _logger.LogInformation($"SAS4 activation payload: {jsonPayload}");
+            var requestJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            _logger.LogInformation($"[SAS_Activation_023] SAS4 activation payload: {requestJson}");
             
             // Encrypt payload using AES (SAS API requirement)
-            var encryptedPayload = EncryptionHelper.EncryptAES(jsonPayload, AES_KEY);
+            var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
-            // Authenticate and get Bearer token
-            var token = await AuthenticateAsync(integration);
+            // Get cached token or authenticate if needed
+            var token = await GetOrRefreshTokenAsync(integration);
             
-            var request = new HttpRequestMessage(HttpMethod.Post, activateUrl);
-            request.Headers.Add("Authorization", $"Bearer {token}");
-            request.Headers.Add("Accept", "application/json");
-            request.Headers.Add("User-Agent", "OpenRadius/1.0");
-            request.Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(requestBody),
-                System.Text.Encoding.UTF8,
-                "application/json");
+            // Set authorization header on client
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             
             // Send request
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.PostAsJsonAsync(activateUrl, requestBody);
             var responseBody = await response.Content.ReadAsStringAsync();
             
-            _logger.LogInformation($"SAS4 activation response: Status={response.StatusCode}, Body={responseBody}");
+            _logger.LogInformation($"[SAS_Activation_024] SAS4 activation response: Status={response.StatusCode}, Body={responseBody}");
             
             // Check for specific SAS4 error responses
             if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
-                _logger.LogError($"SAS4 returned 403 Forbidden for user {log.Username} - Check credentials: {integration.Username}@{integration.Url}");
+                _logger.LogError($"[SAS_Activation_025] SAS4 returned 403 Forbidden for user {log.Username} - Check credentials: {integration.Username}@{integration.Url}");
                 throw new HttpRequestException($"SAS4 authentication failed (403 Forbidden). Check integration credentials.");
             }
             
@@ -509,18 +502,18 @@ public class SasActivationService : ISasActivationService
                 
                 if (status != 200)
                 {
-                    _logger.LogError($"SAS4 activation failed for user {log.Username}: status={status}, message={message}");
+                    _logger.LogError($"[SAS_Activation_026] SAS4 activation failed for user {log.Username}: status={status}, message={message}");
                     throw new HttpRequestException($"SAS4 activation failed: {message} (status: {status})");
                 }
                 
-                _logger.LogInformation($"SAS4 activation successful: {message}");
+                _logger.LogInformation($"[SAS_Activation_027] SAS4 activation successful: {message}");
             }
             else
             {
-                _logger.LogWarning($"SAS4 response missing status field: {responseBody}");
+                _logger.LogWarning($"[SAS_Activation_028] SAS4 response missing status field: {responseBody}");
             }
             
-            _logger.LogInformation($"SAS4 activation successful for user {log.Username}");
+            _logger.LogInformation($"[SAS_Activation_029] SAS4 activation successful for user {log.Username}");
             
             return new SasActivationResponse
             {
@@ -530,17 +523,17 @@ public class SasActivationService : ISasActivationService
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogError(ex, $"SAS4 activation timed out after {integration.ActivationTimeoutSeconds} seconds for user {log.Username}");
+            _logger.LogError(ex, $"[SAS_Activation_030] SAS4 activation timed out after {integration.ActivationTimeoutSeconds} seconds for user {log.Username}");
             throw new TimeoutException($"Activation request timed out after {integration.ActivationTimeoutSeconds} seconds", ex);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, $"HTTP error during SAS4 activation for user {log.Username}");
+            _logger.LogError(ex, $"[SAS_Activation_031] HTTP error during SAS4 activation for user {log.Username}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Unexpected error during SAS4 activation for user {log.Username}");
+            _logger.LogError(ex, $"[SAS_Activation_032] Unexpected error during SAS4 activation for user {log.Username}");
             throw new HttpRequestException($"Activation failed: {ex.Message}", ex);
         }
     }
@@ -585,7 +578,7 @@ public class SasActivationService : ISasActivationService
         
         await _context.SaveChangesAsync();
         
-        _logger.LogInformation($"Retrying {failedLogs.Count} failed activations for integration {integrationId}");
+        _logger.LogInformation($"[SAS_Activation_033] Retrying {failedLogs.Count} failed activations for integration {integrationId}");
         
         return failedLogs.Count;
     }
@@ -673,13 +666,47 @@ public class SasActivationService : ISasActivationService
         
         if (!isHealthy)
         {
-            _logger.LogWarning($"Integration {integrationId} is unhealthy. Success rate: {successRate:F2}% ({successCount}/{recentLogs.Count})");
+            _logger.LogWarning($"[SAS_Activation_034] Integration {integrationId} is unhealthy. Success rate: {successRate:F2}% ({successCount}/{recentLogs.Count})");
         }
         
         return isHealthy;
     }
     
-    /// <summary>    /// Authenticate with SAS4 API and get Bearer token
+    /// <summary>
+    /// Get cached token or authenticate if token is expired/missing
+    /// </summary>
+    private async Task<string> GetOrRefreshTokenAsync(SasRadiusIntegration integration)
+    {
+        await _tokenCacheLock.WaitAsync();
+        try
+        {
+            // Get workspace ID from tenant context
+            var workspaceId = _tenantAccessor.MultiTenantContext?.TenantInfo?.WorkspaceId ?? 0;
+            var cacheKey = $"{workspaceId}:{integration.Id}";
+            
+            // Check if we have a valid cached token
+            if (_tokenCache.TryGetValue(cacheKey, out var cached) && cached.expiresAt > DateTime.UtcNow)
+            {
+                _logger.LogInformation($"[SAS_Activation_037] ♻️ Using cached token for workspace {workspaceId}, integration {integration.Id}");
+                return cached.token;
+            }
+            
+            // Token expired or not found, authenticate
+            var token = await AuthenticateAsync(integration);
+            
+            // Cache token for 10 minutes
+            _tokenCache[cacheKey] = (token, DateTime.UtcNow.AddMinutes(10));
+            
+            return token;
+        }
+        finally
+        {
+            _tokenCacheLock.Release();
+        }
+    }
+    
+    /// <summary>
+    /// Authenticate with SAS4 API and get Bearer token
     /// </summary>
     private async Task<string> AuthenticateAsync(SasRadiusIntegration integration)
     {
@@ -690,7 +717,7 @@ public class SasActivationService : ISasActivationService
         var uri = new Uri(baseUrl);
         var loginUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/login";
         
-        _logger.LogInformation($"🔐 Authenticating to: {loginUrl}");
+        _logger.LogInformation($"[SAS_Activation_035] 🔐 Authenticating to: {loginUrl}");
         
         var loginData = new { username = integration.Username, password = integration.Password };
         var loginJson = System.Text.Json.JsonSerializer.Serialize(loginData);
@@ -703,7 +730,8 @@ public class SasActivationService : ISasActivationService
         var result = await response.Content.ReadFromJsonAsync<JsonElement>();
         var token = result.GetProperty("token").GetString();
         
-        _logger.LogInformation($"✅ Authentication successful, got token");
+        // Log full response to check for expiration info
+        _logger.LogInformation($"[SAS_Activation_036] ✅ Authentication successful, got token. Full response: {result}");
         
         return token;
     }
@@ -726,7 +754,7 @@ public class SasActivationService : ISasActivationService
             var uri = new Uri(baseUrl);
             var seriesUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/series";
             
-            _logger.LogInformation($"Fetching card series for profile {profileExternalId} from {seriesUrl}");
+            _logger.LogInformation($"[SAS_Activation_038] Fetching card series for profile {profileExternalId} from {seriesUrl}");
             
             // Prepare payload
             var payload = new
@@ -738,43 +766,37 @@ public class SasActivationService : ISasActivationService
                 search = "",
                 columns = new[] { "series_date", "series", "type", "value", "qty", "used", "username", "name", "name", "expiration" },
                 parent_id = ownerId ?? -1, // -1 means all owners
-                type = -1, // -1 means all types
+                type = 0, // -1 means all types -> 0 mean prepaid cards
                 profile_id = profileExternalId
             };
             
             // Encrypt payload using AES (SAS API requirement)
-            var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
-            _logger.LogInformation($"📦 Card series request payload: {payloadJson}");
-            var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
+            var requestJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            _logger.LogInformation($"[SAS_Activation_039] 📦 Card series request payload: {requestJson}");
+            var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
-            // Authenticate and get Bearer token
-            var token = await AuthenticateAsync(integration);
+            // Get cached token or authenticate if needed
+            var token = await GetOrRefreshTokenAsync(integration);
             
-            var request = new HttpRequestMessage(HttpMethod.Post, seriesUrl);
-            request.Headers.Add("Authorization", $"Bearer {token}");
-            request.Headers.Add("Accept", "application/json");
-            request.Headers.Add("User-Agent", "OpenRadius/1.0");
-            request.Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(requestBody),
-                System.Text.Encoding.UTF8,
-                "application/json");
+            // Set authorization header on client
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.PostAsJsonAsync(seriesUrl, requestBody);
             var responseBody = await response.Content.ReadAsStringAsync();
             
-            _logger.LogInformation($"📥 Card series response: Status={response.StatusCode}, Body={responseBody}");
+            _logger.LogInformation($"[SAS_Activation_040] 📥 Card series response: Status={response.StatusCode}, Body={responseBody}");
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError($"Failed to fetch card series: {response.StatusCode} - {responseBody}");
+                _logger.LogError($"[SAS_Activation_041] Failed to fetch card series: {response.StatusCode} - {responseBody}");
                 return new List<SasCardSeriesData>();
             }
             
             var apiResponse = System.Text.Json.JsonSerializer.Deserialize<SasCardSeriesApiResponse>(responseBody);
             if (apiResponse == null || apiResponse.Data == null)
             {
-                _logger.LogWarning($"No card series data returned for profile {profileExternalId}");
+                _logger.LogWarning($"[SAS_Activation_042] No card series data returned for profile {profileExternalId}");
                 return new List<SasCardSeriesData>();
             }
             
@@ -786,13 +808,13 @@ public class SasActivationService : ISasActivationService
                 })
                 .ToList();
             
-            _logger.LogInformation($"Found {availableSeries.Count} series with available cards for profile {profileExternalId}");
+            _logger.LogInformation($"[SAS_Activation_043] Found {availableSeries.Count} series with available cards for profile {profileExternalId}");
             
             return availableSeries;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error fetching card series for profile {profileExternalId}");
+            _logger.LogError(ex, $"[SAS_Activation_044] Error fetching card series for profile {profileExternalId}");
             return new List<SasCardSeriesData>();
         }
     }
@@ -812,7 +834,7 @@ public class SasActivationService : ISasActivationService
             var uri = new Uri(baseUrl);
             var cardUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/card/{series}";
             
-            _logger.LogInformation($"Fetching unused PINs from series {series} at {cardUrl}");
+            _logger.LogInformation($"[SAS_Activation_045] Fetching unused PINs from series {series} at {cardUrl}");
             
             // Prepare payload
             var payload = new
@@ -826,35 +848,29 @@ public class SasActivationService : ISasActivationService
             };
             
             // Encrypt payload using AES (SAS API requirement)
-            var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
-            var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
+            var requestJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
             var requestBody = new { payload = encryptedPayload };
             
-            // Authenticate and get Bearer token
-            var token = await AuthenticateAsync(integration);
+            // Get cached token or authenticate if needed
+            var token = await GetOrRefreshTokenAsync(integration);
             
-            var request = new HttpRequestMessage(HttpMethod.Post, cardUrl);
-            request.Headers.Add("Authorization", $"Bearer {token}");
-            request.Headers.Add("Accept", "application/json");
-            request.Headers.Add("User-Agent", "OpenRadius/1.0");
-            request.Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(requestBody),
-                System.Text.Encoding.UTF8,
-                "application/json");
+            // Set authorization header on client
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.PostAsJsonAsync(cardUrl, requestBody);
             var responseBody = await response.Content.ReadAsStringAsync();
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError($"Failed to fetch PINs from series {series}: {response.StatusCode} - {responseBody}");
+                _logger.LogError($"[SAS_Activation_046] Failed to fetch PINs from series {series}: {response.StatusCode} - {responseBody}");
                 return null;
             }
             
             var apiResponse = System.Text.Json.JsonSerializer.Deserialize<SasCardPinApiResponse>(responseBody);
             if (apiResponse == null || apiResponse.Data == null || apiResponse.Data.Count == 0)
             {
-                _logger.LogWarning($"No PIN data returned for series {series}");
+                _logger.LogWarning($"[SAS_Activation_047] No PIN data returned for series {series}");
                 return null;
             }
             
@@ -863,18 +879,18 @@ public class SasActivationService : ISasActivationService
             
             if (unusedPin != null)
             {
-                _logger.LogInformation($"Found unused PIN {unusedPin.Pin} from series {series}");
+                _logger.LogInformation($"[SAS_Activation_048] Found unused PIN {unusedPin.Pin} from series {series}");
             }
             else
             {
-                _logger.LogWarning($"No unused PINs found in series {series}");
+                _logger.LogWarning($"[SAS_Activation_049] No unused PINs found in series {series}");
             }
             
             return unusedPin;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error fetching PINs from series {series}");
+            _logger.LogError(ex, $"[SAS_Activation_050] Error fetching PINs from series {series}");
             return null;
         }
     }
@@ -889,7 +905,7 @@ public class SasActivationService : ISasActivationService
     {
         try
         {
-            _logger.LogInformation($"Getting prepaid card PIN for profile {profileExternalId}");
+            _logger.LogInformation($"[SAS_Activation_051] Getting prepaid card PIN for profile {profileExternalId}");
             
             // Determine owner ID based on integration settings
             int? ownerId = null;
@@ -897,7 +913,7 @@ public class SasActivationService : ISasActivationService
             {
                 // CardStockUserId is the SAS4 manager ID
                 ownerId = integration.CardStockUserId.Value;
-                _logger.LogInformation($"Using specific card stock user: {ownerId}");
+                _logger.LogInformation($"[SAS_Activation_052] Using specific card stock user: {ownerId}");
             }
             
             // Get available card series
@@ -909,7 +925,7 @@ public class SasActivationService : ISasActivationService
             
             if (availableSeries.Count == 0)
             {
-                _logger.LogWarning($"No available card series found for profile {profileExternalId}");
+                _logger.LogWarning($"[SAS_Activation_053] No available card series found for profile {profileExternalId}");
                 return (null, null, null);
             }
             
@@ -922,17 +938,17 @@ public class SasActivationService : ISasActivationService
                 var pinData = await GetUnusedPinFromSeriesAsync(integration, series.Series);
                 if (pinData != null && !string.IsNullOrWhiteSpace(pinData.Pin))
                 {
-                    _logger.LogInformation($"Found PIN {pinData.Pin} from series {series.Series} for profile {profileExternalId}");
+                    _logger.LogInformation($"[SAS_Activation_054] Found PIN {pinData.Pin} from series {series.Series} for profile {profileExternalId}");
                     return (pinData.Pin, series.Series, pinData.SerialNumber);
                 }
             }
             
-            _logger.LogWarning($"No unused PINs found in any available series for profile {profileExternalId}");
+            _logger.LogWarning($"[SAS_Activation_055] No unused PINs found in any available series for profile {profileExternalId}");
             return (null, null, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error getting prepaid card PIN for profile {profileExternalId}");
+            _logger.LogError(ex, $"[SAS_Activation_056] Error getting prepaid card PIN for profile {profileExternalId}");
             return (null, null, null);
         }
     }
