@@ -724,6 +724,23 @@ export default function WorkspaceSettings() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
+                        {(() => {
+                          const webhook = webhooks.find((w: IntegrationWebhook) => 
+                            w.integrationName === `SAS-${integration.name}` || 
+                            w.integrationName === integration.name
+                          )
+                          return webhook?.callbackEnabled ? (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                              No
+                            </span>
+                          )
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-center">
                         <span className="font-medium">{integration.maxItemInPagePerRequest || 100}</span>
                       </TableCell>
                       <TableCell>{integration.action || '-'}</TableCell>
