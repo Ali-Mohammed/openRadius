@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
+using Backend.Helpers;
 
 namespace Backend.Services;
 
@@ -22,6 +23,8 @@ public interface ISasActivationService
 
 public class SasActivationService : ISasActivationService
 {
+    private const string AES_KEY = "abcdefghijuklmno0123456789012345";
+    
     private readonly ApplicationDbContext _context;
     private readonly IWorkspaceJobService _jobService;
     private readonly ILogger<SasActivationService> _logger;
@@ -434,24 +437,10 @@ public class SasActivationService : ISasActivationService
             
             // Build SAS4 API URL
             var protocol = integration.UseHttps ? "https" : "http";
-            var cleanUrl = integration.Url.Trim().TrimEnd('/');
-            
-            // Extract host and port from URL (remove protocol and path if present)
-            var host = cleanUrl;
-            if (Uri.TryCreate(cleanUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? cleanUrl : $"http://{cleanUrl}", UriKind.Absolute, out var uri))
-            {
-                host = uri.Authority; // This gives us host:port without protocol or path
-            }
-            else
-            {
-                // Fallback: strip protocol manually
-                host = System.Text.RegularExpressions.Regex.Replace(cleanUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                // Remove any path that might be included
-                var pathIndex = host.IndexOf('/');
-                if (pathIndex > 0) host = host.Substring(0, pathIndex);
-            }
-            
-            var activateUrl = $"{protocol}://{host}/admin/api/index.php/api/user/activate";
+            var baseUrl = integration.Url.TrimEnd('/');
+            // Remove protocol from baseUrl if it exists
+            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var activateUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/user/activate";
             
             _logger.LogInformation($"Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
             
@@ -472,6 +461,10 @@ public class SasActivationService : ISasActivationService
             var jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
             _logger.LogInformation($"SAS4 activation payload: {jsonPayload}");
             
+            // Encrypt payload using AES (SAS API requirement)
+            var encryptedPayload = EncryptionHelper.EncryptAES(jsonPayload, AES_KEY);
+            var requestBody = new { payload = encryptedPayload };
+            
             // Add authentication headers (Basic Auth)
             var authString = $"{integration.Username}:{integration.Password}";
             var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
@@ -481,7 +474,10 @@ public class SasActivationService : ISasActivationService
             request.Headers.Add("Authorization", $"Basic {authBase64}");
             request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
-            request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+            request.Content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(requestBody),
+                System.Text.Encoding.UTF8,
+                "application/json");
             
             // Send request
             var response = await httpClient.SendAsync(request);
@@ -700,24 +696,14 @@ public class SasActivationService : ISasActivationService
         {
             // Build SAS4 API URL for card series
             var protocol = integration.UseHttps ? "https" : "http";
-            var cleanUrl = integration.Url.Trim().TrimEnd('/');
+            var baseUrl = integration.Url.TrimEnd('/');
+            _logger.LogInformation($"🔍 Original URL: {integration.Url}, After trim: {baseUrl}");
             
-            // Extract host and port from URL (remove protocol and path if present)
-            var host = cleanUrl;
-            if (Uri.TryCreate(cleanUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? cleanUrl : $"http://{cleanUrl}", UriKind.Absolute, out var uri))
-            {
-                host = uri.Authority; // This gives us host:port without protocol or path
-            }
-            else
-            {
-                // Fallback: strip protocol manually
-                host = System.Text.RegularExpressions.Regex.Replace(cleanUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                // Remove any path that might be included
-                var pathIndex = host.IndexOf('/');
-                if (pathIndex > 0) host = host.Substring(0, pathIndex);
-            }
+            // Remove protocol from baseUrl if it exists
+            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            _logger.LogInformation($"🔍 After protocol strip: {baseUrl}, Protocol: {protocol}");
             
-            var seriesUrl = $"{protocol}://{host}/admin/api/index.php/api/index/series";
+            var seriesUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/index/series";
             
             _logger.LogInformation($"Fetching card series for profile {profileExternalId} from {seriesUrl}");
             
@@ -735,6 +721,11 @@ public class SasActivationService : ISasActivationService
                 profile_id = profileExternalId
             };
             
+            // Encrypt payload using AES (SAS API requirement)
+            var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
+            var requestBody = new { payload = encryptedPayload };
+            
             // Add authentication headers
             var authString = $"{integration.Username}:{integration.Password}";
             var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
@@ -745,7 +736,7 @@ public class SasActivationService : ISasActivationService
             request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
             request.Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(payload),
+                System.Text.Json.JsonSerializer.Serialize(requestBody),
                 System.Text.Encoding.UTF8,
                 "application/json");
             
@@ -812,6 +803,11 @@ public class SasActivationService : ISasActivationService
                 columns = new[] { "id", "serialnumber", "pin", "username", "password", "used_at", "username", "username" }
             };
             
+            // Encrypt payload using AES (SAS API requirement)
+            var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            var encryptedPayload = EncryptionHelper.EncryptAES(payloadJson, AES_KEY);
+            var requestBody = new { payload = encryptedPayload };
+            
             // Add authentication headers
             var authString = $"{integration.Username}:{integration.Password}";
             var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
@@ -822,7 +818,7 @@ public class SasActivationService : ISasActivationService
             request.Headers.Add("Accept", "application/json");
             request.Headers.Add("User-Agent", "OpenRadius/1.0");
             request.Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(payload),
+                System.Text.Json.JsonSerializer.Serialize(requestBody),
                 System.Text.Encoding.UTF8,
                 "application/json");
             
