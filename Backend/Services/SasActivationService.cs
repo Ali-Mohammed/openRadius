@@ -86,14 +86,16 @@ public class SasActivationService : ISasActivationService
         _context.SasActivationLogs.Add(log);
         await _context.SaveChangesAsync();
         
-        // Enqueue Hangfire job
+        // Enqueue Hangfire job with integration-specific queue for concurrency control
+        var queueName = _jobService.GetIntegrationQueue(integrationId, integration.ActivationMaxConcurrency);
         var jobId = _jobService.Enqueue<ISasActivationService>(
-            service => service.ProcessActivationAsync(log.Id));
+            service => service.ProcessActivationAsync(log.Id),
+            queueName);
         
         log.JobId = jobId;
         await _context.SaveChangesAsync();
         
-        _logger.LogInformation($"Enqueued activation for user {username} (ID: {userId}) via integration {integrationName} with priority {priority}");
+        _logger.LogInformation($"Enqueued activation for user {username} (ID: {userId}) via integration {integrationName} with priority {priority} in queue {queueName}");
         
         return jobId;
     }
