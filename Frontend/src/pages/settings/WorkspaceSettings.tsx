@@ -1218,6 +1218,162 @@ export default function WorkspaceSettings() {
               </div>
             </div>
 
+            {/* Activation Queue Settings (shown when Send Activations is enabled) */}
+            {selectedIntegrationForWebhook?.sendActivationsToSas && (
+              <div className="p-4 border-2 border-purple-200 rounded-lg bg-purple-50 dark:bg-purple-950/20 dark:border-purple-900 space-y-4">
+                <div className="space-y-1 mb-4">
+                  <Label className="text-base font-semibold">Activation Queue Settings</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Configure retry behavior and timing for activation requests
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Max Retries */}
+                  <div className="space-y-2">
+                    <Label htmlFor="maxRetries">Max Retries</Label>
+                    <Input
+                      id="maxRetries"
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={selectedIntegrationForWebhook?.activationMaxRetries ?? 3}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 3;
+                        setSelectedIntegrationForWebhook({ 
+                          ...selectedIntegrationForWebhook!, 
+                          activationMaxRetries: value 
+                        });
+                      }}
+                      onBlur={async () => {
+                        if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                        try {
+                          await sasRadiusApi.update(
+                            Number(currentWorkspaceId),
+                            selectedIntegrationForWebhook.id,
+                            selectedIntegrationForWebhook
+                          );
+                          queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                          toast.success('Queue settings updated');
+                        } catch (error) {
+                          toast.error(formatApiError(error) || 'Failed to update settings');
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Number of retry attempts for failed activations</p>
+                  </div>
+
+                  {/* Retry Delay */}
+                  <div className="space-y-2">
+                    <Label htmlFor="retryDelay">Base Retry Delay (minutes)</Label>
+                    <Input
+                      id="retryDelay"
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={selectedIntegrationForWebhook?.activationRetryDelayMinutes ?? 2}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 2;
+                        setSelectedIntegrationForWebhook({ 
+                          ...selectedIntegrationForWebhook!, 
+                          activationRetryDelayMinutes: value 
+                        });
+                      }}
+                      onBlur={async () => {
+                        if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                        try {
+                          await sasRadiusApi.update(
+                            Number(currentWorkspaceId),
+                            selectedIntegrationForWebhook.id,
+                            selectedIntegrationForWebhook
+                          );
+                          queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                          toast.success('Queue settings updated');
+                        } catch (error) {
+                          toast.error(formatApiError(error) || 'Failed to update settings');
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Initial delay before first retry</p>
+                  </div>
+
+                  {/* Request Timeout */}
+                  <div className="space-y-2">
+                    <Label htmlFor="timeout">Request Timeout (seconds)</Label>
+                    <Input
+                      id="timeout"
+                      type="number"
+                      min="5"
+                      max="300"
+                      value={selectedIntegrationForWebhook?.activationTimeoutSeconds ?? 30}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 30;
+                        setSelectedIntegrationForWebhook({ 
+                          ...selectedIntegrationForWebhook!, 
+                          activationTimeoutSeconds: value 
+                        });
+                      }}
+                      onBlur={async () => {
+                        if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                        try {
+                          await sasRadiusApi.update(
+                            Number(currentWorkspaceId),
+                            selectedIntegrationForWebhook.id,
+                            selectedIntegrationForWebhook
+                          );
+                          queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                          toast.success('Queue settings updated');
+                        } catch (error) {
+                          toast.error(formatApiError(error) || 'Failed to update settings');
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Maximum time to wait for HTTP response</p>
+                  </div>
+
+                  {/* Exponential Backoff */}
+                  <div className="space-y-2">
+                    <Label>Retry Strategy</Label>
+                    <div className="flex items-center space-x-2 h-10">
+                      <Switch
+                        id="exponentialBackoff"
+                        checked={selectedIntegrationForWebhook?.activationUseExponentialBackoff ?? true}
+                        onCheckedChange={async (checked) => {
+                          if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                          try {
+                            const updated = { 
+                              ...selectedIntegrationForWebhook, 
+                              activationUseExponentialBackoff: checked 
+                            };
+                            await sasRadiusApi.update(
+                              Number(currentWorkspaceId),
+                              selectedIntegrationForWebhook.id,
+                              updated
+                            );
+                            setSelectedIntegrationForWebhook(updated);
+                            queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                            toast.success('Queue settings updated');
+                          } catch (error) {
+                            toast.error(formatApiError(error) || 'Failed to update settings');
+                          }
+                        }}
+                      />
+                      <Label htmlFor="exponentialBackoff" className="cursor-pointer">
+                        {selectedIntegrationForWebhook?.activationUseExponentialBackoff 
+                          ? 'Exponential Backoff' 
+                          : 'Linear Delay'}
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedIntegrationForWebhook?.activationUseExponentialBackoff
+                        ? `Delays: ${selectedIntegrationForWebhook?.activationRetryDelayMinutes ?? 2}m, ${(selectedIntegrationForWebhook?.activationRetryDelayMinutes ?? 2) * 2}m, ${(selectedIntegrationForWebhook?.activationRetryDelayMinutes ?? 2) * 4}m...`
+                        : `Fixed ${selectedIntegrationForWebhook?.activationRetryDelayMinutes ?? 2}m between each retry`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Enable Callback Toggle */}
             <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
               <div className="flex items-center justify-between">
