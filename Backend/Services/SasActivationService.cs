@@ -412,20 +412,26 @@ public class SasActivationService : ISasActivationService
             }
             
             // Get RadiusUser's ExternalId (SAS4 user ID) based on log.UserId
+            _logger.LogInformation($"[SAS_Activation_058] Looking up RadiusUser for UserId: {log.UserId}");
+            
             var radiusUser = await _context.RadiusUsers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == log.UserId);
             
-            string sasUserId;
-            if (radiusUser != null && radiusUser.ExternalId > 0)
+            if (radiusUser == null)
             {
-                sasUserId = radiusUser.ExternalId.ToString();
+                throw new InvalidOperationException($"RadiusUser with UserId {log.UserId} not found in database");
             }
-            else
+            
+            if (radiusUser.ExternalId <= 0)
             {
-                sasUserId = log.UserId.ToString();
-                _logger.LogWarning($"[SAS_Activation_021] Could not find RadiusUser ExternalId for UserId {log.UserId}, using fallback: {sasUserId}");
+                throw new InvalidOperationException(
+                    $"RadiusUser '{radiusUser.Username}' (UserId: {log.UserId}) does not have an ExternalId (SAS4 user ID). " +
+                    "Please sync users with SAS4 first.");
             }
+            
+            var sasUserId = radiusUser.ExternalId.ToString();
+            _logger.LogInformation($"[SAS_Activation_021] Using SAS4 user ID: {sasUserId} for RadiusUser {radiusUser.Username}");
             
             var comment = activationData.TryGetProperty("comment", out var commentProp) 
                 ? commentProp.GetString() 
