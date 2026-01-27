@@ -300,61 +300,120 @@ public class SasActivationService : ISasActivationService
     }
     
     /// <summary>
-    /// Send activation HTTP request to SAS4 (dummy implementation for testing)
+    /// Send activation HTTP request to SAS4 API
     /// </summary>
     private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log)
     {
-        // Dummy implementation for testing
-        // TODO: Replace with actual SAS4 API call
+        _logger.LogInformation($"Sending activation to SAS4: {integration.Url} for user {log.Username}");
         
-        _logger.LogInformation($"[DUMMY] Sending activation to SAS4: {integration.Url}");
-        _logger.LogInformation($"[DUMMY] User: {log.Username}, Timeout: {integration.ActivationTimeoutSeconds}s");
-        
-        // Simulate API call with timeout
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds));
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds);
         
         try
         {
-            await Task.Delay(Random.Shared.Next(100, 500), cts.Token);
+            // Parse activation data to extract pin and other details
+            var activationData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(log.ActivationData);
             
-            // Simulate random failures for testing retry mechanism (20% failure rate)
-            if (Random.Shared.Next(100) < 20)
+            var pin = activationData.GetProperty("pin").GetString();
+            var userId = activationData.GetProperty("userId").GetString() ?? log.UserId.ToString();
+            var comment = activationData.TryGetProperty("comment", out var commentProp) 
+                ? commentProp.GetString() 
+                : $"Activation via integration {log.IntegrationName}";
+            
+            // Build SAS4 API URL
+            var protocol = integration.UseHttps ? "https" : "http";
+            var baseUrl = integration.Url.TrimEnd('/');
+            var activateUrl = $"{protocol}://{baseUrl}/api/card/activate";
+            
+            _logger.LogInformation($"Activating user {log.Username} (ID: {userId}) with PIN {pin} on {activateUrl}");
+            
+            // Prepare multipart form data (SAS4 uses form data, not JSON)
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent("card"), "method");
+            formData.Add(new StringContent(pin ?? ""), "pin");
+            formData.Add(new StringContent(userId), "user_id");
+            formData.Add(new StringContent("1"), "money_collected");
+            formData.Add(new StringContent(comment ?? ""), "comments");
+            
+            // Add authentication headers (Basic Auth)
+            var authString = $"{integration.Username}:{integration.Password}";
+            var authBytes = System.Text.Encoding.UTF8.GetBytes(authString);
+            var authBase64 = Convert.ToBase64String(authBytes);
+            
+            var request = new HttpRequestMessage(HttpMethod.Post, activateUrl);
+            request.Headers.Add("Authorization", $"Basic {authBase64}");
+            request.Headers.Add("Accept", "*/*");
+            request.Headers.Add("Connection", "keep-alive");
+            request.Headers.Add("User-Agent", "OpenRadius/1.0");
+            request.Content = formData;
+            
+            // Send request
+            var response = await httpClient.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            
+            _logger.LogInformation($"SAS4 activation response: Status={response.StatusCode}, Body={responseBody}");
+            
+            // Check for specific SAS4 error responses
+            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
-                throw new HttpRequestException("Simulated HTTP error: Connection timeout");
+                _logger.LogError($"SAS4 returned 403 Forbidden for user {log.Username} - Check credentials: {integration.Username}@{integration.Url}");
+                throw new HttpRequestException($"SAS4 authentication failed (403 Forbidden). Check integration credentials.");
             }
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"SAS4 returned status {response.StatusCode}: {responseBody}");
+            }
+            
+            // Parse JSON response to check for SAS4-specific errors
+            if (response.Content.Headers.ContentType?.MediaType == "application/json")
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(responseBody);
+                
+                // Check for error fields in response
+                if (jsonResponse.TryGetProperty("error", out var errorProp))
+                {
+                    var errorMsg = errorProp.GetString();
+                    throw new HttpRequestException($"SAS4 API error: {errorMsg}");
+                }
+                
+                // Check for status field indicating failure
+                if (jsonResponse.TryGetProperty("status", out var statusProp))
+                {
+                    var status = statusProp.GetInt32();
+                    if (status != 200)
+                    {
+                        var message = jsonResponse.TryGetProperty("message", out var msgProp) 
+                            ? msgProp.GetString() 
+                            : "Unknown error";
+                        throw new HttpRequestException($"SAS4 activation failed with status {status}: {message}");
+                    }
+                }
+            }
+            
+            _logger.LogInformation($"SAS4 activation successful for user {log.Username}");
+            
+            return new SasActivationResponse
+            {
+                StatusCode = response.StatusCode,
+                Body = responseBody
+            };
         }
-        catch (OperationCanceledException)
+        catch (TaskCanceledException ex)
         {
-            throw new TimeoutException($"Activation request timed out after {integration.ActivationTimeoutSeconds} seconds");
+            _logger.LogError(ex, $"SAS4 activation timed out after {integration.ActivationTimeoutSeconds} seconds for user {log.Username}");
+            throw new TimeoutException($"Activation request timed out after {integration.ActivationTimeoutSeconds} seconds", ex);
         }
-        
-        // Simulate success response
-        return new SasActivationResponse
+        catch (HttpRequestException ex)
         {
-            StatusCode = System.Net.HttpStatusCode.OK,
-            Body = $"{{\"success\": true, \"message\": \"Activation sent successfully\", \"timestamp\": \"{DateTime.UtcNow:O}\"}}"
-        };
-        
-        /* REAL IMPLEMENTATION (uncomment when ready):
-        var httpClient = _httpClientFactory.CreateClient();
-        var protocol = integration.UseHttps ? "https" : "http";
-        var url = $"{protocol}://{integration.Url}/api/activation";
-        
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Headers.Add("Authorization", $"Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{integration.Username}:{integration.Password}"))}");
-        request.Content = new StringContent(log.ActivationData, System.Text.Encoding.UTF8, "application/json");
-        
-        var response = await httpClient.SendAsync(request);
-        var responseBody = await response.Content.ReadAsStringAsync();
-        
-        response.EnsureSuccessStatusCode();
-        
-        return new SasActivationResponse
+            _logger.LogError(ex, $"HTTP error during SAS4 activation for user {log.Username}");
+            throw;
+        }
+        catch (Exception ex)
         {
-            StatusCode = response.StatusCode,
-            Body = responseBody
-        };
-        */
+            _logger.LogError(ex, $"Unexpected error during SAS4 activation for user {log.Username}");
+            throw new HttpRequestException($"Activation failed: {ex.Message}", ex);
+        }
     }
     
     /// <summary>
