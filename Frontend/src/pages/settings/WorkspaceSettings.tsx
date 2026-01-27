@@ -42,6 +42,7 @@ import { workspaceApi } from '../../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../../api/sasRadiusApi'
 import { integrationWebhookApi, type IntegrationWebhook } from '../../api/integrationWebhookApi'
 import { SyncProgressDialog } from '../../components/SyncProgressDialog'
+import { ActivationLogsDialog } from '../../components/ActivationLogsDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../../utils/errorHandler'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -82,6 +83,11 @@ export default function WorkspaceSettings() {
   const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false)
   const [selectedIntegrationForWebhook, setSelectedIntegrationForWebhook] = useState<SasRadiusIntegration | null>(null)
   const [currentWebhook, setCurrentWebhook] = useState<IntegrationWebhook | null>(null)
+  
+  // Activation logs state
+  const [isActivationLogsDialogOpen, setIsActivationLogsDialogOpen] = useState(false)
+  const [selectedIntegrationForLogs, setSelectedIntegrationForLogs] = useState<SasRadiusIntegration | null>(null)
+  
   const [formData, setFormData] = useState<SasRadiusIntegration>({
     name: '',
     url: '',
