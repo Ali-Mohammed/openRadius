@@ -61,6 +61,12 @@ public class SasRadiusIntegrationController : ControllerBase
             integration.MaxItemInPagePerRequest,
             integration.Action,
             integration.Description,
+            integration.SendActivationsToSas,
+            integration.ActivationMaxRetries,
+            integration.ActivationRetryDelayMinutes,
+            integration.ActivationUseExponentialBackoff,
+            integration.ActivationTimeoutSeconds,
+            integration.ActivationMaxConcurrency,
             integration.CreatedAt,
             integration.UpdatedAt,
             integration.IsDeleted,
@@ -159,6 +165,15 @@ public class SasRadiusIntegrationController : ControllerBase
         existingIntegration.MaxItemInPagePerRequest = integration.MaxItemInPagePerRequest;
         existingIntegration.Action = integration.Action;
         existingIntegration.Description = integration.Description;
+        
+        // Update activation queue settings
+        existingIntegration.SendActivationsToSas = integration.SendActivationsToSas;
+        existingIntegration.ActivationMaxRetries = integration.ActivationMaxRetries;
+        existingIntegration.ActivationRetryDelayMinutes = integration.ActivationRetryDelayMinutes;
+        existingIntegration.ActivationUseExponentialBackoff = integration.ActivationUseExponentialBackoff;
+        existingIntegration.ActivationTimeoutSeconds = integration.ActivationTimeoutSeconds;
+        existingIntegration.ActivationMaxConcurrency = integration.ActivationMaxConcurrency;
+        
         existingIntegration.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
