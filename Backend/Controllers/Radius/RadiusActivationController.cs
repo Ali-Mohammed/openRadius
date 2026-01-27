@@ -5,6 +5,7 @@ using Backend.Data;
 using Backend.Models;
 using System.Security.Claims;
 using Backend.Helpers;
+using Backend.Services;
 
 namespace Backend.Controllers;
 
@@ -17,17 +18,20 @@ public class RadiusActivationController : ControllerBase
     private readonly MasterDbContext _masterContext;
     private readonly ILogger<RadiusActivationController> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ISasActivationService _sasActivationService;
 
     public RadiusActivationController(
         ApplicationDbContext context,
         MasterDbContext masterContext,
         ILogger<RadiusActivationController> logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ISasActivationService sasActivationService)
     {
         _context = context;
         _masterContext = masterContext;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
+        _sasActivationService = sasActivationService;
     }
 
     // GET: api/RadiusActivation
@@ -1280,6 +1284,54 @@ public class RadiusActivationController : ControllerBase
             // Commit the database transaction - all changes are now permanent
             await dbTransaction.CommitAsync();
             _logger.LogInformation($"Successfully committed all changes for activation {activation.Id} and billing activation {billingActivation.Id}");
+
+            // Send activation to SAS4 if enabled
+            try
+            {
+                var activeIntegration = await _context.SasRadiusIntegrations
+                    .FirstOrDefaultAsync(i => i.IsActive && i.SendActivationsToSas && !i.IsDeleted);
+
+                if (activeIntegration != null)
+                {
+                    _logger.LogInformation($"Enqueuing activation to SAS4 integration {activeIntegration.Name} for user {radiusUser.Username}");
+                    
+                    var activationData = new
+                    {
+                        radiusActivationId = activation.Id,
+                        billingActivationId = billingActivation.Id,
+                        radiusUserId = radiusUser.Id,
+                        username = radiusUser.Username,
+                        radiusProfileId = activation.RadiusProfileId,
+                        radiusProfileName = radiusProfileName,
+                        billingProfileId = activation.BillingProfileId,
+                        billingProfileName = billingProfile?.Name,
+                        activationType = activation.Type,
+                        amount = activation.Amount,
+                        previousExpireDate = activation.PreviousExpireDate,
+                        currentExpireDate = activation.CurrentExpireDate,
+                        nextExpireDate = activation.NextExpireDate,
+                        status = activation.Status,
+                        paymentMethod = request.PaymentMethod,
+                        source = activation.Source,
+                        createdAt = activation.CreatedAt
+                    };
+
+                    await _sasActivationService.EnqueueActivationAsync(
+                        activeIntegration.Id,
+                        activeIntegration.Name,
+                        radiusUser.Id,
+                        radiusUser.Username,
+                        activationData
+                    );
+
+                    _logger.LogInformation($"Successfully enqueued activation {activation.Id} to SAS4");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the activation if SAS enqueuing fails
+                _logger.LogError(ex, $"Failed to enqueue activation {activation.Id} to SAS4, but activation was successful");
+            }
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {
