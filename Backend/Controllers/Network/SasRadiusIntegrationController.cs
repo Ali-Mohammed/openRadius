@@ -134,6 +134,8 @@ public class SasRadiusIntegrationController : ControllerBase
             return BadRequest("ID mismatch");
         }
 
+        _logger.LogInformation($"Updating integration {id} - ActivationMethod={integration.ActivationMethod}");
+
         var existingIntegration = await _context.SasRadiusIntegrations
             .FirstOrDefaultAsync(i => i.Id == id);
 
@@ -173,6 +175,12 @@ public class SasRadiusIntegrationController : ControllerBase
         existingIntegration.ActivationUseExponentialBackoff = integration.ActivationUseExponentialBackoff;
         existingIntegration.ActivationTimeoutSeconds = integration.ActivationTimeoutSeconds;
         existingIntegration.ActivationMaxConcurrency = integration.ActivationMaxConcurrency;
+        
+        // Update advanced activation settings
+        existingIntegration.ActivationMethod = integration.ActivationMethod;
+        existingIntegration.CardStockUserId = integration.CardStockUserId;
+        existingIntegration.AllowAnyCardStockUser = integration.AllowAnyCardStockUser;
+        existingIntegration.UseFreeCardsOnly = integration.UseFreeCardsOnly;
         
         existingIntegration.UpdatedAt = DateTime.UtcNow;
 
