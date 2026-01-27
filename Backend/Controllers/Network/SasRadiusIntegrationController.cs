@@ -67,6 +67,10 @@ public class SasRadiusIntegrationController : ControllerBase
             integration.ActivationUseExponentialBackoff,
             integration.ActivationTimeoutSeconds,
             integration.ActivationMaxConcurrency,
+            integration.ActivationMethod,
+            integration.CardStockUserId,
+            integration.AllowAnyCardStockUser,
+            integration.UseFreeCardsOnly,
             integration.CreatedAt,
             integration.UpdatedAt,
             integration.IsDeleted,
@@ -134,7 +138,8 @@ public class SasRadiusIntegrationController : ControllerBase
             return BadRequest("ID mismatch");
         }
 
-        _logger.LogInformation($"Updating integration {id} - ActivationMethod={integration.ActivationMethod}");
+        var requestBody = System.Text.Json.JsonSerializer.Serialize(integration);
+        _logger.LogInformation($"📥 PUT /api/workspaces/{WorkspaceId}/sas-radius/{id} - ActivationMethod={integration.ActivationMethod}, Body={requestBody}");
 
         var existingIntegration = await _context.SasRadiusIntegrations
             .FirstOrDefaultAsync(i => i.Id == id);

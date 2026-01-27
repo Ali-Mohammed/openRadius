@@ -88,10 +88,10 @@ public class SasActivationService : ISasActivationService
             CreatedAt = DateTime.UtcNow
         };
         
-         _logger.LogInformation("integration.ActivationMethod: {ActivationMethod}, {PrepaidCard}", integration.ActivationMethod , ActivationMethod.PrepaidCard);
+         _logger.LogInformation("integration.ActivationMethod: {ActivationMethod}", integration.ActivationMethod);
 
         // If activation method is PrepaidCard, fetch PIN from card inventory
-        if (integration.ActivationMethod == ActivationMethod.PrepaidCard)
+        if (integration.ActivationMethod == "PrepaidCard")
         {
 
             _logger.LogInformation("Fetching prepaid card PIN for activation");
