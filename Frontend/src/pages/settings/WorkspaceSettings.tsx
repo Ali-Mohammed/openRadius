@@ -142,6 +142,12 @@ export default function WorkspaceSettings() {
   const recentSyncs = recentSyncsData?.data || []
   const syncPagination = recentSyncsData?.pagination
 
+  const { data: webhooks = [] } = useQuery({
+    queryKey: ['integration-webhooks', currentWorkspaceId],
+    queryFn: () => integrationWebhookApi.getAll(Number(currentWorkspaceId)),
+    enabled: currentWorkspaceId !== null,
+  })
+
   const createMutation = useMutation({
     mutationFn: (data: SasRadiusIntegration) => sasRadiusApi.create(Number(currentWorkspaceId), data),
     onSuccess: () => {
