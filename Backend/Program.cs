@@ -204,12 +204,8 @@ builder.Services.AddHangfire(config =>
     });
 });
 
-// Add Hangfire server
-builder.Services.AddHangfireServer(options =>
-{
-    options.WorkerCount = Environment.ProcessorCount * 2;
-    options.ServerName = $"OpenRadius-{Environment.MachineName}";
-});
+// Hangfire server will be configured after database initialization
+// to dynamically discover all workspace and integration queues
 
 // Configure CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
@@ -320,6 +316,62 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine($"✗ Failed to initialize tenant database for workspace {workspace.Title}: {ex.Message}");
         }
     }
+    
+    // Dynamically build queue list for Hangfire server
+    var queues = new List<string> { "default" };
+    foreach (var workspace in workspaces)
+    {
+        // Add workspace-level queue
+        queues.Add($"workspace_{workspace.Id}");
+        
+        // Add integration-specific queues for this workspace
+        try
+        {
+            var tenantConnectionString = GetTenantConnectionString(
+                builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
+                workspace.Id
+            );
+            
+            var tenantDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseNpgsql(tenantConnectionString)
+                .Options;
+                
+            using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
+            
+            // Get all integrations for this workspace
+            var integrations = tenantContext.SasRadiusIntegrations
+                .Where(i => !i.IsDeleted)
+                .Select(i => new { i.Id, i.ActivationMaxConcurrency })
+                .ToList();
+                
+            foreach (var integration in integrations)
+            {
+                // Only add integration-specific queue if using sequential processing
+                if (integration.ActivationMaxConcurrency == 1)
+                {
+                    queues.Add($"workspace_{workspace.Id}_integration_{integration.Id}");
+                }
+            }
+            
+            Console.WriteLine($"✓ Discovered {integrations.Count} integrations for workspace {workspace.Title}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"✗ Failed to discover integrations for workspace {workspace.Title}: {ex.Message}");
+        }
+    }
+    
+    // Start Hangfire server with dynamically discovered queues
+    app.Services.GetRequiredService<IServiceProvider>().GetService<IRecurringJobManager>();
+    var hangfireOptions = new BackgroundJobServerOptions
+    {
+        WorkerCount = Environment.ProcessorCount * 2,
+        ServerName = $"OpenRadius-{Environment.MachineName}",
+        Queues = queues.ToArray()
+    };
+    
+    Console.WriteLine($"🔄 Starting Hangfire server with {queues.Count} queues: {string.Join(", ", queues.Take(10))}{(queues.Count > 10 ? "..." : "")}");
+    app.UseHangfireServer(hangfireOptions);
 }
 
 static string GetTenantConnectionString(string baseConnectionString, int WorkspaceId)

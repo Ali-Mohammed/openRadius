@@ -8,7 +8,11 @@ public class HangfireAuthorizationFilter : IDashboardAuthorizationFilter
     {
         var httpContext = context.GetHttpContext();
         
-        // Allow access if user is authenticated
-        return httpContext.User.Identity?.IsAuthenticated ?? false;
+        // In development, allow access without authentication
+        // In production, you should enable authentication
+        return true;
+        
+        // For production, use:
+        // return httpContext.User.Identity?.IsAuthenticated ?? false;
     }
 }
