@@ -449,13 +449,50 @@ app.UseMultiTenant();
 app.UseAuthorization();
 
 // Configure Hangfire Dashboard with authentication
+// Create a dashboard for each workspace so you can view workspace-specific jobs
+foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
+{
+    var workspaceConnection = GetTenantConnectionString(
+        builder.Configuration.GetConnectionString("DefaultConnection")!,
+        workspace.Id
+    );
+    var workspaceStorage = new PostgreSqlStorage(workspaceConnection, new PostgreSqlStorageOptions
+    {
+        SchemaName = "hangfire"
+    });
+    
+    // Create a route for each workspace: /hangfire/workspace/1, /hangfire/workspace/2, etc.
+    app.UseHangfireDashboard($"/hangfire/workspace/{workspace.Id}", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireAuthorizationFilter() },
+        DashboardTitle = $"OpenRadius Jobs - {workspace.Name ?? workspace.Title} (Workspace {workspace.Id})",
+        DisplayStorageConnectionString = false,
+        AppPath = null
+    }, workspaceStorage);
+    
+    Console.WriteLine($"📊 Hangfire dashboard available at: /hangfire/workspace/{workspace.Id} ({workspace.Name ?? workspace.Title})");
+}
+
+// Also create a default dashboard pointing to workspace 1 for convenience
+var workspace1Connection = GetTenantConnectionString(
+    builder.Configuration.GetConnectionString("DefaultConnection")!,
+    1
+);
+var dashboardStorage = new PostgreSqlStorage(workspace1Connection, new PostgreSqlStorageOptions
+{
+    SchemaName = "hangfire"
+});
+JobStorage.Current = dashboardStorage;
+
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() },
-    DashboardTitle = "OpenRadius Jobs",
+    DashboardTitle = "OpenRadius Jobs - Workspace 1 (Default)",
     DisplayStorageConnectionString = false,
     AppPath = null
-});
+}, dashboardStorage);
+
+Console.WriteLine($"📊 Default Hangfire dashboard at: /hangfire (points to Workspace 1)");
 
 app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
