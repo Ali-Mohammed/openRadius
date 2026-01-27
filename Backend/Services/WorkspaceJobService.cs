@@ -14,6 +14,11 @@ public interface IWorkspaceJobService
     string Enqueue<T>(System.Linq.Expressions.Expression<Action<T>> methodCall);
     
     /// <summary>
+    /// Enqueue a background job with a specific queue name (for concurrency control)
+    /// </summary>
+    string Enqueue<T>(System.Linq.Expressions.Expression<Action<T>> methodCall, string queueName);
+    
+    /// <summary>
     /// Schedule a background job for the current workspace
     /// </summary>
     string Schedule<T>(System.Linq.Expressions.Expression<Action<T>> methodCall, TimeSpan delay);
@@ -32,6 +37,11 @@ public interface IWorkspaceJobService
     /// Get the Hangfire job client configured for the current workspace
     /// </summary>
     IBackgroundJobClient GetJobClient();
+    
+    /// <summary>
+    /// Get a queue name for integration-specific concurrency control
+    /// </summary>
+    string GetIntegrationQueue(int integrationId, int maxConcurrency);
 }
 
 public class WorkspaceJobService : IWorkspaceJobService
