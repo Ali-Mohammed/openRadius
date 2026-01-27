@@ -14,6 +14,8 @@ using OfficeOpenXml;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 // Configure EPPlus license for version 8.x - Noncommercial use
 ExcelPackage.License.SetNonCommercialPersonal("OpenRadius Development");
@@ -179,8 +181,32 @@ builder.Services.AddScoped<MicroserviceApprovalService>();
 // Add Payment Services
 builder.Services.AddScoped<PaymentAuditService>();
 
+// Add Workspace Job Service for per-workspace background jobs
+builder.Services.AddScoped<IWorkspaceJobService, WorkspaceJobService>();
+builder.Services.AddScoped<IExampleJobService, ExampleJobService>();
+
 // Add Kafka Consumer Service for CDC monitoring
 builder.Services.AddHostedService<KafkaConsumerService>();
+
+// Configure Hangfire for each workspace (per-tenant job processing)
+builder.Services.AddHangfire(config =>
+{
+    // Hangfire will be configured per-workspace using the workspace's PostgreSQL database
+    // This is a placeholder configuration - actual connection will be set at runtime
+    var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+    config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(defaultConnection));
+    config.UseSerializerSettings(new Newtonsoft.Json.JsonSerializerSettings
+    {
+        TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Auto
+    });
+});
+
+// Add Hangfire server
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = Environment.ProcessorCount * 2;
+    options.ServerName = $"OpenRadius-{Environment.MachineName}";
+});
 
 // Configure CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
@@ -275,6 +301,15 @@ using (var scope = app.Services.CreateScope())
                 
             using var tenantContext = new ApplicationDbContext(tenantDbContextOptions);
             tenantContext.Database.Migrate();
+            
+            // Configure Hangfire for this workspace
+            GlobalConfiguration.Configuration.UsePostgreSqlStorage(c => 
+                c.UseNpgsqlConnection(tenantInfo.ConnectionString),
+                new PostgreSqlStorageOptions
+                {
+                    SchemaName = "hangfire"
+                });
+            
             Console.WriteLine($"✓ Tenant database initialized for workspace: {workspace.Title}");
         }
         catch (Exception ex)
@@ -325,6 +360,15 @@ app.UseAuthentication();
 app.UseMultiTenant();
 
 app.UseAuthorization();
+
+// Configure Hangfire Dashboard with authentication
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireAuthorizationFilter() },
+    DashboardTitle = "OpenRadius Jobs",
+    DisplayStorageConnectionString = false,
+    AppPath = null
+});
 
 app.MapControllers();
 app.MapHub<SasSyncHub>("/hubs/sassync");
