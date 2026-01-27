@@ -1,4 +1,15 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Models;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ActivationMethod
+{
+    ManagerBalance,
+    PrepaidCard,
+    UserBalance,
+    RewardPoints
+}
 
 public class SasRadiusIntegration
 {
@@ -20,6 +31,12 @@ public class SasRadiusIntegration
     public bool ActivationUseExponentialBackoff { get; set; } = true; // Use exponential backoff (2^retryCount * base delay)
     public int ActivationTimeoutSeconds { get; set; } = 30; // HTTP request timeout in seconds
     public int ActivationMaxConcurrency { get; set; } = 1; // Max concurrent activations (1 = sequential, >1 = parallel)
+    
+    // Advanced Activation Settings
+    public ActivationMethod ActivationMethod { get; set; } = ActivationMethod.ManagerBalance; // How activations are funded
+    public int? CardStockUserId { get; set; } // User ID who holds card stock (for PrepaidCard method)
+    public bool AllowAnyCardStockUser { get; set; } = false; // Allow selecting any user with cards (for PrepaidCard method)
+    public bool UseFreeCardsOnly { get; set; } = false; // Only use unassigned/free cards (for PrepaidCard method)
 
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }

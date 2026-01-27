@@ -41,6 +41,7 @@ import {
 import { workspaceApi } from '../../lib/api'
 import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } from '../../api/sasRadiusApi'
 import { integrationWebhookApi, type IntegrationWebhook } from '../../api/integrationWebhookApi'
+import { userManagementApi, type User } from '../../api/userManagementApi'
 import { SyncProgressDialog } from '../../components/SyncProgressDialog'
 import { ActivationLogsDialog } from '../../components/ActivationLogsDialog'
 import { toast } from 'sonner'
@@ -146,6 +147,12 @@ export default function WorkspaceSettings() {
     queryKey: ['integration-webhooks', currentWorkspaceId],
     queryFn: () => integrationWebhookApi.getAll(Number(currentWorkspaceId)),
     enabled: currentWorkspaceId !== null,
+  })
+
+  // Fetch all users for card stock user selection
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userManagementApi.getAll(),
   })
 
   const createMutation = useMutation({
@@ -1432,6 +1439,176 @@ export default function WorkspaceSettings() {
                         : `Fixed ${selectedIntegrationForWebhook?.activationRetryDelayMinutes ?? 2}m between each retry`}
                     </p>
                   </div>
+                </div>
+
+                {/* Advanced Activation Settings */}
+                <div className="mt-4 pt-4 border-t border-purple-300 dark:border-purple-700 space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-base font-semibold text-purple-700 dark:text-purple-300">Advanced Settings</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Configure how activations are funded and processed
+                    </p>
+                  </div>
+
+                  {/* Activation Method Dropdown */}
+                  <div className="space-y-2">
+                    <Label htmlFor="activationMethod">Activation Method</Label>
+                    <Select
+                      value={selectedIntegrationForWebhook?.activationMethod || 'ManagerBalance'}
+                      onValueChange={async (value) => {
+                        if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                        try {
+                          const updated = { 
+                            ...selectedIntegrationForWebhook, 
+                            activationMethod: value as any
+                          };
+                          await sasRadiusApi.update(
+                            Number(currentWorkspaceId),
+                            selectedIntegrationForWebhook.id,
+                            updated
+                          );
+                          setSelectedIntegrationForWebhook(updated);
+                          queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                          toast.success('Activation method updated');
+                        } catch (error) {
+                          toast.error(formatApiError(error) || 'Failed to update activation method');
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select activation method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ManagerBalance">Manager Balance</SelectItem>
+                        <SelectItem value="PrepaidCard">Prepaid Card</SelectItem>
+                        <SelectItem value="UserBalance">User Balance</SelectItem>
+                        <SelectItem value="RewardPoints">Reward Points</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedIntegrationForWebhook?.activationMethod === 'ManagerBalance' && 'Use manager account balance for activations'}
+                      {selectedIntegrationForWebhook?.activationMethod === 'PrepaidCard' && 'Use prepaid card PINs from card stock'}
+                      {selectedIntegrationForWebhook?.activationMethod === 'UserBalance' && 'Deduct from user wallet balance'}
+                      {selectedIntegrationForWebhook?.activationMethod === 'RewardPoints' && 'Use reward points for activations'}
+                      {!selectedIntegrationForWebhook?.activationMethod && 'Use manager account balance for activations'}
+                    </p>
+                  </div>
+
+                  {/* Prepaid Card Options (shown only when PrepaidCard is selected) */}
+                  {(selectedIntegrationForWebhook?.activationMethod === 'PrepaidCard') && (
+                    <div className="p-3 border border-purple-200 dark:border-purple-800 rounded-md bg-purple-50/50 dark:bg-purple-950/30 space-y-3">
+                      <Label className="text-sm font-semibold text-purple-700 dark:text-purple-300">Card Stock Configuration</Label>
+                      
+                      {/* Allow Any Card Stock User */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-medium">Allow Any User</Label>
+                          <p className="text-xs text-muted-foreground">Select any user with available cards</p>
+                        </div>
+                        <Switch
+                          checked={selectedIntegrationForWebhook?.allowAnyCardStockUser || false}
+                          onCheckedChange={async (checked) => {
+                            if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                            try {
+                              const updated = { 
+                                ...selectedIntegrationForWebhook, 
+                                allowAnyCardStockUser: checked,
+                                cardStockUserId: checked ? null : selectedIntegrationForWebhook.cardStockUserId
+                              };
+                              await sasRadiusApi.update(
+                                Number(currentWorkspaceId),
+                                selectedIntegrationForWebhook.id,
+                                updated
+                              );
+                              setSelectedIntegrationForWebhook(updated);
+                              queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                              toast.success('Card stock settings updated');
+                            } catch (error) {
+                              toast.error(formatApiError(error) || 'Failed to update settings');
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* Use Free Cards Only */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-medium">Free Cards Only</Label>
+                          <p className="text-xs text-muted-foreground">Only use unassigned cards</p>
+                        </div>
+                        <Switch
+                          checked={selectedIntegrationForWebhook?.useFreeCardsOnly || false}
+                          onCheckedChange={async (checked) => {
+                            if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                            try {
+                              const updated = { 
+                                ...selectedIntegrationForWebhook, 
+                                useFreeCardsOnly: checked 
+                              };
+                              await sasRadiusApi.update(
+                                Number(currentWorkspaceId),
+                                selectedIntegrationForWebhook.id,
+                                updated
+                              );
+                              setSelectedIntegrationForWebhook(updated);
+                              queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                              toast.success('Card stock settings updated');
+                            } catch (error) {
+                              toast.error(formatApiError(error) || 'Failed to update settings');
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* Card Stock User Selector (shown when not allowing any user) */}
+                      {!selectedIntegrationForWebhook?.allowAnyCardStockUser && (
+                        <div className="space-y-2">
+                          <Label htmlFor="cardStockUser">Card Stock User</Label>
+                          <Select
+                            value={selectedIntegrationForWebhook?.cardStockUserId?.toString() || ''}
+                            onValueChange={async (value) => {
+                              if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                              try {
+                                const updated = { 
+                                  ...selectedIntegrationForWebhook, 
+                                  cardStockUserId: value ? parseInt(value) : null
+                                };
+                                await sasRadiusApi.update(
+                                  Number(currentWorkspaceId),
+                                  selectedIntegrationForWebhook.id,
+                                  updated
+                                );
+                                setSelectedIntegrationForWebhook(updated);
+                                queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                                toast.success('Card stock user updated');
+                              } catch (error) {
+                                toast.error(formatApiError(error) || 'Failed to update card stock user');
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a user" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {users.map((user) => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.firstName && user.lastName 
+                                    ? `${user.firstName} ${user.lastName}` 
+                                    : user.username || user.email || `User ${user.id}`}
+                                  {user.email && (user.firstName || user.lastName) && (
+                                    <span className="text-xs text-muted-foreground ml-2">({user.email})</span>
+                                  )}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Select which user's card inventory to use for activations
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

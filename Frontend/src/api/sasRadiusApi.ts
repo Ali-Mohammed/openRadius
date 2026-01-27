@@ -17,6 +17,10 @@ export interface SasRadiusIntegration {
   activationUseExponentialBackoff?: boolean
   activationTimeoutSeconds?: number
   activationMaxConcurrency?: number
+  activationMethod?: 'ManagerBalance' | 'PrepaidCard' | 'UserBalance' | 'RewardPoints'
+  cardStockUserId?: number | null
+  allowAnyCardStockUser?: boolean
+  useFreeCardsOnly?: boolean
   workspaceId?: number
   createdAt?: string
   updatedAt?: string
