@@ -185,6 +185,9 @@ builder.Services.AddScoped<PaymentAuditService>();
 builder.Services.AddScoped<IWorkspaceJobService, WorkspaceJobService>();
 builder.Services.AddScoped<IExampleJobService, ExampleJobService>();
 
+// Add SAS Activation Service
+builder.Services.AddScoped<ISasActivationService, SasActivationService>();
+
 // Add Kafka Consumer Service for CDC monitoring
 builder.Services.AddHostedService<KafkaConsumerService>();
 

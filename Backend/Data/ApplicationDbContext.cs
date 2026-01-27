@@ -77,6 +77,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusAccounting> RadiusAccounting { get; set; }
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
     public DbSet<Models.Payments.PaymentLog> PaymentLogs { get; set; }
+    public DbSet<SasActivationLog> SasActivationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
