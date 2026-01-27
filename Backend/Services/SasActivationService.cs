@@ -320,7 +320,7 @@ public class SasActivationService : ISasActivationService
             _logger.LogInformation($"[SAS_Activation_014] Processing activation {logId} for user {log.Username}");
             
             // Send HTTP request to SAS4
-            var response = await SendActivationToSas4Async(integration, log);
+            var response = await SendActivationToSas4Async(integration, log, workspaceContext);
             
             stopwatch.Stop();
             
@@ -376,7 +376,7 @@ public class SasActivationService : ISasActivationService
     /// <summary>
     /// Send activation HTTP request to SAS4 API
     /// </summary>
-    private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log)
+    private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log, ApplicationDbContext context)
     {
         _logger.LogInformation($"[SAS_Activation_020] Sending activation to SAS4: {integration.Url} for user {log.Username}");
         
@@ -414,7 +414,7 @@ public class SasActivationService : ISasActivationService
             // Get RadiusUser's ExternalId (SAS4 user ID) based on log.UserId
             _logger.LogInformation($"[SAS_Activation_058] Looking up RadiusUser for UserId: {log.UserId}");
             
-            var radiusUser = await _context.RadiusUsers
+            var radiusUser = await context.RadiusUsers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == log.UserId);
             
