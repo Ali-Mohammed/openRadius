@@ -437,11 +437,9 @@ public class SasActivationService : ISasActivationService
             }
             
             // Build SAS4 API URL
-            var protocol = integration.UseHttps ? "https" : "http";
-            var baseUrl = integration.Url.TrimEnd('/');
-            // Remove protocol from baseUrl if it exists
-            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            var activateUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/user/activate";
+            var baseUrl = integration.Url.Trim().TrimEnd('/');
+            var uri = new Uri(baseUrl);
+            var activateUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/user/activate";
             
             _logger.LogInformation($"Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
             
@@ -805,9 +803,9 @@ public class SasActivationService : ISasActivationService
         try
         {
             // Build SAS4 API URL for card PINs
-            var protocol = integration.UseHttps ? "https" : "http";
-            var baseUrl = integration.Url.TrimEnd('/');            // Remove protocol from baseUrl if it exists
-            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);            var cardUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/index/card/{series}";
+            var baseUrl = integration.Url.Trim().TrimEnd('/');
+            var uri = new Uri(baseUrl);
+            var cardUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/card/{series}";
             
             _logger.LogInformation($"Fetching unused PINs from series {series} at {cardUrl}");
             
