@@ -39,6 +39,10 @@ public class SasActivationService : ISasActivationService
     /// </summary>
     public async Task<string> EnqueueActivationAsync(int integrationId, string integrationName, int userId, string username, object activationData)
     {
+        // Get integration settings for queue configuration
+        var integration = await _context.SasRadiusIntegrations
+            .FirstOrDefaultAsync(i => i.Id == integrationId);
+        
         var log = new SasActivationLog
         {
             IntegrationId = integrationId,
@@ -48,6 +52,7 @@ public class SasActivationService : ISasActivationService
             ActivationData = System.Text.Json.JsonSerializer.Serialize(activationData),
             Status = ActivationStatus.Pending,
             RetryCount = 0,
+            MaxRetries = integration?.ActivationMaxRetries ?? 3,
             CreatedAt = DateTime.UtcNow
         };
         
@@ -127,7 +132,17 @@ public class SasActivationService : ISasActivationService
             // Schedule retry if not exceeded max retries
             if (log.RetryCount < log.MaxRetries)
             {
-                var delay = TimeSpan.FromMinutes(Math.Pow(2, log.RetryCount)); // Exponential backoff
+                // Get integration settings for retry delay calculation
+                var integration = log.Integration ?? await _context.SasRadiusIntegrations
+                    .FirstOrDefaultAsync(i => i.Id == log.IntegrationId);
+                
+                var baseDelayMinutes = integration?.ActivationRetryDelayMinutes ?? 2;
+                var useExponentialBackoff = integration?.ActivationUseExponentialBackoff ?? true;
+                
+                var delay = useExponentialBackoff 
+                    ? TimeSpan.FromMinutes(Math.Pow(2, log.RetryCount) * baseDelayMinutes)
+                    : TimeSpan.FromMinutes(log.RetryCount * baseDelayMinutes);
+                    
                 log.NextRetryAt = DateTime.UtcNow.Add(delay);
                 
                 var retryJobId = _jobService.Schedule<ISasActivationService>(

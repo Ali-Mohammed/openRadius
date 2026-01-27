@@ -12,6 +12,10 @@ export interface SasRadiusIntegration {
   action?: string
   description?: string
   sendActivationsToSas?: boolean
+  activationMaxRetries?: number
+  activationRetryDelayMinutes?: number
+  activationUseExponentialBackoff?: boolean
+  activationTimeoutSeconds?: number
   workspaceId?: number
   createdAt?: string
   updatedAt?: string
