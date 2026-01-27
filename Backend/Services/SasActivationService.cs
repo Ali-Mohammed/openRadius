@@ -434,10 +434,24 @@ public class SasActivationService : ISasActivationService
             
             // Build SAS4 API URL
             var protocol = integration.UseHttps ? "https" : "http";
-            var baseUrl = integration.Url.TrimEnd('/');
-            // Remove protocol from baseUrl if it exists
-            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            var activateUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/user/activate";
+            var cleanUrl = integration.Url.Trim().TrimEnd('/');
+            
+            // Extract host and port from URL (remove protocol and path if present)
+            var host = cleanUrl;
+            if (Uri.TryCreate(cleanUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? cleanUrl : $"http://{cleanUrl}", UriKind.Absolute, out var uri))
+            {
+                host = uri.Authority; // This gives us host:port without protocol or path
+            }
+            else
+            {
+                // Fallback: strip protocol manually
+                host = System.Text.RegularExpressions.Regex.Replace(cleanUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                // Remove any path that might be included
+                var pathIndex = host.IndexOf('/');
+                if (pathIndex > 0) host = host.Substring(0, pathIndex);
+            }
+            
+            var activateUrl = $"{protocol}://{host}/admin/api/index.php/api/user/activate";
             
             _logger.LogInformation($"Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
             
@@ -686,10 +700,24 @@ public class SasActivationService : ISasActivationService
         {
             // Build SAS4 API URL for card series
             var protocol = integration.UseHttps ? "https" : "http";
-            var baseUrl = integration.Url.TrimEnd('/');
-            // Remove protocol from baseUrl if it exists
-            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            var seriesUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/index/series";
+            var cleanUrl = integration.Url.Trim().TrimEnd('/');
+            
+            // Extract host and port from URL (remove protocol and path if present)
+            var host = cleanUrl;
+            if (Uri.TryCreate(cleanUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? cleanUrl : $"http://{cleanUrl}", UriKind.Absolute, out var uri))
+            {
+                host = uri.Authority; // This gives us host:port without protocol or path
+            }
+            else
+            {
+                // Fallback: strip protocol manually
+                host = System.Text.RegularExpressions.Regex.Replace(cleanUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                // Remove any path that might be included
+                var pathIndex = host.IndexOf('/');
+                if (pathIndex > 0) host = host.Substring(0, pathIndex);
+            }
+            
+            var seriesUrl = $"{protocol}://{host}/admin/api/index.php/api/index/series";
             
             _logger.LogInformation($"Fetching card series for profile {profileExternalId} from {seriesUrl}");
             
