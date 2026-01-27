@@ -382,7 +382,28 @@ public class SasActivationService : ISasActivationService
                 throw new InvalidOperationException("PIN is required for activation but was not found in log or activation data");
             }
             
-            var userId = activationData.GetProperty("userId").GetString() ?? log.UserId.ToString();
+            // Get RadiusUser's ExternalId (SAS4 user ID) for the activation
+            string? sasUserId = null;
+            if (activationData.TryGetProperty("radiusUserId", out var radiusUserIdProp))
+            {
+                var radiusUserId = radiusUserIdProp.GetInt32();
+                var radiusUser = await _context.RadiusUsers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == radiusUserId);
+                
+                if (radiusUser != null && radiusUser.ExternalId > 0)
+                {
+                    sasUserId = radiusUser.ExternalId.ToString();
+                }
+            }
+            
+            // Fallback to log.UserId if no RadiusUser found
+            if (string.IsNullOrEmpty(sasUserId))
+            {
+                sasUserId = log.UserId.ToString();
+                _logger.LogWarning($"Could not find RadiusUser ExternalId, using fallback UserId: {sasUserId}");
+            }
+            
             var comment = activationData.TryGetProperty("comment", out var commentProp) 
                 ? commentProp.GetString() 
                 : $"Activation via integration {log.IntegrationName}";
@@ -398,14 +419,14 @@ public class SasActivationService : ISasActivationService
             var baseUrl = integration.Url.TrimEnd('/');
             var activateUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/user/activate";
             
-            _logger.LogInformation($"Activating user {log.Username} (ID: {userId}) with PIN {pin} on {activateUrl}");
+            _logger.LogInformation($"Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
             
             // Prepare JSON payload for SAS4 activation
             var payload = new
             {
                 method = "card",
                 pin = pin,
-                user_id = userId,
+                user_id = sasUserId,
                 money_collected = 1,
                 comments = comment,
                 user_price = 0, // Can be set based on activation data if needed
