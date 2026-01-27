@@ -273,7 +273,7 @@ using (var scope = app.Services.CreateScope())
     
     // Ensure all tenant databases exist
     var workspaces = masterContext.Workspaces.Where(i => i.DeletedAt == null).ToList();
-    foreach (var workspace in workspaces)
+    foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
     {
         try
         {
@@ -319,7 +319,7 @@ using (var scope = app.Services.CreateScope())
     
     // Dynamically build queue list for Hangfire server
     var queues = new List<string> { "default" };
-    foreach (var workspace in workspaces)
+    foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
     {
         // Add workspace-level queue
         queues.Add($"workspace_{workspace.Id}");
@@ -365,7 +365,7 @@ using (var scope = app.Services.CreateScope())
     // Each workspace has jobs stored in its own database, so we need one server per workspace
     app.Services.GetRequiredService<IServiceProvider>().GetService<IRecurringJobManager>();
     
-    foreach (var workspace in workspaces)
+    foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
     {
         try
         {
