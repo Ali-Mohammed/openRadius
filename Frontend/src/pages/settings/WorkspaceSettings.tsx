@@ -779,9 +779,9 @@ export default function WorkspaceSettings() {
                                   }
                                   setIsWebhookDialogOpen(true)
                                 }}
-                                title="Webhook Callback Settings"
+                                title="Integration Settings"
                               >
-                                <Webhook className="h-4 w-4 text-purple-600" />
+                                <Settings className="h-4 w-4 text-purple-600" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -1156,13 +1156,13 @@ export default function WorkspaceSettings() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Webhook Callback Settings Dialog */}
+      {/* Integration Settings Dialog */}
       <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Webhook Callback Settings</DialogTitle>
+            <DialogTitle>Integration Settings</DialogTitle>
             <DialogDescription>
-              Configure webhook callback for {selectedIntegrationForWebhook?.name}
+              Configure integration settings for {selectedIntegrationForWebhook?.name}
             </DialogDescription>
           </DialogHeader>
 
