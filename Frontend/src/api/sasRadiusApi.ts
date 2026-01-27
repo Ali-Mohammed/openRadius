@@ -11,6 +11,7 @@ export interface SasRadiusIntegration {
   maxItemInPagePerRequest?: number
   action?: string
   description?: string
+  sendActivationsToSas?: boolean
   workspaceId?: number
   createdAt?: string
   updatedAt?: string

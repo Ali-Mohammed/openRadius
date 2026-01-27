@@ -92,6 +92,7 @@ export default function WorkspaceSettings() {
     maxPagesPerRequest: 10,
     action: '',
     description: '',
+    sendActivationsToSas: false,
   })
 
   // Cleanup SignalR connection on unmount
@@ -569,6 +570,21 @@ export default function WorkspaceSettings() {
                     </Label>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 bg-muted/50">
+                  <Switch
+                    id="sendActivations"
+                    checked={formData.sendActivationsToSas || false}
+                    onCheckedChange={(checked) => setFormData({ ...formData, sendActivationsToSas: checked })}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="sendActivations" className="cursor-pointer font-medium">
+                      Send Activations to SAS4
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Automatically send user activations to SAS4 for active users
+                    </p>
+                  </div>
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="maxPages">Items Per Page</Label>
                   <Input
@@ -642,6 +658,7 @@ export default function WorkspaceSettings() {
                     <TableHead className="text-center w-[80px]">HTTPS</TableHead>
                     <TableHead className="text-center w-[100px]">Status</TableHead>
                     <TableHead className="text-center w-[120px]">Sync Status</TableHead>
+                    <TableHead className="text-center w-[140px]">Send to SAS4</TableHead>
                     <TableHead className="text-center w-[100px]">Items/Page</TableHead>
                     <TableHead className="w-[80px]">Action</TableHead>
                     <TableHead className="min-w-[150px]">Description</TableHead>
@@ -696,6 +713,29 @@ export default function WorkspaceSettings() {
                             Not Started
                           </span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center">
+                          <Switch
+                            checked={integration.sendActivationsToSas || false}
+                            onCheckedChange={async (checked) => {
+                              if (!integration.id) return
+                              try {
+                                await sasRadiusApi.update(
+                                  Number(currentWorkspaceId),
+                                  integration.id,
+                                  { ...integration, sendActivationsToSas: checked }
+                                )
+                                queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
+                                toast.success(checked ? 'Activations will be sent to SAS4' : 'Activations sending disabled')
+                              } catch (error) {
+                                toast.error(formatApiError(error) || 'Failed to update setting')
+                              }
+                            }}
+                            disabled={!integration.isActive || showTrash}
+                            title={integration.isActive ? (integration.sendActivationsToSas ? "Sending activations to SAS4" : "Not sending activations") : "Activate integration to enable"}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="font-medium">{integration.maxItemInPagePerRequest || 100}</span>

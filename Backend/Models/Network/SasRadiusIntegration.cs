@@ -12,6 +12,7 @@ public class SasRadiusIntegration
     public int MaxItemInPagePerRequest { get; set; } = 100; // Items per page for each API request
     public string? Action { get; set; }
     public string? Description { get; set; }
+    public bool SendActivationsToSas { get; set; } = false; // Send activations to SAS4 for active users
 
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
