@@ -87,6 +87,14 @@ public class SasActivationService : ISasActivationService
             return;
         }
         
+        if (log.Integration == null)
+        {
+            _logger.LogError($"Integration {log.IntegrationId} not found for activation {logId}");
+            return;
+        }
+        
+        // Cache integration to avoid multiple property accesses
+        var integration = log.Integration;
         var stopwatch = Stopwatch.StartNew();
         
         try
@@ -96,15 +104,6 @@ public class SasActivationService : ISasActivationService
             await _context.SaveChangesAsync();
             
             _logger.LogInformation($"Processing activation {logId} for user {log.Username}");
-            
-            // Get integration details
-            var integration = log.Integration ?? await _context.SasRadiusIntegrations
-                .FirstOrDefaultAsync(i => i.Id == log.IntegrationId);
-            
-            if (integration == null)
-            {
-                throw new Exception($"Integration {log.IntegrationId} not found");
-            }
             
             // Send HTTP request to SAS4
             var response = await SendActivationToSas4Async(integration, log);
@@ -132,12 +131,9 @@ public class SasActivationService : ISasActivationService
             // Schedule retry if not exceeded max retries
             if (log.RetryCount < log.MaxRetries)
             {
-                // Get integration settings for retry delay calculation
-                var integration = log.Integration ?? await _context.SasRadiusIntegrations
-                    .FirstOrDefaultAsync(i => i.Id == log.IntegrationId);
-                
-                var baseDelayMinutes = integration?.ActivationRetryDelayMinutes ?? 2;
-                var useExponentialBackoff = integration?.ActivationUseExponentialBackoff ?? true;
+                // Use cached integration for retry settings (already loaded via Include)
+                var baseDelayMinutes = integration.ActivationRetryDelayMinutes;
+                var useExponentialBackoff = integration.ActivationUseExponentialBackoff;
                 
                 var delay = useExponentialBackoff 
                     ? TimeSpan.FromMinutes(Math.Pow(2, log.RetryCount) * baseDelayMinutes)
