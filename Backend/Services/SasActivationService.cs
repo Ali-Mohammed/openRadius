@@ -684,21 +684,11 @@ public class SasActivationService : ISasActivationService
     private async Task<string> AuthenticateAsync(SasRadiusIntegration integration)
     {
         var client = _httpClientFactory.CreateClient();
-        var baseUrl = integration.Url.TrimEnd('/');
+        var baseUrl = integration.Url.Trim().TrimEnd('/');
         
-        // Parse the URL to extract the base (handle cases where URL might include path)
-        string loginUrl;
-        try
-        {
-            var uri = new Uri(baseUrl.StartsWith("http") ? baseUrl : $"http://{baseUrl}");
-            loginUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/login";
-        }
-        catch
-        {
-            // Fallback if URL parsing fails
-            var protocol = integration.UseHttps ? "https" : "http";
-            loginUrl = $"{protocol}://{baseUrl.Replace("http://", "").Replace("https://", "").Split('/')[0]}/admin/api/index.php/api/login";
-        }
+        // Construct the login URL with SAS API path
+        var uri = new Uri(baseUrl);
+        var loginUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/login";
         
         _logger.LogInformation($"🔐 Authenticating to: {loginUrl}");
         
@@ -732,15 +722,9 @@ public class SasActivationService : ISasActivationService
         try
         {
             // Build SAS4 API URL for card series
-            var protocol = integration.UseHttps ? "https" : "http";
-            var baseUrl = integration.Url.TrimEnd('/');
-            _logger.LogInformation($"🔍 Original URL: {integration.Url}, After trim: {baseUrl}");
-            
-            // Remove protocol from baseUrl if it exists
-            baseUrl = System.Text.RegularExpressions.Regex.Replace(baseUrl, @"^https?://", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            _logger.LogInformation($"🔍 After protocol strip: {baseUrl}, Protocol: {protocol}");
-            
-            var seriesUrl = $"{protocol}://{baseUrl}/admin/api/index.php/api/index/series";
+            var baseUrl = integration.Url.Trim().TrimEnd('/');
+            var uri = new Uri(baseUrl);
+            var seriesUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/series";
             
             _logger.LogInformation($"Fetching card series for profile {profileExternalId} from {seriesUrl}");
             
