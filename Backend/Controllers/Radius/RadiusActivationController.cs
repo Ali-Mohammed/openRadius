@@ -1285,7 +1285,7 @@ public class RadiusActivationController : ControllerBase
             await dbTransaction.CommitAsync();
             _logger.LogInformation($"Successfully committed all changes for activation {activation.Id} and billing activation {billingActivation.Id}");
 
-            // Send activation to SAS4 if enabled
+            // Send activation to SAS4 if enabled (queued as background job)
             try
             {
                 var activeIntegration = await _context.SasRadiusIntegrations
@@ -1316,21 +1316,33 @@ public class RadiusActivationController : ControllerBase
                         createdAt = activation.CreatedAt
                     };
 
-                    _= _sasActivationService.EnqueueActivationAsync(
-                        activeIntegration.Id,
-                        activeIntegration.Name,
-                        radiusUser.Id,
-                        radiusUser.Username,
-                        activationData
-                    );
+                    // Queue as background task - fire and forget with proper task handling
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _sasActivationService.EnqueueActivationAsync(
+                                activeIntegration.Id,
+                                activeIntegration.Name,
+                                radiusUser.Id,
+                                radiusUser.Username,
+                                activationData
+                            );
+                            _logger.LogInformation($"Successfully enqueued activation {activation.Id} to SAS4");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Failed to enqueue activation {activation.Id} to SAS4 in background task");
+                        }
+                    });
 
-                    _logger.LogInformation($"Successfully enqueued activation {activation.Id} to SAS4");
+                    _logger.LogInformation($"Queued SAS4 activation {activation.Id} as background task");
                 }
             }
             catch (Exception ex)
             {
-                // Log but don't fail the activation if SAS enqueuing fails
-                _logger.LogError(ex, $"Failed to enqueue activation {activation.Id} to SAS4, but activation was successful");
+                // Log but don't fail the activation if SAS enqueuing setup fails
+                _logger.LogError(ex, $"Failed to queue SAS4 activation {activation.Id}, but activation was successful");
             }
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
