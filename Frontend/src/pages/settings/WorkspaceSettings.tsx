@@ -1331,6 +1331,44 @@ export default function WorkspaceSettings() {
                     <p className="text-xs text-muted-foreground">Maximum time to wait for HTTP response</p>
                   </div>
 
+                  {/* Max Concurrency */}
+                  <div className="space-y-2">
+                    <Label htmlFor="maxConcurrency">Max Concurrent Activations</Label>
+                    <Input
+                      id="maxConcurrency"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={selectedIntegrationForWebhook?.activationMaxConcurrency ?? 1}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 1;
+                        setSelectedIntegrationForWebhook({ 
+                          ...selectedIntegrationForWebhook!, 
+                          activationMaxConcurrency: value 
+                        });
+                      }}
+                      onBlur={async () => {
+                        if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                        try {
+                          await sasRadiusApi.update(
+                            Number(currentWorkspaceId),
+                            selectedIntegrationForWebhook.id,
+                            selectedIntegrationForWebhook
+                          );
+                          queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                          toast.success('Queue settings updated');
+                        } catch (error) {
+                          toast.error(formatApiError(error) || 'Failed to update settings');
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {selectedIntegrationForWebhook?.activationMaxConcurrency === 1 
+                        ? 'Sequential: Process one activation at a time' 
+                        : `Parallel: Process up to ${selectedIntegrationForWebhook?.activationMaxConcurrency} activations simultaneously`}
+                    </p>
+                  </div>
+
                   {/* Exponential Backoff */}
                   <div className="space-y-2">
                     <Label>Retry Strategy</Label>

@@ -16,6 +16,7 @@ export interface SasRadiusIntegration {
   activationRetryDelayMinutes?: number
   activationUseExponentialBackoff?: boolean
   activationTimeoutSeconds?: number
+  activationMaxConcurrency?: number
   workspaceId?: number
   createdAt?: string
   updatedAt?: string

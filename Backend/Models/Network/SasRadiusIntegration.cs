@@ -19,6 +19,7 @@ public class SasRadiusIntegration
     public int ActivationRetryDelayMinutes { get; set; } = 2; // Base delay in minutes before first retry
     public bool ActivationUseExponentialBackoff { get; set; } = true; // Use exponential backoff (2^retryCount * base delay)
     public int ActivationTimeoutSeconds { get; set; } = 30; // HTTP request timeout in seconds
+    public int ActivationMaxConcurrency { get; set; } = 1; // Max concurrent activations (1 = sequential, >1 = parallel)
 
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
