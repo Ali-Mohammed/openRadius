@@ -1465,6 +1465,7 @@ export default function WorkspaceSettings() {
                           description: `Webhook for ${selectedIntegrationForWebhook?.name}`,
                         })
                         setCurrentWebhook(newWebhook)
+                        queryClient.invalidateQueries({ queryKey: ['integration-webhooks', currentWorkspaceId] })
                         toast.success('Webhook created and enabled')
                       } catch (error: any) {
                         toast.error(error.response?.data?.message || 'Failed to create webhook')
@@ -1481,6 +1482,7 @@ export default function WorkspaceSettings() {
                           }
                         )
                         setCurrentWebhook(updated)
+                        queryClient.invalidateQueries({ queryKey: ['integration-webhooks', currentWorkspaceId] })
                         toast.success(checked ? 'Callback enabled' : 'Callback disabled')
                       } catch (error: any) {
                         toast.error(error.response?.data?.message || 'Failed to update webhook')
@@ -1511,6 +1513,7 @@ export default function WorkspaceSettings() {
                             currentWebhook.id!
                           )
                           setCurrentWebhook(updated)
+                          queryClient.invalidateQueries({ queryKey: ['integration-webhooks', currentWorkspaceId] })
                           toast.success('Token regenerated successfully')
                         } catch (error: any) {
                           toast.error(error.response?.data?.message || 'Failed to regenerate token')
