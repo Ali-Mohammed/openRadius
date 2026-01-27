@@ -41,3 +41,4 @@ postgres_data/
 # Ignore backup files
 Backend/Backups/
 legacy
+balance_system-legacy
