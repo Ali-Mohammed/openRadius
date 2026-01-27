@@ -33,13 +33,28 @@ namespace Backend.Migrations.ApplicationDb
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<int>(
-                name: "ActivationMethod",
-                table: "SasRadiusIntegrations",
-                type: "integer",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "text");
+            // Convert text back to integer
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""SasRadiusIntegrations"" 
+                ALTER COLUMN ""ActivationMethod"" DROP DEFAULT;
+            ");
+            
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""SasRadiusIntegrations"" 
+                ALTER COLUMN ""ActivationMethod"" TYPE integer 
+                USING (CASE ""ActivationMethod""
+                    WHEN 'ManagerBalance' THEN 0
+                    WHEN 'PrepaidCard' THEN 1
+                    WHEN 'UserBalance' THEN 2
+                    WHEN 'RewardPoints' THEN 3
+                    ELSE 0
+                END);
+            ");
+            
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""SasRadiusIntegrations"" 
+                ALTER COLUMN ""ActivationMethod"" SET DEFAULT 0;
+            ");
         }
     }
 }
