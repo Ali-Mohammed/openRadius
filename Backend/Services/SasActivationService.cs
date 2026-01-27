@@ -130,15 +130,17 @@ public class SasActivationService : ISasActivationService
                     
                     if (pin == null)
                     {
-                        throw new InvalidOperationException(
+                        _logger.LogWarning(
                             $"No available prepaid cards found for profile '{radiusProfile.Name}' (ID: {radiusProfile.ExternalId}). " +
-                            "Please check card stock or contact administrator.");
+                            "Activation will proceed but will likely fail without a PIN.");
                     }
-                    
-                    // Store PIN information in the log
-                    log.Pin = pin;
-                    log.CardSeries = series;
-                    log.CardSerialNumber = serialNumber;
+                    else
+                    {
+                        // Store PIN information in the log
+                        log.Pin = pin;
+                        log.CardSeries = series;
+                        log.CardSerialNumber = serialNumber;
+                    }
                     
                     _logger.LogInformation(
                         $"Retrieved PIN {pin} from series {series} (serial: {serialNumber}) for user {username} activation");
