@@ -611,8 +611,8 @@ public class SasActivationService : ISasActivationService
             throw new InvalidOperationException("No tenant context available");
         }
         
-        // Reset status and retry information
-        log.RetryCount = 0;
+        // Increment retry count and reset status
+        log.RetryCount++;
         log.Status = ActivationStatus.Pending;
         log.NextRetryAt = null;
         log.ErrorMessage = null;
