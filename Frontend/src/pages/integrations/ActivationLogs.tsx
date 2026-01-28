@@ -23,6 +23,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sasActivationsApi } from '@/api/sasActivationsApi';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
@@ -85,6 +95,8 @@ export default function ActivationLogs() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [retryDialogOpen, setRetryDialogOpen] = useState(false);
+  const [logToRetry, setLogToRetry] = useState<number | null>(null);
 
   // Column widths
   const DEFAULT_COLUMN_WIDTHS = {
@@ -95,6 +107,7 @@ export default function ActivationLogs() {
     retries: 100,
     error: 300,
     nextRetry: 140,
+    actions: 80,
   };
 
   const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS);
@@ -238,12 +251,36 @@ export default function ActivationLogs() {
     }
   });
 
+  const retrySingleMutation = useMutation({
+    mutationFn: (logId: number) => sasActivationsApi.retrySingleActivation(logId),
+    onSuccess: () => {
+      toast.success('Activation retry enqueued successfully');
+      queryClient.invalidateQueries({ queryKey: ['activation-logs', integrationId] });
+      setRetryDialogOpen(false);
+      setLogToRetry(null);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to retry activation: ${error.message}`);
+    }
+  });
+
   const handleRetry = () => {
     retryMutation.mutate(retryPeriod);
   };
 
   const handleRetryAll = () => {
     retryMutation.mutate(undefined);
+  };
+
+  const handleOpenRetryDialog = (logId: number) => {
+    setLogToRetry(logId);
+    setRetryDialogOpen(true);
+  };
+
+  const handleConfirmRetry = () => {
+    if (logToRetry) {
+      retrySingleMutation.mutate(logToRetry);
+    }
   };
 
   const formatDuration = (ms: number) => {
@@ -396,6 +433,7 @@ export default function ActivationLogs() {
                     <TableHead className="h-12 px-4 w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
                     <TableHead className="h-12 px-4 w-[300px]"><Skeleton className="h-4 w-16" /></TableHead>
                     <TableHead className="h-12 px-4 w-[140px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[80px]"><Skeleton className="h-4 w-16" /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -408,6 +446,7 @@ export default function ActivationLogs() {
                       <TableCell className="h-12 px-4"><Skeleton className="h-4 w-12" /></TableCell>
                       <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
                       <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-12" /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -561,6 +600,12 @@ export default function ActivationLogs() {
                           }}
                         />
                       </TableHead>
+                      <TableHead 
+                        className="h-12 px-4"
+                        style={{ width: `${columnWidths.actions}px` }}
+                      >
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   
@@ -668,6 +713,19 @@ export default function ActivationLogs() {
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.actions}px` }}>
+                            {(log.status === ActivationStatus.Failed || log.status === ActivationStatus.MaxRetriesReached) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleOpenRetryDialog(log.id)}
+                                title="Retry activation"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -740,6 +798,27 @@ export default function ActivationLogs() {
           ) : null}
         </CardContent>
       </Card>
+
+      {/* Retry Confirmation Dialog */}
+      <AlertDialog open={retryDialogOpen} onOpenChange={setRetryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retry Activation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to retry this activation? This will reset the status and re-enqueue the activation job.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmRetry}
+              disabled={retrySingleMutation.isPending}
+            >
+              {retrySingleMutation.isPending ? 'Retrying...' : 'Retry'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -43,5 +43,13 @@ export const sasActivationsApi = {
       }
     );
     return response.data;
+  },
+
+  // Retry a single activation log
+  retrySingleActivation: async (logId: number) => {
+    const response = await apiClient.post<{ message: string; logId: number }>(
+      `/api/SasActivations/log/${logId}/retry`
+    );
+    return response.data;
   }
 };

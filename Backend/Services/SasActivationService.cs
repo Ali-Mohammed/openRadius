@@ -16,6 +16,7 @@ public interface ISasActivationService
     Task<List<string>> EnqueueBatchActivationsAsync(int integrationId, string integrationName, List<(int userId, string username, object data)> activations);
     Task ProcessActivationAsync(int logId, int workspaceId, string connectionString);
     Task<int> RetryFailedActivationsAsync(int integrationId, DateTime? fromDate = null);
+    Task<bool> RetrySingleActivationAsync(int logId);
     Task<List<SasActivationLog>> GetActivationLogsAsync(int integrationId, int page = 1, int pageSize = 50, string? search = null);
     Task<SasActivationLog?> GetActivationLogAsync(int logId);
     Task<ActivationMetrics> GetMetricsAsync(int integrationId, DateTime? fromDate = null);
@@ -587,6 +588,46 @@ public class SasActivationService : ISasActivationService
         _logger.LogInformation($"[SAS_Activation_033] Retrying {failedLogs.Count} failed activations for integration {integrationId}");
         
         return failedLogs.Count;
+    }
+    
+    /// <summary>
+    /// Retry a single activation log
+    /// </summary>
+    public async Task<bool> RetrySingleActivationAsync(int logId)
+    {
+        var log = await _context.SasActivationLogs
+            .Include(l => l.Integration)
+            .FirstOrDefaultAsync(l => l.Id == logId);
+        
+        if (log == null || log.Integration == null)
+        {
+            return false;
+        }
+        
+        // Get workspace info for job execution
+        var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+        if (tenantInfo == null)
+        {
+            throw new InvalidOperationException("No tenant context available");
+        }
+        
+        // Reset status and retry information
+        log.RetryCount = 0;
+        log.Status = ActivationStatus.Pending;
+        log.NextRetryAt = null;
+        log.ErrorMessage = null;
+        
+        // Re-enqueue the activation job
+        var jobId = _jobService.Enqueue<ISasActivationService>(
+            service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, tenantInfo.ConnectionString));
+        
+        log.JobId = jobId;
+        
+        await _context.SaveChangesAsync();
+        
+        _logger.LogInformation($"[SAS_Activation_034] Re-enqueued activation log {logId} for user {log.Username}");
+        
+        return true;
     }
     
     /// <summary>
