@@ -604,6 +604,13 @@ public class SasActivationService : ISasActivationService
             return false;
         }
         
+        // Check if max retries reached
+        if (log.RetryCount >= log.MaxRetries)
+        {
+            _logger.LogWarning($"[SAS_Activation_035] Cannot retry activation log {logId} - max retries ({log.MaxRetries}) reached");
+            throw new InvalidOperationException($"Maximum retry limit ({log.MaxRetries}) has been reached for this activation");
+        }
+        
         // Get workspace info for job execution
         var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
         if (tenantInfo == null)

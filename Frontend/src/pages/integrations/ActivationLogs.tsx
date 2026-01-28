@@ -720,7 +720,8 @@ export default function ActivationLogs() {
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => handleOpenRetryDialog(log.id)}
-                                title="Retry activation"
+                                disabled={log.retryCount >= log.maxRetries}
+                                title={log.retryCount >= log.maxRetries ? "Max retries reached" : "Retry activation"}
                               >
                                 <RotateCcw className="h-4 w-4" />
                               </Button>
