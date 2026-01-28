@@ -187,6 +187,10 @@ public class SasRadiusIntegrationController : ControllerBase
         existingIntegration.AllowAnyCardStockUser = integration.AllowAnyCardStockUser;
         existingIntegration.UseFreeCardsOnly = integration.UseFreeCardsOnly;
         
+        // Update sync online users settings
+        existingIntegration.SyncOnlineUsers = integration.SyncOnlineUsers;
+        existingIntegration.SyncOnlineUsersIntervalMinutes = integration.SyncOnlineUsersIntervalMinutes;
+        
         existingIntegration.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

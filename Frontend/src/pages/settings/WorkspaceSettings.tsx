@@ -1607,6 +1607,90 @@ export default function WorkspaceSettings() {
               </div>
             )}
 
+            {/* Sync Online Users Settings */}
+            <div className="p-4 border-2 border-green-200 rounded-lg bg-green-50 dark:bg-green-950/20 dark:border-green-900">
+              <div className="flex items-center justify-between mb-4">
+                <div className="space-y-1">
+                  <Label className="text-base font-semibold">Sync Online Users</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Periodically sync online users from RADIUS to SAS4
+                  </p>
+                </div>
+                <Switch
+                  checked={selectedIntegrationForWebhook?.syncOnlineUsers || false}
+                  onCheckedChange={async (checked) => {
+                    if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) {
+                      toast.error('No integration selected')
+                      return
+                    }
+                    try {
+                      const updated = {
+                        ...selectedIntegrationForWebhook,
+                        syncOnlineUsers: checked
+                      };
+                      await sasRadiusApi.update(
+                        Number(currentWorkspaceId),
+                        selectedIntegrationForWebhook.id,
+                        updated
+                      )
+                      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
+                      setSelectedIntegrationForWebhook(updated)
+                      toast.success(checked ? 'Online users sync enabled' : 'Online users sync disabled')
+                    } catch (error) {
+                      toast.error(formatApiError(error) || 'Failed to update setting')
+                    }
+                  }}
+                  disabled={!selectedIntegrationForWebhook?.isActive}
+                />
+              </div>
+
+              {/* Sync Interval (shown when sync is enabled) */}
+              {selectedIntegrationForWebhook?.syncOnlineUsers && (
+                <div className="space-y-2">
+                  <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
+                  <Select
+                    value={selectedIntegrationForWebhook?.syncOnlineUsersIntervalMinutes?.toString() || '5'}
+                    onValueChange={async (value) => {
+                      if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                      try {
+                        const updated = {
+                          ...selectedIntegrationForWebhook,
+                          syncOnlineUsersIntervalMinutes: parseInt(value)
+                        };
+                        await sasRadiusApi.update(
+                          Number(currentWorkspaceId),
+                          selectedIntegrationForWebhook.id,
+                          updated
+                        );
+                        setSelectedIntegrationForWebhook(updated);
+                        queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                        toast.success('Sync interval updated');
+                      } catch (error) {
+                        toast.error(formatApiError(error) || 'Failed to update interval');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Every 1 minute</SelectItem>
+                      <SelectItem value="2">Every 2 minutes</SelectItem>
+                      <SelectItem value="3">Every 3 minutes</SelectItem>
+                      <SelectItem value="5">Every 5 minutes</SelectItem>
+                      <SelectItem value="10">Every 10 minutes</SelectItem>
+                      <SelectItem value="15">Every 15 minutes</SelectItem>
+                      <SelectItem value="30">Every 30 minutes</SelectItem>
+                      <SelectItem value="60">Every 1 hour</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    How often to sync online users to SAS4 (currently: every {selectedIntegrationForWebhook?.syncOnlineUsersIntervalMinutes || 5} minute{(selectedIntegrationForWebhook?.syncOnlineUsersIntervalMinutes || 5) !== 1 ? 's' : ''})
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Enable Callback Toggle */}
             <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
               <div className="flex items-center justify-between">
