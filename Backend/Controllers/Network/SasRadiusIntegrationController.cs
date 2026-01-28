@@ -222,9 +222,9 @@ public class SasRadiusIntegrationController : ControllerBase
     private void ManageOnlineUsersSyncJob(SasRadiusIntegration integration, int workspaceId)
     {
         var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
-        if (tenantInfo == null)
+        if (tenantInfo == null || string.IsNullOrEmpty(tenantInfo.ConnectionString))
         {
-            _logger.LogWarning("Cannot manage online users sync job - no tenant context");
+            _logger.LogWarning("Cannot manage online users sync job - no tenant context or connection string");
             return;
         }
         
@@ -240,7 +240,7 @@ public class SasRadiusIntegrationController : ControllerBase
             
             _jobService.AddOrUpdateRecurringJob<ISasSyncService>(
                 jobId,
-                service => service.SyncOnlineUsersAsync(integration.Id, workspaceId, tenantInfo.ConnectionString),
+                service => service.SyncOnlineUsersAsync(integration.Id, workspaceId, tenantInfo.ConnectionString!),
                 cronExpression
             );
         }

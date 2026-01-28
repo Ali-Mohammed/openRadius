@@ -404,6 +404,62 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine($"✗ Failed to start Hangfire server for workspace {workspace.Id}: {ex.Message}");
         }
     }
+    
+    // Register recurring jobs for integrations with sync enabled
+    Console.WriteLine("🔄 Registering recurring jobs for online user sync...");
+    foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
+    {
+        try
+        {
+            var tenantConnectionString = GetTenantConnectionString(
+                builder.Configuration.GetConnectionString("DefaultConnection")!,
+                workspace.Id
+            );
+            
+            using var jobScope = app.Services.CreateScope();
+            var dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseNpgsql(tenantConnectionString)
+                .Options;
+            
+            using var context = new ApplicationDbContext(dbContextOptions, null!);
+            
+            // Find all integrations with sync enabled
+            var integrationsWithSync = await context.SasRadiusIntegrations
+                .Where(i => i.SyncOnlineUsers && i.IsActive && !i.IsDeleted)
+                .ToListAsync();
+            
+            if (integrationsWithSync.Any())
+            {
+                var storage = new PostgreSqlStorage(tenantConnectionString, new PostgreSqlStorageOptions
+                {
+                    SchemaName = "hangfire"
+                });
+                
+                var recurringJobManager = new RecurringJobManager(storage);
+                
+                foreach (var integration in integrationsWithSync)
+                {
+                    var jobId = $"workspace_{workspace.Id}_sync-online-users-{integration.Id}";
+                    var cronExpression = $"*/{integration.SyncOnlineUsersIntervalMinutes} * * * *";
+                    
+                    recurringJobManager.AddOrUpdate<ISasSyncService>(
+                        jobId,
+                        service => service.SyncOnlineUsersAsync(integration.Id, workspace.Id, tenantConnectionString),
+                        cronExpression,
+                        new RecurringJobOptions
+                        {
+                            TimeZone = TimeZoneInfo.Utc
+                        });
+                    
+                    Console.WriteLine($"  ✓ Registered job '{jobId}' for integration '{integration.Name}' (every {integration.SyncOnlineUsersIntervalMinutes} min)");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  ✗ Failed to register jobs for workspace {workspace.Id}: {ex.Message}");
+        }
+    }
 }
 
 static string GetTenantConnectionString(string baseConnectionString, int WorkspaceId)
