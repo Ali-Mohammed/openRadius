@@ -129,6 +129,33 @@ public class SasActivationsController : ControllerBase
     }
     
     /// <summary>
+    /// Retry a single activation log
+    /// </summary>
+    [HttpPost("log/{logId}/retry")]
+    public async Task<IActionResult> RetrySingleActivation(int logId)
+    {
+        try
+        {
+            var success = await _activationService.RetrySingleActivationAsync(logId);
+            
+            if (!success)
+            {
+                return NotFound(new { error = "Activation log not found" });
+            }
+            
+            return Ok(new { 
+                message = "Activation retry enqueued successfully",
+                logId
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to retry activation log {logId}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+    
+    /// <summary>
     /// Batch enqueue multiple activations for better performance
     /// </summary>
     [HttpPost("batch/{integrationId}")]
