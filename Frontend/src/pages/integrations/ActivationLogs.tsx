@@ -20,12 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { sasActivationsApi } from '@/api/sasActivationsApi';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
 import { ActivationStatus } from '@/types/sasActivation';
 import { formatDistance } from 'date-fns';
-import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig = {
@@ -131,30 +130,43 @@ export default function ActivationLogs() {
   const hasMorePages = logs && logs.length >= pageSize;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => navigate('/integrations/sas-radius')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Integrations
-        </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigate('/integrations/sas-radius')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Activation Logs</h1>
+              <p className="text-sm text-muted-foreground">
+                {integrationName} - View and manage activation attempts sent to SAS4
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['activation-logs', integrationId] })} 
+            variant="outline" 
+            size="icon"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold">Activation Logs</h1>
-        <p className="text-muted-foreground">
-          {integrationName} - View and manage activation attempts sent to SAS4
-        </p>
-      </div>
-
-      {/* Retry Controls Card */}
+      {/* Retry Controls */}
       <Card>
         <CardHeader>
-          <CardTitle>Retry Failed Activations</CardTitle>
+          <CardTitle className="text-base">Retry Failed Activations</CardTitle>
           <CardDescription>
             Retry activations that failed due to temporary errors
           </CardDescription>
@@ -164,7 +176,7 @@ export default function ActivationLogs() {
             <div className="flex items-center gap-2 flex-1">
               <span className="text-sm font-medium">Retry failed from:</span>
               <Select value={retryPeriod} onValueChange={setRetryPeriod}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-45">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,6 +191,7 @@ export default function ActivationLogs() {
               <Button 
                 onClick={handleRetry} 
                 disabled={retryMutation.isPending}
+                size="sm"
               >
                 {retryMutation.isPending ? (
                   <>
@@ -197,6 +210,7 @@ export default function ActivationLogs() {
               onClick={handleRetryAll} 
               disabled={retryMutation.isPending}
               variant="outline"
+              size="sm"
             >
               Retry All Failed
             </Button>
@@ -204,32 +218,36 @@ export default function ActivationLogs() {
         </CardContent>
       </Card>
 
-      {/* Activation Logs Table */}
+      {/* Main Table Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Activation History</CardTitle>
-          <CardDescription>
-            Complete history of activation attempts
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Activation History</CardTitle>
+              <CardDescription>
+                Complete history of activation attempts
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <div className="flex items-center justify-center p-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : logs && logs.length > 0 ? (
             <>
-              <div className="border rounded-lg">
+              <div className="border-b">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Timestamp</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Retries</TableHead>
-                      <TableHead>Error</TableHead>
-                      <TableHead>Next Retry</TableHead>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="h-12 px-4">Timestamp</TableHead>
+                      <TableHead className="h-12 px-4">User</TableHead>
+                      <TableHead className="h-12 px-4">Status</TableHead>
+                      <TableHead className="h-12 px-4">Duration</TableHead>
+                      <TableHead className="h-12 px-4 text-center">Retries</TableHead>
+                      <TableHead className="h-12 px-4">Error</TableHead>
+                      <TableHead className="h-12 px-4">Next Retry</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -238,50 +256,58 @@ export default function ActivationLogs() {
                       const StatusIcon = config.icon;
                       
                       return (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-sm">
-                            {new Date(log.createdAt).toLocaleString()}
-                            <div className="text-xs text-gray-500">
+                        <TableRow key={log.id} className="h-12">
+                          <TableCell className="px-4">
+                            <div className="text-sm font-medium">
+                              {new Date(log.createdAt).toLocaleString()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
                               {formatDistance(new Date(log.createdAt), new Date(), { addSuffix: true })}
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">
-                            <div>{log.username}</div>
-                            <div className="text-xs text-gray-500">ID: {log.userId}</div>
+                          <TableCell className="px-4">
+                            <div className="text-sm font-medium">{log.username}</div>
+                            <div className="text-xs text-muted-foreground">ID: {log.userId}</div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="px-4">
                             <Badge className={config.className}>
                               <StatusIcon className="h-3 w-3 mr-1" />
                               {config.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm">
-                            {log.durationMs > 0 ? formatDuration(log.durationMs) : '-'}
-                            {log.responseStatusCode && (
-                              <div className="text-xs text-gray-500">
-                                HTTP {log.responseStatusCode}
-                              </div>
+                          <TableCell className="px-4">
+                            {log.durationMs > 0 ? (
+                              <>
+                                <div className="text-sm">{formatDuration(log.durationMs)}</div>
+                                {log.responseStatusCode && (
+                                  <div className="text-xs text-muted-foreground">
+                                    HTTP {log.responseStatusCode}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm">
-                            {log.retryCount} / {log.maxRetries}
+                          <TableCell className="px-4 text-center">
+                            <span className="text-sm">{log.retryCount} / {log.maxRetries}</span>
                           </TableCell>
-                          <TableCell className="text-sm max-w-xs">
+                          <TableCell className="px-4 max-w-xs">
                             {log.errorMessage ? (
-                              <span className="text-red-600 truncate block" title={log.errorMessage}>
+                              <span className="text-sm text-destructive truncate block" title={log.errorMessage}>
                                 {log.errorMessage}
                               </span>
                             ) : (
-                              '-'
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="px-4">
                             {log.nextRetryAt ? (
-                              <>
+                              <span className="text-sm">
                                 {formatDistance(new Date(log.nextRetryAt), new Date(), { addSuffix: true })}
-                              </>
+                              </span>
                             ) : (
-                              '-'
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -291,37 +317,73 @@ export default function ActivationLogs() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-500">
-                  Page {page}
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                    <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                      <SelectTrigger className="h-8 w-[70px] text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="200">200</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="h-4 w-px bg-border" />
+                  <div className="text-sm text-muted-foreground font-medium">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {((currentPage - 1) * pageSize) + logs.length} records
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
                   >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
+                    <ChevronsLeft className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={!logs || logs.length < 50}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
                   >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-8 w-8 p-0 text-sm font-medium"
+                  >
+                    {currentPage}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={!hasMorePages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center p-8 text-gray-500">
-              <Clock className="h-12 w-12 mb-4 text-gray-300" />
-              <p>No activation logs found</p>
+            <div className="flex flex-col items-center justify-center p-16 text-muted-foreground">
+              <Clock className="h-16 w-16 mb-4 text-muted-foreground/50" />
+              <p className="text-lg font-medium">No activation logs found</p>
+              <p className="text-sm">Activation attempts will appear here once users are activated</p>
             </div>
           )}
         </CardContent>
