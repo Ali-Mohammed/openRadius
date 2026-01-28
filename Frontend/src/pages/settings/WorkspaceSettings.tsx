@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2, Webhook, Copy, Settings, Activity } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -43,7 +44,6 @@ import { sasRadiusApi, type SasRadiusIntegration, type ManagerSyncProgress } fro
 import { integrationWebhookApi, type IntegrationWebhook } from '../../api/integrationWebhookApi'
 import { userManagementApi, type User } from '../../api/userManagementApi'
 import { SyncProgressDialog } from '../../components/SyncProgressDialog'
-import { ActivationLogsDialog } from '../../components/ActivationLogsDialog'
 import { toast } from 'sonner'
 import { formatApiError } from '../../utils/errorHandler'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -53,6 +53,7 @@ import * as signalR from '@microsoft/signalr'
 export default function WorkspaceSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   
   // Sync history pagination state
   const [syncPage, setSyncPage] = useState(1)
@@ -84,10 +85,6 @@ export default function WorkspaceSettings() {
   const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false)
   const [selectedIntegrationForWebhook, setSelectedIntegrationForWebhook] = useState<SasRadiusIntegration | null>(null)
   const [currentWebhook, setCurrentWebhook] = useState<IntegrationWebhook | null>(null)
-  
-  // Activation logs state
-  const [isActivationLogsDialogOpen, setIsActivationLogsDialogOpen] = useState(false)
-  const [selectedIntegrationForLogs, setSelectedIntegrationForLogs] = useState<SasRadiusIntegration | null>(null)
   
   const [formData, setFormData] = useState<SasRadiusIntegration>({
     name: '',
@@ -795,10 +792,7 @@ export default function WorkspaceSettings() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                  setSelectedIntegrationForLogs(integration)
-                                  setIsActivationLogsDialogOpen(true)
-                                }}
+                                onClick={() => navigate(`/integrations/activation-logs/${integration.id}`)}
                                 title="View Activation Logs"
                               >
                                 <Activity className="h-4 w-4 text-green-600" />
@@ -1760,16 +1754,6 @@ export default function WorkspaceSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Activation Logs Dialog */}
-      {selectedIntegrationForLogs && (
-        <ActivationLogsDialog
-          open={isActivationLogsDialogOpen}
-          onOpenChange={setIsActivationLogsDialogOpen}
-          integrationId={selectedIntegrationForLogs.id}
-          integrationName={selectedIntegrationForLogs.name}
-        />
-      )}
         </TabsContent>
       </Tabs>
     </div>
