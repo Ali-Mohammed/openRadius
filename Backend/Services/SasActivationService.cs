@@ -16,7 +16,7 @@ public interface ISasActivationService
     Task<List<string>> EnqueueBatchActivationsAsync(int integrationId, string integrationName, List<(int userId, string username, object data)> activations);
     Task ProcessActivationAsync(int logId, int workspaceId, string connectionString);
     Task<int> RetryFailedActivationsAsync(int integrationId, DateTime? fromDate = null);
-    Task<List<SasActivationLog>> GetActivationLogsAsync(int integrationId, int page = 1, int pageSize = 50);
+    Task<List<SasActivationLog>> GetActivationLogsAsync(int integrationId, int page = 1, int pageSize = 50, string? search = null);
     Task<SasActivationLog?> GetActivationLogAsync(int logId);
     Task<ActivationMetrics> GetMetricsAsync(int integrationId, DateTime? fromDate = null);
     Task<bool> IsIntegrationHealthyAsync(int integrationId);
@@ -590,12 +590,20 @@ public class SasActivationService : ISasActivationService
     }
     
     /// <summary>
-    /// Get activation logs with pagination
+    /// Get activation logs with pagination and optional search
     /// </summary>
-    public async Task<List<SasActivationLog>> GetActivationLogsAsync(int integrationId, int page = 1, int pageSize = 50)
+    public async Task<List<SasActivationLog>> GetActivationLogsAsync(int integrationId, int page = 1, int pageSize = 50, string? search = null)
     {
-        return await _context.SasActivationLogs
-            .Where(l => l.IntegrationId == integrationId)
+        var query = _context.SasActivationLogs
+            .Where(l => l.IntegrationId == integrationId);
+        
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(l => l.Username != null && l.Username.Contains(search));
+        }
+        
+        return await query
             .OrderByDescending(l => l.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

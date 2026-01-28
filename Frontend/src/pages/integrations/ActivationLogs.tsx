@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { 
   Select,
   SelectContent,
@@ -28,7 +29,7 @@ import { sasRadiusApi } from '@/api/sasRadiusApi';
 import { ActivationStatus } from '@/types/sasActivation';
 import { tablePreferenceApi } from '@/api/tablePreferenceApi';
 import { formatDistance } from 'date-fns';
-import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig = {
@@ -82,6 +83,8 @@ export default function ActivationLogs() {
   const [retryPeriod, setRetryPeriod] = useState<string>('1d');
   const [sortField, setSortField] = useState<string>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
 
   // Column widths
   const DEFAULT_COLUMN_WIDTHS = {
@@ -148,6 +151,15 @@ export default function ActivationLogs() {
     return () => clearTimeout(timeoutId);
   }, [columnWidths, sortField, sortDirection, preferencesLoaded, integrationId]);
 
+  // Debounce search input
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
   // Fetch integration details
   const { data: integrationData } = useQuery({
     queryKey: ['sas-integration', integrationId],
@@ -162,8 +174,8 @@ export default function ActivationLogs() {
   const integrationName = integrationData?.name || 'Integration';
   
   const { data: logs, isLoading, isFetching } = useQuery({
-    queryKey: ['activation-logs', integrationId, currentPage, pageSize, sortField, sortDirection],
-    queryFn: () => sasActivationsApi.getActivationLogs(Number(integrationId), currentPage, pageSize),
+    queryKey: ['activation-logs', integrationId, currentPage, pageSize, sortField, sortDirection, searchQuery],
+    queryFn: () => sasActivationsApi.getActivationLogs(Number(integrationId), currentPage, pageSize, searchQuery),
     enabled: !!integrationId
   });
 
@@ -296,6 +308,15 @@ export default function ActivationLogs() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by username..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
           <Popover>
             <PopoverTrigger asChild>
               <Button 

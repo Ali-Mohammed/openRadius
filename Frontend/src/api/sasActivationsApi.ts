@@ -17,11 +17,11 @@ export const sasActivationsApi = {
   },
 
   // Get activation logs for an integration
-  getActivationLogs: async (integrationId: number, page = 1, pageSize = 50) => {
+  getActivationLogs: async (integrationId: number, page = 1, pageSize = 50, search = '') => {
     const response = await apiClient.get<SasActivationLog[]>(
       `/api/SasActivations/${integrationId}`,
       {
-        params: { page, pageSize }
+        params: { page, pageSize, search }
       }
     );
     return response.data;

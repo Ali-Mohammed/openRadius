@@ -53,11 +53,15 @@ public class SasActivationsController : ControllerBase
     /// Get activation logs for an integration
     /// </summary>
     [HttpGet("{integrationId}")]
-    public async Task<IActionResult> GetActivationLogs(int integrationId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetActivationLogs(
+        int integrationId, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null)
     {
         try
         {
-            var logs = await _activationService.GetActivationLogsAsync(integrationId, page, pageSize);
+            var logs = await _activationService.GetActivationLogsAsync(integrationId, page, pageSize, search);
             return Ok(logs);
         }
         catch (Exception ex)
