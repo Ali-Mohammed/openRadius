@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { sasActivationsApi } from '@/api/sasActivationsApi';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
 import { ActivationStatus } from '@/types/sasActivation';
+import { tablePreferenceApi } from '@/api/tablePreferenceApi';
 import { formatDistance } from 'date-fns';
 import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -95,6 +96,52 @@ export default function ActivationLogs() {
 
   const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS);
   const [resizing, setResizing] = useState<string | null>(null);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('activation-logs');
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) });
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField);
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'desc');
+          }
+        }
+      } catch (error) {
+        console.log('No saved preferences found', error);
+      } finally {
+        setPreferencesLoaded(true);
+      }
+    };
+
+    loadPreferences();
+  }, []);
+
+  // Auto-save preferences when they change
+  useEffect(() => {
+    if (!preferencesLoaded) return;
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'activation-logs',
+          columnWidths: JSON.stringify(columnWidths),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        });
+      } catch (error) {
+        console.error('Failed to save table preferences:', error);
+      }
+    };
+
+    const timeoutId = setTimeout(savePreferences, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [columnWidths, sortField, sortDirection, preferencesLoaded]);
 
   // Fetch integration details
   const { data: integrationData } = useQuery({
