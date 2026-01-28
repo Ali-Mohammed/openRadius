@@ -2165,6 +2165,71 @@ public class SasSyncService : ISasSyncService
         }
         return "openradius";
     }
+    
+    /// <summary>
+    /// Sync online RADIUS users to SAS4
+    /// This runs as a recurring background job when enabled
+    /// </summary>
+    public async Task SyncOnlineUsersAsync(int integrationId, int workspaceId, string connectionString)
+    {
+        _logger.LogInformation($"🟢 [SyncOnlineUsers] Starting sync for integration {integrationId} in workspace {workspaceId}");
+        
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            
+            // Get integration details
+            var integration = await context.SasRadiusIntegrations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.Id == integrationId);
+                
+            if (integration == null)
+            {
+                _logger.LogWarning($"❌ [SyncOnlineUsers] Integration {integrationId} not found");
+                return;
+            }
+            
+            if (!integration.SyncOnlineUsers)
+            {
+                _logger.LogInformation($"⏸️ [SyncOnlineUsers] Sync disabled for integration '{integration.Name}'");
+                return;
+            }
+            
+            // Query online users from RADIUS accounting
+            var onlineUsers = await context.RadiusAccounting
+                .Where(a => a.AcctStopTime == null) // Still online (no stop time)
+                .Select(a => new
+                {
+                    a.UserName,
+                    a.AcctSessionId,
+                    a.AcctStartTime,
+                    a.FramedIpAddress,
+                    a.NasIpAddress,
+                    a.AcctSessionTime
+                })
+                .Take(1000) // Limit to prevent overload
+                .ToListAsync();
+            
+            if (!onlineUsers.Any())
+            {
+                _logger.LogInformation($"ℹ️ [SyncOnlineUsers] No online users found for integration '{integration.Name}'");
+                return;
+            }
+            
+            _logger.LogInformation($"📊 [SyncOnlineUsers] Found {onlineUsers.Count} online users for integration '{integration.Name}'");
+            _logger.LogInformation($"👤 [SyncOnlineUsers] Sample users: {string.Join(", ", onlineUsers.Take(5).Select(u => u.UserName))}");
+            
+            // TODO: When SAS4 API endpoint is ready, send the online users data here
+            // For now, just log the information
+            
+            _logger.LogInformation($"✅ [SyncOnlineUsers] Sync completed for integration '{integration.Name}'");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"❌ [SyncOnlineUsers] Error syncing online users for integration {integrationId}: {ex.Message}");
+        }
+    }
 }
 
 // Helper class for SAS manager tree API response
