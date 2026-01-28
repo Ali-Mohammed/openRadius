@@ -552,7 +552,8 @@ public class SasActivationService : ISasActivationService
     {
         var query = _context.SasActivationLogs
             .Where(l => l.IntegrationId == integrationId)
-            .Where(l => l.Status == ActivationStatus.Failed || l.Status == ActivationStatus.MaxRetriesReached);
+            .Where(l => l.Status == ActivationStatus.Failed || l.Status == ActivationStatus.MaxRetriesReached)
+            .Where(l => l.RetryCount < l.MaxRetries); // Only retry if max retries not reached
         
         if (fromDate.HasValue)
         {

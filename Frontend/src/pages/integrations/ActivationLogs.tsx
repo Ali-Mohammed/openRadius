@@ -379,6 +379,13 @@ export default function ActivationLogs() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="1min">Last 1 minute</SelectItem>
+                      <SelectItem value="5min">Last 5 minutes</SelectItem>
+                      <SelectItem value="15min">Last 15 minutes</SelectItem>
+                      <SelectItem value="1h">Last 1 hour</SelectItem>
+                      <SelectItem value="2h">Last 2 hours</SelectItem>
+                      <SelectItem value="6h">Last 6 hours</SelectItem>
+                      <SelectItem value="12h">Last 12 hours</SelectItem>
                       <SelectItem value="1d">Last 24 hours</SelectItem>
                       <SelectItem value="2d">Last 2 days</SelectItem>
                       <SelectItem value="3d">Last 3 days</SelectItem>

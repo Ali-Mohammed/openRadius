@@ -237,17 +237,31 @@ public class SasActivationsController : ControllerBase
     {
         var now = DateTime.UtcNow;
         
-        // Handle formats like "1d", "1w", "2d", "3w"
-        if (dateStr.EndsWith("d"))
+        // Handle minutes format like "1min", "5min", "15min"
+        if (dateStr.EndsWith("min"))
+        {
+            var minutes = int.Parse(dateStr.Replace("min", ""));
+            return now.AddMinutes(-minutes);
+        }
+        // Handle hours format like "1h", "2h", "6h", "12h"
+        else if (dateStr.EndsWith("h"))
+        {
+            var hours = int.Parse(dateStr.TrimEnd('h'));
+            return now.AddHours(-hours);
+        }
+        // Handle days format like "1d", "2d", "3d"
+        else if (dateStr.EndsWith("d"))
         {
             var days = int.Parse(dateStr.TrimEnd('d'));
             return now.AddDays(-days);
         }
+        // Handle weeks format like "1w", "2w"
         else if (dateStr.EndsWith("w"))
         {
             var weeks = int.Parse(dateStr.TrimEnd('w'));
             return now.AddDays(-weeks * 7);
         }
+        // Handle months format like "1m", "2m"
         else if (dateStr.EndsWith("m"))
         {
             var months = int.Parse(dateStr.TrimEnd('m'));
