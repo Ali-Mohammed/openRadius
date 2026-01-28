@@ -158,7 +158,7 @@ export default function ActivationLogs() {
   const rowVirtualizer = useVirtualizer({
     count: sortedLogs.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 48,
+    estimateSize: () => 64,
     overscan: 10,
   });
 
@@ -501,7 +501,7 @@ export default function ActivationLogs() {
                       return (
                         <TableRow 
                           key={log.id}
-                          className="border-b"
+                          className="border-b hover:bg-muted/50 transition-colors"
                           style={{
                             position: 'absolute',
                             top: 0,
@@ -511,59 +511,88 @@ export default function ActivationLogs() {
                             transform: `translateY(${virtualRow.start}px)`,
                             display: 'table',
                             tableLayout: 'fixed',
+                            backgroundColor: virtualRow.index % 2 === 0 ? 'transparent' : 'hsl(var(--muted) / 0.3)',
                           }}
                         >
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.timestamp}px` }}>
-                            <div className="text-sm font-medium">
+                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.timestamp}px` }}>
+                            <div className="font-medium text-sm">
                               {new Date(log.createdAt).toLocaleString()}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground mt-1">
                               {formatDistance(new Date(log.createdAt), new Date(), { addSuffix: true })}
                             </div>
                           </TableCell>
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.user}px` }}>
-                            <div className="text-sm font-medium">{log.username}</div>
-                            <div className="text-xs text-muted-foreground">ID: {log.userId}</div>
+                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.user}px` }}>
+                            <div className="font-medium text-sm">{log.username}</div>
+                            <div className="text-xs text-muted-foreground mt-1">ID: {log.userId}</div>
                           </TableCell>
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.status}px` }}>
-                            <Badge className={config.className}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
+                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.status}px` }}>
+                            <Badge className={`${config.className} font-medium`}>
+                              <StatusIcon className="h-3 w-3 mr-1.5" />
                               {config.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.duration}px` }}>
+                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.duration}px` }}>
                             {log.durationMs > 0 ? (
                               <>
-                                <div className="text-sm">{formatDuration(log.durationMs)}</div>
+                                <div className="font-medium text-sm">{formatDuration(log.durationMs)}</div>
                                 {log.responseStatusCode && (
-                                  <div className="text-xs text-muted-foreground">
+                                  <div className="text-xs text-muted-foreground mt-1">
                                     HTTP {log.responseStatusCode}
                                   </div>
                                 )}
                               </>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="h-12 px-4 text-center" style={{ width: `${columnWidths.retries}px` }}>
-                            <span className="text-sm">{log.retryCount} / {log.maxRetries}</span>
+                          <TableCell className="px-4 py-3 align-top text-center" style={{ width: `${columnWidths.retries}px` }}>
+                            <div className="inline-flex items-center gap-1">
+                              <span className="font-medium text-sm">{log.retryCount}</span>
+                              <span className="text-muted-foreground text-xs">/</span>
+                              <span className="text-muted-foreground text-sm">{log.maxRetries}</span>
+                            </div>
                           </TableCell>
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.error}px` }}>
+                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.error}px` }}>
                             {log.errorMessage ? (
-                              <span className="text-sm text-destructive truncate block" title={log.errorMessage}>
-                                {log.errorMessage}
-                              </span>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-left w-full hover:underline">
+                                    <span className="text-sm text-destructive truncate block font-medium">
+                                      {log.errorMessage}
+                                    </span>
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-96 p-4" align="start">
+                                  <div className="space-y-2">
+                                    <div className="flex items-start gap-2">
+                                      <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">Error Details</h4>
+                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                                          {log.errorMessage}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="h-12 px-4" style={{ width: `${columnWidths.nextRetry}px` }}>
+                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.nextRetry}px` }}>
                             {log.nextRetryAt ? (
-                              <span className="text-sm">
-                                {formatDistance(new Date(log.nextRetryAt), new Date(), { addSuffix: true })}
-                              </span>
+                              <>
+                                <div className="text-sm font-medium">
+                                  {formatDistance(new Date(log.nextRetryAt), new Date(), { addSuffix: true })}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {new Date(log.nextRetryAt).toLocaleTimeString()}
+                                </div>
+                              </>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
                         </TableRow>
