@@ -805,7 +805,16 @@ export default function WorkspaceSettings() {
                                     toast.error('No workspace selected')
                                     return
                                   }
-                                  setSelectedIntegrationForWebhook(integration)
+                                  
+                                  // Fetch fresh integration data
+                                  try {
+                                    const freshIntegration = await sasRadiusApi.getById(currentWorkspaceId, integration.id!)
+                                    setSelectedIntegrationForWebhook(freshIntegration)
+                                  } catch (error) {
+                                    console.error('Failed to fetch integration:', error)
+                                    setSelectedIntegrationForWebhook(integration)
+                                  }
+                                  
                                   // Fetch webhook for this integration
                                   try {
                                     const webhooks = await integrationWebhookApi.getAll(currentWorkspaceId)
