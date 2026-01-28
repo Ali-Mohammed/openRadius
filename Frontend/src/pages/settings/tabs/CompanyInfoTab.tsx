@@ -137,7 +137,7 @@ export default function CompanyInfoTab({
             <Button
               variant="outline"
               className="justify-start"
-              onClick={() => window.open('http://localhost:5000/hangfire', '_blank')}
+              onClick={() => window.open(`http://localhost:5000/hangfire/workspace/${currentWorkspaceId}`, '_blank')}
             >
               <Briefcase className="mr-2 h-4 w-4" />
               Hangfire Dashboard
