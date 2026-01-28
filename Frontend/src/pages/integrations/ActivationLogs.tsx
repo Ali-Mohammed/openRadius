@@ -514,7 +514,7 @@ export default function ActivationLogs() {
                             backgroundColor: virtualRow.index % 2 === 0 ? 'transparent' : 'hsl(var(--muted) / 0.3)',
                           }}
                         >
-                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.timestamp}px` }}>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.timestamp}px` }}>
                             <div className="font-medium text-sm">
                               {new Date(log.createdAt).toLocaleString()}
                             </div>
@@ -522,17 +522,17 @@ export default function ActivationLogs() {
                               {formatDistance(new Date(log.createdAt), new Date(), { addSuffix: true })}
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.user}px` }}>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.user}px` }}>
                             <div className="font-medium text-sm">{log.username}</div>
                             <div className="text-xs text-muted-foreground mt-1">ID: {log.userId}</div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.status}px` }}>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.status}px` }}>
                             <Badge className={`${config.className} font-medium`}>
                               <StatusIcon className="h-3 w-3 mr-1.5" />
                               {config.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.duration}px` }}>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.duration}px` }}>
                             {log.durationMs > 0 ? (
                               <>
                                 <div className="font-medium text-sm">{formatDuration(log.durationMs)}</div>
@@ -546,14 +546,14 @@ export default function ActivationLogs() {
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="px-4 py-3 align-top text-center" style={{ width: `${columnWidths.retries}px` }}>
+                          <TableCell className="px-4 py-3 align-middle text-center" style={{ width: `${columnWidths.retries}px` }}>
                             <div className="inline-flex items-center gap-1">
                               <span className="font-medium text-sm">{log.retryCount}</span>
                               <span className="text-muted-foreground text-xs">/</span>
                               <span className="text-muted-foreground text-sm">{log.maxRetries}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.error}px` }}>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.error}px` }}>
                             {log.errorMessage ? (
                               <Popover>
                                 <PopoverTrigger asChild>
@@ -581,7 +581,7 @@ export default function ActivationLogs() {
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="px-4 py-3 align-top" style={{ width: `${columnWidths.nextRetry}px` }}>
+                          <TableCell className="px-4 py-3 align-middle" style={{ width: `${columnWidths.nextRetry}px` }}>
                             {log.nextRetryAt ? (
                               <>
                                 <div className="text-sm font-medium">
