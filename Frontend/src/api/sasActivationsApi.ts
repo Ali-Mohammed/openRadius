@@ -51,5 +51,16 @@ export const sasActivationsApi = {
       `/api/SasActivations/log/${logId}/retry`
     );
     return response.data;
+  },
+
+  // Get count of retryable failed activations
+  getRetryableCount: async (integrationId: number, fromDate?: string) => {
+    const response = await apiClient.get<{ count: number }>(
+      `/api/SasActivations/${integrationId}/retry-count`,
+      {
+        params: fromDate ? { fromDate } : undefined
+      }
+    );
+    return response.data;
   }
 };

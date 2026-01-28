@@ -17,6 +17,7 @@ public interface ISasActivationService
     Task ProcessActivationAsync(int logId, int workspaceId, string connectionString);
     Task<int> RetryFailedActivationsAsync(int integrationId, DateTime? fromDate = null);
     Task<bool> RetrySingleActivationAsync(int logId);
+    Task<int> GetRetryableCountAsync(int integrationId, DateTime? fromDate = null);
     Task<List<SasActivationLog>> GetActivationLogsAsync(int integrationId, int page = 1, int pageSize = 50, string? search = null);
     Task<SasActivationLog?> GetActivationLogAsync(int logId);
     Task<ActivationMetrics> GetMetricsAsync(int integrationId, DateTime? fromDate = null);
@@ -636,6 +637,24 @@ public class SasActivationService : ISasActivationService
         _logger.LogInformation($"[SAS_Activation_034] Re-enqueued activation log {logId} for user {log.Username}");
         
         return true;
+    }
+    
+    /// <summary>
+    /// Get count of retryable failed activations
+    /// </summary>
+    public async Task<int> GetRetryableCountAsync(int integrationId, DateTime? fromDate = null)
+    {
+        var query = _context.SasActivationLogs
+            .Where(l => l.IntegrationId == integrationId)
+            .Where(l => l.Status == ActivationStatus.Failed || l.Status == ActivationStatus.MaxRetriesReached)
+            .Where(l => l.RetryCount < l.MaxRetries);
+        
+        if (fromDate.HasValue)
+        {
+            query = query.Where(l => l.CreatedAt >= fromDate.Value);
+        }
+        
+        return await query.CountAsync();
     }
     
     /// <summary>

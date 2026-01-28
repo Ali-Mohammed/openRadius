@@ -156,6 +156,34 @@ public class SasActivationsController : ControllerBase
     }
     
     /// <summary>
+    /// Get count of retryable failed activations for a given period
+    /// </summary>
+    [HttpGet("{integrationId}/retry-count")]
+    public async Task<IActionResult> GetRetryableCount(
+        int integrationId,
+        [FromQuery] string? fromDate = null)
+    {
+        try
+        {
+            DateTime? parsedDate = null;
+            
+            if (!string.IsNullOrEmpty(fromDate))
+            {
+                parsedDate = ParseRelativeDate(fromDate);
+            }
+            
+            var count = await _activationService.GetRetryableCountAsync(integrationId, parsedDate);
+            
+            return Ok(new { count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to get retryable count for integration {integrationId}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+    
+    /// <summary>
     /// Batch enqueue multiple activations for better performance
     /// </summary>
     [HttpPost("batch/{integrationId}")]
@@ -238,33 +266,39 @@ public class SasActivationsController : ControllerBase
         var now = DateTime.UtcNow;
         
         // Handle minutes format like "1min", "5min", "15min"
-        if (dateStr.EndsWith("min"))
+        if (dateStr.EndsWith("min", StringComparison.OrdinalIgnoreCase))
         {
-            var minutes = int.Parse(dateStr.Replace("min", ""));
+            var minutes = int.Parse(dateStr.Replace("min", "", StringComparison.OrdinalIgnoreCase));
             return now.AddMinutes(-minutes);
         }
         // Handle hours format like "1h", "2h", "6h", "12h"
-        else if (dateStr.EndsWith("h"))
+        else if (dateStr.EndsWith("h", StringComparison.OrdinalIgnoreCase))
         {
-            var hours = int.Parse(dateStr.TrimEnd('h'));
+            var hours = int.Parse(dateStr.TrimEnd('h', 'H'));
             return now.AddHours(-hours);
         }
         // Handle days format like "1d", "2d", "3d"
-        else if (dateStr.EndsWith("d"))
+        else if (dateStr.EndsWith("d", StringComparison.OrdinalIgnoreCase))
         {
-            var days = int.Parse(dateStr.TrimEnd('d'));
+            var days = int.Parse(dateStr.TrimEnd('d', 'D'));
             return now.AddDays(-days);
         }
         // Handle weeks format like "1w", "2w"
-        else if (dateStr.EndsWith("w"))
+        else if (dateStr.EndsWith("w", StringComparison.OrdinalIgnoreCase))
         {
-            var weeks = int.Parse(dateStr.TrimEnd('w'));
+            var weeks = int.Parse(dateStr.TrimEnd('w', 'W'));
             return now.AddDays(-weeks * 7);
         }
-        // Handle months format like "1m", "2m"
-        else if (dateStr.EndsWith("m"))
+        // Handle months format like "1mo", "2mo" (changed from "m" to "mo" to avoid confusion)
+        else if (dateStr.EndsWith("mo", StringComparison.OrdinalIgnoreCase))
         {
-            var months = int.Parse(dateStr.TrimEnd('m'));
+            var months = int.Parse(dateStr.Replace("mo", "", StringComparison.OrdinalIgnoreCase));
+            return now.AddMonths(-months);
+        }
+        // Legacy support for "1m" as month (but only if it's just digit + m)
+        else if (dateStr.Length <= 3 && dateStr.EndsWith("m", StringComparison.OrdinalIgnoreCase) && !dateStr.EndsWith("min", StringComparison.OrdinalIgnoreCase))
+        {
+            var months = int.Parse(dateStr.TrimEnd('m', 'M'));
             return now.AddMonths(-months);
         }
         

@@ -39,7 +39,7 @@ import { sasRadiusApi } from '@/api/sasRadiusApi';
 import { ActivationStatus } from '@/types/sasActivation';
 import { tablePreferenceApi } from '@/api/tablePreferenceApi';
 import { formatDistance } from 'date-fns';
-import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Search, History } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig = {
@@ -97,6 +97,7 @@ export default function ActivationLogs() {
   const [searchInput, setSearchInput] = useState('');
   const [retryDialogOpen, setRetryDialogOpen] = useState(false);
   const [logToRetry, setLogToRetry] = useState<number | null>(null);
+  const [retryCounts, setRetryCounts] = useState<Record<string, number>>({});
 
   // Column widths
   const DEFAULT_COLUMN_WIDTHS = {
@@ -191,6 +192,32 @@ export default function ActivationLogs() {
     queryFn: () => sasActivationsApi.getActivationLogs(Number(integrationId), currentPage, pageSize, searchQuery),
     enabled: !!integrationId
   });
+
+  // Fetch retry counts for all periods
+  useEffect(() => {
+    if (!integrationId) return;
+
+    const periods = ['1min', '5min', '15min', '1h', '2h', '6h', '12h', '1d', '2d', '3d', '1w', '2w', '1mo'];
+    
+    const fetchCounts = async () => {
+      const counts: Record<string, number> = {};
+      
+      await Promise.all(
+        periods.map(async (period) => {
+          try {
+            const result = await sasActivationsApi.getRetryableCount(Number(integrationId), period);
+            counts[period] = result.count;
+          } catch (error) {
+            counts[period] = 0;
+          }
+        })
+      );
+      
+      setRetryCounts(counts);
+    };
+
+    fetchCounts();
+  }, [integrationId, logs]); // Re-fetch when logs change
 
   // Virtual scroller for performance
   const sortedLogs = useMemo(() => {
@@ -362,7 +389,7 @@ export default function ActivationLogs() {
                 disabled={retryMutation.isPending}
                 title="Retry failed activations"
               >
-                <RotateCcw className={`h-4 w-4 ${retryMutation.isPending ? 'animate-spin' : ''}`} />
+                <History className={`h-4 w-4 ${retryMutation.isPending ? 'animate-pulse' : ''}`} />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-4" align="end">
@@ -375,23 +402,23 @@ export default function ActivationLogs() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Select value={retryPeriod} onValueChange={setRetryPeriod}>
-                    <SelectTrigger className="h-8">
+                    <SelectTrigger className="h-8 w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1min">Last 1 minute</SelectItem>
-                      <SelectItem value="5min">Last 5 minutes</SelectItem>
-                      <SelectItem value="15min">Last 15 minutes</SelectItem>
-                      <SelectItem value="1h">Last 1 hour</SelectItem>
-                      <SelectItem value="2h">Last 2 hours</SelectItem>
-                      <SelectItem value="6h">Last 6 hours</SelectItem>
-                      <SelectItem value="12h">Last 12 hours</SelectItem>
-                      <SelectItem value="1d">Last 24 hours</SelectItem>
-                      <SelectItem value="2d">Last 2 days</SelectItem>
-                      <SelectItem value="3d">Last 3 days</SelectItem>
-                      <SelectItem value="1w">Last week</SelectItem>
-                      <SelectItem value="2w">Last 2 weeks</SelectItem>
-                      <SelectItem value="1m">Last month</SelectItem>
+                      <SelectItem value="1min">Last 1 minute ({retryCounts['1min'] ?? 0})</SelectItem>
+                      <SelectItem value="5min">Last 5 minutes ({retryCounts['5min'] ?? 0})</SelectItem>
+                      <SelectItem value="15min">Last 15 minutes ({retryCounts['15min'] ?? 0})</SelectItem>
+                      <SelectItem value="1h">Last 1 hour ({retryCounts['1h'] ?? 0})</SelectItem>
+                      <SelectItem value="2h">Last 2 hours ({retryCounts['2h'] ?? 0})</SelectItem>
+                      <SelectItem value="6h">Last 6 hours ({retryCounts['6h'] ?? 0})</SelectItem>
+                      <SelectItem value="12h">Last 12 hours ({retryCounts['12h'] ?? 0})</SelectItem>
+                      <SelectItem value="1d">Last 24 hours ({retryCounts['1d'] ?? 0})</SelectItem>
+                      <SelectItem value="2d">Last 2 days ({retryCounts['2d'] ?? 0})</SelectItem>
+                      <SelectItem value="3d">Last 3 days ({retryCounts['3d'] ?? 0})</SelectItem>
+                      <SelectItem value="1w">Last week ({retryCounts['1w'] ?? 0})</SelectItem>
+                      <SelectItem value="2w">Last 2 weeks ({retryCounts['2w'] ?? 0})</SelectItem>
+                      <SelectItem value="1mo">Last month ({retryCounts['1mo'] ?? 0})</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button 
