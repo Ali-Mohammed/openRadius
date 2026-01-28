@@ -2176,8 +2176,12 @@ public class SasSyncService : ISasSyncService
         
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Create DbContext directly with connection string to bypass tenant resolver
+            // (Hangfire jobs don't have HTTP context/JWT tokens)
+            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+            optionsBuilder.UseNpgsql(connectionString);
+            
+            using var context = new ApplicationDbContext(optionsBuilder.Options, null!);
             
             // Get integration details
             var integration = await context.SasRadiusIntegrations

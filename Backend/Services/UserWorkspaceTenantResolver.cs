@@ -92,7 +92,9 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
         
         if (string.IsNullOrEmpty(userEmail))
         {
-            _logger.LogWarning("No email claim found in JWT token");
+            // This is expected for background jobs, health checks, and Hangfire dashboard
+            // Only log at Debug level to reduce noise
+            _logger.LogDebug("No email claim found in JWT token for path: {Path}", httpContext.Request.Path);
             return null;
         }
 
