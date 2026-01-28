@@ -5,6 +5,7 @@ using Backend.Data;
 using Backend.Hubs;
 using Backend.Models;
 using Backend.Services;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers;
 
@@ -16,6 +17,8 @@ public class SasRadiusIntegrationController : ControllerBase
     private readonly MasterDbContext _masterContext;
     private readonly ISasSyncService _syncService;
     private readonly IHubContext<SasSyncHub> _hubContext;
+    private readonly IWorkspaceJobService _jobService;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
     private readonly ILogger<SasRadiusIntegrationController> _logger;
 
     public SasRadiusIntegrationController(
@@ -23,12 +26,16 @@ public class SasRadiusIntegrationController : ControllerBase
         MasterDbContext masterContext,
         ISasSyncService syncService,
         IHubContext<SasSyncHub> hubContext,
+        IWorkspaceJobService jobService,
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor,
         ILogger<SasRadiusIntegrationController> logger)
     {
         _context = context;
         _masterContext = masterContext;
         _syncService = syncService;
         _hubContext = hubContext;
+        _jobService = jobService;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
@@ -188,16 +195,60 @@ public class SasRadiusIntegrationController : ControllerBase
         existingIntegration.UseFreeCardsOnly = integration.UseFreeCardsOnly;
         
         // Update sync online users settings
+        var syncSettingsChanged = existingIntegration.SyncOnlineUsers != integration.SyncOnlineUsers ||
+                                   existingIntegration.SyncOnlineUsersIntervalMinutes != integration.SyncOnlineUsersIntervalMinutes;
+        
         existingIntegration.SyncOnlineUsers = integration.SyncOnlineUsers;
         existingIntegration.SyncOnlineUsersIntervalMinutes = integration.SyncOnlineUsersIntervalMinutes;
         
         existingIntegration.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        
+        // Manage recurring job for online users sync
+        if (syncSettingsChanged)
+        {
+            ManageOnlineUsersSyncJob(existingIntegration, WorkspaceId);
+        }
 
         _logger.LogInformation("Updated SAS Radius integration {Name} for instant {WorkspaceId}", integration.Name, WorkspaceId);
 
         return NoContent();
+    }
+    
+    /// <summary>
+    /// Manage the recurring Hangfire job for syncing online users
+    /// </summary>
+    private void ManageOnlineUsersSyncJob(SasRadiusIntegration integration, int workspaceId)
+    {
+        var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+        if (tenantInfo == null)
+        {
+            _logger.LogWarning("Cannot manage online users sync job - no tenant context");
+            return;
+        }
+        
+        var jobId = $"sync-online-users-{integration.Id}";
+        
+        if (integration.SyncOnlineUsers && integration.IsActive)
+        {
+            // Create cron expression based on interval (in minutes)
+            // Format: */X * * * * means "every X minutes"
+            var cronExpression = $"*/{integration.SyncOnlineUsersIntervalMinutes} * * * *";
+            
+            _logger.LogInformation($"🔄 [SyncOnlineUsers] Scheduling recurring job '{jobId}' with interval {integration.SyncOnlineUsersIntervalMinutes} minutes (cron: {cronExpression})");
+            
+            _jobService.AddOrUpdateRecurringJob<ISasSyncService>(
+                jobId,
+                service => service.SyncOnlineUsersAsync(integration.Id, workspaceId, tenantInfo.ConnectionString),
+                cronExpression
+            );
+        }
+        else
+        {
+            _logger.LogInformation($"⏹️ [SyncOnlineUsers] Removing recurring job '{jobId}' (enabled: {integration.SyncOnlineUsers}, active: {integration.IsActive})");
+            _jobService.RemoveRecurringJob(jobId);
+        }
     }
 
     [HttpDelete("{id}")]
@@ -214,6 +265,11 @@ public class SasRadiusIntegrationController : ControllerBase
         integration.IsDeleted = true;
         integration.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+        
+        // Remove recurring job when integration is deleted
+        var jobId = $"sync-online-users-{integration.Id}";
+        _jobService.RemoveRecurringJob(jobId);
+        _logger.LogInformation($"⏹️ [SyncOnlineUsers] Removed recurring job '{jobId}' due to integration deletion");
 
         _logger.LogInformation("Soft deleted SAS Radius integration {Name} for workspace {WorkspaceId}", integration.Name, WorkspaceId);
 

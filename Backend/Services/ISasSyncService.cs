@@ -5,6 +5,7 @@ public interface ISasSyncService
     Task<Guid> SyncAsync(int integrationId, bool fullSync = false);
     Task<bool> CancelSyncAsync(Guid syncId);
     Task<ManagerSyncResult> SyncManagersAsync(int integrationId, int workspaceId, Action<ManagerSyncProgress>? onProgress = null);
+    Task SyncOnlineUsersAsync(int integrationId, int workspaceId, string connectionString);
 }
 
 public class ManagerSyncResult
