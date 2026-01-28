@@ -100,9 +100,12 @@ export default function ActivationLogs() {
 
   // Load table preferences on mount
   useEffect(() => {
+    if (!integrationId) return;
+    
     const loadPreferences = async () => {
       try {
-        const preferences = await tablePreferenceApi.getPreference('activation-logs');
+        const tableName = `activation-logs-${integrationId}`;
+        const preferences = await tablePreferenceApi.getPreference(tableName);
         if (preferences) {
           if (preferences.columnWidths) {
             setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) });
@@ -119,17 +122,19 @@ export default function ActivationLogs() {
       }
     };
 
+    setPreferencesLoaded(false);
     loadPreferences();
-  }, []);
+  }, [integrationId]);
 
   // Auto-save preferences when they change
   useEffect(() => {
-    if (!preferencesLoaded) return;
+    if (!preferencesLoaded || !integrationId) return;
 
     const savePreferences = async () => {
       try {
+        const tableName = `activation-logs-${integrationId}`;
         await tablePreferenceApi.savePreference({
-          tableName: 'activation-logs',
+          tableName,
           columnWidths: JSON.stringify(columnWidths),
           sortField: sortField || undefined,
           sortDirection: sortDirection,
@@ -141,7 +146,7 @@ export default function ActivationLogs() {
 
     const timeoutId = setTimeout(savePreferences, 1000);
     return () => clearTimeout(timeoutId);
-  }, [columnWidths, sortField, sortDirection, preferencesLoaded]);
+  }, [columnWidths, sortField, sortDirection, preferencesLoaded, integrationId]);
 
   // Fetch integration details
   const { data: integrationData } = useQuery({
