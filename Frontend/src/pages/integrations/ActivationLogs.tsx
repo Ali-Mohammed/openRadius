@@ -134,22 +134,14 @@ export default function ActivationLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => navigate('/integrations/sas-radius')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Activation Logs</h1>
-              <p className="text-sm text-muted-foreground">
-                {integrationName} - View and manage activation attempts sent to SAS4
-              </p>
-            </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+            <span className="cursor-pointer hover:text-foreground" onClick={() => navigate('/integrations')}>Integrations</span>
+            <span>/</span>
+            <span className="cursor-pointer hover:text-foreground" onClick={() => navigate('/integrations/sas-radius')}>SAS Radius</span>
+            <span>/</span>
+            <span className="text-foreground font-medium">{integrationName}</span>
           </div>
+          <h1 className="text-2xl font-bold">Activation Logs</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button 
