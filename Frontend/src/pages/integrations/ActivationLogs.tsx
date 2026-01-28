@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { 
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Select,
   SelectContent,
@@ -20,11 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Skeleton } from '@/components/ui/skeleton';
 import { sasActivationsApi } from '@/api/sasActivationsApi';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
 import { ActivationStatus } from '@/types/sasActivation';
 import { formatDistance } from 'date-fns';
-import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, RotateCcw, AlertCircle, Ban, ChevronLeft, ChevronRight, ChevronsLeft, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig = {
@@ -71,10 +74,27 @@ export default function ActivationLogs() {
   const navigate = useNavigate();
   const { currentWorkspaceId } = useWorkspace();
   const queryClient = useQueryClient();
+  const parentRef = useRef<HTMLDivElement>(null);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [retryPeriod, setRetryPeriod] = useState<string>('1d');
+  const [sortField, setSortField] = useState<string>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Column widths
+  const DEFAULT_COLUMN_WIDTHS = {
+    timestamp: 180,
+    user: 160,
+    status: 140,
+    duration: 120,
+    retries: 100,
+    error: 300,
+    nextRetry: 140,
+  };
+
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS);
+  const [resizing, setResizing] = useState<string | null>(null);
 
   // Fetch integration details
   const { data: integrationData } = useQuery({
@@ -90,9 +110,56 @@ export default function ActivationLogs() {
   const integrationName = integrationData?.name || 'Integration';
   
   const { data: logs, isLoading, isFetching } = useQuery({
-    queryKey: ['activation-logs', integrationId, currentPage, pageSize],
+    queryKey: ['activation-logs', integrationId, currentPage, pageSize, sortField, sortDirection],
     queryFn: () => sasActivationsApi.getActivationLogs(Number(integrationId), currentPage, pageSize),
     enabled: !!integrationId
+  });
+
+  // Virtual scroller for performance
+  const sortedLogs = useMemo(() => {
+    if (!logs) return [];
+    const sorted = [...logs];
+    sorted.sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      
+      switch (sortField) {
+        case 'createdAt':
+          aVal = new Date(a.createdAt).getTime();
+          bVal = new Date(b.createdAt).getTime();
+          break;
+        case 'username':
+          aVal = a.username?.toLowerCase() || '';
+          bVal = b.username?.toLowerCase() || '';
+          break;
+        case 'status':
+          aVal = a.status;
+          bVal = b.status;
+          break;
+        case 'duration':
+          aVal = a.durationMs || 0;
+          bVal = b.durationMs || 0;
+          break;
+        case 'retries':
+          aVal = a.retryCount;
+          bVal = b.retryCount;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [logs, sortField, sortDirection]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: sortedLogs.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 48,
+    overscan: 10,
   });
 
   const retryMutation = useMutation({
@@ -126,6 +193,43 @@ export default function ActivationLogs() {
     setCurrentPage(1);
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4" />
+      : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
+
+  const handleResize = (column: string, clientX: number, initialWidth: number) => {
+    setResizing(column);
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - clientX;
+      const newWidth = Math.max(80, initialWidth + delta);
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   // Calculate total pages (assuming 50 records per page means there might be more)
   const hasMorePages = logs && logs.length >= pageSize;
 
@@ -134,14 +238,10 @@ export default function ActivationLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <span className="cursor-pointer hover:text-foreground" onClick={() => navigate('/integrations')}>Integrations</span>
-            <span>/</span>
-            <span className="cursor-pointer hover:text-foreground" onClick={() => navigate('/integrations/sas-radius')}>SAS Radius</span>
-            <span>/</span>
-            <span className="text-foreground font-medium">{integrationName}</span>
-          </div>
           <h1 className="text-2xl font-bold">Activation Logs</h1>
+          <p className="text-sm text-muted-foreground">
+            View and manage activation attempts sent to SAS4 for {integrationName}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button 

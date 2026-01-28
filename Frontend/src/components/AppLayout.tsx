@@ -171,6 +171,21 @@ export function AppLayout({ children }: AppLayoutProps) {
       return { parent: { title: 'Workspace View', href: '/workspace/view', icon: Eye }, current: 'Workspace Settings', icon: Wrench }
     }
     if (location.pathname === '/integrations') return { parent: null, current: 'Integrations', icon: Radio }
+    if (location.pathname === '/integrations/sas-radius') {
+      return {
+        parent: { title: 'Integrations', href: '/integrations', icon: Radio },
+        current: 'SAS Radius',
+        icon: Radio
+      }
+    }
+    if (location.pathname.match(/\/integrations\/activation-logs\/\d+$/)) {
+      return {
+        parent: { title: 'Integrations', href: '/integrations', icon: Radio },
+        parentSecondary: { title: 'SAS Radius', href: '/integrations/sas-radius', icon: Radio },
+        current: 'Activation Logs',
+        icon: Activity
+      }
+    }
     if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
     if (location.pathname.includes('/radius/groups')) return { parent: null, current: 'RADIUS Groups', icon: Users }
@@ -330,6 +345,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                       <Link to={breadcrumbs.parent.href} className="flex items-center gap-2">
                         {breadcrumbs.parent.icon && <breadcrumbs.parent.icon className="h-4 w-4 text-primary" />}
                         {breadcrumbs.parent.title}
+                      </Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </>
+              )}
+              {breadcrumbs.parentSecondary && (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to={breadcrumbs.parentSecondary.href} className="flex items-center gap-2">
+                        {breadcrumbs.parentSecondary.icon && <breadcrumbs.parentSecondary.icon className="h-4 w-4 text-primary" />}
+                        {breadcrumbs.parentSecondary.title}
                       </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
