@@ -27,6 +27,7 @@ import RadiusActivations from './pages/radius/RadiusActivations'
 // Integrations
 import Integrations from './pages/integrations/Integrations'
 import ActivationLogs from './pages/integrations/ActivationLogs'
+import SessionsSync from './pages/integrations/SessionsSync'
 // Billing
 import BillingProfiles from './pages/billing/BillingProfiles'
 import BillingProfileForm from './pages/billing/BillingProfileForm'
@@ -110,6 +111,7 @@ function App() {
                           <Route path="/integrations" element={<Integrations />} />
                           <Route path="/integrations/sas-radius" element={<WorkspaceSettings />} />
                           <Route path="/integrations/activation-logs/:integrationId" element={<ActivationLogs />} />
+                          <Route path="/integrations/sessions-sync/:integrationId" element={<SessionsSync />} />
                           <Route path="/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/radius/users" element={<RadiusUsers />} />
                           <Route path="/radius/groups" element={<RadiusGroups />} />

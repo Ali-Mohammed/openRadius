@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2, Webhook, Copy, Settings, Activity } from 'lucide-react'
+import { Plus, Trash2, Edit, RefreshCw, Eye, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, ArrowUpDown, Archive, RotateCcw, Radio, Plug, History, Package, Play, Download, Upload, Users, Loader2, Webhook, Copy, Settings, Activity, Monitor } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -797,6 +797,16 @@ export default function WorkspaceSettings() {
                               >
                                 <Activity className="h-4 w-4 text-green-600" />
                               </Button>
+                              {integration.syncOnlineUsers && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/integrations/sessions-sync/${integration.id}`)}
+                                  title="View Online Users Sync Logs"
+                                >
+                                  <Monitor className="h-4 w-4 text-cyan-600" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"

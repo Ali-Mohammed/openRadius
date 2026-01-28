@@ -78,6 +78,8 @@ public class SasRadiusIntegrationController : ControllerBase
             integration.CardStockUserId,
             integration.AllowAnyCardStockUser,
             integration.UseFreeCardsOnly,
+            integration.SyncOnlineUsers,
+            integration.SyncOnlineUsersIntervalMinutes,
             integration.CreatedAt,
             integration.UpdatedAt,
             integration.IsDeleted,
