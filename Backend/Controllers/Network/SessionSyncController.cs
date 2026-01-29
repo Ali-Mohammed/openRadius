@@ -71,7 +71,7 @@ public class SessionSyncController : ControllerBase
     }
 
     [HttpGet("logs/{integrationId}")]
-    public async Task<ActionResult<List<SessionSyncLog>>> GetLogs(int workspaceId, int integrationId)
+    public async Task<ActionResult<List<SessionSyncProgress>>> GetLogs(int workspaceId, int integrationId)
     {
         try
         {

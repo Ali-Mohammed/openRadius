@@ -90,7 +90,7 @@ export default function SessionsSync() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string | number>('all');
   const [activeSyncId, setActiveSyncId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -102,9 +102,10 @@ export default function SessionsSync() {
   const DEFAULT_COLUMN_WIDTHS = {
     timestamp: 180,
     status: 140,
-    totalUsers: 120,
-    syncedUsers: 120,
-    failedUsers: 120,
+    totalSessions: 120,
+    newSessions: 120,
+    updatedSessions: 120,
+    failedSessions: 120,
     duration: 120,
     error: 300,
   };
@@ -184,7 +185,7 @@ export default function SessionsSync() {
     queryKey: ['session-sync-logs', currentWorkspaceId, integrationId],
     queryFn: () => sessionSyncApi.getLogs(Number(currentWorkspaceId), Number(integrationId)),
     enabled: !!currentWorkspaceId && !!integrationId,
-    refetchInterval: isSyncing ? 2000 : 10000, // Refetch every 2 seconds during sync, 10 seconds otherwise
+    refetchInterval: isSyncing ? 5000 : false, // Poll every 5 seconds during sync, SignalR handles completion
     refetchOnWindowFocus: true,
   });
 
@@ -224,7 +225,11 @@ export default function SessionsSync() {
       });
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Failed to start sync');
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.title || 
+                          error?.message || 
+                          'Failed to start sync';
+      toast.error(errorMessage, { duration: 5000 });
     },
   });
 
@@ -266,11 +271,6 @@ export default function SessionsSync() {
       if (message.integrationId === Number(integrationId)) {
         // Update progress state
         setSyncProgress(message);
-        
-        // Refetch logs on every progress update for real-time table updates
-        queryClient.invalidateQueries({ 
-          queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
-        });
 
         // Update UI based on status
         // Status: 0=Starting, 1=Authenticating, 2=FetchingOnlineUsers, 3=ProcessingUsers, 4=SyncingToSas, 5=Completed, 6=Failed, 7=Cancelled
@@ -279,16 +279,28 @@ export default function SessionsSync() {
           setActiveSyncId(null);
           setSyncProgress(null);
           toast.success(`Session sync completed - Synced ${message.successCount || 0} users successfully`);
+          // Refetch logs only when sync completes
+          queryClient.invalidateQueries({ 
+            queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
+          });
         } else if (message.status === 6) { // Failed
           setIsSyncing(false);
           setActiveSyncId(null);
           setSyncProgress(null);
           toast.error(message.currentMessage || 'Session sync failed');
+          // Refetch logs only when sync fails
+          queryClient.invalidateQueries({ 
+            queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
+          });
         } else if (message.status === 7) { // Cancelled
           setIsSyncing(false);
           setActiveSyncId(null);
           setSyncProgress(null);
           toast.info('Session sync was cancelled');
+          // Refetch logs only when sync is cancelled
+          queryClient.invalidateQueries({ 
+            queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
+          });
         } else {
           // Sync is in progress (status 0-4)
           setIsSyncing(true);
@@ -315,7 +327,7 @@ export default function SessionsSync() {
       const matchesSearch = searchQuery === '' || 
         log.errorMessage?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || log.status === Number(statusFilter);
 
       return matchesSearch && matchesStatus;
     });
@@ -464,12 +476,12 @@ export default function SessionsSync() {
                   <div className="text-xs text-muted-foreground">Total Sessions</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{syncProgress.processedCount || 0}</div>
-                  <div className="text-xs text-muted-foreground">Processed</div>
+                  <div className="text-2xl font-bold text-blue-600">{syncProgress.newSessions || 0}</div>
+                  <div className="text-xs text-muted-foreground">New</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{syncProgress.successCount || 0}</div>
-                  <div className="text-xs text-muted-foreground">Synced</div>
+                  <div className="text-2xl font-bold text-purple-600">{syncProgress.updatedSessions || 0}</div>
+                  <div className="text-xs text-muted-foreground">Updated</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-red-600">{syncProgress.failureCount || 0}</div>
@@ -509,15 +521,15 @@ export default function SessionsSync() {
               className="pl-9 h-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={String(statusFilter)} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px] h-9">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
-              <SelectItem value="partial">Partial</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="5">Success</SelectItem>
+              <SelectItem value="6">Failed</SelectItem>
+              <SelectItem value="7">Cancelled</SelectItem>
             </SelectContent>
           </Select>
           <Button 
@@ -647,12 +659,12 @@ export default function SessionsSync() {
                       </TableHead>
                       <TableHead 
                         className="h-12 px-4 text-right cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
-                        style={{ width: `${columnWidths.totalUsers}px` }}
-                        onClick={() => handleSort('totalUsers')}
+                        style={{ width: `${columnWidths.totalSessions}px` }}
+                        onClick={() => handleSort('totalSessions')}
                       >
                         <div className="flex items-center justify-end">
-                          Total Users
-                          {getSortIcon('totalUsers')}
+                          Total Sessions
+                          {getSortIcon('totalSessions')}
                         </div>
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -660,18 +672,18 @@ export default function SessionsSync() {
                           onMouseDown={(e) => { 
                             e.preventDefault();
                             e.stopPropagation();
-                            handleResize('totalUsers', e.clientX, columnWidths.totalUsers);
+                            handleResize('totalSessions', e.clientX, columnWidths.totalSessions);
                           }}
                         />
                       </TableHead>
                       <TableHead 
                         className="h-12 px-4 text-right cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
-                        style={{ width: `${columnWidths.syncedUsers}px` }}
-                        onClick={() => handleSort('syncedUsers')}
+                        style={{ width: `${columnWidths.newSessions}px` }}
+                        onClick={() => handleSort('newSessions')}
                       >
                         <div className="flex items-center justify-end">
-                          Synced
-                          {getSortIcon('syncedUsers')}
+                          New
+                          {getSortIcon('newSessions')}
                         </div>
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -679,18 +691,37 @@ export default function SessionsSync() {
                           onMouseDown={(e) => { 
                             e.preventDefault();
                             e.stopPropagation();
-                            handleResize('syncedUsers', e.clientX, columnWidths.syncedUsers);
+                            handleResize('newSessions', e.clientX, columnWidths.newSessions);
                           }}
                         />
                       </TableHead>
                       <TableHead 
                         className="h-12 px-4 text-right cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
-                        style={{ width: `${columnWidths.failedUsers}px` }}
-                        onClick={() => handleSort('failedUsers')}
+                        style={{ width: `${columnWidths.updatedSessions}px` }}
+                        onClick={() => handleSort('updatedSessions')}
+                      >
+                        <div className="flex items-center justify-end">
+                          Updated
+                          {getSortIcon('updatedSessions')}
+                        </div>
+                        <div 
+                          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => { 
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleResize('updatedSessions', e.clientX, columnWidths.updatedSessions);
+                          }}
+                        />
+                      </TableHead>
+                      <TableHead 
+                        className="h-12 px-4 text-right cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
+                        style={{ width: `${columnWidths.failedSessions}px` }}
+                        onClick={() => handleSort('failedSessions')}
                       >
                         <div className="flex items-center justify-end">
                           Failed
-                          {getSortIcon('failedUsers')}
+                          {getSortIcon('failedSessions')}
                         </div>
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -698,7 +729,7 @@ export default function SessionsSync() {
                           onMouseDown={(e) => { 
                             e.preventDefault();
                             e.stopPropagation();
-                            handleResize('failedUsers', e.clientX, columnWidths.failedUsers);
+                            handleResize('failedSessions', e.clientX, columnWidths.failedSessions);
                           }}
                         />
                       </TableHead>
@@ -753,19 +784,22 @@ export default function SessionsSync() {
                             {format(parseISO(log.timestamp), 'MMM dd, HH:mm:ss')}
                           </TableCell>
                           <TableCell className="h-12 px-4" style={{ width: `${columnWidths.status}px` }}>
-                            {getStatusBadge(log.status)}
+                            {getSyncStatusBadge(log.status)}
                           </TableCell>
-                          <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.totalUsers}px` }}>
-                            {log.totalUsers}
+                          <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.totalSessions}px` }}>
+                            {log.totalSessions}
                           </TableCell>
-                          <TableCell className="h-12 px-4 text-right text-green-600" style={{ width: `${columnWidths.syncedUsers}px` }}>
-                            {log.syncedUsers}
+                          <TableCell className="h-12 px-4 text-right text-blue-600" style={{ width: `${columnWidths.newSessions}px` }}>
+                            {log.newSessions}
                           </TableCell>
-                          <TableCell className="h-12 px-4 text-right text-red-600" style={{ width: `${columnWidths.failedUsers}px` }}>
-                            {log.failedUsers}
+                          <TableCell className="h-12 px-4 text-right text-purple-600" style={{ width: `${columnWidths.updatedSessions}px` }}>
+                            {log.updatedSessions}
+                          </TableCell>
+                          <TableCell className="h-12 px-4 text-right text-red-600" style={{ width: `${columnWidths.failedSessions}px` }}>
+                            {log.failedSessions}
                           </TableCell>
                           <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.duration}px` }}>
-                            {formatDuration(log.duration)}
+                            {formatDuration(log.durationSeconds)}
                           </TableCell>
                           <TableCell className="h-12 px-4 text-sm text-muted-foreground truncate" style={{ width: `${columnWidths.error}px` }} title={log.errorMessage}>
                             {log.errorMessage || '-'}

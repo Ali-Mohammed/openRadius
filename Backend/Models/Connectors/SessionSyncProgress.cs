@@ -31,6 +31,8 @@ public class SessionSyncProgress
     public int ProcessedUsers { get; set; }
     public int SuccessfulSyncs { get; set; }
     public int FailedSyncs { get; set; }
+    public int NewSessions { get; set; }
+    public int UpdatedSessions { get; set; }
     
     // Overall progress
     public double ProgressPercentage { get; set; }
@@ -46,26 +48,7 @@ public class SessionSyncProgress
     public TimeSpan Duration => CompletedAt.HasValue 
         ? CompletedAt.Value - StartedAt 
         : DateTime.UtcNow - StartedAt;
-}
-
-public class SessionSyncLog
-{
-    [Key]
-    public int Id { get; set; }
     
-    public Guid SyncId { get; set; }
-    public int IntegrationId { get; set; }
-    public int WorkspaceId { get; set; }
-    
-    public DateTime Timestamp { get; set; }
-    public SessionSyncStatus Status { get; set; }
-    
-    public int TotalUsers { get; set; }
-    public int SyncedUsers { get; set; }
-    public int FailedUsers { get; set; }
-    public int DurationSeconds { get; set; }
-    
-    public string? ErrorMessage { get; set; }
-    
-    public DateTime CreatedAt { get; set; }
+    [NotMapped]
+    public int DurationSeconds => (int)Duration.TotalSeconds;
 }

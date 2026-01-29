@@ -25,9 +25,10 @@ export interface SessionSyncLog {
   workspaceId: number;
   timestamp: string;
   status: number;
-  totalUsers: number;
-  syncedUsers: number;
-  failedUsers: number;
+  totalSessions: number;
+  newSessions: number;
+  updatedSessions: number;
+  failedSessions: number;
   durationSeconds: number;
   errorMessage?: string;
   createdAt: string;
