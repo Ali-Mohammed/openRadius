@@ -98,6 +98,7 @@ export default function SessionsSync() {
     failedSyncs: 120,
     duration: 120,
     error: 300,
+    actions: 80,
   };
 
   const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS);
@@ -748,6 +749,12 @@ export default function SessionsSync() {
                       >
                         Error Details
                       </TableHead>
+                      <TableHead 
+                        className="h-12 px-4 text-center"
+                        style={{ width: `${columnWidths.actions}px` }}
+                      >
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody
@@ -793,6 +800,20 @@ export default function SessionsSync() {
                           </TableCell>
                           <TableCell className="h-12 px-4 text-sm text-muted-foreground truncate" style={{ width: `${columnWidths.error}px` }} title={log.errorMessage}>
                             {log.errorMessage || '-'}
+                          </TableCell>
+                          <TableCell className="h-12 px-4 text-center" style={{ width: `${columnWidths.actions}px` }}>
+                            {log.status < 5 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => cancelSyncMutation.mutate(log.syncId)}
+                                disabled={cancelSyncMutation.isPending}
+                                title="Cancel sync"
+                                className="h-8 w-8 p-0"
+                              >
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
