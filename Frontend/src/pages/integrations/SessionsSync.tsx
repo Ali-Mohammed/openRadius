@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
-import { sessionSyncApi, type SessionSyncLog } from '@/api/sessionSyncApi';
+import { sessionSyncApi, type SessionSyncProgress } from '@/api/sessionSyncApi';
 import { tablePreferenceApi } from '@/api/tablePreferenceApi';
 import { toast } from 'sonner';
 import { 
@@ -67,16 +67,6 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-type SessionSyncLogType = SessionSyncLog & {
-  status: 'success' | 'partial' | 'failed';
-};
-
-const mapStatusToString = (status: number): 'success' | 'partial' | 'failed' => {
-  if (status === 5) return 'success'; // Completed
-  if (status === 6) return 'failed'; // Failed
-  return 'partial'; // Other statuses
-};
-
 export default function SessionsSync() {
   const { integrationId } = useParams<{ integrationId: string }>();
   const navigate = useNavigate();
@@ -86,7 +76,7 @@ export default function SessionsSync() {
   const hubConnectionRef = useRef<signalR.HubConnection | null>(null);
 
   // State
-  const [sortField, setSortField] = useState<string>('timestamp');
+  const [sortField, setSortField] = useState<string>('startedAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -100,12 +90,12 @@ export default function SessionsSync() {
 
   // Column widths
   const DEFAULT_COLUMN_WIDTHS = {
-    timestamp: 180,
+    startedAt: 180,
     status: 140,
-    totalSessions: 120,
+    totalOnlineUsers: 120,
     newSessions: 120,
     updatedSessions: 120,
-    failedSessions: 120,
+    failedSyncs: 120,
     duration: 120,
     error: 300,
   };
@@ -323,7 +313,7 @@ export default function SessionsSync() {
 
   // Filter and sort logs
   const sortedLogs = useMemo(() => {
-    let filtered = logs.filter((log: SessionSyncLog) => {
+    let filtered = logs.filter((log: SessionSyncProgress) => {
       const matchesSearch = searchQuery === '' || 
         log.errorMessage?.toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -333,11 +323,11 @@ export default function SessionsSync() {
     });
 
     // Sort
-    filtered.sort((a: SessionSyncLog, b: SessionSyncLog) => {
-      let aVal: any = a[sortField as keyof SessionSyncLog];
-      let bVal: any = b[sortField as keyof SessionSyncLog];
+    filtered.sort((a: SessionSyncProgress, b: SessionSyncProgress) => {
+      let aVal: any = a[sortField as keyof SessionSyncProgress];
+      let bVal: any = b[sortField as keyof SessionSyncProgress];
 
-      if (sortField === 'timestamp') {
+      if (sortField === 'startedAt') {
         aVal = new Date(aVal).getTime();
         bVal = new Date(bVal).getTime();
       }
@@ -621,12 +611,12 @@ export default function SessionsSync() {
                     <TableRow className="hover:bg-muted">
                       <TableHead 
                         className="h-12 px-4 cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
-                        style={{ width: `${columnWidths.timestamp}px` }}
-                        onClick={() => handleSort('timestamp')}
+                        style={{ width: `${columnWidths.startedAt}px` }}
+                        onClick={() => handleSort('startedAt')}
                       >
                         <div className="flex items-center">
-                          Timestamp
-                          {getSortIcon('timestamp')}
+                          Started At
+                          {getSortIcon('startedAt')}
                         </div>
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -634,7 +624,7 @@ export default function SessionsSync() {
                           onMouseDown={(e) => { 
                             e.preventDefault();
                             e.stopPropagation();
-                            handleResize('timestamp', e.clientX, columnWidths.timestamp);
+                            handleResize('startedAt', e.clientX, columnWidths.startedAt);
                           }}
                         />
                       </TableHead>
@@ -659,12 +649,12 @@ export default function SessionsSync() {
                       </TableHead>
                       <TableHead 
                         className="h-12 px-4 text-right cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
-                        style={{ width: `${columnWidths.totalSessions}px` }}
-                        onClick={() => handleSort('totalSessions')}
+                        style={{ width: `${columnWidths.totalOnlineUsers}px` }}
+                        onClick={() => handleSort('totalOnlineUsers')}
                       >
                         <div className="flex items-center justify-end">
                           Total Sessions
-                          {getSortIcon('totalSessions')}
+                          {getSortIcon('totalOnlineUsers')}
                         </div>
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -672,7 +662,7 @@ export default function SessionsSync() {
                           onMouseDown={(e) => { 
                             e.preventDefault();
                             e.stopPropagation();
-                            handleResize('totalSessions', e.clientX, columnWidths.totalSessions);
+                            handleResize('totalOnlineUsers', e.clientX, columnWidths.totalOnlineUsers);
                           }}
                         />
                       </TableHead>
@@ -716,12 +706,12 @@ export default function SessionsSync() {
                       </TableHead>
                       <TableHead 
                         className="h-12 px-4 text-right cursor-pointer select-none relative hover:bg-muted-foreground/10 transition-colors"
-                        style={{ width: `${columnWidths.failedSessions}px` }}
-                        onClick={() => handleSort('failedSessions')}
+                        style={{ width: `${columnWidths.failedSyncs}px` }}
+                        onClick={() => handleSort('failedSyncs')}
                       >
                         <div className="flex items-center justify-end">
                           Failed
-                          {getSortIcon('failedSessions')}
+                          {getSortIcon('failedSyncs')}
                         </div>
                         <div 
                           className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -729,7 +719,7 @@ export default function SessionsSync() {
                           onMouseDown={(e) => { 
                             e.preventDefault();
                             e.stopPropagation();
-                            handleResize('failedSessions', e.clientX, columnWidths.failedSessions);
+                            handleResize('failedSyncs', e.clientX, columnWidths.failedSyncs);
                           }}
                         />
                       </TableHead>
@@ -767,7 +757,7 @@ export default function SessionsSync() {
                     }}
                   >
                     {virtualizer.getVirtualItems().map((virtualRow) => {
-                      const log = sortedLogs[virtualRow.index] as SessionSyncLog;
+                      const log = sortedLogs[virtualRow.index] as SessionSyncProgress;
                       return (
                         <TableRow
                           key={log.id}
@@ -780,14 +770,14 @@ export default function SessionsSync() {
                             transform: `translateY(${virtualRow.start}px)`,
                           }}
                         >
-                          <TableCell className="h-12 px-4 font-mono text-sm" style={{ width: `${columnWidths.timestamp}px` }}>
-                            {format(parseISO(log.timestamp), 'MMM dd, HH:mm:ss')}
+                          <TableCell className="h-12 px-4 font-mono text-sm" style={{ width: `${columnWidths.startedAt}px` }}>
+                            {format(parseISO(log.startedAt), 'MMM dd, HH:mm:ss')}
                           </TableCell>
                           <TableCell className="h-12 px-4" style={{ width: `${columnWidths.status}px` }}>
                             {getSyncStatusBadge(log.status)}
                           </TableCell>
-                          <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.totalSessions}px` }}>
-                            {log.totalSessions}
+                          <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.totalOnlineUsers}px` }}>
+                            {log.totalOnlineUsers}
                           </TableCell>
                           <TableCell className="h-12 px-4 text-right text-blue-600" style={{ width: `${columnWidths.newSessions}px` }}>
                             {log.newSessions}
@@ -795,8 +785,8 @@ export default function SessionsSync() {
                           <TableCell className="h-12 px-4 text-right text-purple-600" style={{ width: `${columnWidths.updatedSessions}px` }}>
                             {log.updatedSessions}
                           </TableCell>
-                          <TableCell className="h-12 px-4 text-right text-red-600" style={{ width: `${columnWidths.failedSessions}px` }}>
-                            {log.failedSessions}
+                          <TableCell className="h-12 px-4 text-right text-red-600" style={{ width: `${columnWidths.failedSyncs}px` }}>
+                            {log.failedSyncs}
                           </TableCell>
                           <TableCell className="h-12 px-4 text-right" style={{ width: `${columnWidths.duration}px` }}>
                             {formatDuration(log.durationSeconds)}

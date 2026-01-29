@@ -10,28 +10,15 @@ export interface SessionSyncProgress {
   processedUsers: number;
   successfulSyncs: number;
   failedSyncs: number;
+  newSessions: number;
+  updatedSessions: number;
   progressPercentage: number;
   currentMessage?: string;
   errorMessage?: string;
   startedAt: string;
   completedAt?: string;
   lastUpdatedAt: string;
-}
-
-export interface SessionSyncLog {
-  id: number;
-  syncId: string;
-  integrationId: number;
-  workspaceId: number;
-  timestamp: string;
-  status: number;
-  totalSessions: number;
-  newSessions: number;
-  updatedSessions: number;
-  failedSessions: number;
   durationSeconds: number;
-  errorMessage?: string;
-  createdAt: string;
 }
 
 export const sessionSyncApi = {
@@ -45,7 +32,7 @@ export const sessionSyncApi = {
     return response.data;
   },
 
-  getLogs: async (workspaceId: number, integrationId: number): Promise<SessionSyncLog[]> => {
+  getLogs: async (workspaceId: number, integrationId: number): Promise<SessionSyncProgress[]> => {
     const response = await apiClient.get(`/api/workspaces/${workspaceId}/session-sync/logs/${integrationId}`);
     return response.data;
   },
