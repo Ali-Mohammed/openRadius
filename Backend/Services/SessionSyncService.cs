@@ -133,7 +133,16 @@ public class SessionSyncService : ISessionSyncService
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
                 
                 // Construct URL using same pattern as SasSyncService
-                var uri = new Uri(integration.Url.TrimEnd('/'));
+                var baseUrlRaw = integration.Url.TrimEnd('/');
+                
+                // Add protocol if not present
+                if (!baseUrlRaw.StartsWith("http://") && !baseUrlRaw.StartsWith("https://"))
+                {
+                    var protocol = integration.UseHttps ? "https" : "http";
+                    baseUrlRaw = $"{protocol}://{baseUrlRaw}";
+                }
+                
+                var uri = new Uri(baseUrlRaw);
                 var baseUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/UserSessions";
 
                 int currentPage = 1;
@@ -326,6 +335,13 @@ public class SessionSyncService : ISessionSyncService
     {
         var client = _httpClientFactory.CreateClient();
         var baseUrl = integration.Url.TrimEnd('/');
+        
+        // Add protocol if not present
+        if (!baseUrl.StartsWith("http://") && !baseUrl.StartsWith("https://"))
+        {
+            var protocol = integration.UseHttps ? "https" : "http";
+            baseUrl = $"{protocol}://{baseUrl}".TrimEnd('/');
+        }
         
         // Construct the login URL with SAS API path (same as SasSyncService)
         var uri = new Uri(baseUrl);

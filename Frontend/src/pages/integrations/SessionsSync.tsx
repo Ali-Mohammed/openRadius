@@ -33,6 +33,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
 import { sessionSyncApi, type SessionSyncLog } from '@/api/sessionSyncApi';
@@ -81,6 +91,7 @@ export default function SessionsSync() {
   const [activeSyncId, setActiveSyncId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [recordsPerPage, setRecordsPerPage] = useState<number>(500);
 
   // Column widths
@@ -227,16 +238,16 @@ export default function SessionsSync() {
 
     connection.on('SessionSyncProgress', (message: any) => {
       if (message.IntegrationId === Number(integrationId)) {
+        // Refetch logs on every progress update for real-time table updates
+        queryClient.invalidateQueries({ 
+          queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
+        });
+
         // Update UI based on progress
         if (message.Status === 3 || message.Status === 4 || message.Status === 5) {
           // Completed, Failed, or Cancelled
           setIsSyncing(false);
           setActiveSyncId(null);
-          
-          // Refetch logs to show new entries
-          queryClient.invalidateQueries({ 
-            queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
-          });
 
           // Show completion toast
           if (message.Status === 3) {
@@ -384,7 +395,7 @@ export default function SessionsSync() {
             </SelectContent>
           </Select>
           <Button 
-            onClick={() => startSyncMutation.mutate()} 
+            onClick={() => setIsConfirmOpen(true)} 
             variant="outline" 
             size="icon"
             title="Start Sync"
@@ -649,6 +660,31 @@ export default function SessionsSync() {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start Session Sync?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will start synchronizing online users from RADIUS to SAS4. The sync process will fetch up to {recordsPerPage} users per page and update them in real-time.
+              <br /><br />
+              Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setIsConfirmOpen(false);
+                startSyncMutation.mutate();
+              }}
+            >
+              Start Sync
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Settings Dialog */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
