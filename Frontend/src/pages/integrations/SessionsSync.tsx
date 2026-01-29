@@ -184,7 +184,8 @@ export default function SessionsSync() {
     queryKey: ['session-sync-logs', currentWorkspaceId, integrationId],
     queryFn: () => sessionSyncApi.getLogs(Number(currentWorkspaceId), Number(integrationId)),
     enabled: !!currentWorkspaceId && !!integrationId,
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: isSyncing ? 2000 : 10000, // Refetch every 2 seconds during sync, 10 seconds otherwise
+    refetchOnWindowFocus: true,
   });
 
   const logs = useMemo(() => logsData || [], [logsData]);
@@ -217,6 +218,10 @@ export default function SessionsSync() {
       setActiveSyncId(data.syncId);
       setIsSyncing(true);
       toast.success('Session sync started');
+      // Refetch logs to show the new sync entry
+      queryClient.invalidateQueries({ 
+        queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
+      });
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to start sync');
@@ -258,7 +263,7 @@ export default function SessionsSync() {
     connection.on('SessionSyncProgress', (message: any) => {
       console.log('SessionSyncProgress received:', message);
       
-      if (message.IntegrationId === Number(integrationId)) {
+      if (message.integrationId === Number(integrationId)) {
         // Update progress state
         setSyncProgress(message);
         
@@ -269,21 +274,25 @@ export default function SessionsSync() {
 
         // Update UI based on status
         // Status: 0=Starting, 1=Authenticating, 2=FetchingOnlineUsers, 3=ProcessingUsers, 4=SyncingToSas, 5=Completed, 6=Failed, 7=Cancelled
-        if (message.Status === 5) { // Completed
+        if (message.status === 5) { // Completed
           setIsSyncing(false);
           setActiveSyncId(null);
           setSyncProgress(null);
-          toast.success(`Session sync completed - Synced ${message.SuccessCount || 0} users successfully`);
-        } else if (message.Status === 6) { // Failed
+          toast.success(`Session sync completed - Synced ${message.successCount || 0} users successfully`);
+        } else if (message.status === 6) { // Failed
           setIsSyncing(false);
           setActiveSyncId(null);
           setSyncProgress(null);
-          toast.error(message.CurrentMessage || 'Session sync failed');
-        } else if (message.Status === 7) { // Cancelled
+          toast.error(message.currentMessage || 'Session sync failed');
+        } else if (message.status === 7) { // Cancelled
           setIsSyncing(false);
           setActiveSyncId(null);
           setSyncProgress(null);
           toast.info('Session sync was cancelled');
+        } else {
+          // Sync is in progress (status 0-4)
+          setIsSyncing(true);
+          setActiveSyncId(message.syncId);
         }
       }
     });
@@ -417,11 +426,11 @@ export default function SessionsSync() {
                 <div>
                   <h3 className="text-lg font-semibold">Session Sync In Progress</h3>
                   <p className="text-sm text-muted-foreground">
-                    {syncProgress.CurrentMessage || 'Synchronizing online users...'}
+                    {syncProgress.currentMessage || 'Synchronizing online users...'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {getSyncStatusBadge(syncProgress.Status)}
+                  {getSyncStatusBadge(syncProgress.status)}
                   <Button
                     variant="outline"
                     size="sm"
@@ -438,12 +447,12 @@ export default function SessionsSync() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Progress</span>
-                  <span className="font-medium">{Math.round(syncProgress.ProgressPercentage || 0)}%</span>
+                  <span className="font-medium">{Math.round(syncProgress.progressPercentage || 0)}%</span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-2.5">
                   <div
                     className="bg-primary h-2.5 rounded-full transition-all duration-300"
-                    style={{ width: `${syncProgress.ProgressPercentage || 0}%` }}
+                    style={{ width: `${syncProgress.progressPercentage || 0}%` }}
                   />
                 </div>
               </div>
@@ -451,19 +460,19 @@ export default function SessionsSync() {
               {/* Statistics */}
               <div className="grid grid-cols-4 gap-4 pt-2">
                 <div className="text-center">
-                  <div className="text-2xl font-bold">{syncProgress.TotalUsers || 0}</div>
+                  <div className="text-2xl font-bold">{syncProgress.totalUsers || 0}</div>
                   <div className="text-xs text-muted-foreground">Total Sessions</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{syncProgress.ProcessedCount || 0}</div>
+                  <div className="text-2xl font-bold text-blue-600">{syncProgress.processedCount || 0}</div>
                   <div className="text-xs text-muted-foreground">Processed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{syncProgress.SuccessCount || 0}</div>
+                  <div className="text-2xl font-bold text-green-600">{syncProgress.successCount || 0}</div>
                   <div className="text-xs text-muted-foreground">Synced</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{syncProgress.FailureCount || 0}</div>
+                  <div className="text-2xl font-bold text-red-600">{syncProgress.failureCount || 0}</div>
                   <div className="text-xs text-muted-foreground">Failed</div>
                 </div>
               </div>
