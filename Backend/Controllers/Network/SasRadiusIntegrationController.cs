@@ -80,6 +80,7 @@ public class SasRadiusIntegrationController : ControllerBase
             integration.UseFreeCardsOnly,
             integration.SyncOnlineUsers,
             integration.SyncOnlineUsersIntervalMinutes,
+            integration.SessionSyncRecordsPerPage,
             integration.CreatedAt,
             integration.UpdatedAt,
             integration.IsDeleted,
@@ -202,6 +203,7 @@ public class SasRadiusIntegrationController : ControllerBase
         
         existingIntegration.SyncOnlineUsers = integration.SyncOnlineUsers;
         existingIntegration.SyncOnlineUsersIntervalMinutes = integration.SyncOnlineUsersIntervalMinutes;
+        existingIntegration.SessionSyncRecordsPerPage = integration.SessionSyncRecordsPerPage;
         
         existingIntegration.UpdatedAt = DateTime.UtcNow;
 

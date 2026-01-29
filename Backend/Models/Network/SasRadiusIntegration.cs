@@ -32,6 +32,7 @@ public class SasRadiusIntegration
     // Sync Online Users Settings
     public bool SyncOnlineUsers { get; set; } = false; // Enable/disable periodic sync of online users from RADIUS to SAS4
     public int SyncOnlineUsersIntervalMinutes { get; set; } = 5; // Interval in minutes for syncing online users
+    public int SessionSyncRecordsPerPage { get; set; } = 500; // Number of records to fetch per page when syncing online users
 
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }

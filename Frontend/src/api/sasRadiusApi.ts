@@ -23,6 +23,7 @@ export interface SasRadiusIntegration {
   useFreeCardsOnly?: boolean
   syncOnlineUsers?: boolean
   syncOnlineUsersIntervalMinutes?: number
+  sessionSyncRecordsPerPage?: number
   workspaceId?: number
   createdAt?: string
   updatedAt?: string

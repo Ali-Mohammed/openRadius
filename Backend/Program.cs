@@ -169,6 +169,9 @@ builder.Services.AddHttpClient();
 // Add SAS Sync Service
 builder.Services.AddScoped<ISasSyncService, SasSyncService>();
 
+// Add Session Sync Service
+builder.Services.AddScoped<ISessionSyncService, SessionSyncService>();
+
 // Add FreeRADIUS Log Service
 builder.Services.AddScoped<IFreeRadiusLogService, FreeRadiusLogService>();
 

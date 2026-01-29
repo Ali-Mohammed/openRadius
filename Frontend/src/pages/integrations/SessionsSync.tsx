@@ -1,8 +1,10 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import * as signalR from '@microsoft/signalr';
+import { appConfig } from '@/config/app.config';
 import { 
   Table,
   TableBody,
@@ -23,8 +25,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { sasRadiusApi } from '@/api/sasRadiusApi';
+import { sessionSyncApi, type SessionSyncLog } from '@/api/sessionSyncApi';
 import { tablePreferenceApi } from '@/api/tablePreferenceApi';
+import { toast } from 'sonner';
 import { 
   Search,
   RefreshCw,
@@ -36,31 +49,19 @@ import {
   ArrowUp,
   ArrowDown,
   Play,
-  Settings
+  Settings,
+  Activity
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-// Placeholder API - replace with actual implementation
-const sessionsSyncApi = {
-  getSessionLogs: async (_workspaceId: number, _integrationId: number) => {
-    // This should be replaced with actual API call
-    return {
-      logs: [],
-      total: 0
-    };
-  }
+type SessionSyncLogType = SessionSyncLog & {
+  status: 'success' | 'partial' | 'failed';
 };
 
-type SessionSyncLog = {
-  id: number;
-  integrationId: number;
-  timestamp: string;
-  status: 'success' | 'partial' | 'failed';
-  totalUsers: number;
-  syncedUsers: number;
-  failedUsers: number;
-  duration: number;
-  errorMessage?: string;
+const mapStatusToString = (status: number): 'success' | 'partial' | 'failed' => {
+  if (status === 5) return 'success'; // Completed
+  if (status === 6) return 'failed'; // Failed
+  return 'partial'; // Other statuses
 };
 
 export default function SessionsSync() {
@@ -69,6 +70,7 @@ export default function SessionsSync() {
   const { currentWorkspaceId } = useWorkspace();
   const queryClient = useQueryClient();
   const parentRef = useRef<HTMLDivElement>(null);
+  const hubConnectionRef = useRef<signalR.HubConnection | null>(null);
 
   // State
   const [sortField, setSortField] = useState<string>('timestamp');
@@ -76,6 +78,10 @@ export default function SessionsSync() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeSyncId, setActiveSyncId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [recordsPerPage, setRecordsPerPage] = useState<number>(500);
 
   // Column widths
   const DEFAULT_COLUMN_WIDTHS = {
@@ -151,16 +157,56 @@ export default function SessionsSync() {
 
   const integrationName = integration?.name || 'Unknown Integration';
 
+  // Load records per page from integration
+  useEffect(() => {
+    if (integration?.sessionSyncRecordsPerPage) {
+      setRecordsPerPage(integration.sessionSyncRecordsPerPage);
+    }
+  }, [integration]);
+
   // Fetch session sync logs
   const { data: logsData, isLoading, isFetching } = useQuery({
     queryKey: ['session-sync-logs', currentWorkspaceId, integrationId],
-    queryFn: () => sessionsSyncApi.getSessionLogs(Number(currentWorkspaceId), Number(integrationId)),
+    queryFn: () => sessionSyncApi.getLogs(Number(currentWorkspaceId), Number(integrationId)),
     enabled: !!currentWorkspaceId && !!integrationId,
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
-  const logs = useMemo(() => logsData?.logs || [], [logsData]);
-  const totalLogs = logsData?.total || 0;
+  const logs = useMemo(() => logsData || [], [logsData]);
+  const totalLogs = logsData?.length || 0;
+
+  // Mutation to save settings
+  const saveSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentWorkspaceId || !integrationId) throw new Error('Missing workspace or integration ID');
+      const updated = {
+        ...integration!,
+        sessionSyncRecordsPerPage: recordsPerPage,
+      };
+      return sasRadiusApi.update(Number(currentWorkspaceId), Number(integrationId), updated);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sas-radius-integration', currentWorkspaceId, integrationId] });
+      toast.success('Settings saved successfully');
+      setIsSettingsOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to save settings');
+    },
+  });
+
+  // Mutation to start sync
+  const startSyncMutation = useMutation({
+    mutationFn: () => sessionSyncApi.startSync(Number(currentWorkspaceId), Number(integrationId)),
+    onSuccess: (data) => {
+      setActiveSyncId(data.syncId);
+      setIsSyncing(true);
+      toast.success('Session sync started - Synchronizing online users to SAS4...');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to start sync');
+    },
+  });
 
   // Apply search
   useEffect(() => {
@@ -169,6 +215,50 @@ export default function SessionsSync() {
     }, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchInput]);
+
+  // SignalR connection for real-time updates
+  useEffect(() => {
+    if (!currentWorkspaceId) return;
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${appConfig.api.baseUrl}/hubs/sassync`)
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('SessionSyncProgress', (message: any) => {
+      if (message.integrationId === Number(integrationId)) {
+        // Update UI based on progress
+        if (message.status === 3 || message.status === 4 || message.status === 5) {
+          // Completed, Failed, or Cancelled
+          setIsSyncing(false);
+          setActiveSyncId(null);
+          
+          // Refetch logs to show new entries
+          queryClient.invalidateQueries({ 
+            queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
+          });
+
+          // Show completion toast
+          if (message.status === 3) {
+            toast.success(`Session sync completed - Synced ${message.successfulSyncs} users successfully`);
+          } else if (message.status === 4) {
+            toast.error(message.errorMessage || 'Session sync failed');
+          }
+        }
+      }
+    });
+
+    connection.start()
+      .then(() => {
+        console.log('SignalR connected for session sync updates');
+        hubConnectionRef.current = connection;
+      })
+      .catch((err) => console.error('SignalR connection error:', err));
+
+    return () => {
+      connection.stop();
+    };
+  }, [currentWorkspaceId, integrationId, queryClient]);
 
   // Filter and sort logs
   const sortedLogs = useMemo(() => {
@@ -294,21 +384,20 @@ export default function SessionsSync() {
             </SelectContent>
           </Select>
           <Button 
-            onClick={() => {
-              // TODO: Implement start sync functionality
-              console.log('Start sync clicked');
-            }} 
+            onClick={() => startSyncMutation.mutate()} 
             variant="outline" 
             size="icon"
             title="Start Sync"
+            disabled={isSyncing || startSyncMutation.isPending}
           >
-            <Play className="h-4 w-4" />
+            {isSyncing || startSyncMutation.isPending ? (
+              <Activity className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
           </Button>
           <Button 
-            onClick={() => {
-              // TODO: Implement settings functionality
-              console.log('Settings clicked');
-            }} 
+            onClick={() => setIsSettingsOpen(true)} 
             variant="outline" 
             size="icon"
             title="Sync Settings"
@@ -560,6 +649,46 @@ export default function SessionsSync() {
           )}
         </CardContent>
       </Card>
+
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Session Sync Settings</DialogTitle>
+            <DialogDescription>
+              Configure how online users are synchronized from RADIUS to SAS4
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="recordsPerPage">Records Per Page</Label>
+              <Input
+                id="recordsPerPage"
+                type="number"
+                min="1"
+                max="10000"
+                value={recordsPerPage}
+                onChange={(e) => setRecordsPerPage(Math.max(1, parseInt(e.target.value) || 1))}
+                placeholder="500"
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum number of online users to fetch per sync operation (default: 500)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => saveSettingsMutation.mutate()}
+              disabled={saveSettingsMutation.isPending}
+            >
+              {saveSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

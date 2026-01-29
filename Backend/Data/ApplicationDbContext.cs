@@ -36,6 +36,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusCustomAttribute> RadiusCustomAttributes { get; set; }
     public DbSet<SasRadiusIntegration> SasRadiusIntegrations { get; set; }
     public DbSet<SyncProgress> SyncProgresses { get; set; }
+    public DbSet<SessionSyncProgress> SessionSyncProgresses { get; set; }
+    public DbSet<SessionSyncLog> SessionSyncLogs { get; set; }
     public DbSet<DebeziumSettings> DebeziumSettings { get; set; }
     public DbSet<DebeziumConnector> DebeziumConnectors { get; set; }
     public DbSet<CustomWallet> CustomWallets { get; set; }
