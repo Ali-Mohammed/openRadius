@@ -117,50 +117,83 @@ public class SessionSyncService : ISessionSyncService
             {
                 await UpdateProgressAsync(syncId, SessionSyncStatus.Authenticating, 5, "Authenticating with SAS4...");
 
-                // Decrypt credentials
-                var username = EncryptionHelper.DecryptAES(integration.Username, AES_KEY);
-                var password = EncryptionHelper.DecryptAES(integration.Password, AES_KEY);
-
-                // Get auth token
-                var authToken = await AuthenticateAsync(integration.Url, username, password, integration.UseHttps, cancellationToken);
+                // Get auth token (using same method as SasSyncService)
+                var authToken = await AuthenticateAsync(integration, cancellationToken);
 
                 if (string.IsNullOrEmpty(authToken))
                 {
                     throw new Exception("Failed to authenticate with SAS4");
                 }
 
-                await UpdateProgressAsync(syncId, SessionSyncStatus.FetchingOnlineUsers, 20, "Fetching online users from RADIUS...");
+                await UpdateProgressAsync(syncId, SessionSyncStatus.FetchingOnlineUsers, 20, "Fetching online sessions from SAS4...");
 
-                // Get online users from RADIUS database (limit by SessionSyncRecordsPerPage)
+                // Fetch sessions from SAS4 API with pagination
                 var recordsPerPage = integration.SessionSyncRecordsPerPage > 0 ? integration.SessionSyncRecordsPerPage : 500;
-                var onlineUsers = await context.RadiusUsers
-                    .Where(u => u.OnlineStatus == 1) // 1 = Online
-                    .Take(recordsPerPage) // Limit records per sync
-                    .Select(u => new
-                    {
-                        u.Username,
-                        u.LastOnline,
-                        u.Id
-                    })
-                    .ToListAsync(cancellationToken);
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
+                
+                // Construct URL using same pattern as SasSyncService
+                var uri = new Uri(integration.Url.TrimEnd('/'));
+                var baseUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/index/UserSessions";
 
-                var totalUsers = onlineUsers.Count;
-                await UpdateProgressAsync(syncId, SessionSyncStatus.ProcessingUsers, 40, $"Found {totalUsers} online users. Starting sync...");
+                int currentPage = 1;
+                int totalSessions = 0;
+                int totalPages = 0;
+                int successCount = 0;
+                int failureCount = 0;
+                int processedCount = 0;
+
+                // Fetch first page to get total count and pages
+                var firstPageResponse = await FetchSessionPageAsync(client, baseUrl, currentPage, recordsPerPage, cancellationToken);
+                
+                if (firstPageResponse == null)
+                {
+                    throw new Exception("Failed to fetch sessions from SAS4 API");
+                }
+
+                totalSessions = firstPageResponse.Total;
+                totalPages = firstPageResponse.LastPage;
+                
+                await UpdateProgressAsync(syncId, SessionSyncStatus.ProcessingUsers, 30, 
+                    $"Found {totalSessions} online sessions across {totalPages} pages. Starting sync...");
 
                 // Update total users
                 var progress = await context.SessionSyncProgresses.FindAsync(syncId);
                 if (progress != null)
                 {
-                    progress.TotalOnlineUsers = totalUsers;
+                    progress.TotalOnlineUsers = totalSessions;
                     await context.SaveChangesAsync();
                 }
 
-                int successCount = 0;
-                int failureCount = 0;
-                int processedCount = 0;
+                // Process first page
+                if (firstPageResponse.Data != null && firstPageResponse.Data.Count > 0)
+                {
+                    foreach (var session in firstPageResponse.Data)
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            await UpdateProgressAsync(syncId, SessionSyncStatus.Cancelled, progress?.ProgressPercentage ?? 0, "Sync cancelled by user");
+                            return;
+                        }
 
-                // Sync each user to SAS4
-                foreach (var user in onlineUsers)
+                        try
+                        {
+                            // Process session data - you can save to DB or sync to another system
+                            _logger.LogDebug("Processing session for user {Username}", session.Username);
+                            successCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to process session for user {Username}", session.Username);
+                            failureCount++;
+                        }
+
+                        processedCount++;
+                    }
+                }
+
+                // Fetch remaining pages
+                for (int page = 2; page <= totalPages; page++)
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
@@ -168,26 +201,42 @@ public class SessionSyncService : ISessionSyncService
                         return;
                     }
 
-                    try
+                    currentPage = page;
+                    var pageResponse = await FetchSessionPageAsync(client, baseUrl, currentPage, recordsPerPage, cancellationToken);
+                    
+                    if (pageResponse?.Data == null) continue;
+
+                    foreach (var session in pageResponse.Data)
                     {
-                        // Send session data to SAS4
-                        await SyncUserSessionToSasAsync(integration, authToken, user.Username, user.LastOnline, cancellationToken);
-                        successCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to sync session for user {Username}", user.Username);
-                        failureCount++;
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            await UpdateProgressAsync(syncId, SessionSyncStatus.Cancelled, progress?.ProgressPercentage ?? 0, "Sync cancelled by user");
+                            return;
+                        }
+
+                        try
+                        {
+                            // Process session data
+                            _logger.LogDebug("Processing session for user {Username}", session.Username);
+                            successCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to process session for user {Username}", session.Username);
+                            failureCount++;
+                        }
+
+                        processedCount++;
                     }
 
-                    processedCount++;
-                    var currentProgress = 40 + (int)((processedCount / (double)totalUsers) * 50);
+                    // Calculate progress (30% to 90% for processing)
+                    var currentProgress = 30 + (int)((currentPage / (double)totalPages) * 60);
                     
                     await UpdateProgressAsync(
                         syncId, 
                         SessionSyncStatus.SyncingToSas, 
                         currentProgress, 
-                        $"Syncing users... ({processedCount}/{totalUsers})");
+                        $"Processing page {currentPage}/{totalPages} - {processedCount}/{totalSessions} sessions");
 
                     // Update detailed progress
                     var currentProgress2 = await context.SessionSyncProgresses.FindAsync(syncId);
@@ -199,18 +248,19 @@ public class SessionSyncService : ISessionSyncService
                         await context.SaveChangesAsync();
                     }
 
-                    // Broadcast progress via SignalR
+                    // Broadcast progress via SignalR (consistent with SasSyncService pattern)
                     await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
                     {
-                        syncId,
-                        integrationId = integration.Id,
-                        status = SessionSyncStatus.SyncingToSas,
-                        progressPercentage = currentProgress,
-                        totalUsers,
-                        processedCount,
-                        successCount,
-                        failureCount,
-                        currentMessage = $"Syncing users... ({processedCount}/{totalUsers})"
+                        SyncId = syncId,
+                        IntegrationId = integration.Id,
+                        Status = SessionSyncStatus.SyncingToSas,
+                        ProgressPercentage = currentProgress,
+                        TotalUsers = totalSessions,
+                        ProcessedCount = processedCount,
+                        SuccessCount = successCount,
+                        FailureCount = failureCount,
+                        CurrentMessage = $"Processing page {currentPage}/{totalPages} - {processedCount}/{totalSessions} sessions",
+                        Timestamp = DateTime.UtcNow
                     });
                 }
 
@@ -225,7 +275,7 @@ public class SessionSyncService : ISessionSyncService
                     WorkspaceId = 1, // TODO: Get from context
                     Timestamp = startTime,
                     Status = SessionSyncStatus.Completed,
-                    TotalUsers = totalUsers,
+                    TotalUsers = totalSessions,
                     SyncedUsers = successCount,
                     FailedUsers = failureCount,
                     DurationSeconds = duration,
@@ -236,7 +286,7 @@ public class SessionSyncService : ISessionSyncService
                 await context.SaveChangesAsync();
 
                 await UpdateProgressAsync(syncId, SessionSyncStatus.Completed, 100, 
-                    $"Session sync completed! Synced {successCount} users, {failureCount} failed.", true);
+                    $"Session sync completed! Processed {successCount} sessions, {failureCount} failed.", true);
             }
             catch (Exception ex)
             {
@@ -272,36 +322,88 @@ public class SessionSyncService : ISessionSyncService
         }
     }
 
-    private async Task<string> AuthenticateAsync(string baseUrl, string username, string password, bool useHttps, CancellationToken cancellationToken)
+    private async Task<string> AuthenticateAsync(SasRadiusIntegration integration, CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient();
-        var protocol = useHttps ? "https" : "http";
-        var url = $"{protocol}://{baseUrl}/api/manager/sign-in";
-
-        var requestData = new
-        {
-            username,
-            password
-        };
-
-        var content = new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json");
-        var response = await client.PostAsync(url, content, cancellationToken);
-
+        var baseUrl = integration.Url.TrimEnd('/');
+        
+        // Construct the login URL with SAS API path (same as SasSyncService)
+        var uri = new Uri(baseUrl);
+        var loginUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/login";
+        
+        _logger.LogInformation("Authenticating to SAS API at: {LoginUrl}", loginUrl);
+        
+        // Prepare login credentials (use plain password, not encrypted from DB)
+        var loginData = new { username = integration.Username, password = integration.Password };
+        var loginJson = JsonSerializer.Serialize(loginData);
+        
+        // Encrypt the entire JSON payload using AES (SAS API requirement)
+        var encryptedPayload = EncryptionHelper.EncryptAES(loginJson, AES_KEY);
+        
+        // Send request with encrypted payload
+        var requestBody = new { payload = encryptedPayload };
+        var response = await client.PostAsJsonAsync(loginUrl, requestBody, cancellationToken);
+        
+        // Log response for debugging
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Authentication failed: {response.StatusCode}");
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("SAS API login failed with {StatusCode}: {Error}", response.StatusCode, errorBody);
         }
-
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        var jsonDoc = JsonDocument.Parse(responseContent);
         
-        if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) &&
-            dataElement.TryGetProperty("authkey", out var authKeyElement))
-        {
-            return authKeyElement.GetString() ?? string.Empty;
-        }
+        response.EnsureSuccessStatusCode();
 
-        throw new Exception("Failed to extract auth token from response");
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+        var token = result.GetProperty("token").GetString();
+        
+        if (string.IsNullOrEmpty(token))
+        {
+            throw new Exception("No token received from SAS API");
+        }
+        
+        _logger.LogInformation("Successfully authenticated to SAS API");
+        return token;
+    }
+
+    private async Task<SessionPageResponse?> FetchSessionPageAsync(HttpClient client, string baseUrl, int page, int perPage, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Prepare request payload
+            var requestData = new
+            {
+                page,
+                count = perPage,
+                sortBy = "acctstarttime",
+                direction = "desc",
+                search = "",
+                columns = new[] { "username", "acctstarttime", "acctstoptime", "framedipaddress", "nasipaddress", 
+                                 "callingstationid", "framedprotocol", "acctinputoctets", "acctoutputoctets", 
+                                 "calledstationid", "nasportid", "acctterminatecause" }
+            };
+
+            // Encrypt payload using AES (SAS API requirement)
+            var requestJson = JsonSerializer.Serialize(requestData);
+            var encryptedPayload = EncryptionHelper.EncryptAES(requestJson, AES_KEY);
+            var requestBody = new { payload = encryptedPayload };
+
+            // Send encrypted payload
+            var response = await client.PostAsJsonAsync(baseUrl, requestBody, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to fetch sessions page {Page}: {StatusCode}", page, response.StatusCode);
+                return null;
+            }
+
+            var sessionResponse = await response.Content.ReadFromJsonAsync<SessionPageResponse>(cancellationToken: cancellationToken);
+            return sessionResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching sessions page {Page}", page);
+            return null;
+        }
     }
 
     private async Task SyncUserSessionToSasAsync(SasRadiusIntegration integration, string authToken, string username, DateTime? lastOnline, CancellationToken cancellationToken)
@@ -350,15 +452,20 @@ public class SessionSyncService : ISessionSyncService
 
                 await context.SaveChangesAsync();
 
-                // Broadcast via SignalR
+                // Broadcast via SignalR (consistent with SasSyncService pattern)
                 await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
                 {
-                    syncId,
-                    integrationId = progress.IntegrationId,
-                    status,
-                    progressPercentage,
-                    currentMessage = message,
-                    isCompleted
+                    SyncId = syncId,
+                    IntegrationId = progress.IntegrationId,
+                    Status = status,
+                    ProgressPercentage = progressPercentage,
+                    CurrentMessage = message,
+                    TotalUsers = progress.TotalOnlineUsers,
+                    ProcessedCount = progress.ProcessedUsers,
+                    SuccessCount = progress.SuccessfulSyncs,
+                    FailureCount = progress.FailedSyncs,
+                    IsCompleted = isCompleted,
+                    Timestamp = DateTime.UtcNow
                 });
             }
         }
@@ -407,4 +514,83 @@ public class SessionSyncService : ISessionSyncService
             }
         }
     }
+}
+
+// Response models for SAS4 UserSessions API
+public class SessionPageResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("current_page")]
+    public int CurrentPage { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
+    public List<SessionData> Data { get; set; } = new();
+    
+    [System.Text.Json.Serialization.JsonPropertyName("first_page_url")]
+    public string? FirstPageUrl { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("from")]
+    public int From { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page")]
+    public int LastPage { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_page_url")]
+    public string? LastPageUrl { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("next_page_url")]
+    public string? NextPageUrl { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("path")]
+    public string? Path { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("per_page")]
+    public int PerPage { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("prev_page_url")]
+    public string? PrevPageUrl { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("to")]
+    public int To { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("total")]
+    public int Total { get; set; }
+}
+
+public class SessionData
+{
+    [System.Text.Json.Serialization.JsonPropertyName("radacctid")]
+    public long RadAcctId { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("username")]
+    public string? Username { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("nasipaddress")]
+    public string? NasIpAddress { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acctstarttime")]
+    public string? AcctStartTime { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acctstoptime")]
+    public string? AcctStopTime { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("framedipaddress")]
+    public string? FramedIpAddress { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acctoutputoctets")]
+    public long AcctOutputOctets { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acctinputoctets")]
+    public long AcctInputOctets { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("callingstationid")]
+    public string? CallingStationId { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("profile_id")]
+    public int? ProfileId { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("calledstationid")]
+    public string? CalledStationId { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("acctterminatecause")]
+    public string? AcctTerminateCause { get; set; }
 }

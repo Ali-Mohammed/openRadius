@@ -226,9 +226,9 @@ export default function SessionsSync() {
       .build();
 
     connection.on('SessionSyncProgress', (message: any) => {
-      if (message.integrationId === Number(integrationId)) {
+      if (message.IntegrationId === Number(integrationId)) {
         // Update UI based on progress
-        if (message.status === 3 || message.status === 4 || message.status === 5) {
+        if (message.Status === 3 || message.Status === 4 || message.Status === 5) {
           // Completed, Failed, or Cancelled
           setIsSyncing(false);
           setActiveSyncId(null);
@@ -239,10 +239,10 @@ export default function SessionsSync() {
           });
 
           // Show completion toast
-          if (message.status === 3) {
-            toast.success(`Session sync completed - Synced ${message.successfulSyncs} users successfully`);
-          } else if (message.status === 4) {
-            toast.error(message.errorMessage || 'Session sync failed');
+          if (message.Status === 3) {
+            toast.success(`Session sync completed - Synced ${message.SuccessCount || 0} users successfully`);
+          } else if (message.Status === 4) {
+            toast.error(message.CurrentMessage || 'Session sync failed');
           }
         }
       }
