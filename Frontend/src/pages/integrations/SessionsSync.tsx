@@ -265,7 +265,7 @@ export default function SessionsSync() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Online Users Sync Logs</h1>
+          <h1 className="text-2xl font-bold">SAS Integration Sessions Sync</h1>
           <p className="text-sm text-muted-foreground">
             View synchronization history for online users from RADIUS to SAS4 for {integrationName}
           </p>

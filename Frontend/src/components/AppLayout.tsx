@@ -186,6 +186,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         icon: Activity
       }
     }
+    if (location.pathname.match(/\/integrations\/sessions-sync\/\d+$/)) {
+      return {
+        parent: { title: 'Integrations', href: '/integrations', icon: Radio },
+        parentSecondary: { title: 'SAS Radius', href: '/integrations/sas-radius', icon: Radio },
+        current: 'SAS Integration Sessions Sync',
+        icon: Activity
+      }
+    }
     if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
     if (location.pathname.includes('/radius/groups')) return { parent: null, current: 'RADIUS Groups', icon: Users }

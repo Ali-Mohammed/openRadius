@@ -802,7 +802,7 @@ export default function WorkspaceSettings() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => navigate(`/integrations/sessions-sync/${integration.id}`)}
-                                  title="View Online Users Sync Logs"
+                                  title="SAS Integration Sessions Sync"
                                 >
                                   <Monitor className="h-4 w-4 text-cyan-600" />
                                 </Button>
