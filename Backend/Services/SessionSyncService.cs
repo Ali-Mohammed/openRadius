@@ -32,7 +32,7 @@ public class SessionSyncService : ISessionSyncService
         _logger = logger;
     }
 
-    public async Task<Guid> StartSessionSyncAsync(int integrationId)
+    public async Task<Guid> StartSessionSyncAsync(int integrationId, int workspaceId)
     {
         using (var scope = _scopeFactory.CreateScope())
         {
@@ -40,14 +40,14 @@ public class SessionSyncService : ISessionSyncService
             
             // Check for active syncs (status < 5 means not completed/failed/cancelled)
             var activeSync = await context.SessionSyncProgresses
-                .Where(s => s.IntegrationId == integrationId && s.Status < SessionSyncStatus.Completed)
+                .Where(s => s.Status < SessionSyncStatus.Completed)
                 .OrderByDescending(s => s.StartedAt)
                 .FirstOrDefaultAsync();
 
             if (activeSync != null)
             {
                 throw new InvalidOperationException(
-                    $"Cannot start session sync: Another session sync is already in progress " +
+                    $"Cannot start session sync: Another session sync is already in progress for '{activeSync.IntegrationName}' " +
                     $"(Status: {activeSync.Status}, Progress: {activeSync.ProgressPercentage:F0}%). " +
                     $"Please wait for it to complete or cancel it first.");
             }
@@ -74,7 +74,7 @@ public class SessionSyncService : ISessionSyncService
                 SyncId = syncId,
                 IntegrationId = integrationId,
                 IntegrationName = integration.Name,
-                WorkspaceId = 1, // TODO: Get from context
+                WorkspaceId = workspaceId,
                 Status = SessionSyncStatus.Starting,
                 ProgressPercentage = 0,
                 StartedAt = DateTime.UtcNow,
@@ -93,7 +93,7 @@ public class SessionSyncService : ISessionSyncService
             {
                 try
                 {
-                    await ExecuteSessionSyncAsync(syncId, integration, cts.Token);
+                    await ExecuteSessionSyncAsync(syncId, integration, workspaceId, cts.Token);
                 }
                 finally
                 {
@@ -106,11 +106,27 @@ public class SessionSyncService : ISessionSyncService
         }
     }
 
-    private async Task ExecuteSessionSyncAsync(Guid syncId, SasRadiusIntegration integration, CancellationToken cancellationToken)
+    private async Task ExecuteSessionSyncAsync(Guid syncId, SasRadiusIntegration integration, int workspaceId, CancellationToken cancellationToken)
     {
         using (var scope = _scopeFactory.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Get configuration to build workspace-specific connection string
+            var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            
+            // Create ApplicationDbContext with the correct workspace connection string
+            // (the scoped context won't have tenant info since we're in a background task)
+            var baseConnectionString = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+            var workspaceConnectionString = baseConnectionString.Replace(
+                GetDatabaseNameFromConnectionString(baseConnectionString), 
+                $"openradius_workspace_{workspaceId}"
+            );
+            
+            _logger.LogInformation($"ExecuteSessionSyncAsync: Creating ApplicationDbContext for workspace {workspaceId} with connection: {workspaceConnectionString}");
+            
+            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+            optionsBuilder.UseNpgsql(workspaceConnectionString);
+            using var context = new ApplicationDbContext(optionsBuilder.Options);
+            
             var startTime = DateTime.UtcNow;
 
             try
@@ -133,7 +149,7 @@ public class SessionSyncService : ISessionSyncService
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
                 
                 // Construct URL using same pattern as SasSyncService
-                var baseUrlRaw = integration.Url.TrimEnd('/');
+                var baseUrlRaw = integration.Url?.Trim().TrimEnd('/') ?? string.Empty;
                 
                 // Add protocol if not present
                 if (!baseUrlRaw.StartsWith("http://") && !baseUrlRaw.StartsWith("https://"))
@@ -187,13 +203,14 @@ public class SessionSyncService : ISessionSyncService
 
                         try
                         {
-                            // Process session data - you can save to DB or sync to another system
-                            _logger.LogDebug("Processing session for user {Username}", session.Username);
+                            // Save or update session in radacct table
+                            await UpsertRadiusAccountingAsync(context, session);
                             successCount++;
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Failed to process session for user {Username}", session.Username);
+                            _logger.LogError(ex, "Failed to process session for user {Username}, RadAcctId {RadAcctId}", 
+                                session.Username, session.RadAcctId);
                             failureCount++;
                         }
 
@@ -225,13 +242,14 @@ public class SessionSyncService : ISessionSyncService
 
                         try
                         {
-                            // Process session data
-                            _logger.LogDebug("Processing session for user {Username}", session.Username);
+                            // Save or update session in radacct table
+                            await UpsertRadiusAccountingAsync(context, session);
                             successCount++;
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Failed to process session for user {Username}", session.Username);
+                            _logger.LogError(ex, "Failed to process session for user {Username}, RadAcctId {RadAcctId}", 
+                                session.Username, session.RadAcctId);
                             failureCount++;
                         }
 
@@ -242,7 +260,7 @@ public class SessionSyncService : ISessionSyncService
                     var currentProgress = 30 + (int)((currentPage / (double)totalPages) * 60);
                     
                     await UpdateProgressAsync(
-                        syncId, 
+                        syncId,
                         SessionSyncStatus.SyncingToSas, 
                         currentProgress, 
                         $"Processing page {currentPage}/{totalPages} - {processedCount}/{totalSessions} sessions");
@@ -281,7 +299,7 @@ public class SessionSyncService : ISessionSyncService
                 {
                     SyncId = syncId,
                     IntegrationId = integration.Id,
-                    WorkspaceId = 1, // TODO: Get from context
+                    WorkspaceId = workspaceId,
                     Timestamp = startTime,
                     Status = SessionSyncStatus.Completed,
                     TotalUsers = totalSessions,
@@ -293,6 +311,9 @@ public class SessionSyncService : ISessionSyncService
 
                 await context.SessionSyncLogs.AddAsync(log);
                 await context.SaveChangesAsync();
+                
+                _logger.LogInformation("Created session sync log: SyncId={SyncId}, IntegrationId={IntegrationId}, WorkspaceId={WorkspaceId}, Status={Status}, TotalUsers={TotalUsers}", 
+                    syncId, integration.Id, workspaceId, SessionSyncStatus.Completed, totalSessions);
 
                 await UpdateProgressAsync(syncId, SessionSyncStatus.Completed, 100, 
                     $"Session sync completed! Processed {successCount} sessions, {failureCount} failed.", true);
@@ -312,7 +333,7 @@ public class SessionSyncService : ISessionSyncService
                 {
                     SyncId = syncId,
                     IntegrationId = integration.Id,
-                    WorkspaceId = 1,
+                    WorkspaceId = workspaceId,
                     Timestamp = startTime,
                     Status = SessionSyncStatus.Failed,
                     TotalUsers = currentStats?.TotalOnlineUsers ?? 0,
@@ -334,14 +355,24 @@ public class SessionSyncService : ISessionSyncService
     private async Task<string> AuthenticateAsync(SasRadiusIntegration integration, CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient();
-        var baseUrl = integration.Url.TrimEnd('/');
+        var baseUrl = integration.Url?.Trim().TrimEnd('/') ?? string.Empty;
+        
+        _logger.LogInformation("Original URL from integration: '{Url}', UseHttps: {UseHttps}", integration.Url, integration.UseHttps);
+        
+        // Validate URL
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            throw new Exception("Integration URL is empty or null. Please configure the SAS integration URL.");
+        }
         
         // Add protocol if not present
         if (!baseUrl.StartsWith("http://") && !baseUrl.StartsWith("https://"))
         {
             var protocol = integration.UseHttps ? "https" : "http";
-            baseUrl = $"{protocol}://{baseUrl}".TrimEnd('/');
+            baseUrl = $"{protocol}://{baseUrl}";
         }
+        
+        _logger.LogInformation("Final URL after protocol check: '{BaseUrl}'", baseUrl);
         
         // Construct the login URL with SAS API path (same as SasSyncService)
         var uri = new Uri(baseUrl);
@@ -449,41 +480,39 @@ public class SessionSyncService : ISessionSyncService
 
     private async Task UpdateProgressAsync(Guid syncId, SessionSyncStatus status, double progressPercentage, string message, bool isCompleted = false)
     {
-        using (var scope = _scopeFactory.CreateScope())
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        var progress = await context.SessionSyncProgresses.FindAsync(syncId);
+        if (progress != null)
         {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var progress = await context.SessionSyncProgresses.FindAsync(syncId);
-
-            if (progress != null)
+            progress.Status = status;
+            progress.ProgressPercentage = progressPercentage;
+            progress.CurrentMessage = message;
+            progress.LastUpdatedAt = DateTime.UtcNow;
+            
+            if (isCompleted)
             {
-                progress.Status = status;
-                progress.ProgressPercentage = progressPercentage;
-                progress.CurrentMessage = message;
-                progress.LastUpdatedAt = DateTime.UtcNow;
-
-                if (isCompleted)
-                {
-                    progress.CompletedAt = DateTime.UtcNow;
-                }
-
-                await context.SaveChangesAsync();
-
-                // Broadcast via SignalR (consistent with SasSyncService pattern)
-                await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
-                {
-                    SyncId = syncId,
-                    IntegrationId = progress.IntegrationId,
-                    Status = status,
-                    ProgressPercentage = progressPercentage,
-                    CurrentMessage = message,
-                    TotalUsers = progress.TotalOnlineUsers,
-                    ProcessedCount = progress.ProcessedUsers,
-                    SuccessCount = progress.SuccessfulSyncs,
-                    FailureCount = progress.FailedSyncs,
-                    IsCompleted = isCompleted,
-                    Timestamp = DateTime.UtcNow
-                });
+                progress.CompletedAt = DateTime.UtcNow;
             }
+            
+            await context.SaveChangesAsync();
+            
+            // Broadcast via SignalR
+            await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
+            {
+                SyncId = syncId,
+                IntegrationId = progress.IntegrationId,
+                Status = status,
+                ProgressPercentage = progressPercentage,
+                CurrentMessage = message,
+                TotalUsers = progress.TotalOnlineUsers,
+                ProcessedCount = progress.ProcessedUsers,
+                SuccessCount = progress.SuccessfulSyncs,
+                FailureCount = progress.FailedSyncs,
+                IsCompleted = isCompleted,
+                Timestamp = DateTime.UtcNow
+            });
         }
     }
 
@@ -498,37 +527,151 @@ public class SessionSyncService : ISessionSyncService
 
     public async Task<List<SessionSyncLog>> GetSyncLogsAsync(int integrationId, int workspaceId)
     {
-        using (var scope = _scopeFactory.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            return await context.SessionSyncLogs
-                .Where(l => l.IntegrationId == integrationId && l.WorkspaceId == workspaceId)
-                .OrderByDescending(l => l.Timestamp)
-                .Take(100)
-                .ToListAsync();
-        }
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        var logs = await context.SessionSyncLogs
+            .Where(l => l.IntegrationId == integrationId && l.WorkspaceId == workspaceId)
+            .OrderByDescending(l => l.Timestamp)
+            .Take(100)
+            .ToListAsync();
+        
+        return logs;
     }
 
-    public async Task CancelSyncAsync(Guid syncId)
+    public async Task<bool> CancelSyncAsync(Guid syncId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        var sync = await context.SessionSyncProgresses
+            .FirstOrDefaultAsync(s => s.SyncId == syncId);
+        
+        if (sync == null)
+        {
+            return false;
+        }
+        
+        // Check if sync is already completed, failed, or cancelled
+        if (sync.Status == SessionSyncStatus.Completed || sync.Status == SessionSyncStatus.Failed || sync.Status == SessionSyncStatus.Cancelled)
+        {
+            return false;
+        }
+        
+        // Try to cancel the background task if it's still running
         if (_activeSyncs.TryGetValue(syncId, out var cts))
         {
             cts.Cancel();
         }
-
-        using (var scope = _scopeFactory.CreateScope())
+        
+        // Update sync status regardless of whether task was in dictionary
+        sync.Status = SessionSyncStatus.Cancelled;
+        sync.CurrentMessage = "Sync cancelled by user";
+        sync.CompletedAt = DateTime.UtcNow;
+        sync.LastUpdatedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+        
+        // Broadcast cancellation via SignalR
+        await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
         {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var progress = await context.SessionSyncProgresses.FindAsync(syncId);
+            SyncId = syncId,
+            IntegrationId = sync.IntegrationId,
+            Status = SessionSyncStatus.Cancelled,
+            ProgressPercentage = sync.ProgressPercentage,
+            CurrentMessage = "Sync cancelled by user",
+            IsCompleted = true,
+            Timestamp = DateTime.UtcNow
+        });
+        
+        return true;
+    }
+    
+    private async Task UpsertRadiusAccountingAsync(ApplicationDbContext context, SessionData session)
+    {
+        // Check if session already exists
+        var existing = await context.RadiusAccounting
+            .FirstOrDefaultAsync(r => r.RadAcctId == session.RadAcctId);
 
-            if (progress != null)
+        if (existing != null)
+        {
+            // Update existing session
+            existing.AcctStopTime = ParseDateTime(session.AcctStopTime);
+            existing.AcctOutputOctets = session.AcctOutputOctets;
+            existing.AcctInputOctets = session.AcctInputOctets;
+            existing.AcctTerminateCause = session.AcctTerminateCause;
+            
+            // Calculate session time if stopped
+            if (existing.AcctStopTime.HasValue && existing.AcctStartTime.HasValue)
             {
-                progress.Status = SessionSyncStatus.Cancelled;
-                progress.CurrentMessage = "Cancelled by user";
-                progress.CompletedAt = DateTime.UtcNow;
-                await context.SaveChangesAsync();
+                existing.AcctSessionTime = (long)(existing.AcctStopTime.Value - existing.AcctStartTime.Value).TotalSeconds;
             }
         }
+        else
+        {
+            // Create new session
+            var newSession = new RadiusAccounting
+            {
+                RadAcctId = session.RadAcctId,
+                UserName = session.Username,
+                NasIpAddress = session.NasIpAddress,
+                AcctStartTime = ParseDateTime(session.AcctStartTime),
+                AcctStopTime = ParseDateTime(session.AcctStopTime),
+                FramedIpAddress = session.FramedIpAddress,
+                AcctOutputOctets = session.AcctOutputOctets,
+                AcctInputOctets = session.AcctInputOctets,
+                CallingStationId = session.CallingStationId,
+                CalledStationId = session.CalledStationId,
+                AcctTerminateCause = session.AcctTerminateCause
+            };
+            
+            // Calculate session time if stopped
+            if (newSession.AcctStopTime.HasValue && newSession.AcctStartTime.HasValue)
+            {
+                newSession.AcctSessionTime = (long)(newSession.AcctStopTime.Value - newSession.AcctStartTime.Value).TotalSeconds;
+            }
+            
+            await context.RadiusAccounting.AddAsync(newSession);
+        }
+        
+        await context.SaveChangesAsync();
+    }
+    
+    private DateTime? ParseDateTime(string? dateTimeString)
+    {
+        if (string.IsNullOrEmpty(dateTimeString))
+            return null;
+            
+        if (DateTime.TryParse(dateTimeString, out var result))
+        {
+            // PostgreSQL requires DateTime with Kind=UTC for timestamp with time zone
+            // If the parsed datetime is Unspecified, treat it as UTC
+            if (result.Kind == DateTimeKind.Unspecified)
+            {
+                return DateTime.SpecifyKind(result, DateTimeKind.Utc);
+            }
+            // If it's Local, convert to UTC
+            else if (result.Kind == DateTimeKind.Local)
+            {
+                return result.ToUniversalTime();
+            }
+            // Already UTC
+            return result;
+        }
+            
+        return null;
+    }
+    
+    private static string GetDatabaseNameFromConnectionString(string connectionString)
+    {
+        var parts = connectionString.Split(';');
+        foreach (var part in parts)
+        {
+            if (part.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
+            {
+                return part.Split('=')[1].Trim();
+            }
+        }
+        return "openradius";
     }
 }
 

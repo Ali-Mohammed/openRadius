@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Backend.Services;
 using Backend.Models;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers.Network;
 
@@ -11,13 +12,16 @@ namespace Backend.Controllers.Network;
 public class SessionSyncController : ControllerBase
 {
     private readonly ISessionSyncService _sessionSyncService;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
     private readonly ILogger<SessionSyncController> _logger;
 
     public SessionSyncController(
         ISessionSyncService sessionSyncService,
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor,
         ILogger<SessionSyncController> logger)
     {
         _sessionSyncService = sessionSyncService;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
@@ -26,7 +30,12 @@ public class SessionSyncController : ControllerBase
     {
         try
         {
-            var syncId = await _sessionSyncService.StartSessionSyncAsync(integrationId);
+            // Use the actual workspace from tenant context, not from URL
+            var actualWorkspaceId = _tenantAccessor.MultiTenantContext?.TenantInfo?.WorkspaceId ?? workspaceId;
+            _logger.LogInformation("StartSync: URL workspaceId={UrlWorkspaceId}, Actual workspaceId={ActualWorkspaceId}", 
+                workspaceId, actualWorkspaceId);
+            
+            var syncId = await _sessionSyncService.StartSessionSyncAsync(integrationId, actualWorkspaceId);
             return Ok(new { syncId, message = "Session sync started successfully" });
         }
         catch (InvalidOperationException ex)
@@ -66,7 +75,12 @@ public class SessionSyncController : ControllerBase
     {
         try
         {
-            var logs = await _sessionSyncService.GetSyncLogsAsync(integrationId, workspaceId);
+            // Use the actual workspace from tenant context, not from URL
+            var actualWorkspaceId = _tenantAccessor.MultiTenantContext?.TenantInfo?.WorkspaceId ?? workspaceId;
+            _logger.LogInformation("GetLogs: URL workspaceId={UrlWorkspaceId}, Actual workspaceId={ActualWorkspaceId}", 
+                workspaceId, actualWorkspaceId);
+            
+            var logs = await _sessionSyncService.GetSyncLogsAsync(integrationId, actualWorkspaceId);
             return Ok(logs);
         }
         catch (Exception ex)

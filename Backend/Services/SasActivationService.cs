@@ -380,7 +380,12 @@ public class SasActivationService : ISasActivationService
     /// </summary>
     private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log, ApplicationDbContext context)
     {
+
+        throw new InvalidOperationException("SAS4 integration URL is not configured");
+
+
         _logger.LogInformation($"[SAS_Activation_020] Sending activation to SAS4: {integration.Url} for user {log.Username}");
+        
         
         var httpClient = _httpClientFactory.CreateClient();
         httpClient.Timeout = TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds);
@@ -448,7 +453,7 @@ public class SasActivationService : ISasActivationService
             // Build SAS4 API URL
             var baseUrl = integration.Url.Trim().TrimEnd('/');
             var uri = new Uri(baseUrl);
-            var activateUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/user/activate";
+            var activateUrl = $"{uri.Scheme}://{uri.Authority}/admin/api/index.php/api/user/activate_xxx";
             
             _logger.LogInformation($"[SAS_Activation_022] Activating user {log.Username} (SAS4 ID: {sasUserId}) with PIN {pin} on {activateUrl}");
             

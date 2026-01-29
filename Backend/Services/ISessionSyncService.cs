@@ -4,8 +4,8 @@ namespace Backend.Services;
 
 public interface ISessionSyncService
 {
-    Task<Guid> StartSessionSyncAsync(int integrationId);
+    Task<Guid> StartSessionSyncAsync(int integrationId, int workspaceId);
     Task<SessionSyncProgress?> GetSyncProgressAsync(Guid syncId);
     Task<List<SessionSyncLog>> GetSyncLogsAsync(int integrationId, int workspaceId);
-    Task CancelSyncAsync(Guid syncId);
+    Task<bool> CancelSyncAsync(Guid syncId);
 }

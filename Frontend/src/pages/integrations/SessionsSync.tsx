@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -60,7 +60,10 @@ import {
   ArrowDown,
   Play,
   Settings,
-  Activity
+  Activity,
+  Loader2,
+  Ban,
+  ArrowLeft
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -93,6 +96,7 @@ export default function SessionsSync() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [recordsPerPage, setRecordsPerPage] = useState<number>(500);
+  const [syncProgress, setSyncProgress] = useState<any>(null);
 
   // Column widths
   const DEFAULT_COLUMN_WIDTHS = {
