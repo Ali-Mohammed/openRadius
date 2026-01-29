@@ -82,6 +82,23 @@ public class SessionSyncService : ISessionSyncService
             };
 
             await context.SessionSyncProgresses.AddAsync(syncProgress);
+            
+            // Create initial log entry
+            var initialLog = new SessionSyncLog
+            {
+                SyncId = syncId,
+                IntegrationId = integrationId,
+                WorkspaceId = workspaceId,
+                Timestamp = DateTime.UtcNow,
+                Status = SessionSyncStatus.Starting,
+                TotalUsers = 0,
+                SyncedUsers = 0,
+                FailedUsers = 0,
+                DurationSeconds = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            await context.SessionSyncLogs.AddAsync(initialLog);
             await context.SaveChangesAsync();
 
             // Create cancellation token for this sync
@@ -294,23 +311,19 @@ public class SessionSyncService : ISessionSyncService
                 var endTime = DateTime.UtcNow;
                 var duration = (int)(endTime - startTime).TotalSeconds;
 
-                // Create log entry
-                var log = new SessionSyncLog
+                // Update existing log entry
+                var log = await context.SessionSyncLogs
+                    .FirstOrDefaultAsync(l => l.SyncId == syncId);
+                
+                if (log != null)
                 {
-                    SyncId = syncId,
-                    IntegrationId = integration.Id,
-                    WorkspaceId = workspaceId,
-                    Timestamp = startTime,
-                    Status = SessionSyncStatus.Completed,
-                    TotalUsers = totalSessions,
-                    SyncedUsers = successCount,
-                    FailedUsers = failureCount,
-                    DurationSeconds = duration,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await context.SessionSyncLogs.AddAsync(log);
-                await context.SaveChangesAsync();
+                    log.Status = SessionSyncStatus.Completed;
+                    log.TotalUsers = totalSessions;
+                    log.SyncedUsers = successCount;
+                    log.FailedUsers = failureCount;
+                    log.DurationSeconds = duration;
+                    await context.SaveChangesAsync();
+                }
                 
                 _logger.LogInformation("Created session sync log: SyncId={SyncId}, IntegrationId={IntegrationId}, WorkspaceId={WorkspaceId}, Status={Status}, TotalUsers={TotalUsers}", 
                     syncId, integration.Id, workspaceId, SessionSyncStatus.Completed, totalSessions);
@@ -328,24 +341,20 @@ public class SessionSyncService : ISessionSyncService
                 // Get current progress for stats
                 var currentStats = await context.SessionSyncProgresses.FindAsync(syncId);
                 
-                // Create log entry for failed sync
-                var log = new SessionSyncLog
+                // Update existing log entry for failed sync
+                var log = await context.SessionSyncLogs
+                    .FirstOrDefaultAsync(l => l.SyncId == syncId);
+                
+                if (log != null)
                 {
-                    SyncId = syncId,
-                    IntegrationId = integration.Id,
-                    WorkspaceId = workspaceId,
-                    Timestamp = startTime,
-                    Status = SessionSyncStatus.Failed,
-                    TotalUsers = currentStats?.TotalOnlineUsers ?? 0,
-                    SyncedUsers = currentStats?.SuccessfulSyncs ?? 0,
-                    FailedUsers = currentStats?.FailedSyncs ?? 0,
-                    DurationSeconds = duration,
-                    ErrorMessage = ex.Message,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await context.SessionSyncLogs.AddAsync(log);
-                await context.SaveChangesAsync();
+                    log.Status = SessionSyncStatus.Failed;
+                    log.TotalUsers = currentStats?.TotalOnlineUsers ?? 0;
+                    log.SyncedUsers = currentStats?.SuccessfulSyncs ?? 0;
+                    log.FailedUsers = currentStats?.FailedSyncs ?? 0;
+                    log.DurationSeconds = duration;
+                    log.ErrorMessage = ex.Message;
+                    await context.SaveChangesAsync();
+                }
 
                 await UpdateProgressAsync(syncId, SessionSyncStatus.Failed, 0, $"Sync failed: {ex.Message}", true);
             }
@@ -570,6 +579,21 @@ public class SessionSyncService : ISessionSyncService
         sync.CompletedAt = DateTime.UtcNow;
         sync.LastUpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
+        
+        // Update log entry
+        var log = await context.SessionSyncLogs
+            .FirstOrDefaultAsync(l => l.SyncId == syncId);
+        
+        if (log != null)
+        {
+            log.Status = SessionSyncStatus.Cancelled;
+            log.TotalUsers = sync.TotalOnlineUsers;
+            log.SyncedUsers = sync.SuccessfulSyncs;
+            log.FailedUsers = sync.FailedSyncs;
+            log.DurationSeconds = (int)(DateTime.UtcNow - sync.StartedAt).TotalSeconds;
+            log.ErrorMessage = "Sync cancelled by user";
+            await context.SaveChangesAsync();
+        }
         
         // Broadcast cancellation via SignalR
         await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
