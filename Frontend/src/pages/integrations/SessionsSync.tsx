@@ -34,7 +34,9 @@ import {
   AlertCircle,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Play,
+  Settings
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -291,6 +293,28 @@ export default function SessionsSync() {
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
+          <Button 
+            onClick={() => {
+              // TODO: Implement start sync functionality
+              console.log('Start sync clicked');
+            }} 
+            variant="outline" 
+            size="icon"
+            title="Start Sync"
+          >
+            <Play className="h-4 w-4" />
+          </Button>
+          <Button 
+            onClick={() => {
+              // TODO: Implement settings functionality
+              console.log('Settings clicked');
+            }} 
+            variant="outline" 
+            size="icon"
+            title="Sync Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
           <Button 
             onClick={() => queryClient.invalidateQueries({ queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] })} 
             variant="outline" 
