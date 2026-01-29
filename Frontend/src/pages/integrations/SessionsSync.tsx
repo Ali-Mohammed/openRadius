@@ -216,10 +216,25 @@ export default function SessionsSync() {
     onSuccess: (data) => {
       setActiveSyncId(data.syncId);
       setIsSyncing(true);
-      toast.success('Session sync started - Synchronizing online users to SAS4...');
+      toast.success('Session sync started');
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to start sync');
+    },
+  });
+
+  // Mutation to cancel sync
+  const cancelSyncMutation = useMutation({
+    mutationFn: (syncId: string) => sessionSyncApi.cancelSync(Number(currentWorkspaceId), syncId),
+    onSuccess: () => {
+      toast.success('Session sync cancelled');
+      setIsSyncing(false);
+      setSyncProgress(null);
+      setActiveSyncId(null);
+      queryClient.invalidateQueries({ queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to cancel sync');
     },
   });
 
@@ -241,24 +256,34 @@ export default function SessionsSync() {
       .build();
 
     connection.on('SessionSyncProgress', (message: any) => {
+      console.log('SessionSyncProgress received:', message);
+      
       if (message.IntegrationId === Number(integrationId)) {
+        // Update progress state
+        setSyncProgress(message);
+        
         // Refetch logs on every progress update for real-time table updates
         queryClient.invalidateQueries({ 
           queryKey: ['session-sync-logs', currentWorkspaceId, integrationId] 
         });
 
-        // Update UI based on progress
-        if (message.Status === 3 || message.Status === 4 || message.Status === 5) {
-          // Completed, Failed, or Cancelled
+        // Update UI based on status
+        // Status: 0=Starting, 1=Authenticating, 2=FetchingOnlineUsers, 3=ProcessingUsers, 4=SyncingToSas, 5=Completed, 6=Failed, 7=Cancelled
+        if (message.Status === 5) { // Completed
           setIsSyncing(false);
           setActiveSyncId(null);
-
-          // Show completion toast
-          if (message.Status === 3) {
-            toast.success(`Session sync completed - Synced ${message.SuccessCount || 0} users successfully`);
-          } else if (message.Status === 4) {
-            toast.error(message.CurrentMessage || 'Session sync failed');
-          }
+          setSyncProgress(null);
+          toast.success(`Session sync completed - Synced ${message.SuccessCount || 0} users successfully`);
+        } else if (message.Status === 6) { // Failed
+          setIsSyncing(false);
+          setActiveSyncId(null);
+          setSyncProgress(null);
+          toast.error(message.CurrentMessage || 'Session sync failed');
+        } else if (message.Status === 7) { // Cancelled
+          setIsSyncing(false);
+          setActiveSyncId(null);
+          setSyncProgress(null);
+          toast.info('Session sync was cancelled');
         }
       }
     });
