@@ -499,17 +499,16 @@ public class SessionSyncService : ISessionSyncService
         }
     }
 
-    public async Task<List<SessionSyncLog>> GetSyncLogsAsync(int integrationId, int workspaceId)
+    public async Task<List<SessionSyncProgress>> GetSyncLogsAsync(int integrationId, int workspaceId)
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        var logs = await context.SessionSyncLogs
+        var logs = await context.SessionSyncProgresses
             .Where(l => l.IntegrationId == integrationId && l.WorkspaceId == workspaceId)
-            .OrderByDescending(l => l.Timestamp)
-            .Take(100)
+            .OrderByDescending(l => l.StartedAt)
             .ToListAsync();
-        
+
         return logs;
     }
 
@@ -544,22 +543,6 @@ public class SessionSyncService : ISessionSyncService
         sync.CompletedAt = DateTime.UtcNow;
         sync.LastUpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
-        
-        // Update log entry
-        var log = await context.SessionSyncLogs
-            .FirstOrDefaultAsync(l => l.SyncId == syncId);
-        
-        if (log != null)
-        {
-            log.Status = SessionSyncStatus.Cancelled;
-            log.TotalSessions = sync.TotalOnlineUsers;
-            log.NewSessions = sync.NewSessions;
-            log.UpdatedSessions = sync.UpdatedSessions;
-            log.FailedSessions = sync.FailedSyncs;
-            log.DurationSeconds = (int)(DateTime.UtcNow - sync.StartedAt).TotalSeconds;
-            log.ErrorMessage = "Sync cancelled by user";
-            await context.SaveChangesAsync();
-        }
         
         // Broadcast cancellation via SignalR
         await _hubContext.Clients.All.SendAsync("SessionSyncProgress", new
