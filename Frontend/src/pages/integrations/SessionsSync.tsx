@@ -366,6 +366,20 @@ export default function SessionsSync() {
     }
   };
 
+  const getSyncStatusBadge = (status: number) => {
+    switch (status) {
+      case 0: return <Badge className="bg-gray-100 text-gray-800"><Clock className="h-3 w-3 mr-1" />Starting</Badge>;
+      case 1: return <Badge className="bg-blue-100 text-blue-800"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Authenticating</Badge>;
+      case 2: return <Badge className="bg-blue-100 text-blue-800"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Fetching Users</Badge>;
+      case 3: return <Badge className="bg-blue-100 text-blue-800"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Processing</Badge>;
+      case 4: return <Badge className="bg-blue-100 text-blue-800"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Syncing</Badge>;
+      case 5: return <Badge className="bg-green-100 text-green-800"><CheckCircle2 className="h-3 w-3 mr-1" />Completed</Badge>;
+      case 6: return <Badge className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      case 7: return <Badge className="bg-gray-100 text-gray-800"><Ban className="h-3 w-3 mr-1" />Cancelled</Badge>;
+      default: return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
@@ -393,14 +407,88 @@ export default function SessionsSync() {
   };
 
   return (
-    <div className="space-y-2 overflow-x-hidden">
+    <div className="space-y-4">
+      {/* Sync Progress Panel */}
+      {syncProgress && isSyncing && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Session Sync In Progress</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {syncProgress.CurrentMessage || 'Synchronizing online users...'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getSyncStatusBadge(syncProgress.Status)}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => activeSyncId && cancelSyncMutation.mutate(activeSyncId)}
+                    disabled={cancelSyncMutation.isPending}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Progress</span>
+                  <span className="font-medium">{Math.round(syncProgress.ProgressPercentage || 0)}%</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-2.5">
+                  <div
+                    className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${syncProgress.ProgressPercentage || 0}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Statistics */}
+              <div className="grid grid-cols-4 gap-4 pt-2">
+                <div className="text-center">
+                  <div className="text-2xl font-bold">{syncProgress.TotalUsers || 0}</div>
+                  <div className="text-xs text-muted-foreground">Total Sessions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{syncProgress.ProcessedCount || 0}</div>
+                  <div className="text-xs text-muted-foreground">Processed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{syncProgress.SuccessCount || 0}</div>
+                  <div className="text-xs text-muted-foreground">Synced</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{syncProgress.FailureCount || 0}</div>
+                  <div className="text-xs text-muted-foreground">Failed</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">SAS Integration Sessions Sync</h1>
-          <p className="text-sm text-muted-foreground">
-            View synchronization history for online users from RADIUS to SAS4 for {integrationName}
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            title="Go back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Session Sync Logs</h1>
+            <p className="text-sm text-muted-foreground">
+              {integrationName}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative w-64">
