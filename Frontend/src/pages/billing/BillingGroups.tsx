@@ -595,7 +595,7 @@ export default function BillingGroups() {
 
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Users *</label>
-                <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
+                <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen} modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
@@ -608,7 +608,7 @@ export default function BillingGroups() {
                         : `${selectedUserIds.length} user${selectedUserIds.length > 1 ? 's' : ''} selected`}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="start">
+                  <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
                     <div className="flex flex-col gap-2 p-4">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -619,11 +619,12 @@ export default function BillingGroups() {
                           className="pl-9"
                         />
                       </div>
-                      <div className="max-h-60 overflow-y-auto">
+                      <div className="max-h-60 overflow-y-auto overscroll-contain">
                         {filteredUsers.map((user) => (
                           <div
                             key={user.id}
                             className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
+                            onMouseDown={(e) => e.preventDefault()}
                           >
                             <Checkbox
                               id={`user-${user.id}`}
