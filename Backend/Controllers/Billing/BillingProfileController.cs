@@ -120,6 +120,18 @@ public class BillingProfileController : ControllerBase
                     p.DeletedAt,
                     p.CreatedAt,
                     p.UpdatedAt,
+                    p.IsOffer,
+                    p.Platform,
+                    p.TotalQuantity,
+                    p.UsedQuantity,
+                    p.UserType,
+                    p.ExpirationDays,
+                    p.OfferStartDate,
+                    p.OfferEndDate,
+                    p.RequiresApproval,
+                    p.Priority,
+                    p.Color,
+                    p.Icon,
                     Wallets = p.ProfileWallets.Select(w => new
                     {
                         w.Id,
@@ -183,6 +195,18 @@ public class BillingProfileController : ControllerBase
                     p.DeletedAt,
                     p.CreatedAt,
                     p.UpdatedAt,
+                    p.IsOffer,
+                    p.Platform,
+                    p.TotalQuantity,
+                    p.UsedQuantity,
+                    p.UserType,
+                    p.ExpirationDays,
+                    p.OfferStartDate,
+                    p.OfferEndDate,
+                    p.RequiresApproval,
+                    p.Priority,
+                    p.Color,
+                    p.Icon,
                     Wallets = p.ProfileWallets.Select(w => new
                     {
                         w.Id,
@@ -329,6 +353,8 @@ public class BillingProfileController : ControllerBase
     {
         try
         {
+            _logger.LogInformation($"UpdateProfile - Received Color: {request.Color}, Icon: {request.Icon}");
+            
             var existingProfile = await _context.BillingProfiles
                 .Include(p => p.ProfileWallets)
                 .Include(p => p.ProfileAddons)

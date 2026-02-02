@@ -100,6 +100,7 @@ export default function BillingProfileForm() {
   // Load existing profile data
   useEffect(() => {
     if (existingProfile) {
+      console.log('Loading profile - Color:', existingProfile.color, 'Icon:', existingProfile.icon);
       setFormData({
         name: existingProfile.name,
         description: existingProfile.description || '',
@@ -121,6 +122,7 @@ export default function BillingProfileForm() {
         color: existingProfile.color || null,
         icon: existingProfile.icon || null,
       });
+      console.log('FormData after setting - Color:', existingProfile.color, 'Icon:', existingProfile.icon);
       setWallets(existingProfile.wallets || []);
       setSelectedRadiusProfiles([{profileId: existingProfile.radiusProfileId, number: 1}]);
       
@@ -229,6 +231,9 @@ export default function BillingProfileForm() {
         };
       }),
     };
+
+    console.log('Submit Data:', submitData);
+    console.log('Color:', submitData.color, 'Icon:', submitData.icon);
 
     if (profileId) {
       updateMutation.mutate({ id: parseInt(profileId), data: submitData });
