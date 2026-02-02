@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,10 +11,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 
 export default function RadiusUserDetail() {
-  const { id } = useParams<{ id: string }>()
+  const { id, tab } = useParams<{ id: string; tab?: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentWorkspaceId } = useWorkspace()
-  const [activeTab, setActiveTab] = useState('overview')
+  const activeTab = tab || 'overview'
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['radius-user', currentWorkspaceId, id],
@@ -24,6 +25,22 @@ export default function RadiusUserDetail() {
     },
     enabled: !!id,
   })
+
+  // Update breadcrumb when user data is loaded
+  useEffect(() => {
+    if (user) {
+      const username = user.firstname && user.lastname 
+        ? `${user.firstname} ${user.lastname}` 
+        : user.username || user.email || `User #${user.id}`
+      
+      const breadcrumbElement = document.getElementById('user-detail-breadcrumb')
+      if (breadcrumbElement) {
+        breadcrumbElement.textContent = username
+        // Trigger breadcrumb update in AppLayout
+        window.dispatchEvent(new Event('breadcrumb-update'))
+      }
+    }
+  }, [user])
 
   if (isLoading) {
     return (
@@ -48,6 +65,9 @@ export default function RadiusUserDetail() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Hidden element for breadcrumb */}
+      <span id="user-detail-breadcrumb" className="hidden"></span>
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -77,7 +97,7 @@ export default function RadiusUserDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => navigate(`/radius/users/${id}/${value}`)}>
         <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="edit">Edit</TabsTrigger>

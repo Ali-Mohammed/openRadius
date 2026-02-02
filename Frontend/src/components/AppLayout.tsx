@@ -53,6 +53,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [dashboardName, setDashboardName] = useState<string>('')
   const [impersonationData, setImpersonationData] = useState<any>(null)
   const [showExitDialog, setShowExitDialog] = useState(false)
+  const [breadcrumbTrigger, setBreadcrumbTrigger] = useState(0)
 
   // Check for impersonation
   useEffect(() => {
@@ -152,6 +153,16 @@ export function AppLayout({ children }: AppLayoutProps) {
     loadDashboardName()
   }, [location.pathname])
 
+  // Listen for breadcrumb updates from child pages
+  useEffect(() => {
+    const handleBreadcrumbUpdate = () => {
+      setBreadcrumbTrigger(prev => prev + 1)
+    }
+    
+    window.addEventListener('breadcrumb-update', handleBreadcrumbUpdate)
+    return () => window.removeEventListener('breadcrumb-update', handleBreadcrumbUpdate)
+  }, [])
+
   const getBreadcrumbs = () => {
     if (location.pathname === '/dashboard') return { parent: null, current: 'Dashboard', icon: Home }
     if (location.pathname === '/profile') return { parent: null, current: 'Profile Settings', icon: UserCog }
@@ -194,7 +205,42 @@ export function AppLayout({ children }: AppLayoutProps) {
         icon: Activity
       }
     }
-    if (location.pathname.includes('/radius/users')) return { parent: null, current: 'RADIUS Users', icon: Users }
+    if (location.pathname.includes('/radius/users')) {
+      // Check if it's a user detail page
+      const userIdMatch = location.pathname.match(/\/radius\/users\/(\d+)(\/([a-z]+))?$/)
+      if (userIdMatch) {
+        const username = document.getElementById('user-detail-breadcrumb')?.textContent || 'User Details'
+        const tab = userIdMatch[3]
+        const tabNames: Record<string, string> = {
+          overview: 'Overview',
+          edit: 'Edit',
+          traffic: 'Traffic',
+          sessions: 'Sessions',
+          invoices: 'Invoices',
+          payments: 'Payments',
+          history: 'History',
+          documents: 'Documents',
+          freezonetraffic: 'FreeZone Traffic',
+          quota: 'Quota'
+        }
+        
+        if (tab && tabNames[tab]) {
+          return {
+            parent: { title: 'RADIUS Users', href: '/radius/users', icon: Users },
+            parentSecondary: { title: username, href: `/radius/users/${userIdMatch[1]}`, icon: Users },
+            current: tabNames[tab],
+            icon: Users
+          }
+        }
+        
+        return {
+          parent: { title: 'RADIUS Users', href: '/radius/users', icon: Users },
+          current: username,
+          icon: Users
+        }
+      }
+      return { parent: null, current: 'RADIUS Users', icon: Users }
+    }
     if (location.pathname.includes('/radius/profiles')) return { parent: null, current: 'RADIUS Profiles', icon: CircleUser }
     if (location.pathname.includes('/radius/groups')) return { parent: null, current: 'RADIUS Groups', icon: Users }
     if (location.pathname.includes('/radius/tags')) return { parent: null, current: 'RADIUS Tags', icon: Tags }
