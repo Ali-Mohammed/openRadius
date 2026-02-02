@@ -5,8 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { RefreshCw } from 'lucide-react'
+import ReactECharts from 'echarts-for-react'
 import { sasRadiusApi } from '@/api/sasRadiusApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 
@@ -24,7 +26,7 @@ export function TrafficTab({ userId }: TrafficTabProps) {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear] = useState(currentYear)
 
-  const { data: trafficData, isLoading, error } = useQuery({
+  const { data: trafficData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['radius-user-traffic', userId, selectedMonth, selectedYear, reportType],
     queryFn: () => sasRadiusApi.getUserTraffic(currentWorkspaceId, userId, selectedMonth, selectedYear, reportType),
     enabled: !!userId && !!currentWorkspaceId,
@@ -54,8 +56,33 @@ export function TrafficTab({ userId }: TrafficTabProps) {
           <CardTitle>Traffic Usage</CardTitle>
           <CardDescription>Loading traffic data...</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-96 w-full" />
+        <CardContent className="space-y-6">
+          {/* Filters Skeleton */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-[350px] w-full" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-[350px] w-full" />
+            </div>
+          </div>
         </CardContent>
       </Card>
     )
@@ -78,35 +105,290 @@ export function TrafficTab({ userId }: TrafficTabProps) {
   const hasData = trafficData && trafficData.rx.length > 0
 
   // Prepare chart data
-  const chartData = hasData
+  const chartLabels = hasData
     ? trafficData.rx.map((_, index) => {
         const period = index + 1
+        return reportType === 'daily' ? `Day ${period}` : monthNames[period - 1]
+      }).filter((_, index) => {
         const rx = trafficData.rx[index] || 0
         const tx = trafficData.tx[index] || 0
-        
-        return {
-          name: reportType === 'daily' ? `Day ${period}` : monthNames[period - 1],
-          download: Number((rx / (1024 * 1024 * 1024)).toFixed(2)), // Convert to GB
-          upload: Number((tx / (1024 * 1024 * 1024)).toFixed(2)), // Convert to GB
-        }
-      }).filter(item => item.download > 0 || item.upload > 0)
+        return rx > 0 || tx > 0
+      })
     : []
+
+  const downloadData = hasData
+    ? trafficData.rx.map((rx, index) => {
+        const tx = trafficData.tx[index] || 0
+        return rx > 0 || tx > 0 ? Number((rx / (1024 * 1024 * 1024)).toFixed(2)) : null
+      }).filter(val => val !== null)
+    : []
+
+  const uploadData = hasData
+    ? trafficData.tx.map((tx, index) => {
+        const rx = trafficData.rx[index] || 0
+        return rx > 0 || tx > 0 ? Number((tx / (1024 * 1024 * 1024)).toFixed(2)) : null
+      }).filter(val => val !== null)
+    : []
+
+  // Bar Chart Options
+  const barChartOptions = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: (params: any) => {
+        let result = `<strong>${params[0].axisValue}</strong><br/>`
+        params.forEach((param: any) => {
+          result += `${param.marker} ${param.seriesName}: <strong>${param.value} GB</strong><br/>`
+        })
+        return result
+      }
+    },
+    legend: {
+      data: ['Download', 'Upload'],
+      top: 0,
+      textStyle: {
+        fontSize: 12
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '10%',
+      top: '15%',
+      containLabel: true
+    },
+    toolbox: {
+      feature: {
+        saveAsImage: { title: 'Save' },
+        dataZoom: { title: { zoom: 'Zoom', back: 'Reset' } },
+        restore: { title: 'Restore' }
+      },
+      right: 20
+    },
+    dataZoom: [
+      {
+        type: 'slider',
+        show: chartLabels.length > 10,
+        start: 0,
+        end: 100,
+        height: 20,
+        bottom: 5
+      }
+    ],
+    xAxis: {
+      type: 'category',
+      data: chartLabels,
+      axisLabel: {
+        rotate: chartLabels.length > 15 ? 45 : 0,
+        fontSize: 11
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Traffic (GB)',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: {
+        formatter: '{value} GB'
+      }
+    },
+    series: [
+      {
+        name: 'Download',
+        type: 'bar',
+        data: downloadData,
+        itemStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#60a5fa' },
+              { offset: 1, color: '#3b82f6' }
+            ]
+          },
+          borderRadius: [4, 4, 0, 0]
+        },
+        emphasis: {
+          itemStyle: {
+            color: '#2563eb'
+          }
+        }
+      },
+      {
+        name: 'Upload',
+        type: 'bar',
+        data: uploadData,
+        itemStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#34d399' },
+              { offset: 1, color: '#10b981' }
+            ]
+          },
+          borderRadius: [4, 4, 0, 0]
+        },
+        emphasis: {
+          itemStyle: {
+            color: '#059669'
+          }
+        }
+      }
+    ],
+    animationDuration: 1000,
+    animationEasing: 'cubicOut'
+  }
+
+  // Line Chart Options
+  const lineChartOptions = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        let result = `<strong>${params[0].axisValue}</strong><br/>`
+        params.forEach((param: any) => {
+          result += `${param.marker} ${param.seriesName}: <strong>${param.value} GB</strong><br/>`
+        })
+        return result
+      }
+    },
+    legend: {
+      data: ['Download', 'Upload'],
+      top: 0,
+      textStyle: {
+        fontSize: 12
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '10%',
+      top: '15%',
+      containLabel: true
+    },
+    toolbox: {
+      feature: {
+        saveAsImage: { title: 'Save' },
+        dataZoom: { title: { zoom: 'Zoom', back: 'Reset' } },
+        restore: { title: 'Restore' }
+      },
+      right: 20
+    },
+    dataZoom: [
+      {
+        type: 'slider',
+        show: chartLabels.length > 10,
+        start: 0,
+        end: 100,
+        height: 20,
+        bottom: 5
+      }
+    ],
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: chartLabels,
+      axisLabel: {
+        rotate: chartLabels.length > 15 ? 45 : 0,
+        fontSize: 11
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Traffic (GB)',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: {
+        formatter: '{value} GB'
+      }
+    },
+    series: [
+      {
+        name: 'Download',
+        type: 'line',
+        smooth: true,
+        data: downloadData,
+        lineStyle: {
+          color: '#3b82f6',
+          width: 3
+        },
+        itemStyle: {
+          color: '#3b82f6'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+              { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+            ]
+          }
+        },
+        emphasis: {
+          focus: 'series'
+        }
+      },
+      {
+        name: 'Upload',
+        type: 'line',
+        smooth: true,
+        data: uploadData,
+        lineStyle: {
+          color: '#10b981',
+          width: 3
+        },
+        itemStyle: {
+          color: '#10b981'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+              { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }
+            ]
+          }
+        },
+        emphasis: {
+          focus: 'series'
+        }
+      }
+    ],
+    animationDuration: 1000,
+    animationEasing: 'cubicOut'
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Traffic Usage</CardTitle>
-        <CardDescription>
-          View {reportType} traffic data for user
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Filters */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Report Type</Label>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>Traffic Usage</CardTitle>
+            <CardDescription>
+              View {reportType} traffic data for user
+            </CardDescription>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex items-center gap-2">
             <Select value={reportType} onValueChange={(value: 'daily' | 'monthly') => setReportType(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -114,12 +396,9 @@ export function TrafficTab({ userId }: TrafficTabProps) {
                 <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Month</Label>
             <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(Number(value))}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -130,12 +409,9 @@ export function TrafficTab({ userId }: TrafficTabProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Year</Label>
             <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -146,9 +422,19 @@ export function TrafficTab({ userId }: TrafficTabProps) {
                 ))}
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
-
+      </CardHeader>
+      <CardContent className="space-y-6">
         {/* Chart and Table Tabs */}
         {!hasData ? (
           <p className="text-muted-foreground">No traffic data available for this period.</p>
@@ -162,34 +448,22 @@ export function TrafficTab({ userId }: TrafficTabProps) {
             <TabsContent value="chart" className="space-y-4">
               {/* Bar Chart */}
               <div>
-                <h3 className="text-sm font-medium mb-2">Traffic Overview (GB)</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="download" fill="#3b82f6" name="Download (GB)" />
-                    <Bar dataKey="upload" fill="#10b981" name="Upload (GB)" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <h3 className="text-sm font-medium mb-2">Traffic Overview</h3>
+                <ReactECharts 
+                  option={barChartOptions} 
+                  style={{ height: '350px' }}
+                  opts={{ renderer: 'svg' }}
+                />
               </div>
 
               {/* Line Chart */}
               <div>
-                <h3 className="text-sm font-medium mb-2">Traffic Trend (GB)</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="download" stroke="#3b82f6" strokeWidth={2} name="Download (GB)" />
-                    <Line type="monotone" dataKey="upload" stroke="#10b981" strokeWidth={2} name="Upload (GB)" />
-                  </LineChart>
-                </ResponsiveContainer>
+                <h3 className="text-sm font-medium mb-2">Traffic Trend</h3>
+                <ReactECharts 
+                  option={lineChartOptions} 
+                  style={{ height: '350px' }}
+                  opts={{ renderer: 'svg' }}
+                />
               </div>
             </TabsContent>
 
