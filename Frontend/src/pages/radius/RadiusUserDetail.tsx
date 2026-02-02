@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
@@ -41,6 +41,13 @@ export default function RadiusUserDetail() {
       }
     }
   }, [user])
+
+  // Redirect to overview tab if no tab is specified
+  useEffect(() => {
+    if (id && !tab && location.pathname === `/radius/users/${id}`) {
+      navigate(`/radius/users/${id}/overview`, { replace: true })
+    }
+  }, [id, tab, location.pathname, navigate])
 
   if (isLoading) {
     return (
