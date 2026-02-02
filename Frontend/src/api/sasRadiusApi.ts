@@ -216,5 +216,20 @@ export const sasRadiusApi = {
     const response = await apiClient.post(`/api/workspaces/${workspaceId}/sas-radius/import`, integrations)
     return response.data
   },
+
+  getUserTraffic: async (workspaceId: number, userId: string, month: number, year: number, reportType: 'daily' | 'monthly' = 'daily'): Promise<{
+    rx: number[]
+    tx: number[]
+    total: number[]
+    total_real: number[]
+    free_traffic: number[]
+  }> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius-users/${userId}/traffic`, {
+      report_type: reportType,
+      month,
+      year
+    })
+    return response.data
+  },
 }
 
