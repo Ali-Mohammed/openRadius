@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package, Eye, MoreHorizontal } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
@@ -28,10 +28,10 @@ import { zoneApi, type Zone } from '@/services/zoneApi'
 import userWalletApi from '@/api/userWallets'
 import { userCashbackApi } from '@/api/userCashbackApi'
 import { formatApiError } from '@/utils/errorHandler'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -1579,40 +1579,48 @@ export default function RadiusUsers() {
         )
       case 'actions':
         return (
-          <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
-            <div className="flex justify-end gap-0">
-              {!showTrash ? (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => navigate(`/radius/users/${user.id}`)}
-                    title="View details"
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  >
-                    <Eye className="h-4 w-4" />
+          <TableCell key={columnKey} className={`h-12 px-4 text-center ${stickyClass}`} style={baseStyle}>
+            <div className="flex justify-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleOpenActivation(user)}
-                    title="Activate user"
-                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                  >
-                    <Zap className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)} title="Edit user">
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id!)} title="Delete user">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <Button variant="ghost" size="icon" onClick={() => handleRestore(user.id!)}>
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {!showTrash ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to={`/radius/users/${user.id}`} className="flex items-center">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenActivation(user)}>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Activate User
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenDialog(user)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(user.id!)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem onClick={() => handleRestore(user.id!)}>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Restore
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </TableCell>
         )
