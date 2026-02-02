@@ -19,6 +19,7 @@ import { getGroups } from '../../api/groups';
 import { addonApi, type Addon } from '../../api/addons';
 import { customWalletApi } from '../../api/customWallets';
 import userWalletApi from '../../api/userWallets';
+import { userManagementApi } from '../../api/userManagementApi';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import {
@@ -153,6 +154,11 @@ export default function BillingProfileForm() {
       const result = await getGroups({ includeDeleted: false });
       return result;
     },
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userManagementApi.getAll(),
   });
 
   const { data: addonsData, isLoading: isLoadingAddons } = useQuery({
@@ -406,14 +412,37 @@ export default function BillingProfileForm() {
               <>
                 {selectedBillingGroups.map((groupId) => {
                   const group = billingGroupsData?.data?.find((g: any) => g.id === groupId);
-                  return group ? (
+                  if (!group) return null;
+                  
+                  const groupUsers = usersData?.filter(user => 
+                    group.userIds?.includes(user.id)
+                  ) || [];
+                  
+                  return (
                     <Card key={groupId}>
                       <CardContent className="pt-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="font-medium">{group.name}</div>
                             {group.description && (
-                              <div className="text-sm text-muted-foreground">{group.description}</div>
+                              <div className="text-sm text-muted-foreground mb-2">{group.description}</div>
+                            )}
+                            {groupUsers.length > 0 && (
+                              <div className="text-xs text-muted-foreground mt-2">
+                                <span className="font-medium">Users ({groupUsers.length}):</span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {groupUsers.slice(0, 5).map((user: any) => (
+                                    <span key={user.id} className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs">
+                                      {user.firstName} {user.lastName}
+                                    </span>
+                                  ))}
+                                  {groupUsers.length > 5 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs">
+                                      +{groupUsers.length - 5} more
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             )}
                           </div>
                           <Button
@@ -427,7 +456,7 @@ export default function BillingProfileForm() {
                         </div>
                       </CardContent>
                     </Card>
-                  ) : null;
+                  );
                 })}
                 {selectedBillingGroups.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
