@@ -115,7 +115,7 @@ export default function RadiusUserDetail() {
 
         {/* Sessions Tab */}
         <TabsContent value="sessions">
-          <SessionsTab />
+          <SessionsTab userId={user.externalId} />
         </TabsContent>
 
         {/* Invoices Tab */}

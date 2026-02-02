@@ -231,5 +231,59 @@ export const sasRadiusApi = {
     })
     return response.data
   },
-}
 
+  getUserSessions: async (
+    workspaceId: number, 
+    userId: string, 
+    page: number = 1,
+    count: number = 10,
+    sortBy: string = 'acctstarttime',
+    direction: 'asc' | 'desc' = 'desc',
+    search: string = ''
+  ): Promise<{
+    current_page: number
+    data: Array<{
+      radacctid: number
+      username: string
+      nasipaddress: string
+      acctstarttime: string
+      acctstoptime: string | null
+      framedipaddress: string
+      acctoutputoctets: number
+      acctinputoctets: number
+      callingstationid: string
+      profile_id: number
+      calledstationid: string
+      acctterminatecause: string
+      profile_details?: {
+        id: number
+        name: string
+      }
+    }>
+    first_page_url: string
+    from: number
+    last_page: number
+    last_page_url: string
+    next_page_url: string | null
+    path: string
+    per_page: number
+    prev_page_url: string | null
+    to: number
+    total: number
+  }> => {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/radius-users/${userId}/sessions`, {
+      page,
+      count,
+      sortBy,
+      direction,
+      search,
+      columns: [
+        'acctstarttime', 'acctstoptime', 'framedipaddress',
+        'acctoutputoctets', 'acctinputoctets', 'callingstationid',
+        'calledstationid', 'nasipaddress', 'nasportid',
+        'name', 'acctterminatecause'
+      ]
+    })
+    return response.data
+  },
+}

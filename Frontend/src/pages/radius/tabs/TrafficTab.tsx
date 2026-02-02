@@ -106,28 +106,42 @@ export function TrafficTab({ userId }: TrafficTabProps) {
 
   // Prepare chart data
   const chartLabels = hasData
-    ? trafficData.rx.map((_, index) => {
-        const period = index + 1
-        return reportType === 'daily' ? `Day ${period}` : monthNames[period - 1]
-      }).filter((_, index) => {
-        const rx = trafficData.rx[index] || 0
-        const tx = trafficData.tx[index] || 0
-        return rx > 0 || tx > 0
-      })
+    ? trafficData.rx
+        .map((rx, index) => {
+          const rxNum = Number(rx) || 0
+          const txNum = Number(trafficData.tx[index]) || 0
+          const period = index + 1
+          const label = reportType === 'daily' ? `Day ${period}` : monthNames[period - 1]
+          
+          // For monthly, show all months. For daily, filter empty days
+          if (reportType === 'daily' && rxNum === 0 && txNum === 0) return null
+          return label
+        })
+        .filter(val => val !== null) as string[]
     : []
 
   const downloadData = hasData
-    ? trafficData.rx.map((rx, index) => {
-        const tx = trafficData.tx[index] || 0
-        return rx > 0 || tx > 0 ? Number((rx / (1024 * 1024 * 1024)).toFixed(2)) : null
-      }).filter(val => val !== null)
+    ? trafficData.rx
+        .map((rx, index) => {
+          const rxNum = Number(rx) || 0
+          const txNum = Number(trafficData.tx[index]) || 0
+          // For monthly, show all months. For daily, filter empty days
+          if (reportType === 'daily' && rxNum === 0 && txNum === 0) return null
+          return Number((rxNum / (1024 * 1024 * 1024)).toFixed(2))
+        })
+        .filter(val => val !== null) as number[]
     : []
 
   const uploadData = hasData
-    ? trafficData.tx.map((tx, index) => {
-        const rx = trafficData.rx[index] || 0
-        return rx > 0 || tx > 0 ? Number((tx / (1024 * 1024 * 1024)).toFixed(2)) : null
-      }).filter(val => val !== null)
+    ? trafficData.tx
+        .map((tx, index) => {
+          const txNum = Number(tx) || 0
+          const rxNum = Number(trafficData.rx[index]) || 0
+          // For monthly, show all months. For daily, filter empty days
+          if (reportType === 'daily' && rxNum === 0 && txNum === 0) return null
+          return Number((txNum / (1024 * 1024 * 1024)).toFixed(2))
+        })
+        .filter(val => val !== null) as number[]
     : []
 
   // Bar Chart Options
@@ -482,14 +496,14 @@ export function TrafficTab({ userId }: TrafficTabProps) {
                 <TableBody>
                   {trafficData.rx.map((_, index) => {
                     const period = index + 1
-                    const rx = trafficData.rx[index] || 0
-                    const tx = trafficData.tx[index] || 0
-                    const total = trafficData.total[index] || 0
-                    const totalReal = trafficData.total_real[index] || 0
-                    const freeTraffic = trafficData.free_traffic[index] || 0
+                    const rx = Number(trafficData.rx[index]) || 0
+                    const tx = Number(trafficData.tx[index]) || 0
+                    const total = Number(trafficData.total[index]) || 0
+                    const totalReal = Number(trafficData.total_real[index]) || 0
+                    const freeTraffic = Number(trafficData.free_traffic[index]) || 0
 
-                    // Skip periods with no data
-                    if (rx === 0 && tx === 0 && total === 0) return null
+                    // Skip periods with no data (only for daily)
+                    if (reportType === 'daily' && rx === 0 && tx === 0 && total === 0) return null
 
                     return (
                       <TableRow key={period}>
