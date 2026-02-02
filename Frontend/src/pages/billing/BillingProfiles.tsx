@@ -71,6 +71,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/pop
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../../components/ui/command';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { cn } from '../../lib/utils';
+import { getIconComponent } from '@/utils/iconColorHelper';
 
 const walletIconOptions = [
   { value: 'Wallet', label: 'Wallet', Icon: Wallet },
@@ -581,47 +582,10 @@ export default function BillingProfiles() {
 
   const handleOpenDialog = (profile?: BillingProfile) => {
     if (profile) {
-      setEditingProfile(profile);
-      setFormData({
-        name: profile.name,
-        description: profile.description || '',
-        price: profile.price || 0,
-        radiusProfileId: profile.radiusProfileId,
-        billingGroupId: profile.billingGroupId,
-        isActive: profile.isActive,
-        wallets: profile.wallets || [],
-        addons: profile.addons || [],
-      });
-      setWallets(profile.wallets || []);
-      setSelectedRadiusProfiles([{profileId: profile.radiusProfileId, number: 1}]);
-      
-      // Check if "All Groups" is selected (billingGroupId === 0 or null)
-      const isAllGroups = profile.billingGroupId === 0 || profile.billingGroupId === null;
-      setSelectAllGroups(isAllGroups);
-      setSelectedBillingGroups(isAllGroups ? [] : [profile.billingGroupId]);
-      
-      setSelectedAddons(
-        profile.addons?.map(a => ({ addonId: a.id!, price: a.price, number: 1 })) || []
-      );
+      navigate(`/billing/profiles/edit?profileId=${profile.id}`);
     } else {
-      setEditingProfile(null);
-      setFormData({
-        name: '',
-        description: '',
-        price: 0,
-        radiusProfileId: 0,
-        billingGroupId: 0,
-        isActive: true,
-        wallets: [],
-        addons: [],
-      });
-      setWallets([]);
-      setSelectedRadiusProfiles([]);
-      setSelectedBillingGroups([]);
-      setSelectAllGroups(false);
-      setSelectedAddons([]);
+      navigate('/billing/profiles/new');
     }
-    setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
@@ -809,9 +773,18 @@ export default function BillingProfiles() {
 
     switch (columnKey) {
       case 'name':
+        const IconComponent = profile.icon ? getIconComponent(profile.icon) : null
         return (
           <TableCell key={columnKey} className={`h-12 px-4 font-medium ${opacityClass}`} style={baseStyle}>
-            {profile.name}
+            <div className="flex items-center gap-2">
+              {IconComponent && (
+                <IconComponent 
+                  className="w-4 h-4 flex-shrink-0" 
+                  style={{ color: profile.color || undefined }}
+                />
+              )}
+              <span>{profile.name}</span>
+            </div>
           </TableCell>
         )
       case 'description':

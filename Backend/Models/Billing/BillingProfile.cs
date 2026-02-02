@@ -8,7 +8,23 @@ public class BillingProfile
     public int Id { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
-    public decimal? Price { get; set; }    public bool IsActive { get; set; } = true;    
+    public decimal? Price { get; set; }
+    public bool IsActive { get; set; } = true;
+    
+    // Advanced Options
+    public bool IsOffer { get; set; } = false;
+    public string? Platform { get; set; } // "Web", "MobileApp", "Both"
+    public int? TotalQuantity { get; set; } // Total number available (null = unlimited)
+    public int UsedQuantity { get; set; } = 0; // How many have been used
+    public string? UserType { get; set; } // "New", "Renew", "Both"
+    public int? ExpirationDays { get; set; } // Number of days until offer expires (null = no expiration)
+    public DateTime? OfferStartDate { get; set; }
+    public DateTime? OfferEndDate { get; set; }
+    public bool RequiresApproval { get; set; } = false;
+    public int? Priority { get; set; } // Display priority/order
+    public string? Color { get; set; } // Hex color code for visual branding
+    public string? Icon { get; set; } // Icon name for visual identification
+    
     // Foreign keys
     public int RadiusProfileId { get; set; }
     public int? BillingGroupId { get; set; } // null means all groups

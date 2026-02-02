@@ -34,6 +34,20 @@ export interface BillingProfile {
   updatedAt?: string;
   wallets: BillingProfileWallet[];
   addons: BillingProfileAddon[];
+  
+  // Advanced Options
+  isOffer?: boolean;
+  platform?: 'Web' | 'MobileApp' | 'Both' | null;
+  totalQuantity?: number | null;
+  usedQuantity?: number;
+  userType?: 'New' | 'Renew' | 'Both' | null;
+  expirationDays?: number | null;
+  offerStartDate?: string | null;
+  offerEndDate?: string | null;
+  requiresApproval?: boolean;
+  priority?: number | null;
+  color?: string | null;
+  icon?: string | null;
 }
 
 export interface CreateBillingProfileRequest {
@@ -45,6 +59,19 @@ export interface CreateBillingProfileRequest {
   isActive?: boolean;
   wallets?: BillingProfileWallet[];
   addons?: BillingProfileAddon[];
+  
+  // Advanced Options
+  isOffer?: boolean;
+  platform?: 'Web' | 'MobileApp' | 'Both' | null;
+  totalQuantity?: number | null;
+  userType?: 'New' | 'Renew' | 'Both' | null;
+  expirationDays?: number | null;
+  offerStartDate?: string | null;
+  offerEndDate?: string | null;
+  requiresApproval?: boolean;
+  priority?: number | null;
+  color?: string | null;
+  icon?: string | null;
 }
 
 export interface UpdateBillingProfileRequest {
@@ -56,6 +83,19 @@ export interface UpdateBillingProfileRequest {
   isActive?: boolean;
   wallets?: BillingProfileWallet[];
   addons?: BillingProfileAddon[];
+  
+  // Advanced Options
+  isOffer?: boolean;
+  platform?: 'Web' | 'MobileApp' | 'Both' | null;
+  totalQuantity?: number | null;
+  userType?: 'New' | 'Renew' | 'Both' | null;
+  expirationDays?: number | null;
+  offerStartDate?: string | null;
+  offerEndDate?: string | null;
+  requiresApproval?: boolean;
+  priority?: number | null;
+  color?: string | null;
+  icon?: string | null;
 }
 
 export interface BillingProfilesResponse {

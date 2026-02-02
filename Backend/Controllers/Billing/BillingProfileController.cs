@@ -257,6 +257,21 @@ public class BillingProfileController : ControllerBase
                 Price = request.Price,
                 RadiusProfileId = request.RadiusProfileId,
                 BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId, // null means all groups
+                
+                // Advanced Options
+                IsOffer = request.IsOffer,
+                Platform = request.Platform,
+                TotalQuantity = request.TotalQuantity,
+                UsedQuantity = 0,
+                UserType = request.UserType,
+                ExpirationDays = request.ExpirationDays,
+                OfferStartDate = request.OfferStartDate,
+                OfferEndDate = request.OfferEndDate,
+                RequiresApproval = request.RequiresApproval,
+                Priority = request.Priority,
+                Color = request.Color,
+                Icon = request.Icon,
+                
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = User.GetSystemUserId(),
                 IsDeleted = false
@@ -340,6 +355,20 @@ public class BillingProfileController : ControllerBase
             existingProfile.Price = request.Price;
             existingProfile.RadiusProfileId = request.RadiusProfileId;
             existingProfile.BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId; // null means all groups
+            
+            // Advanced Options
+            existingProfile.IsOffer = request.IsOffer;
+            existingProfile.Platform = request.Platform;
+            existingProfile.TotalQuantity = request.TotalQuantity;
+            existingProfile.UserType = request.UserType;
+            existingProfile.ExpirationDays = request.ExpirationDays;
+            existingProfile.OfferStartDate = request.OfferStartDate;
+            existingProfile.OfferEndDate = request.OfferEndDate;
+            existingProfile.RequiresApproval = request.RequiresApproval;
+            existingProfile.Priority = request.Priority;
+            existingProfile.Color = request.Color;
+            existingProfile.Icon = request.Icon;
+            
             existingProfile.UpdatedAt = DateTime.UtcNow;
             existingProfile.UpdatedBy = User.GetSystemUserId();
 
@@ -459,6 +488,19 @@ public class CreateBillingProfileRequest
     public int BillingGroupId { get; set; }
     public List<WalletConfigRequest>? Wallets { get; set; }
     public List<AddonConfigRequest>? Addons { get; set; }
+    
+    // Advanced Options
+    public bool IsOffer { get; set; } = false;
+    public string? Platform { get; set; }
+    public int? TotalQuantity { get; set; }
+    public string? UserType { get; set; }
+    public int? ExpirationDays { get; set; }
+    public DateTime? OfferStartDate { get; set; }
+    public DateTime? OfferEndDate { get; set; }
+    public bool RequiresApproval { get; set; } = false;
+    public int? Priority { get; set; }
+    public string? Color { get; set; }
+    public string? Icon { get; set; }
 }
 
 public class UpdateBillingProfileRequest
@@ -470,6 +512,19 @@ public class UpdateBillingProfileRequest
     public int BillingGroupId { get; set; }
     public List<WalletConfigRequest>? Wallets { get; set; }
     public List<AddonConfigRequest>? Addons { get; set; }
+    
+    // Advanced Options
+    public bool IsOffer { get; set; } = false;
+    public string? Platform { get; set; }
+    public int? TotalQuantity { get; set; }
+    public string? UserType { get; set; }
+    public int? ExpirationDays { get; set; }
+    public DateTime? OfferStartDate { get; set; }
+    public DateTime? OfferEndDate { get; set; }
+    public bool RequiresApproval { get; set; } = false;
+    public int? Priority { get; set; }
+    public string? Color { get; set; }
+    public string? Icon { get; set; }
 }
 
 public class WalletConfigRequest

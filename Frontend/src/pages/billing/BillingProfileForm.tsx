@@ -33,6 +33,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../../components/ui/command';
 import { cn } from '../../lib/utils';
+import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper';
 
 export default function BillingProfileForm() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,8 @@ export default function BillingProfileForm() {
   const queryClient = useQueryClient();
   const { layout } = useTheme();
 
+  console.log('BillingProfileForm - profileId from URL:', profileId);
+
   const [formData, setFormData] = useState<CreateBillingProfileRequest>({
     name: '',
     description: '',
@@ -51,6 +54,18 @@ export default function BillingProfileForm() {
     billingGroupId: 0,
     wallets: [],
     addons: [],
+    // Advanced Options
+    isOffer: false,
+    platform: null,
+    totalQuantity: null,
+    userType: null,
+    expirationDays: null,
+    offerStartDate: null,
+    offerEndDate: null,
+    requiresApproval: false,
+    priority: null,
+    color: null,
+    icon: null,
   });
 
   const [selectedRadiusProfiles, setSelectedRadiusProfiles] = useState<{profileId: number, number: number}[]>([]);
@@ -59,6 +74,7 @@ export default function BillingProfileForm() {
   const [radiusProfilePopoverOpen, setRadiusProfilePopoverOpen] = useState(false);
   const [billingGroupPopoverOpen, setBillingGroupPopoverOpen] = useState(false);
   const [addonPopoverOpen, setAddonPopoverOpen] = useState(false);
+  const [iconPopoverOpen, setIconPopoverOpen] = useState(false);
   const [selectAllGroups, setSelectAllGroups] = useState(false);
   const [focusedPriceInput, setFocusedPriceInput] = useState(false);
 
@@ -66,14 +82,20 @@ export default function BillingProfileForm() {
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
 
   // Fetch existing profile if editing
-  const { data: existingProfile } = useQuery({
-    queryKey: ['billing-profile', profileId],
+  const { data: existingProfile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['billing-profile', profileId, currentWorkspaceId],
     queryFn: async () => {
+      console.log('Fetching profile with ID:', profileId);
       const result = await getProfiles({ includeDeleted: false });
-      return result.data?.find(p => p.id === parseInt(profileId!));
+      console.log('All profiles:', result.data);
+      const profile = result.data?.find(p => p.id === parseInt(profileId!));
+      console.log('Found profile:', profile);
+      return profile;
     },
-    enabled: !!profileId,
+    enabled: !!profileId && !!currentWorkspaceId,
   });
+
+  console.log('Existing profile data:', existingProfile, 'Loading:', isLoadingProfile);
 
   // Load existing profile data
   useEffect(() => {
@@ -86,6 +108,18 @@ export default function BillingProfileForm() {
         billingGroupId: existingProfile.billingGroupId,
         wallets: existingProfile.wallets || [],
         addons: existingProfile.addons || [],
+        // Advanced Options
+        isOffer: existingProfile.isOffer || false,
+        platform: existingProfile.platform || null,
+        totalQuantity: existingProfile.totalQuantity || null,
+        userType: existingProfile.userType || null,
+        expirationDays: existingProfile.expirationDays || null,
+        offerStartDate: existingProfile.offerStartDate || null,
+        offerEndDate: existingProfile.offerEndDate || null,
+        requiresApproval: existingProfile.requiresApproval || false,
+        priority: existingProfile.priority || null,
+        color: existingProfile.color || null,
+        icon: existingProfile.icon || null,
       });
       setWallets(existingProfile.wallets || []);
       setSelectedRadiusProfiles([{profileId: existingProfile.radiusProfileId, number: 1}]);
@@ -189,8 +223,7 @@ export default function BillingProfileForm() {
       addons: selectedAddons.map(sa => {
         const addon = addonsData?.data?.find((a: Addon) => a.id === sa.addonId);
         return {
-          id: sa.addonId,
-          name: addon?.name || '',
+          title: addon?.name || '',
           description: addon?.description || '',
           price: sa.price,
         };
@@ -787,6 +820,227 @@ export default function BillingProfileForm() {
                 No addons added yet. Click "Add Addon" to select from available addons.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Advanced Options */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Advanced Options</CardTitle>
+            <CardDescription>Configure offer settings, platform availability, and other advanced features</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              {/* Is Offer */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isOffer"
+                  checked={formData.isOffer || false}
+                  onChange={(e) => setFormData({ ...formData, isOffer: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="isOffer" className="cursor-pointer">Is this an Offer?</Label>
+              </div>
+
+              {/* Requires Approval */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="requiresApproval"
+                  checked={formData.requiresApproval || false}
+                  onChange={(e) => setFormData({ ...formData, requiresApproval: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="requiresApproval" className="cursor-pointer">Requires Approval</Label>
+              </div>
+
+              {/* Priority */}
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority (Display Order)</Label>
+                <Input
+                  id="priority"
+                  type="number"
+                  value={formData.priority || ''}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="1, 2, 3..."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              {/* Platform */}
+              <div className="space-y-2">
+                <Label htmlFor="platform">Platform</Label>
+                <Select
+                  value={formData.platform || 'Both'}
+                  onValueChange={(value) => setFormData({ ...formData, platform: value === 'Both' ? null : value as any })}
+                >
+                  <SelectTrigger id="platform">
+                    <SelectValue placeholder="Select platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Both">Web & Mobile</SelectItem>
+                    <SelectItem value="Web">Web Only</SelectItem>
+                    <SelectItem value="MobileApp">Mobile App Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* User Type */}
+              <div className="space-y-2">
+                <Label htmlFor="userType">User Type</Label>
+                <Select
+                  value={formData.userType || 'Both'}
+                  onValueChange={(value) => setFormData({ ...formData, userType: value === 'Both' ? null : value as any })}
+                >
+                  <SelectTrigger id="userType">
+                    <SelectValue placeholder="Select user type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Both">New & Renew</SelectItem>
+                    <SelectItem value="New">New Users Only</SelectItem>
+                    <SelectItem value="Renew">Renew Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Total Quantity */}
+              <div className="space-y-2">
+                <Label htmlFor="totalQuantity">Total Quantity (Leave empty for unlimited)</Label>
+                <Input
+                  id="totalQuantity"
+                  type="number"
+                  value={formData.totalQuantity || ''}
+                  onChange={(e) => setFormData({ ...formData, totalQuantity: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="Unlimited"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              {/* Expiration Days */}
+              <div className="space-y-2">
+                <Label htmlFor="expirationDays">Expiration Days (Leave empty for no expiration)</Label>
+                <Input
+                  id="expirationDays"
+                  type="number"
+                  value={formData.expirationDays || ''}
+                  onChange={(e) => setFormData({ ...formData, expirationDays: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="No expiration"
+                />
+              </div>
+
+              {/* Offer Start Date */}
+              <div className="space-y-2">
+                <Label htmlFor="offerStartDate">Offer Start Date</Label>
+                <Input
+                  id="offerStartDate"
+                  type="datetime-local"
+                  value={formData.offerStartDate ? new Date(formData.offerStartDate).toISOString().slice(0, 16) : ''}
+                  onChange={(e) => setFormData({ ...formData, offerStartDate: e.target.value ? e.target.value : null })}
+                />
+              </div>
+
+              {/* Offer End Date */}
+              <div className="space-y-2">
+                <Label htmlFor="offerEndDate">Offer End Date</Label>
+                <Input
+                  id="offerEndDate"
+                  type="datetime-local"
+                  value={formData.offerEndDate ? new Date(formData.offerEndDate).toISOString().slice(0, 16) : ''}
+                  onChange={(e) => setFormData({ ...formData, offerEndDate: e.target.value ? e.target.value : null })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Color */}
+              <div className="space-y-2">
+                <Label htmlFor="color">Color</Label>
+                <Select
+                  value={formData.color || '#3b82f6'}
+                  onValueChange={(value) => setFormData({ ...formData, color: value })}
+                >
+                  <SelectTrigger className="h-10">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded-full border" 
+                        style={{ backgroundColor: formData.color || '#3b82f6' }}
+                      />
+                      <span>
+                        {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Blue'}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_COLORS.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: color.value }}
+                          />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Icon */}
+              <div className="space-y-2">
+                <Label htmlFor="icon">Icon</Label>
+                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start" 
+                      type="button"
+                    >
+                      {(() => {
+                        const SelectedIcon = getIconComponent(formData.icon || undefined)
+                        return <SelectedIcon className="w-4 h-4 mr-2" />
+                      })()}
+                      {formData.icon || 'Building2'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-80 p-0" 
+                    align="start"
+                    style={{ zIndex: 9999 }}
+                    sideOffset={5}
+                  >
+                    <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                      {AVAILABLE_ICONS.map((iconData) => {
+                        const IconComponent = iconData.icon
+                        const isSelected = formData.icon === iconData.name
+                        return (
+                          <button
+                            key={iconData.name}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setFormData({ ...formData, icon: iconData.name })
+                              setIconPopoverOpen(false)
+                            }}
+                            className={cn(
+                              "p-2 hover:bg-accent rounded-md transition-colors flex items-center justify-center",
+                              isSelected && "bg-accent"
+                            )}
+                            title={iconData.name}
+                          >
+                            <IconComponent className="w-5 h-5" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
