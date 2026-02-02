@@ -395,12 +395,12 @@ public class SessionSyncService : ISessionSyncService
             {
                 page,
                 count = perPage,
-                sortBy = "acctstarttime",
+                sortBy = "acctupdatetime",
                 direction = "desc",
                 search = "",
                 columns = new[] { "username", "acctstarttime", "acctstoptime", "framedipaddress", "nasipaddress", 
                                  "callingstationid", "framedprotocol", "acctinputoctets", "acctoutputoctets", 
-                                 "calledstationid", "nasportid", "acctterminatecause" }
+                                 "calledstationid", "nasportid", "acctterminatecause", "acctupdatetime" }
             };
 
             // Encrypt payload using AES (SAS API requirement)
@@ -574,6 +574,8 @@ public class SessionSyncService : ISessionSyncService
             existing.AcctOutputOctets = session.AcctOutputOctets;
             existing.AcctInputOctets = session.AcctInputOctets;
             existing.AcctTerminateCause = session.AcctTerminateCause;
+            existing.AcctUpdateTime = ParseDateTime(session.AcctUpdateTime);
+
             
             // Calculate session time if stopped
             if (existing.AcctStopTime.HasValue && existing.AcctStartTime.HasValue)
@@ -596,7 +598,9 @@ public class SessionSyncService : ISessionSyncService
                 AcctInputOctets = session.AcctInputOctets,
                 CallingStationId = session.CallingStationId,
                 CalledStationId = session.CalledStationId,
-                AcctTerminateCause = session.AcctTerminateCause
+                AcctTerminateCause = session.AcctTerminateCause,
+                AcctUpdateTime = ParseDateTime(session.AcctUpdateTime),
+
             };
             
             // Calculate session time if stopped
@@ -728,4 +732,10 @@ public class SessionData
     
     [System.Text.Json.Serialization.JsonPropertyName("acctterminatecause")]
     public string? AcctTerminateCause { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("acctupdatetime")]
+    public string? AcctUpdateTime { get; set; }
+
+
+    
 }

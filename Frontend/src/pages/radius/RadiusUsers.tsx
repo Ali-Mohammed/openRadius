@@ -1579,7 +1579,7 @@ export default function RadiusUsers() {
       case 'actions':
         return (
           <TableCell key={columnKey} className={`h-12 px-4 text-right ${stickyClass}`} style={baseStyle}>
-            <div className="flex justify-end gap-1">
+            <div className="flex justify-end gap-0">
               {!showTrash ? (
                 <>
                   <Button 

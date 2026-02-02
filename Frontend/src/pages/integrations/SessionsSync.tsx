@@ -570,6 +570,7 @@ export default function SessionsSync() {
                     <TableHead className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
                     <TableHead className="h-12 px-4 w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
                     <TableHead className="h-12 px-4 w-[300px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-[80px]"><Skeleton className="h-4 w-16" /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -582,6 +583,7 @@ export default function SessionsSync() {
                       <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
                       <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
                       <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-16" /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -767,7 +769,7 @@ export default function SessionsSync() {
                       const log = sortedLogs[virtualRow.index] as SessionSyncProgress;
                       return (
                         <TableRow
-                          key={log.id}
+                          key={log.syncId}
                           style={{
                             position: 'absolute',
                             top: 0,
@@ -802,18 +804,19 @@ export default function SessionsSync() {
                             {log.errorMessage || '-'}
                           </TableCell>
                           <TableCell className="h-12 px-4 text-center" style={{ width: `${columnWidths.actions}px` }}>
-                            {log.status < 5 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => cancelSyncMutation.mutate(log.syncId)}
-                                disabled={cancelSyncMutation.isPending}
-                                title="Cancel sync"
-                                className="h-8 w-8 p-0"
-                              >
-                                <XCircle className="h-4 w-4 text-red-500" />
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                console.log('Cancel clicked for:', log.syncId);
+                                cancelSyncMutation.mutate(log.syncId);
+                              }}
+                              disabled={cancelSyncMutation.isPending || Number(log.status) >= 5}
+                              title="Cancel sync"
+                              className="h-8 w-8 p-0"
+                            >
+                              <XCircle className="h-4 w-4 text-red-500" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
