@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package, Eye } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
@@ -28,7 +28,7 @@ import { zoneApi, type Zone } from '@/services/zoneApi'
 import userWalletApi from '@/api/userWallets'
 import { userCashbackApi } from '@/api/userCashbackApi'
 import { formatApiError } from '@/utils/errorHandler'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -45,6 +45,7 @@ import { getIconComponent } from '@/utils/iconColorHelper'
 export default function RadiusUsers() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const { currentWorkspaceId } = useWorkspace()
@@ -1582,6 +1583,15 @@ export default function RadiusUsers() {
             <div className="flex justify-end gap-0">
               {!showTrash ? (
                 <>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => navigate(`/radius/users/${user.id}`)}
+                    title="View details"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 

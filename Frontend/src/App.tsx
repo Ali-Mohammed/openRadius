@@ -16,6 +16,7 @@ import DashboardView from './pages/dashboards/DashboardView'
 // Radius
 import RadiusProfiles from './pages/radius/RadiusProfiles'
 import RadiusUsers from './pages/radius/RadiusUsers'
+import RadiusUserDetail from './pages/radius/RadiusUserDetail'
 import RadiusGroups from './pages/radius/RadiusGroups'
 import RadiusTags from './pages/radius/RadiusTags'
 import RadiusNas from './pages/radius/RadiusNas'
@@ -114,6 +115,7 @@ function App() {
                           <Route path="/integrations/sessions-sync/:integrationId" element={<SessionsSync />} />
                           <Route path="/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/radius/users" element={<RadiusUsers />} />
+                          <Route path="/radius/users/:id" element={<RadiusUserDetail />} />
                           <Route path="/radius/groups" element={<RadiusGroups />} />
                           <Route path="/radius/tags" element={<RadiusTags />} />
                           <Route path="/radius/nas" element={<RadiusNas />} />
