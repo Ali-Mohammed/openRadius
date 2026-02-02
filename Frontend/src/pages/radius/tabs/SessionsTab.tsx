@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { sasRadiusApi } from '@/api/sasRadiusApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface SessionsTabProps {
   userId: string
@@ -19,12 +19,10 @@ export function SessionsTab({ userId }: SessionsTabProps) {
   const { currentWorkspaceId } = useWorkspace()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
 
   const { data: sessionsData, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['radius-user-sessions', userId, page, pageSize, search],
-    queryFn: () => sasRadiusApi.getUserSessions(currentWorkspaceId, userId, page, pageSize, 'acctstarttime', 'desc', search),
+    queryKey: ['radius-user-sessions', userId, page, pageSize],
+    queryFn: () => sasRadiusApi.getUserSessions(currentWorkspaceId, userId, page, pageSize, 'acctstarttime', 'desc', ''),
     enabled: !!userId && !!currentWorkspaceId,
   })
 
@@ -45,9 +43,19 @@ export function SessionsTab({ userId }: SessionsTabProps) {
     }
   }
 
-  const handleSearch = () => {
-    setSearch(searchInput)
-    setPage(1)
+  const formatDuration = (startTime: string, stopTime: string | null) => {
+    if (!stopTime) return 'Active'
+    try {
+      const start = new Date(startTime)
+      const stop = new Date(stopTime)
+      const diff = stop.getTime() - start.getTime()
+      const hours = Math.floor(diff / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+      return `${hours}h ${minutes}m ${seconds}s`
+    } catch {
+      return '-'
+    }
   }
 
   const handleRefresh = () => {
@@ -58,14 +66,18 @@ export function SessionsTab({ userId }: SessionsTabProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>User Sessions</CardTitle>
-          <CardDescription>Loading session data...</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>User Sessions</CardTitle>
+              <CardDescription>Loading session data...</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex items-center justify-between gap-2">
             <Skeleton className="h-10 flex-1" />
             <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
           </div>
           <Skeleton className="h-[400px] w-full" />
         </CardContent>
@@ -92,117 +104,119 @@ export function SessionsTab({ userId }: SessionsTabProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>User Sessions</CardTitle>
-            <CardDescription>Active and historical session information</CardDescription>
-          </div>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <CardTitle>User Sessions</CardTitle>
           <Button
             variant="outline"
             size="icon"
             onClick={handleRefresh}
             disabled={isFetching}
+            className="h-8 w-8"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Search and Filters */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search sessions..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9"
-            />
-          </div>
-          <Button onClick={handleSearch} disabled={isFetching}>
-            Search
-          </Button>
-        </div>
 
         {/* Sessions Table */}
         {hasData ? (
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Session ID</TableHead>
-                  <TableHead>Start Time</TableHead>
-                  <TableHead>Stop Time</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead className="text-right">Download</TableHead>
-                  <TableHead className="text-right">Upload</TableHead>
-                  <TableHead>MAC Address</TableHead>
-                  <TableHead>NAS IP</TableHead>
-                  <TableHead>Profile</TableHead>
-                  <TableHead>Terminate Cause</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessionsData.data.map((session) => (
-                  <TableRow key={session.radacctid}>
-                    <TableCell className="font-medium">{session.radacctid}</TableCell>
-                    <TableCell>{formatDateTime(session.acctstarttime)}</TableCell>
-                    <TableCell>{formatDateTime(session.acctstoptime)}</TableCell>
-                    <TableCell>
-                      {session.acctstoptime ? (
-                        <Badge variant="secondary">Stopped</Badge>
-                      ) : (
-                        <Badge variant="default" className="bg-green-600">Active</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{session.framedipaddress}</TableCell>
-                    <TableCell className="text-right">{formatBytes(session.acctoutputoctets)}</TableCell>
-                    <TableCell className="text-right">{formatBytes(session.acctinputoctets)}</TableCell>
-                    <TableCell className="font-mono text-sm">{session.callingstationid}</TableCell>
-                    <TableCell className="font-mono text-sm">{session.nasipaddress}</TableCell>
-                    <TableCell>
-                      {session.profile_details ? (
-                        <div>
-                          <div className="font-medium">{session.profile_details.name}</div>
-                          <div className="text-xs text-muted-foreground">ID: {session.profile_details.id}</div>
-                        </div>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {session.acctterminatecause ? (
-                        <Badge variant="outline">{session.acctterminatecause}</Badge>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Session ID</TableHead>
+                    <TableHead className="w-[180px]">Start Time</TableHead>
+                    <TableHead className="w-[180px]">Stop Time</TableHead>
+                    <TableHead className="w-[120px]">Duration</TableHead>
+                    <TableHead className="w-[90px]">Status</TableHead>
+                    <TableHead className="w-[130px]">IP Address</TableHead>
+                    <TableHead className="text-right w-[110px]">Download</TableHead>
+                    <TableHead className="text-right w-[110px]">Upload</TableHead>
+                    <TableHead className="w-[140px]">MAC Address</TableHead>
+                    <TableHead className="w-[120px]">NAS IP</TableHead>
+                    <TableHead className="w-[180px]">Profile</TableHead>
+                    <TableHead className="w-[140px]">Terminate Cause</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {sessionsData.data.map((session) => (
+                    <TableRow key={session.radacctid}>
+                      <TableCell className="font-medium">{session.radacctid}</TableCell>
+                      <TableCell className="text-sm">{formatDateTime(session.acctstarttime)}</TableCell>
+                      <TableCell className="text-sm">{formatDateTime(session.acctstoptime)}</TableCell>
+                      <TableCell className="text-sm">{formatDuration(session.acctstarttime, session.acctstoptime)}</TableCell>
+                      <TableCell>
+                        {session.acctstoptime ? (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">Stopped</Badge>
+                        ) : (
+                          <Badge className="bg-green-600 hover:bg-green-700">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{session.framedipaddress}</TableCell>
+                      <TableCell className="text-right text-sm">{formatBytes(session.acctoutputoctets)}</TableCell>
+                      <TableCell className="text-right text-sm">{formatBytes(session.acctinputoctets)}</TableCell>
+                      <TableCell className="font-mono text-xs">{session.callingstationid}</TableCell>
+                      <TableCell className="font-mono text-xs">{session.nasipaddress}</TableCell>
+                      <TableCell>
+                        {session.profile_details ? (
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-sm">{session.profile_details.name}</div>
+                            <div className="text-xs text-muted-foreground">ID: {session.profile_details.id}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {session.acctterminatecause ? (
+                          <Badge variant="outline" className="text-xs">{session.acctterminatecause}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         ) : (
-          <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">
-            <p className="text-sm text-muted-foreground">No sessions found</p>
+          <div className="flex h-[300px] items-center justify-center rounded-md border border-dashed">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">No sessions found</p>
+            </div>
           </div>
         )}
 
         {/* Pagination */}
         {hasData && (
           <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing {sessionsData.from} to {sessionsData.to} of {sessionsData.total} sessions
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {sessionsData.from} to {sessionsData.to} of {sessionsData.total} sessions
+              </div>
+              <Select value={pageSize.toString()} onValueChange={(value) => { setPageSize(Number(value)); setPage(1); }}>
+                <SelectTrigger className="w-[110px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 rows</SelectItem>
+                  <SelectItem value="25">25 rows</SelectItem>
+                  <SelectItem value="50">50 rows</SelectItem>
+                  <SelectItem value="100">100 rows</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setPage(1)}
-                disabled={page === 1}
+                disabled={page === 1 || isFetching}
+                className="h-8 w-8"
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -210,20 +224,22 @@ export function SessionsTab({ userId }: SessionsTabProps) {
                 variant="outline"
                 size="icon"
                 onClick={() => setPage(page - 1)}
-                disabled={page === 1}
+                disabled={page === 1 || isFetching}
+                className="h-8 w-8"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <div className="flex items-center gap-1">
-                <span className="text-sm">
-                  Page {page} of {totalPages}
+              <div className="flex items-center gap-1 px-2">
+                <span className="text-sm font-medium">
+                  {page} / {totalPages}
                 </span>
               </div>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setPage(page + 1)}
-                disabled={page === totalPages}
+                disabled={page === totalPages || isFetching}
+                className="h-8 w-8"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -231,7 +247,8 @@ export function SessionsTab({ userId }: SessionsTabProps) {
                 variant="outline"
                 size="icon"
                 onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
+                disabled={page === totalPages || isFetching}
+                className="h-8 w-8"
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
