@@ -133,6 +133,7 @@ public class BillingProfileController : ControllerBase
                     p.Priority,
                     p.Color,
                     p.Icon,
+                    UserIds = p.ProfileUsers.Select(pu => pu.UserId).ToList(),
                     Wallets = p.ProfileWallets.Select(w => new
                     {
                         w.Id,
@@ -182,6 +183,7 @@ public class BillingProfileController : ControllerBase
             var profile = await _context.BillingProfiles
                 .Include(p => p.ProfileWallets.OrderBy(w => w.DisplayOrder))
                 .Include(p => p.ProfileAddons.OrderBy(a => a.DisplayOrder))
+                .Include(p => p.ProfileUsers)
                 .Where(p => p.Id == id)
                 .Select(p => new
                 {
@@ -208,6 +210,7 @@ public class BillingProfileController : ControllerBase
                     p.Priority,
                     p.Color,
                     p.Icon,
+                    UserIds = p.ProfileUsers.Select(pu => pu.UserId).ToList(),
                     Wallets = p.ProfileWallets.Select(w => new
                     {
                         w.Id,
@@ -373,6 +376,7 @@ public class BillingProfileController : ControllerBase
             var existingProfile = await _context.BillingProfiles
                 .Include(p => p.ProfileWallets)
                 .Include(p => p.ProfileAddons)
+                .Include(p => p.ProfileUsers)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (existingProfile == null)
@@ -447,6 +451,22 @@ public class BillingProfileController : ControllerBase
                 }).ToList();
 
                 _context.BillingProfileAddons.AddRange(addons);
+            }
+
+            // Update direct user assignments - remove old ones and add new ones
+            _context.BillingProfileUsers.RemoveRange(existingProfile.ProfileUsers);
+
+            if (request.UserIds != null && request.UserIds.Any())
+            {
+                var profileUsers = request.UserIds.Select(userId => new BillingProfileUser
+                {
+                    BillingProfileId = existingProfile.Id,
+                    UserId = userId,
+                    AssignedAt = DateTime.UtcNow,
+                    AssignedBy = User.GetSystemUserId()
+                }).ToList();
+
+                _context.BillingProfileUsers.AddRange(profileUsers);
             }
 
             await _context.SaveChangesAsync();
