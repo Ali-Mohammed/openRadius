@@ -834,204 +834,223 @@ export default function BillingProfileForm() {
             <CardTitle>Advanced Options</CardTitle>
             <CardDescription>Configure offer settings, platform availability, and other advanced features</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              {/* Is Offer */}
-              <div className="flex items-center space-x-2">
+          <CardContent className="space-y-6">
+            {/* Checkboxes */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex items-center space-x-3 p-3 rounded-lg border bg-muted/30">
                 <input
                   type="checkbox"
                   id="isOffer"
                   checked={formData.isOffer || false}
                   onChange={(e) => setFormData({ ...formData, isOffer: e.target.checked })}
-                  className="h-4 w-4"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
-                <Label htmlFor="isOffer" className="cursor-pointer">Is this an Offer?</Label>
+                <Label htmlFor="isOffer" className="cursor-pointer font-medium">Is this an Offer?</Label>
               </div>
 
-              {/* Requires Approval */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 p-3 rounded-lg border bg-muted/30">
                 <input
                   type="checkbox"
                   id="requiresApproval"
                   checked={formData.requiresApproval || false}
                   onChange={(e) => setFormData({ ...formData, requiresApproval: e.target.checked })}
-                  className="h-4 w-4"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
-                <Label htmlFor="requiresApproval" className="cursor-pointer">Requires Approval</Label>
+                <Label htmlFor="requiresApproval" className="cursor-pointer font-medium">Requires Approval</Label>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              {/* Platform */}
-              <div className="space-y-2">
-                <Label htmlFor="platform">Platform</Label>
-                <Select
-                  value={formData.platform || 'Both'}
-                  onValueChange={(value) => setFormData({ ...formData, platform: value === 'Both' ? null : value as any })}
-                >
-                  <SelectTrigger id="platform">
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Both">Web & Mobile</SelectItem>
-                    <SelectItem value="Web">Web Only</SelectItem>
-                    <SelectItem value="MobileApp">Mobile App Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* User Type */}
-              <div className="space-y-2">
-                <Label htmlFor="userType">User Type</Label>
-                <Select
-                  value={formData.userType || 'Both'}
-                  onValueChange={(value) => setFormData({ ...formData, userType: value === 'Both' ? null : value as any })}
-                >
-                  <SelectTrigger id="userType">
-                    <SelectValue placeholder="Select user type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Both">New & Renew</SelectItem>
-                    <SelectItem value="New">New Users Only</SelectItem>
-                    <SelectItem value="Renew">Renew Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Total Quantity */}
-              <div className="space-y-2">
-                <Label htmlFor="totalQuantity">Total Quantity (Leave empty for unlimited)</Label>
-                <Input
-                  id="totalQuantity"
-                  type="number"
-                  value={formData.totalQuantity || ''}
-                  onChange={(e) => setFormData({ ...formData, totalQuantity: e.target.value ? parseInt(e.target.value) : null })}
-                  placeholder="Unlimited"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              {/* Expiration Days */}
-              <div className="space-y-2">
-                <Label htmlFor="expirationDays">Expiration Days (Leave empty for no expiration)</Label>
-                <Input
-                  id="expirationDays"
-                  type="number"
-                  value={formData.expirationDays || ''}
-                  onChange={(e) => setFormData({ ...formData, expirationDays: e.target.value ? parseInt(e.target.value) : null })}
-                  placeholder="No expiration"
-                />
-              </div>
-
-              {/* Offer Start Date */}
-              <div className="space-y-2">
-                <Label htmlFor="offerStartDate">Offer Start Date</Label>
-                <Input
-                  id="offerStartDate"
-                  type="datetime-local"
-                  value={formData.offerStartDate ? new Date(formData.offerStartDate).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => setFormData({ ...formData, offerStartDate: e.target.value ? e.target.value : null })}
-                />
-              </div>
-
-              {/* Offer End Date */}
-              <div className="space-y-2">
-                <Label htmlFor="offerEndDate">Offer End Date</Label>
-                <Input
-                  id="offerEndDate"
-                  type="datetime-local"
-                  value={formData.offerEndDate ? new Date(formData.offerEndDate).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => setFormData({ ...formData, offerEndDate: e.target.value ? e.target.value : null })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {/* Color */}
-              <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <Select
-                  value={formData.color || '#3b82f6'}
-                  onValueChange={(value) => setFormData({ ...formData, color: value })}
-                >
-                  <SelectTrigger className="h-10">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-4 h-4 rounded-full border" 
-                        style={{ backgroundColor: formData.color || '#3b82f6' }}
-                      />
-                      <span>
-                        {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Blue'}
-                      </span>
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PREDEFINED_COLORS.map((color) => (
-                      <SelectItem key={color.value} value={color.value}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full border"
-                            style={{ backgroundColor: color.value }}
-                          />
-                          {color.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Icon */}
-              <div className="space-y-2">
-                <Label htmlFor="icon">Icon</Label>
-                <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start" 
-                      type="button"
-                    >
-                      {(() => {
-                        const SelectedIcon = getIconComponent(formData.icon || undefined)
-                        return <SelectedIcon className="w-4 h-4 mr-2" />
-                      })()}
-                      {formData.icon || 'Building2'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-80 p-0" 
-                    align="start"
-                    style={{ zIndex: 9999 }}
-                    sideOffset={5}
+            {/* Visual Settings */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Visual Settings</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Color */}
+                <div className="space-y-2">
+                  <Label htmlFor="color">Color</Label>
+                  <Select
+                    value={formData.color || '#3b82f6'}
+                    onValueChange={(value) => setFormData({ ...formData, color: value })}
                   >
-                    <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
-                      {AVAILABLE_ICONS.map((iconData) => {
-                        const IconComponent = iconData.icon
-                        const isSelected = formData.icon === iconData.name
-                        return (
-                          <button
-                            key={iconData.name}
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setFormData({ ...formData, icon: iconData.name })
-                              setIconPopoverOpen(false)
-                            }}
-                            className={cn(
-                              "p-2 hover:bg-accent rounded-md transition-colors flex items-center justify-center",
-                              isSelected && "bg-accent"
-                            )}
-                            title={iconData.name}
-                          >
-                            <IconComponent className="w-5 h-5" />
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                    <SelectTrigger className="h-10">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-5 h-5 rounded-full border-2 shadow-sm" 
+                          style={{ backgroundColor: formData.color || '#3b82f6' }}
+                        />
+                        <span className="font-medium">
+                          {PREDEFINED_COLORS.find(c => c.value === formData.color)?.label || 'Blue'}
+                        </span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_COLORS.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-5 h-5 rounded-full border-2 shadow-sm"
+                              style={{ backgroundColor: color.value }}
+                            />
+                            <span className="font-medium">{color.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Icon */}
+                <div className="space-y-2">
+                  <Label htmlFor="icon">Icon</Label>
+                  <Popover open={iconPopoverOpen} onOpenChange={setIconPopoverOpen} modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start h-10" 
+                        type="button"
+                      >
+                        {(() => {
+                          const SelectedIcon = getIconComponent(formData.icon || undefined)
+                          return <SelectedIcon className="w-4 h-4 mr-2" style={{ color: formData.color || '#3b82f6' }} />
+                        })()}
+                        <span className="font-medium">{formData.icon || 'Building2'}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      className="w-80 p-0" 
+                      align="start"
+                      style={{ zIndex: 9999 }}
+                      sideOffset={5}
+                    >
+                      <div className="grid grid-cols-6 gap-1 p-2 max-h-[300px] overflow-y-auto">
+                        {AVAILABLE_ICONS.map((iconData) => {
+                          const IconComponent = iconData.icon
+                          const isSelected = formData.icon === iconData.name
+                          return (
+                            <button
+                              key={iconData.name}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setFormData({ ...formData, icon: iconData.name })
+                                setIconPopoverOpen(false)
+                              }}
+                              className={cn(
+                                "p-2 rounded hover:bg-muted transition-colors",
+                                isSelected && "bg-primary/10 ring-2 ring-primary"
+                              )}
+                              title={iconData.name}
+                            >
+                              <IconComponent className="w-5 h-5" style={{ color: formData.color || '#3b82f6' }} />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+
+            {/* Platform & User Settings */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Platform & User Settings</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Platform */}
+                <div className="space-y-2">
+                  <Label htmlFor="platform">Platform</Label>
+                  <Select
+                    value={formData.platform || 'Both'}
+                    onValueChange={(value) => setFormData({ ...formData, platform: value === 'Both' ? null : value as any })}
+                  >
+                    <SelectTrigger id="platform">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Both">Web & Mobile</SelectItem>
+                      <SelectItem value="Web">Web Only</SelectItem>
+                      <SelectItem value="MobileApp">Mobile App Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* User Type */}
+                <div className="space-y-2">
+                  <Label htmlFor="userType">User Type</Label>
+                  <Select
+                    value={formData.userType || 'Both'}
+                    onValueChange={(value) => setFormData({ ...formData, userType: value === 'Both' ? null : value as any })}
+                  >
+                    <SelectTrigger id="userType">
+                      <SelectValue placeholder="Select user type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Both">New & Renew</SelectItem>
+                      <SelectItem value="New">New Users Only</SelectItem>
+                      <SelectItem value="Renew">Renew Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity & Expiration */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quantity & Expiration</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Total Quantity */}
+                <div className="space-y-2">
+                  <Label htmlFor="totalQuantity">Total Quantity</Label>
+                  <Input
+                    id="totalQuantity"
+                    type="number"
+                    value={formData.totalQuantity || ''}
+                    onChange={(e) => setFormData({ ...formData, totalQuantity: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="Unlimited"
+                  />
+                  <p className="text-xs text-muted-foreground">Leave empty for unlimited</p>
+                </div>
+
+                {/* Expiration Days */}
+                <div className="space-y-2">
+                  <Label htmlFor="expirationDays">Expiration Days</Label>
+                  <Input
+                    id="expirationDays"
+                    type="number"
+                    value={formData.expirationDays || ''}
+                    onChange={(e) => setFormData({ ...formData, expirationDays: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="No expiration"
+                  />
+                  <p className="text-xs text-muted-foreground">Leave empty for no expiration</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Offer Duration */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Offer Duration</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Offer Start Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="offerStartDate">Offer Start Date</Label>
+                  <Input
+                    id="offerStartDate"
+                    type="datetime-local"
+                    value={formData.offerStartDate ? new Date(formData.offerStartDate).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setFormData({ ...formData, offerStartDate: e.target.value ? e.target.value : null })}
+                  />
+                </div>
+
+                {/* Offer End Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="offerEndDate">Offer End Date</Label>
+                  <Input
+                    id="offerEndDate"
+                    type="datetime-local"
+                    value={formData.offerEndDate ? new Date(formData.offerEndDate).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setFormData({ ...formData, offerEndDate: e.target.value ? e.target.value : null })}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
