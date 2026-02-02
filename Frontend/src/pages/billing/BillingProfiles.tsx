@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Settings, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Settings, RotateCcw, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getProfiles,
@@ -12,6 +12,7 @@ import {
   deleteProfile,
   restoreProfile,
   toggleActive,
+  reorderProfiles,
   type BillingProfile,
   type CreateBillingProfileRequest,
   type BillingProfileWallet,
@@ -72,6 +73,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { cn } from '../../lib/utils';
 import { getIconComponent } from '@/utils/iconColorHelper';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const walletIconOptions = [
   { value: 'Wallet', label: 'Wallet', Icon: Wallet },
@@ -87,6 +92,42 @@ const colorOptions = [
   { value: '#ef4444', label: 'Red' },
   { value: '#06b6d4', label: 'Cyan' },
 ];
+
+interface SortableRowProps {
+  profile: BillingProfile;
+  columnOrder: string[];
+  renderTableCell: (column: string, profile: BillingProfile) => React.ReactNode;
+}
+
+function SortableRow({ profile, columnOrder, renderTableCell }: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: profile.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className="border-b">
+      <TableCell className="h-12 px-2 w-12">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </div>
+      </TableCell>
+      {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map(column => renderTableCell(column, profile))}
+      {renderTableCell('actions', profile)}
+    </TableRow>
+  );
+}
+
 
 export default function BillingProfiles() {
   const { id } = useParams<{ id: string }>();
@@ -416,6 +457,43 @@ export default function BillingProfiles() {
       toast.error(error?.response?.data?.error || 'Failed to update billing profile status');
     },
   });
+
+  const reorderMutation = useMutation({
+    mutationFn: reorderProfiles,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing-profiles'] });
+      toast.success('Profiles reordered successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Failed to reorder profiles');
+    },
+  });
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = activeProfiles.findIndex((p: BillingProfile) => p.id === active.id);
+      const newIndex = activeProfiles.findIndex((p: BillingProfile) => p.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newProfiles = arrayMove(activeProfiles, oldIndex, newIndex);
+        const reorderData = newProfiles.map((profile: BillingProfile, index: number) => ({
+          id: profile.id,
+          priority: index + 1
+        }));
+        reorderMutation.mutate(reorderData);
+      }
+    }
+  };
 
   // Handler functions
   const handleSort = useCallback((field: string) => {
@@ -1074,6 +1152,9 @@ export default function BillingProfiles() {
                 <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                   <TableHeader className="sticky top-0 bg-muted z-10">
                     <TableRow>
+                      <TableHead className="h-12 px-2 w-12">
+                        <Skeleton className="h-4 w-5" />
+                      </TableHead>
                       {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map((col) => (
                         <TableHead key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths]}px` }}>
                           <Skeleton className="h-4 w-20" />
@@ -1087,6 +1168,9 @@ export default function BillingProfiles() {
                   <TableBody>
                     {Array.from({ length: 10 }).map((_, i) => (
                       <TableRow key={i}>
+                        <TableCell className="h-12 px-2 w-12">
+                          <Skeleton className="h-5 w-5" />
+                        </TableCell>
                         {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map((col) => (
                           <TableCell key={col} className="h-12 px-4" style={{ width: `${columnWidths[col as keyof typeof columnWidths]}px` }}>
                             <Skeleton className="h-4 w-full" />
@@ -1128,36 +1212,36 @@ export default function BillingProfiles() {
                       </div>
                     </div>
                   )}
-                  <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
-                    <TableHeader className="sticky top-0 bg-muted z-10">
-                      <TableRow className="hover:bg-muted">
-                        {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map(column => renderColumnHeader(column))}
-                        {renderColumnHeader('actions')}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody style={{ height: `${rowVirtualizerActive.getTotalSize()}px`, position: 'relative' }}>
-                      {rowVirtualizerActive.getVirtualItems().map((virtualRow) => {
-                        const profile = activeProfiles[virtualRow.index];
-                        return (
-                          <TableRow 
-                            key={profile.id}
-                            className="border-b"
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: `${virtualRow.size}px`,
-                              transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                          >
-                            {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map(column => renderTableCell(column, profile))}
-                            {renderTableCell('actions', profile)}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                      <TableHeader className="sticky top-0 bg-muted z-10">
+                        <TableRow className="hover:bg-muted">
+                          <TableHead className="h-12 px-2 w-12"></TableHead>
+                          {columnOrder.filter(col => col !== 'deletedAt' && col !== 'deletedBy').map(column => renderColumnHeader(column))}
+                          {renderColumnHeader('actions')}
+                        </TableRow>
+                      </TableHeader>
+                      <SortableContext
+                        items={activeProfiles.map((p: BillingProfile) => p.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <TableBody>
+                          {activeProfiles.map((profile: BillingProfile) => (
+                            <SortableRow
+                              key={profile.id}
+                              profile={profile}
+                              columnOrder={columnOrder}
+                              renderTableCell={renderTableCell}
+                            />
+                          ))}
+                        </TableBody>
+                      </SortableContext>
+                    </Table>
+                  </DndContext>
                 </div>
               </>
             )

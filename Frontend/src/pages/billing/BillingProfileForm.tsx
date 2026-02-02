@@ -859,18 +859,6 @@ export default function BillingProfileForm() {
                 />
                 <Label htmlFor="requiresApproval" className="cursor-pointer">Requires Approval</Label>
               </div>
-
-              {/* Priority */}
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority (Display Order)</Label>
-                <Input
-                  id="priority"
-                  type="number"
-                  value={formData.priority || ''}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })}
-                  placeholder="1, 2, 3..."
-                />
-              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">

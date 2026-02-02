@@ -149,3 +149,7 @@ export const toggleActive = async (id: number): Promise<BillingProfile> => {
   const response = await apiClient.post(`/api/billingprofile/${id}/toggle-active`);
   return response.data;
 };
+
+export const reorderProfiles = async (items: { id: number; priority: number }[]): Promise<void> => {
+  await apiClient.post('/api/billingprofile/reorder', items);
+};

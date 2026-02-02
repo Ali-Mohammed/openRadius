@@ -104,7 +104,8 @@ public class BillingProfileController : ControllerBase
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
             var profiles = await query
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderBy(p => p.Priority ?? int.MaxValue)
+                .ThenByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => new
@@ -502,6 +503,37 @@ public class BillingProfileController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while restoring the billing profile" });
         }
     }
+
+    // POST: api/billingprofile/reorder
+    [HttpPost("reorder")]
+    public async Task<IActionResult> ReorderProfiles([FromBody] List<ReorderProfileRequest> items)
+    {
+        try
+        {
+            foreach (var item in items)
+            {
+                var profile = await _context.BillingProfiles.FindAsync(item.Id);
+                if (profile != null)
+                {
+                    profile.Priority = item.Priority;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reordering billing profiles");
+            return StatusCode(500, new { error = "An error occurred while reordering profiles" });
+        }
+    }
+}
+
+public class ReorderProfileRequest
+{
+    public int Id { get; set; }
+    public int Priority { get; set; }
 }
 
 // Request DTOs
