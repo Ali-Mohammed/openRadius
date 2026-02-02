@@ -101,7 +101,7 @@ public class ApplicationDbContext : DbContext
             typeof(RadiusIpReservation), typeof(RadiusNas), typeof(Transaction),
             typeof(TransactionComment), typeof(UserCashback), typeof(UserWallet),
             typeof(UserZone), typeof(WalletHistory), typeof(WorkflowHistory), typeof(Zone),
-            typeof(BillingGroupUser), typeof(SubAgentCashback)
+            typeof(BillingGroupUser), typeof(SubAgentCashback), typeof(BillingProfileUser)
         };
 
         foreach (var entityType in entityTypes)
@@ -415,15 +415,8 @@ public class ApplicationDbContext : DbContext
                   .HasForeignKey(e => e.BillingProfileId)
                   .OnDelete(DeleteBehavior.Cascade);
             
-            entity.HasOne(e => e.User)
-                  .WithMany()
-                  .HasForeignKey(e => e.UserId)
-                  .OnDelete(DeleteBehavior.Restrict);
-            
-            entity.HasOne(e => e.AssignedByUser)
-                  .WithMany()
-                  .HasForeignKey(e => e.AssignedBy)
-                  .OnDelete(DeleteBehavior.SetNull);
+            // UserId and AssignedBy reference User table in MasterDbContext
+            // No foreign key constraint, navigation properties are ignored via modelBuilder.Ignore<User>()
         });
 
         modelBuilder.Entity<RadiusProfileWallet>(entity =>
