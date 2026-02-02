@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, ArrowLeft, Wallet, Package, DollarSign } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Wallet, Package, DollarSign, Search, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -33,6 +33,9 @@ import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../../components/ui/command';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Badge } from '../../components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { cn } from '../../lib/utils';
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper';
 
@@ -78,6 +81,10 @@ export default function BillingProfileForm() {
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false);
   const [selectAllGroups, setSelectAllGroups] = useState(false);
   const [focusedPriceInput, setFocusedPriceInput] = useState(false);
+  const [assignmentMode, setAssignmentMode] = useState<'groups' | 'users'>('groups');
+  const [selectedDirectUsers, setSelectedDirectUsers] = useState<number[]>([]);
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
 
   const [wallets, setWallets] = useState<BillingProfileWallet[]>([]);
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
@@ -212,15 +219,22 @@ export default function BillingProfileForm() {
       return;
     }
 
-    if (!selectAllGroups && selectedBillingGroups.length === 0) {
-      toast.error('Please select at least one billing group or choose "All Groups"');
-      return;
+    if (assignmentMode === 'groups') {
+      if (!selectAllGroups && selectedBillingGroups.length === 0) {
+        toast.error('Please select at least one billing group or choose "All Groups"');
+        return;
+      }
+    } else {
+      if (selectedDirectUsers.length === 0) {
+        toast.error('Please select at least one user');
+        return;
+      }
     }
 
     const submitData: CreateBillingProfileRequest = {
       ...formData,
       radiusProfileId: selectedRadiusProfiles[0]?.profileId || 0,
-      billingGroupId: selectAllGroups ? 0 : selectedBillingGroups[0] || 0,
+      billingGroupId: assignmentMode === 'groups' ? (selectAllGroups ? 0 : selectedBillingGroups[0] || 0) : 0,
       wallets: wallets.map(w => ({
         walletType: w.walletType,
         userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,
@@ -333,134 +347,238 @@ export default function BillingProfileForm() {
           </CardContent>
         </Card>
 
-        {/* Billing Groups Configuration */}
+        {/* Billing Groups / Users Configuration */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Billing Groups *</CardTitle>
+              <div className="flex-1">
+                <CardTitle>Assignment *</CardTitle>
                 <CardDescription>
-                  Select billing groups or choose "All Groups"
+                  Assign this profile to billing groups or specific users
                 </CardDescription>
               </div>
-              <Popover open={billingGroupPopoverOpen} onOpenChange={setBillingGroupPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" disabled={isLoadingBillingGroups || selectAllGroups}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Group
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search billing groups..." />
-                    <CommandEmpty>No billing group found.</CommandEmpty>
-                    <CommandGroup className="max-h-64 overflow-auto">
-                      <CommandItem
-                        value="all-groups"
-                        onSelect={() => {
-                          setSelectAllGroups(true);
-                          setSelectedBillingGroups([]);
-                          setBillingGroupPopoverOpen(false);
-                        }}
-                      >
-                        <strong>All Groups</strong>
-                      </CommandItem>
-                      {billingGroupsData?.data?.map((group: any) => (
-                        <CommandItem
-                          key={group.id}
-                          value={group.name}
-                          onSelect={() => {
-                            if (!selectedBillingGroups.includes(group.id)) {
-                              setSelectedBillingGroups(prev => [...prev, group.id]);
-                              setSelectAllGroups(false);
-                            }
-                            setBillingGroupPopoverOpen(false);
-                          }}
-                        >
-                          {group.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Tabs value={assignmentMode} onValueChange={(value: any) => {
+                setAssignmentMode(value);
+                if (value === 'groups') {
+                  setSelectedDirectUsers([]);
+                } else {
+                  setSelectedBillingGroups([]);
+                  setSelectAllGroups(false);
+                }
+              }}>
+                <TabsList>
+                  <TabsTrigger value="groups">Groups</TabsTrigger>
+                  <TabsTrigger value="users">Direct Users</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {selectAllGroups ? (
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium">All Groups</div>
-                      <div className="text-sm text-muted-foreground">
-                        This profile applies to all billing groups
+            {assignmentMode === 'groups' ? (
+              <>
+                <div className="flex justify-end">
+                  <Popover open={billingGroupPopoverOpen} onOpenChange={setBillingGroupPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" disabled={isLoadingBillingGroups || selectAllGroups}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Group
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search billing groups..." />
+                        <CommandEmpty>No billing group found.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
+                          <CommandItem
+                            value="all-groups"
+                            onSelect={() => {
+                              setSelectAllGroups(true);
+                              setSelectedBillingGroups([]);
+                              setBillingGroupPopoverOpen(false);
+                            }}
+                          >
+                            <strong>All Groups</strong>
+                          </CommandItem>
+                          {billingGroupsData?.data?.map((group: any) => (
+                            <CommandItem
+                              key={group.id}
+                              value={group.name}
+                              onSelect={() => {
+                                if (!selectedBillingGroups.includes(group.id)) {
+                                  setSelectedBillingGroups(prev => [...prev, group.id]);
+                                  setSelectAllGroups(false);
+                                }
+                                setBillingGroupPopoverOpen(false);
+                              }}
+                            >
+                              {group.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {selectAllGroups ? (
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">All Groups</div>
+                          <div className="text-sm text-muted-foreground">
+                            This profile applies to all billing groups
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectAllGroups(false)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectAllGroups(false)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {selectedBillingGroups.map((groupId) => {
+                      const group = billingGroupsData?.data?.find((g: any) => g.id === groupId);
+                      if (!group) return null;
+                      
+                      const groupUsers = usersData?.filter(user => 
+                        group.userIds?.includes(user.id)
+                      ) || [];
+                      
+                      return (
+                        <Card key={groupId}>
+                          <CardContent className="pt-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium">{group.name}</div>
+                                {group.description && (
+                                  <div className="text-sm text-muted-foreground mb-2">{group.description}</div>
+                                )}
+                                {groupUsers.length > 0 && (
+                                  <div className="text-xs text-muted-foreground mt-2">
+                                    <span className="font-medium">Users ({groupUsers.length}):</span>
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {groupUsers.slice(0, 5).map((user: any) => (
+                                        <span key={user.id} className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs">
+                                          {user.firstName} {user.lastName}
+                                        </span>
+                                      ))}
+                                      {groupUsers.length > 5 && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs">
+                                          +{groupUsers.length - 5} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedBillingGroups(prev => prev.filter(id => id !== groupId))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    {selectedBillingGroups.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No billing groups selected. Click "Add Group" to select a billing group or choose "All Groups".
+                      </p>
+                    )}
+                  </>
+                )}
+              </>
             ) : (
               <>
-                {selectedBillingGroups.map((groupId) => {
-                  const group = billingGroupsData?.data?.find((g: any) => g.id === groupId);
-                  if (!group) return null;
-                  
-                  const groupUsers = usersData?.filter(user => 
-                    group.userIds?.includes(user.id)
-                  ) || [];
-                  
-                  return (
-                    <Card key={groupId}>
-                      <CardContent className="pt-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium">{group.name}</div>
-                            {group.description && (
-                              <div className="text-sm text-muted-foreground mb-2">{group.description}</div>
-                            )}
-                            {groupUsers.length > 0 && (
-                              <div className="text-xs text-muted-foreground mt-2">
-                                <span className="font-medium">Users ({groupUsers.length}):</span>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {groupUsers.slice(0, 5).map((user: any) => (
-                                    <span key={user.id} className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs">
-                                      {user.firstName} {user.lastName}
-                                    </span>
-                                  ))}
-                                  {groupUsers.length > 5 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs">
-                                      +{groupUsers.length - 5} more
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedBillingGroups(prev => prev.filter(id => id !== groupId))}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                <div className="flex justify-end">
+                  <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen} modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm">
+                        <Users className="h-4 w-4 mr-2" />
+                        {selectedDirectUsers.length === 0
+                          ? 'Select users'
+                          : `${selectedDirectUsers.length} user${selectedDirectUsers.length > 1 ? 's' : ''} selected`}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
+                      <div className="flex flex-col gap-2 p-4">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            placeholder="Search users..."
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            className="pl-9"
+                          />
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-                {selectedBillingGroups.length === 0 && (
+                        <div className="max-h-60 overflow-y-auto overscroll-contain">
+                          {usersData?.filter(user =>
+                            user.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                            `${user.firstName} ${user.lastName}`.toLowerCase().includes(userSearch.toLowerCase())
+                          ).map((user) => (
+                            <div
+                              key={user.id}
+                              className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
+                              onMouseDown={(e) => e.preventDefault()}
+                            >
+                              <Checkbox
+                                id={`direct-user-${user.id}`}
+                                checked={selectedDirectUsers.includes(user.id)}
+                                onCheckedChange={() => {
+                                  setSelectedDirectUsers(prev =>
+                                    prev.includes(user.id)
+                                      ? prev.filter(id => id !== user.id)
+                                      : [...prev, user.id]
+                                  );
+                                }}
+                              />
+                              <label
+                                htmlFor={`direct-user-${user.id}`}
+                                className="flex-1 cursor-pointer text-sm"
+                              >
+                                <div className="font-medium">
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {user.email}
+                                </div>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {selectedDirectUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {usersData?.filter(user => selectedDirectUsers.includes(user.id)).map((user) => (
+                      <Badge key={user.id} variant="secondary" className="gap-1">
+                        {user.firstName} {user.lastName}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDirectUsers(prev => prev.filter(id => id !== user.id))}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {selectedDirectUsers.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No billing groups selected. Click "Add Group" to select a billing group or choose "All Groups".
+                    No users selected. Click the button above to select users.
                   </p>
                 )}
               </>

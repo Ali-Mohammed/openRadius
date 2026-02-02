@@ -60,6 +60,26 @@ public class BillingProfile
     public virtual ICollection<BillingProfileWallet> ProfileWallets { get; set; } = new List<BillingProfileWallet>();
     [JsonIgnore]
     public virtual ICollection<BillingProfileAddon> ProfileAddons { get; set; } = new List<BillingProfileAddon>();
+    [JsonIgnore]
+    public virtual ICollection<BillingProfileUser> ProfileUsers { get; set; } = new List<BillingProfileUser>();
+}
+
+// Direct user assignment for billing profile
+public class BillingProfileUser
+{
+    public int Id { get; set; }
+    public int BillingProfileId { get; set; }
+    public int UserId { get; set; }
+    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+    public int? AssignedBy { get; set; }
+    
+    [JsonIgnore]
+    public virtual BillingProfile BillingProfile { get; set; } = null!;
+    [JsonIgnore]
+    public virtual User User { get; set; } = null!;
+    [JsonIgnore]
+    [ForeignKey(nameof(AssignedBy))]
+    public virtual User? AssignedByUser { get; set; }
 }
 
 // Wallet configuration for billing profile

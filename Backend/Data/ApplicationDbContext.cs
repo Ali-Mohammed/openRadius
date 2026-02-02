@@ -57,6 +57,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BillingProfile> BillingProfiles { get; set; }
     public DbSet<BillingProfileWallet> BillingProfileWallets { get; set; }
     public DbSet<BillingProfileAddon> BillingProfileAddons { get; set; }
+    public DbSet<BillingProfileUser> BillingProfileUsers { get; set; }
     public DbSet<TablePreference> TablePreferences { get; set; }
     public DbSet<Zone> Zones { get; set; }
     public DbSet<UserZone> UserZones { get; set; }
@@ -402,6 +403,27 @@ public class ApplicationDbContext : DbContext
                   .WithMany(p => p.ProfileAddons)
                   .HasForeignKey(e => e.BillingProfileId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BillingProfileUser>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.BillingProfileId, e.UserId }).IsUnique();
+            
+            entity.HasOne(e => e.BillingProfile)
+                  .WithMany(p => p.ProfileUsers)
+                  .HasForeignKey(e => e.BillingProfileId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.HasOne(e => e.AssignedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.AssignedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<RadiusProfileWallet>(entity =>

@@ -337,6 +337,20 @@ public class BillingProfileController : ControllerBase
                 _context.BillingProfileAddons.AddRange(addons);
             }
 
+            // Add direct user assignments
+            if (request.UserIds != null && request.UserIds.Any())
+            {
+                var profileUsers = request.UserIds.Select(userId => new BillingProfileUser
+                {
+                    BillingProfileId = profile.Id,
+                    UserId = userId,
+                    AssignedAt = DateTime.UtcNow,
+                    AssignedBy = User.GetSystemUserId()
+                }).ToList();
+
+                _context.BillingProfileUsers.AddRange(profileUsers);
+            }
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetProfile), new { id = profile.Id }, profile);
@@ -544,6 +558,7 @@ public class CreateBillingProfileRequest
     public decimal? Price { get; set; }
     public int RadiusProfileId { get; set; }
     public int BillingGroupId { get; set; }
+    public List<int>? UserIds { get; set; } // Direct user assignment
     public List<WalletConfigRequest>? Wallets { get; set; }
     public List<AddonConfigRequest>? Addons { get; set; }
     
@@ -568,6 +583,7 @@ public class UpdateBillingProfileRequest
     public decimal? Price { get; set; }
     public int RadiusProfileId { get; set; }
     public int BillingGroupId { get; set; }
+    public List<int>? UserIds { get; set; } // Direct user assignment
     public List<WalletConfigRequest>? Wallets { get; set; }
     public List<AddonConfigRequest>? Addons { get; set; }
     
