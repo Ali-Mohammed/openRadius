@@ -1710,6 +1710,44 @@ export default function WorkspaceSettings() {
               )}
             </div>
 
+            {/* Live Sessions Data Source */}
+            <div className="p-4 border-2 border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-900">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-semibold">Use SAS4 for Live Sessions</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Pull live sessions data from SAS4 instead of internal OpenRadius system
+                  </p>
+                </div>
+                <Switch
+                  checked={selectedIntegrationForWebhook?.useSas4ForLiveSessions || false}
+                  onCheckedChange={async (checked) => {
+                    if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) {
+                      toast.error('No integration selected')
+                      return
+                    }
+                    try {
+                      const updated = {
+                        ...selectedIntegrationForWebhook,
+                        useSas4ForLiveSessions: checked
+                      };
+                      await sasRadiusApi.update(
+                        Number(currentWorkspaceId),
+                        selectedIntegrationForWebhook.id,
+                        updated
+                      )
+                      queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] })
+                      setSelectedIntegrationForWebhook(updated)
+                      toast.success(checked ? 'Using SAS4 for live sessions' : 'Using internal system for live sessions')
+                    } catch (error) {
+                      toast.error(formatApiError(error) || 'Failed to update setting')
+                    }
+                  }}
+                  disabled={!selectedIntegrationForWebhook?.isActive}
+                />
+              </div>
+            </div>
+
             {/* Enable Callback Toggle */}
             <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
               <div className="flex items-center justify-between">

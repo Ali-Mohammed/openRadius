@@ -24,6 +24,7 @@ export interface SasRadiusIntegration {
   syncOnlineUsers?: boolean
   syncOnlineUsersIntervalMinutes?: number
   sessionSyncRecordsPerPage?: number
+  useSas4ForLiveSessions?: boolean
   workspaceId?: number
   createdAt?: string
   updatedAt?: string
