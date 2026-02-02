@@ -134,10 +134,20 @@ export default function BillingProfileForm() {
       setWallets(existingProfile.wallets || []);
       setSelectedRadiusProfiles([{profileId: existingProfile.radiusProfileId, number: 1}]);
       
-      // Check if "All Groups" is selected (billingGroupId === 0 or null)
-      const isAllGroups = existingProfile.billingGroupId === 0 || existingProfile.billingGroupId === null;
-      setSelectAllGroups(isAllGroups);
-      setSelectedBillingGroups(isAllGroups ? [] : [existingProfile.billingGroupId]);
+      // Check if this profile has direct user assignments
+      if (existingProfile.userIds && existingProfile.userIds.length > 0) {
+        setAssignmentMode('users');
+        setSelectedDirectUsers(existingProfile.userIds);
+        setSelectedBillingGroups([]);
+        setSelectAllGroups(false);
+      } else {
+        // Check if "All Groups" is selected (billingGroupId === 0 or null)
+        const isAllGroups = existingProfile.billingGroupId === 0 || existingProfile.billingGroupId === null;
+        setAssignmentMode('groups');
+        setSelectAllGroups(isAllGroups);
+        setSelectedBillingGroups(isAllGroups ? [] : [existingProfile.billingGroupId]);
+        setSelectedDirectUsers([]);
+      }
       
       setSelectedAddons(
         existingProfile.addons?.map(a => ({ addonId: a.id!, price: a.price, number: 1 })) || []
@@ -235,6 +245,7 @@ export default function BillingProfileForm() {
       ...formData,
       radiusProfileId: selectedRadiusProfiles[0]?.profileId || 0,
       billingGroupId: assignmentMode === 'groups' ? (selectAllGroups ? 0 : selectedBillingGroups[0] || 0) : 0,
+      userIds: assignmentMode === 'users' ? selectedDirectUsers : undefined,
       wallets: wallets.map(w => ({
         walletType: w.walletType,
         userWalletId: w.walletType === 'user' ? w.userWalletId : undefined,

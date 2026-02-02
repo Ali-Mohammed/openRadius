@@ -32,6 +32,7 @@ export interface BillingProfile {
   deletedAt?: string;
   createdAt: string;
   updatedAt?: string;
+  userIds?: number[]; // Direct user assignments
   wallets: BillingProfileWallet[];
   addons: BillingProfileAddon[];
   
@@ -57,6 +58,7 @@ export interface CreateBillingProfileRequest {
   radiusProfileId: number;
   billingGroupId: number;
   isActive?: boolean;
+  userIds?: number[]; // Direct user assignments
   wallets?: BillingProfileWallet[];
   addons?: BillingProfileAddon[];
   
@@ -81,6 +83,7 @@ export interface UpdateBillingProfileRequest {
   radiusProfileId: number;
   billingGroupId: number;
   isActive?: boolean;
+  userIds?: number[]; // Direct user assignments
   wallets?: BillingProfileWallet[];
   addons?: BillingProfileAddon[];
   
