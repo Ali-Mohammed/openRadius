@@ -65,21 +65,69 @@ export function SessionsTab({ userId }: SessionsTabProps) {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>User Sessions</CardTitle>
-              <CardDescription>Loading session data...</CardDescription>
-            </div>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <CardTitle>User Sessions</CardTitle>
+            <Skeleton className="h-8 w-8" />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-32" />
+          {/* Table Skeleton */}
+          <div className="rounded-md border">
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="w-[180px]"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="w-[180px]"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="w-[120px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="w-[90px]"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="w-[130px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="text-right w-[110px]"><Skeleton className="h-4 w-20 ml-auto" /></TableHead>
+                    <TableHead className="text-right w-[110px]"><Skeleton className="h-4 w-20 ml-auto" /></TableHead>
+                    <TableHead className="w-[140px]"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="w-[120px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="w-[180px]"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="w-[140px]"><Skeleton className="h-4 w-28" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-          <Skeleton className="h-[400px] w-full" />
+          
+          {/* Pagination Skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-8 w-[110px]" />
+            </div>
+            <div className="flex items-center gap-1">
+              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-8 w-8" />
+            </div>
+          </div>
         </CardContent>
       </Card>
     )

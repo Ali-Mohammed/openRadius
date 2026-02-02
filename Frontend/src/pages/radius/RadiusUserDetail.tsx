@@ -36,9 +36,7 @@ export default function RadiusUserDetail() {
   // Update breadcrumb when user data is loaded
   useEffect(() => {
     if (user) {
-      const username = user.firstname && user.lastname 
-        ? `${user.firstname} ${user.lastname}` 
-        : user.username || user.email || `User #${user.id}`
+      const username = user.username || user.email || `User #${user.id}`
       
       const breadcrumbElement = document.getElementById('user-detail-breadcrumb')
       if (breadcrumbElement) {
