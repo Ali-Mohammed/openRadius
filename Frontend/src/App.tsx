@@ -116,6 +116,7 @@ function App() {
                           <Route path="/radius/profiles" element={<RadiusProfiles />} />
                           <Route path="/radius/users" element={<RadiusUsers />} />
                           <Route path="/radius/users/:id" element={<RadiusUserDetail />} />
+                          <Route path="/radius/users/:id/:tab" element={<RadiusUserDetail />} />
                           <Route path="/radius/groups" element={<RadiusGroups />} />
                           <Route path="/radius/tags" element={<RadiusTags />} />
                           <Route path="/radius/nas" element={<RadiusNas />} />
