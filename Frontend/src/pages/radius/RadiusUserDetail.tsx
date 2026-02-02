@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { radiusUserApi } from '@/api/radiusUserApi'
@@ -71,37 +69,10 @@ export default function RadiusUserDetail() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto">
       {/* Hidden element for breadcrumb */}
       <span id="user-detail-breadcrumb" className="hidden"></span>
       
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/radius/users')}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {user.firstname && user.lastname 
-                ? `${user.firstname} ${user.lastname}` 
-                : user.username || user.email || `User #${user.id}`}
-            </h1>
-            <p className="text-muted-foreground">
-              {user.email || user.username}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={user.enabled ? 'default' : 'secondary'}>
-            {user.enabled ? 'Active' : 'Inactive'}
-          </Badge>
-        </div>
-      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => navigate(`/radius/users/${id}/${value}`)}>
@@ -129,7 +100,7 @@ export default function RadiusUserDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Username</p>
-                  <p className="text-sm">{user.username || '-'}</p>
+                  <p className="text-sm font-bold text-primary">{user.username || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Email</p>
@@ -149,7 +120,9 @@ export default function RadiusUserDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <p className="text-sm">{user.enabled ? 'Active' : 'Inactive'}</p>
+                  <Badge variant={user.enabled ? 'default' : 'secondary'}>
+                    {user.enabled ? 'Active' : 'Inactive'}
+                  </Badge>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Profile</p>
