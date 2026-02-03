@@ -2178,6 +2178,7 @@ export default function RadiusUsers() {
                       value={formData.username}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       placeholder="e.g., john.doe"
+                      disabled={!!editingUser}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -2269,6 +2270,7 @@ export default function RadiusUsers() {
                       searchPlaceholder={t('radiusUsers.searchProfile') || "Search profile..."}
                       emptyText={t('radiusUsers.noProfilesFound') || "No profiles found."}
                       modal={true}
+                      disabled={!!editingUser}
                     />
                   </div>
                   <div className="grid gap-2">
