@@ -22,11 +22,7 @@ import { radiusProfileApi } from '@/api/radiusProfileApi'
 import { radiusGroupApi } from '@/api/radiusGroupApi'
 import { radiusTagApi } from '@/api/radiusTagApi'
 import { radiusCustomAttributeApi, type RadiusCustomAttribute, type CreateRadiusCustomAttributeRequest } from '@/api/radiusCustomAttributeApi'
-import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
-import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
 import { zoneApi, type Zone } from '@/services/zoneApi'
-import userWalletApi from '@/api/userWallets'
-import { userCashbackApi } from '@/api/userCashbackApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -41,6 +37,7 @@ import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { settingsApi } from '@/api/settingsApi'
 import { QueryBuilder, type FilterGroup, type FilterColumn, filtersToQueryString } from '@/components/QueryBuilder'
 import { getIconComponent } from '@/utils/iconColorHelper'
+import { UserActivationDialog } from '@/components/UserActivationDialog'
 
 export default function RadiusUsers() {
   const { t, i18n } = useTranslation()
@@ -924,44 +921,7 @@ export default function RadiusUsers() {
   // Activation handlers
   const handleOpenActivation = (user: RadiusUser) => {
     setUserToActivate(user)
-    
-    // Auto-select billing profile based on user's current profile
-    let autoSelectedBillingProfileId = ''
-    
-    // First try to match by profileBillingId if user has one
-    if (user.profileBillingId) {
-      const matchedByBillingId = billingProfiles.find(
-        bp => bp.id === user.profileBillingId && bp.isActive
-      )
-      if (matchedByBillingId) {
-        autoSelectedBillingProfileId = matchedByBillingId.id.toString()
-      }
-    }
-    
-    // If no match by profileBillingId, try to match by profileId (radius profile)
-    if (!autoSelectedBillingProfileId && user.profileId) {
-      const matchedByProfileId = billingProfiles.find(
-        bp => bp.radiusProfileId === user.profileId && bp.isActive
-      )
-      if (matchedByProfileId) {
-        autoSelectedBillingProfileId = matchedByProfileId.id.toString()
-      }
-    }
-    
-    setActivationFormData({
-      billingProfileId: autoSelectedBillingProfileId,
-      paymentMethod: 'Wallet',
-      durationDays: '30',
-      notes: '',
-    })
-    // Reset on-behalf state
-    setIsOnBehalfActivation(false)
-    setApplyCashback(true)
-    setSelectedPayerWalletId('')
     setActivationDialogOpen(true)
-    
-    // Refetch wallet balance when dialog opens
-    refetchWallet()
   }
 
   const handleSubmitActivation = () => {
