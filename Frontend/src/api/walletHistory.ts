@@ -19,7 +19,8 @@ export interface WalletHistory {
   reason?: string
   reference?: string
   createdAt: string
-  createdBy?: string
+  createdBy?: number
+  currency?: string
 }
 
 export interface WalletHistoryFilters {

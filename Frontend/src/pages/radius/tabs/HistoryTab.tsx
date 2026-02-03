@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { userHistoryApi, type UserHistoryEvent } from '@/api/userHistoryApi'
 import { radiusActivationApi } from '@/api/radiusActivationApi'
-import { walletHistoryApi } from '@/api/walletHistoryApi'
+import walletHistoryApi from '@/api/walletHistory'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { formatDistance } from 'date-fns'
 
@@ -91,13 +91,13 @@ export function HistoryTab() {
         id: transaction.id,
         eventType: 'wallet_transaction',
         timestamp: transaction.createdAt,
-        performedBy: transaction.createdByUsername || 'System',
+        performedBy: transaction.userName || transaction.userEmail || 'System',
         performedFor: '',
         isOnBehalf: false,
-        description: `${transaction.transactionType} - ${transaction.amount} ${transaction.currency}`,
+        description: `${transaction.transactionType} - ${transaction.amount} ${transaction.currency || 'USD'}`,
         details: {
           amount: transaction.amount,
-          currency: transaction.currency,
+          currency: transaction.currency || 'USD',
           balanceBefore: transaction.balanceBefore,
           balanceAfter: transaction.balanceAfter,
           transactionType: transaction.transactionType,
