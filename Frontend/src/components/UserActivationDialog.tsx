@@ -14,7 +14,7 @@ import { type RadiusUser } from '@/api/radiusUserApi'
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
 import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
 import userWalletApi from '@/api/userWallets'
-import { cashbackApi } from '@/api/cashbackApi'
+import { userCashbackApi } from '@/api/userCashbackApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { formatApiError } from '@/utils/errorHandler'
 
