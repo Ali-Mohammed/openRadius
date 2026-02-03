@@ -150,8 +150,16 @@ export const radiusUserApi = {
     await apiClient.delete(`/api/radius/users/${id}`)
   },
 
+  deleteByUuid: async (uuid: string): Promise<void> => {
+    await apiClient.delete(`/api/radius/users/uuid/${uuid}`)
+  },
+
   restore: async (id: number): Promise<void> => {
     await apiClient.post(`/api/radius/users/${id}/restore`)
+  },
+
+  restoreByUuid: async (uuid: string): Promise<void> => {
+    await apiClient.post(`/api/radius/users/uuid/${uuid}/restore`)
   },
 
   getTrash: async (

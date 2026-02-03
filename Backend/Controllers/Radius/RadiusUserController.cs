@@ -1228,6 +1228,26 @@ public class RadiusUserController : ControllerBase
         return Ok(new { message = "Username changed successfully", username = user.Username });
     }
 
+    // DELETE: api/radius/users/uuid/{uuid}
+    [HttpDelete("uuid/{uuid:guid}")]
+    public async Task<IActionResult> DeleteUserByUuid(Guid uuid)
+    {
+        var user = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Uuid == uuid && !u.IsDeleted);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        user.IsDeleted = true;
+        user.DeletedAt = DateTime.UtcNow;
+        user.DeletedBy = User.GetSystemUserId();
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     // POST: api/radius/users/uuid/{uuid}/restore
     [HttpPost("uuid/{uuid:guid}/restore")]
     public async Task<IActionResult> RestoreUser(Guid uuid)

@@ -45,7 +45,7 @@ export default function RadiusUserDetail() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (userId: number) => radiusUserApi.delete(userId),
+    mutationFn: (uuid: string) => radiusUserApi.deleteByUuid(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
       toast.success('User deleted successfully')
@@ -57,8 +57,8 @@ export default function RadiusUserDetail() {
   })
 
   const handleDelete = () => {
-    if (user?.id) {
-      deleteMutation.mutate(user.id)
+    if (user?.uuid) {
+      deleteMutation.mutate(user.uuid)
       setDeleteDialogOpen(false)
     }
   }
@@ -70,7 +70,7 @@ export default function RadiusUserDetail() {
   // Update breadcrumb when user data is loaded
   useEffect(() => {
     if (user) {
-      const username = user.username || user.email || `User #${user.id}`
+      const username = user.username || user.email || user.uuid
       
       const breadcrumbElement = document.getElementById('user-detail-breadcrumb')
       if (breadcrumbElement) {
