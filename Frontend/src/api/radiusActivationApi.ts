@@ -60,6 +60,7 @@ export interface CreateRadiusActivationRequest {
   paymentMethod?: string
   durationDays?: number
   profileChangeType?: string
+  scheduledProfileChangeDate?: string
   source?: string
   notes?: string
   isActionBehalf?: boolean
