@@ -301,43 +301,12 @@ export default function RadiusUsers() {
     enabled: !!currentWorkspaceId,
   })
 
-  // Billing profiles query for activation
-  const { data: billingProfilesData } = useQuery({
-    queryKey: ['billing-profiles', currentWorkspaceId],
-    queryFn: () => getProfiles({ pageSize: 999999, isActive: true }),
-    enabled: !!currentWorkspaceId,
-  })
-
   const users = useMemo(() => usersData?.data || [], [usersData?.data])
   const pagination = usersData?.pagination
   const profiles = useMemo(() => profilesData?.data || [], [profilesData?.data])
   const tags = useMemo(() => tagsData || [], [tagsData])
   const zones = useMemo(() => zonesData || [], [zonesData])
-  const billingProfiles = useMemo(() => billingProfilesData?.data || [], [billingProfilesData?.data])
   const groups = useMemo(() => groupsData?.data || [], [groupsData?.data])
-
-  // Get selected billing profile for cashback calculation
-  const selectedBillingProfileForCashback = useMemo(() => {
-    if (!activationFormData.billingProfileId) return null
-    return billingProfilesData?.data?.find(bp => bp.id.toString() === activationFormData.billingProfileId)
-  }, [activationFormData.billingProfileId, billingProfilesData?.data])
-
-  // Calculate cashback for on-behalf activation (uses selected payer's userId)
-  const { data: payerCashbackData } = useQuery({
-    queryKey: ['cashback', 'calculate', 'payer', selectedPayerWallet?.userId, selectedBillingProfileForCashback?.id],
-    queryFn: () => userCashbackApi.calculateCashback(selectedPayerWallet!.userId!, selectedBillingProfileForCashback!.id),
-    enabled: !!selectedPayerWallet?.userId && !!selectedBillingProfileForCashback?.id && isOnBehalfActivation && activationDialogOpen,
-  })
-
-  // Calculate cashback for current user (when not on-behalf)
-  const { data: myUserCashbackData } = useQuery({
-    queryKey: ['cashback', 'calculate', 'my', myWallet?.userId, selectedBillingProfileForCashback?.id],
-    queryFn: () => userCashbackApi.calculateCashback(myWallet!.userId!, selectedBillingProfileForCashback!.id),
-    enabled: !!myWallet?.userId && !!selectedBillingProfileForCashback?.id && !isOnBehalfActivation && activationDialogOpen,
-  })
-
-  // Use the appropriate cashback data based on activation mode
-  const cashbackData = isOnBehalfActivation ? payerCashbackData : myUserCashbackData
 
   // Flatten zones for dropdown display
   const flatZones = useMemo(() => {
