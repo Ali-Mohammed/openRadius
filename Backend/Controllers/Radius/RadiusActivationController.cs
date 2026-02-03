@@ -1213,6 +1213,7 @@ public class RadiusActivationController : ControllerBase
                 TransactionId = transactionId,
                 DurationDays = 30, // Enforce 30 days
                 ProfileChangeType = request.ProfileChangeType,
+                ScheduledProfileChangeDate = request.ScheduledProfileChangeDate,
                 Source = request.Source ?? "web",
                 IpAddress = ipAddress,
                 UserAgent = userAgent,

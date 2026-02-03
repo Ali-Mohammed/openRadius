@@ -130,6 +130,9 @@ public class RadiusActivation
     [MaxLength(20)]
     public string? ProfileChangeType { get; set; }
 
+    // Scheduled date for profile change (used when ProfileChangeType = OnExpiration)
+    public DateTime? ScheduledProfileChangeDate { get; set; }
+
     // Source of activation: web, api, auto_renew, admin, bulk, import
     [MaxLength(50)]
     public string? Source { get; set; }
@@ -207,6 +210,7 @@ public class RadiusActivationResponse
     public string? PaymentMethod { get; set; }
     public int? DurationDays { get; set; }
     public string? ProfileChangeType { get; set; }
+    public DateTime? ScheduledProfileChangeDate { get; set; }
     public string? Source { get; set; }
     public string? IpAddress { get; set; }
     public string? Notes { get; set; }
@@ -231,6 +235,7 @@ public class CreateRadiusActivationRequest
     public string? PaymentMethod { get; set; }
     public int? DurationDays { get; set; }
     public string? ProfileChangeType { get; set; }
+    public DateTime? ScheduledProfileChangeDate { get; set; }
     public string? Source { get; set; }
     public string? Notes { get; set; }
     public bool IsActionBehalf { get; set; } = false;
