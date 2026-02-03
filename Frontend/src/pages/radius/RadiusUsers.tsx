@@ -228,20 +228,6 @@ export default function RadiusUsers() {
   // Activation dialog state
   const [activationDialogOpen, setActivationDialogOpen] = useState(false)
   const [userToActivate, setUserToActivate] = useState<RadiusUser | null>(null)
-  const [activationFormData, setActivationFormData] = useState({
-    billingProfileId: '',
-    paymentMethod: 'Wallet',
-    durationDays: '30',
-    notes: '',
-  })
-  const [confirmActivation, setConfirmActivation] = useState(false)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  
-  // On-behalf activation state
-  const [isOnBehalfActivation, setIsOnBehalfActivation] = useState(false)
-  const [applyCashback, setApplyCashback] = useState(true)
-  const [selectedPayerWalletId, setSelectedPayerWalletId] = useState<string>('')
-
 
   // Helper to get currency symbol
   const getCurrencySymbol = (currency?: string) => {
@@ -274,26 +260,6 @@ export default function RadiusUsers() {
     queryFn: () => settingsApi.getGeneralSettings(currentWorkspaceId!),
     enabled: !!currentWorkspaceId,
   })
-
-  // Get current user's wallet
-  const { data: myWallet, refetch: refetchWallet } = useQuery({
-    queryKey: ['my-wallet', currentWorkspaceId],
-    queryFn: () => userWalletApi.getMyWallet(),
-    enabled: !!currentWorkspaceId && activationDialogOpen,
-  })
-
-  // Get all user wallets for on-behalf activation payer selection
-  const { data: allUserWalletsData, isLoading: isLoadingUserWallets } = useQuery({
-    queryKey: ['all-user-wallets', currentWorkspaceId],
-    queryFn: () => userWalletApi.getAll({ pageSize: 999999 }),
-    enabled: !!currentWorkspaceId && activationDialogOpen,
-  })
-
-  // Get selected payer wallet details
-  const selectedPayerWallet = useMemo(() => {
-    if (!selectedPayerWalletId || !allUserWalletsData?.data) return null
-    return allUserWalletsData.data.find(w => w.id?.toString() === selectedPayerWalletId)
-  }, [selectedPayerWalletId, allUserWalletsData?.data])
 
   const currencySymbol = getCurrencySymbol(workspace?.currency)
 
