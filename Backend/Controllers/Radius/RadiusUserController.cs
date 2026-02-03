@@ -793,13 +793,13 @@ public class RadiusUserController : ControllerBase
         return Ok(new { field, suggestions });
     }
 
-    // GET: api/radius/users/{id}
-    [HttpGet("{id}")]
-    public async Task<ActionResult<RadiusUserResponse>> GetUser(int id)
+    // GET: api/radius/users/uuid/{uuid}
+    [HttpGet("uuid/{uuid}")]
+    public async Task<ActionResult<RadiusUserResponse>> GetUserByUuid(Guid uuid)
     {
         var user = await _context.RadiusUsers
             .Include(u => u.RadiusGroup)
-            .FirstOrDefaultAsync(u => u.Id == id);
+            .FirstOrDefaultAsync(u => u.Uuid == uuid);
 
         if (user == null)
         {
@@ -808,7 +808,7 @@ public class RadiusUserController : ControllerBase
 
         // Get IP reservation for this user
         var ipReservation = await _context.RadiusIpReservations
-            .Where(r => r.RadiusUserId == id && r.DeletedAt == null)
+            .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
             .FirstOrDefaultAsync();
 
         var response = new RadiusUserResponse
@@ -850,13 +850,13 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // GET: api/radius/users/uuid/{uuid}
-    [HttpGet("uuid/{uuid}")]
-    public async Task<ActionResult<RadiusUserResponse>> GetUserByUuid(Guid uuid)
+    // GET: api/radius/users/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<RadiusUserResponse>> GetUser(int id)
     {
         var user = await _context.RadiusUsers
             .Include(u => u.RadiusGroup)
-            .FirstOrDefaultAsync(u => u.Uuid == uuid);
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
@@ -865,7 +865,7 @@ public class RadiusUserController : ControllerBase
 
         // Get IP reservation for this user
         var ipReservation = await _context.RadiusIpReservations
-            .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
+            .Where(r => r.RadiusUserId == id && r.DeletedAt == null)
             .FirstOrDefaultAsync();
 
         var response = new RadiusUserResponse
