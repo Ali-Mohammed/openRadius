@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class SasActivationLog
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int IntegrationId { get; set; }
     public required string IntegrationName { get; set; }
     public int UserId { get; set; }

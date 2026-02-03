@@ -5,6 +5,7 @@ namespace Backend.Models
     public class CashbackGroup
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public required string Name { get; set; }
         public string? Icon { get; set; }
         public string? Color { get; set; }
@@ -36,6 +37,7 @@ namespace Backend.Models
     public class CashbackGroupResponse
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public string Name { get; set; } = string.Empty;
         public string? Icon { get; set; }
         public string? Color { get; set; }

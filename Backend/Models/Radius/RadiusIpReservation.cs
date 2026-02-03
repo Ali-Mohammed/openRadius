@@ -5,6 +5,7 @@ namespace Backend.Models
     public class RadiusIpReservation
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public required string IpAddress { get; set; }
         public string? Description { get; set; }
         public int? RadiusUserId { get; set; }
@@ -22,6 +23,7 @@ namespace Backend.Models
     public class RadiusIpReservationResponse
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public string IpAddress { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int? RadiusUserId { get; set; }

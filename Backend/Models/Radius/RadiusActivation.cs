@@ -7,6 +7,7 @@ public class RadiusActivation
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     // Who performed the action (user ID from master database)
     public int? ActionById { get; set; }
@@ -169,6 +170,7 @@ public class RadiusActivation
 public class RadiusActivationResponse
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int BillingActivationId { get; set; }
     public int? ActionById { get; set; }
     public string? ActionByUsername { get; set; }

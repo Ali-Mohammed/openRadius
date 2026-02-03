@@ -7,6 +7,7 @@ namespace Backend.Models.Payments
     {
         [Key]
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
         [Required]
         [MaxLength(50)]

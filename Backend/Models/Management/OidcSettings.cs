@@ -7,6 +7,7 @@ namespace Backend.Models;
 public class OidcSettings
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     
     /// <summary>
     /// Provider identifier (keycloak, azuread, google, local)
@@ -157,6 +158,7 @@ public class OidcSettingsDto
 public class OidcProviderDto
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string ProviderName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string? Description { get; set; }

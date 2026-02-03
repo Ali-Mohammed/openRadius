@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api';
 
 export interface UserCashback {
   id: number;
+  uuid: string;
   userId: number;
   billingProfileId: number;
   amount: number;
@@ -13,11 +14,13 @@ export interface UserCashback {
   deletedBy?: string;
   user?: {
     id: number;
+  uuid: string;
     username: string;
     email: string;
   };
   billingProfile?: {
     id: number;
+  uuid: string;
     name: string;
     price: number;
   };

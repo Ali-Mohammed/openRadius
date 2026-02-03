@@ -567,6 +567,7 @@ public class BillingProfileController : ControllerBase
 public class ReorderProfileRequest
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; }
     public int Priority { get; set; }
 }
 

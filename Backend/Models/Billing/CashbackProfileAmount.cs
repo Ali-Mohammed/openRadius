@@ -6,6 +6,7 @@ namespace Backend.Models
     public class CashbackProfileAmount
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public int CashbackGroupId { get; set; }
         public int BillingProfileId { get; set; }
         public decimal Amount { get; set; }

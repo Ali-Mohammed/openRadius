@@ -2,6 +2,7 @@ import { apiClient } from '../lib/api';
 
 export interface Automation {
   id: number;
+  uuid: string;
   title: string;
   description?: string;
   icon?: string;

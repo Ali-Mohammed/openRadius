@@ -5,6 +5,7 @@ namespace Backend.Models;
 public class WalletHistory
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     
     // Wallet type: 'custom' or 'user'
     public string WalletType { get; set; } = null!;

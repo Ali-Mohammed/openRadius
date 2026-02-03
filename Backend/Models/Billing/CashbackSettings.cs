@@ -6,6 +6,7 @@ namespace Backend.Models;
 public class CashbackSettings
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     
     /// <summary>
     /// Transaction type: "Instant" or "Collected"

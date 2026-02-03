@@ -13,6 +13,7 @@ public class ApprovedMicroservice
     [Key]
     [Column("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// The unique service identifier (e.g., "RadiusSyncService").

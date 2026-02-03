@@ -34,6 +34,7 @@ export interface WalletBalance {
 
 export interface PaymentLog {
   id: number;
+  uuid: string;
   transactionId: string;
   gateway: string;
   amount: number;

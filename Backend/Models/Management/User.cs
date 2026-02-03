@@ -5,6 +5,7 @@ namespace Backend.Models;
 public class User
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Email { get; set; } = string.Empty;
     public string? Username { get; set; }
     public string FirstName { get; set; } = string.Empty;
@@ -49,6 +50,7 @@ public class User
 public class Role
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Icon { get; set; }
@@ -64,6 +66,7 @@ public class Role
 public class Group
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Icon { get; set; }
@@ -78,6 +81,7 @@ public class Group
 public class Permission
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string Category { get; set; } = "General"; // e.g., "Users", "Workspaces", "RADIUS", "Reports"

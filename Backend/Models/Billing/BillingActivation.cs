@@ -11,6 +11,7 @@ public class BillingActivation
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     // Navigation property - collection of RADIUS activations linked to this billing activation
     public ICollection<RadiusActivation> RadiusActivations { get; set; } = new List<RadiusActivation>();

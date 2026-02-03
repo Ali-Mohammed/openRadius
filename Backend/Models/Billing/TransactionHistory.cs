@@ -3,6 +3,7 @@ namespace Backend.Models
     public class TransactionHistory
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public int TransactionId { get; set; }
         public string Action { get; set; } = string.Empty; // Created, Updated, Deleted, Restored
         public string? Changes { get; set; } // JSON string of changes

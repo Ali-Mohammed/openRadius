@@ -5,6 +5,7 @@ namespace Backend.Models;
 public class UserWallet
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int UserId { get; set; }
     public int? CustomWalletId { get; set; }
     

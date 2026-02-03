@@ -5,6 +5,7 @@ namespace Backend.Models
     public class TransactionComment
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public int TransactionId { get; set; }
         public string Comment { get; set; } = string.Empty;
         public string? Tags { get; set; } // JSON array of tags

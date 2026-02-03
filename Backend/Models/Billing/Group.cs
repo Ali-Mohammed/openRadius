@@ -6,6 +6,7 @@ namespace Backend.Models;
 public class BillingGroup
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Icon { get; set; }

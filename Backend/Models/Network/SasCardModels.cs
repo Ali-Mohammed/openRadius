@@ -91,6 +91,7 @@ public class SasOwnerDetails
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("username")]
     public string? Username { get; set; }
@@ -100,6 +101,7 @@ public class SasAddonDetails
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("name")]
     public string? Name { get; set; }
@@ -152,6 +154,7 @@ public class SasCardPinData
 
     [JsonPropertyName("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("pin")]
     public string? Pin { get; set; }
@@ -182,6 +185,7 @@ public class SasManagerDetails
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("username")]
     public string? Username { get; set; }
@@ -191,6 +195,7 @@ public class SasUserDetails
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("username")]
     public string? Username { get; set; }

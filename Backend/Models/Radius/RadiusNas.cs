@@ -12,6 +12,7 @@ namespace Backend.Models
         /// Primary key for the NAS record
         /// </summary>
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
         /// <summary>
         /// IP address or hostname of the NAS device

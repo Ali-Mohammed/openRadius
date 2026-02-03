@@ -318,5 +318,6 @@ public class CustomWalletController : ControllerBase
 public class WalletSortOrder
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; }
     public int SortOrder { get; set; }
 }

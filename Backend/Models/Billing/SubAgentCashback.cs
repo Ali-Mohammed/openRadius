@@ -11,6 +11,7 @@ public class SubAgentCashback
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// The supervisor (agent) who is setting the cashback for their sub-agent

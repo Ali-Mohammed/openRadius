@@ -7,6 +7,7 @@ public class Dashboard
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [Required]
     [StringLength(255)]
@@ -39,6 +40,7 @@ public class DashboardTab
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [Required]
     public int DashboardId { get; set; }
@@ -62,6 +64,7 @@ public class DashboardItem
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [Required]
     public int TabId { get; set; }
@@ -99,6 +102,7 @@ public class DashboardGlobalFilter
 {
     [Key]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [Required]
     public int DashboardId { get; set; }

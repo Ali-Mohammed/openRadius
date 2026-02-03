@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class DebeziumConnector
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string ConnectorClass { get; set; } = string.Empty;
     public string DatabaseHostname { get; set; } = string.Empty;

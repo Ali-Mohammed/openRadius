@@ -8,6 +8,7 @@ namespace Backend.Models;
 public class RadiusGroup
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int? ExternalId { get; set; } // SAS Reference ID for syncing
     public required string Name { get; set; }
     public string? Description { get; set; }
@@ -35,6 +36,7 @@ public class RadiusGroup
 public class RadiusGroupResponse
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int? ExternalId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }

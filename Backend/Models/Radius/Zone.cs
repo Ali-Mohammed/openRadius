@@ -6,6 +6,7 @@ namespace Backend.Models;
 public class Zone
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Color { get; set; }
@@ -51,6 +52,7 @@ public class Zone
 public class UserZone
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int UserId { get; set; } // System user ID (from Users table)
     public int ZoneId { get; set; }
     
@@ -87,6 +89,7 @@ public class ZoneUpdateDto
 public class ZoneResponse
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public string? Color { get; set; }

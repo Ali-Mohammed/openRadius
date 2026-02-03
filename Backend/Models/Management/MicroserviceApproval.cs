@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class MicroserviceApproval
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string ServiceName { get; set; } = string.Empty;
     public string MachineId { get; set; } = string.Empty;
     public string ApprovalToken { get; set; } = string.Empty;

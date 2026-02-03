@@ -22,6 +22,7 @@ export interface BillingProfileAddon {
 
 export interface BillingProfile {
   id: number;
+  uuid: string;
   name: string;
   description?: string;
   price?: number;

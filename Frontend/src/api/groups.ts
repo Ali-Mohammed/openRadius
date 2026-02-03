@@ -2,6 +2,7 @@ import { apiClient } from '../lib/api';
 
 export interface BillingGroup {
   id: number;
+  uuid: string;
   name: string;
   description?: string;
   icon?: string;

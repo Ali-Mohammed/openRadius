@@ -2,6 +2,7 @@ import { apiClient } from '../lib/api';
 
 export interface BillingActivation {
   id: number;
+  uuid: string;
   radiusActivationId: number;
   billingProfileId?: number;
   billingProfileName?: string;

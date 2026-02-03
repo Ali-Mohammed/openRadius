@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class IntegrationWebhook
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int WorkspaceId { get; set; }
     public string IntegrationName { get; set; } = string.Empty;
     public string IntegrationType { get; set; } = "sas-radius"; // sas-radius, custom, etc.

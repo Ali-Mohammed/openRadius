@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class WebhookLog
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int WebhookId { get; set; }
     public int WorkspaceId { get; set; }
     

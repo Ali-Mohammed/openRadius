@@ -6,6 +6,7 @@ namespace Backend.Models;
 public class BillingProfile
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal? Price { get; set; }
@@ -68,6 +69,7 @@ public class BillingProfile
 public class BillingProfileUser
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int BillingProfileId { get; set; }
     public int UserId { get; set; }
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
@@ -86,6 +88,7 @@ public class BillingProfileUser
 public class BillingProfileWallet
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int BillingProfileId { get; set; }
     public string WalletType { get; set; } = null!; // "user" or "custom"
     public int? UserWalletId { get; set; } // Only if WalletType is "user"
@@ -108,6 +111,7 @@ public class BillingProfileWallet
 public class BillingProfileAddon
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int BillingProfileId { get; set; }
     public string Title { get; set; } = null!;
     public string? Description { get; set; }

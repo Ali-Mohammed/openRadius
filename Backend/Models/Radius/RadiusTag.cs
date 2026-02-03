@@ -3,6 +3,7 @@ namespace Backend.Models
     public class RadiusTag
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public required string Title { get; set; }
         public string? Description { get; set; }
         public string Status { get; set; } = "active"; // active, inactive
@@ -31,6 +32,7 @@ namespace Backend.Models
     public class RadiusTagResponse
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public string Title { get; set; } = string.Empty;
         public string TagName => Title; // Alias for frontend compatibility
         public string? Description { get; set; }

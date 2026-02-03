@@ -46,6 +46,7 @@ public class SasProfileData
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("name")]
     public string? Name { get; set; }
@@ -100,6 +101,7 @@ public class SasProfileData
 public class RadiusProfile
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int ExternalId { get; set; }
     public required string Name { get; set; }
     public bool Enabled { get; set; }
@@ -129,6 +131,7 @@ public class RadiusProfile
 public class RadiusProfileResponse
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public int ExternalId { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool Enabled { get; set; }

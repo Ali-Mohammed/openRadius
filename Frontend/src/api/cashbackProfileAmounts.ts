@@ -2,6 +2,7 @@ import { apiClient } from '../lib/api';
 
 export interface CashbackProfileAmount {
   id: number;
+  uuid: string;
   cashbackGroupId: number;
   billingProfileId: number;
   amount: number;

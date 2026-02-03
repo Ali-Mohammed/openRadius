@@ -5,6 +5,7 @@ namespace Backend.Models;
 public class Transaction
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     
     // Transaction basic info
     public string TransactionType { get; set; } = null!; // Using TransactionType constants

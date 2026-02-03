@@ -196,6 +196,7 @@ public class OltDeviceController : ControllerBase
 public class OltDeviceDto
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

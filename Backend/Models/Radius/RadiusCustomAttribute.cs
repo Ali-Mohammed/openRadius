@@ -5,6 +5,7 @@ namespace Backend.Models;
 public class RadiusCustomAttribute
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     
     /// <summary>
     /// The attribute name (e.g., "Alc-SLA-Prof-Str", "subscriber:sub-qos-policy-out")
@@ -55,6 +56,7 @@ public class RadiusCustomAttribute
 public class RadiusCustomAttributeResponse
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
     public string AttributeName { get; set; } = string.Empty;
     public string AttributeValue { get; set; } = string.Empty;
     public string LinkType { get; set; } = string.Empty;

@@ -47,6 +47,7 @@ namespace Backend.Models
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
         [JsonPropertyName("username")]
         public string? Username { get; set; }
@@ -194,6 +195,7 @@ namespace Backend.Models
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
         [JsonPropertyName("name")]
         public string? Name { get; set; }
@@ -215,6 +217,7 @@ namespace Backend.Models
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
 
         [JsonPropertyName("group_name")]
         public string? GroupName { get; set; }
@@ -224,6 +227,7 @@ namespace Backend.Models
     public class RadiusUser
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public int ExternalId { get; set; }
         public string? Username { get; set; }
         public string? Password { get; set; }
@@ -304,6 +308,7 @@ namespace Backend.Models
     public class RadiusUserResponse
     {
         public int Id { get; set; }
+    public Guid Uuid { get; set; } = Guid.NewGuid();
         public int ExternalId { get; set; }
         public string? Username { get; set; }
         public string? Firstname { get; set; }

@@ -180,6 +180,7 @@ public class SwitchTenantRequest
 public class AvailableTenantDto
 {
     public int Id { get; set; }
+    public Guid Uuid { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
