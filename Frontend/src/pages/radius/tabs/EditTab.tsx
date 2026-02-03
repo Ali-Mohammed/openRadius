@@ -56,12 +56,17 @@ export function EditTab() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [customAttributes, setCustomAttributes] = useState<Array<{ id?: number; attributeName: string; attributeValue: string; enabled: boolean }>>([])
 
+  // Check if id is a UUID (has dashes) or numeric ID
+  const isUuid = id?.includes('-')
+
   // Fetch user data
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ['radius-user', currentWorkspaceId, id],
     queryFn: async () => {
       if (!id) throw new Error('Missing user ID')
-      return radiusUserApi.getById(Number(id))
+      return isUuid 
+        ? radiusUserApi.getByUuid(id)
+        : radiusUserApi.getById(Number(id))
     },
     enabled: !!id,
   })
@@ -111,14 +116,14 @@ export function EditTab() {
 
   const tags = tagsData?.data || []
 
-  // Fetch custom attributes
+  // Fetch custom attributes - use user.id once user is loaded
   const { data: customAttributesData } = useQuery({
-    queryKey: ['radius-custom-attributes', currentWorkspaceId, id],
+    queryKey: ['radius-custom-attributes', currentWorkspaceId, user?.id],
     queryFn: async () => {
-      if (!id) return []
-      return radiusCustomAttributeApi.getByUserId(Number(id))
+      if (!user?.id) return []
+      return radiusCustomAttributeApi.getByUserId(user.id)
     },
-    enabled: !!id,
+    enabled: !!user?.id,
   })
 
   // Populate form when user data loads
@@ -172,7 +177,9 @@ export function EditTab() {
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
       if (!id) throw new Error('Missing user ID')
-      return radiusUserApi.update(Number(id), data)
+      return isUuid
+        ? radiusUserApi.updateByUuid(id, data)
+        : radiusUserApi.update(Number(id), data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
@@ -222,19 +229,19 @@ export function EditTab() {
     const attributesToUpdate: RadiusCustomAttribute[] = []
 
     customAttributes.forEach((attr) => {
-      if (!attr.attributeName || !attr.attributeValue) return
+      if (!attr.attributeName || !attr.attributeValue || !user?.id) return
 
       if (attr.id) {
         attributesToUpdate.push({
           id: attr.id,
-          userId: Number(id),
+          userId: user.id,
           attributeName: attr.attributeName,
           attributeValue: attr.attributeValue,
           enabled: attr.enabled,
         })
       } else {
         attributesToCreate.push({
-          userId: Number(id),
+          userId: user.id,
           attributeName: attr.attributeName,
           attributeValue: attr.attributeValue,
           enabled: attr.enabled,
@@ -253,7 +260,7 @@ export function EditTab() {
         await radiusCustomAttributeApi.create(attr)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['radius-custom-attributes', currentWorkspaceId, id] })
+      queryClient.invalidateQueries({ queryKey: ['radius-custom-attributes', currentWorkspaceId, user?.id] })
     } catch (error) {
       console.error('Error saving user:', error)
     }

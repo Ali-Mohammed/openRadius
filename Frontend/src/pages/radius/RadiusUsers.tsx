@@ -1416,7 +1416,7 @@ export default function RadiusUsers() {
                   {!showTrash ? (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link to={`/radius/users/${user.id}`} className="flex items-center">
+                        <Link to={`/radius/users/${user.uuid}`} className="flex items-center">
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Link>

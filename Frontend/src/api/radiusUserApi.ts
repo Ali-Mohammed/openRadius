@@ -126,6 +126,11 @@ export const radiusUserApi = {
     return response.data
   },
 
+  getByUuid: async (uuid: string): Promise<RadiusUser> => {
+    const response = await apiClient.get(`/api/radius/users/uuid/${uuid}`)
+    return response.data
+  },
+
   create: async (data: Partial<RadiusUser>): Promise<RadiusUser> => {
     const response = await apiClient.post(`/api/radius/users`, data)
     return response.data
@@ -133,6 +138,11 @@ export const radiusUserApi = {
 
   update: async (id: number, data: Partial<RadiusUser>): Promise<RadiusUser> => {
     const response = await apiClient.put(`/api/radius/users/${id}`, data)
+    return response.data
+  },
+
+  updateByUuid: async (uuid: string, data: Partial<RadiusUser>): Promise<RadiusUser> => {
+    const response = await apiClient.put(`/api/radius/users/uuid/${uuid}`, data)
     return response.data
   },
 

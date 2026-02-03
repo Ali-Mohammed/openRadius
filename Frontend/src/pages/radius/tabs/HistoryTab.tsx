@@ -26,6 +26,7 @@ import {
 import { userHistoryApi, type UserHistoryEvent } from '@/api/userHistoryApi'
 import { radiusActivationApi } from '@/api/radiusActivationApi'
 import walletHistoryApi from '@/api/walletHistory'
+import { radiusUserApi } from '@/api/radiusUserApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { formatDistance } from 'date-fns'
 
@@ -37,24 +38,39 @@ export function HistoryTab() {
   const [pageSize, setPageSize] = useState(50)
   const [eventFilter, setEventFilter] = useState<string>('all')
 
-  // Fetch activations
-  const { data: activationsData, isLoading: isLoadingActivations } = useQuery({
-    queryKey: ['radius-activations', currentWorkspaceId, id],
+  // Check if id is a UUID (has dashes) or numeric ID
+  const isUuid = id?.includes('-')
+
+  // Fetch user data to get numeric ID
+  const { data: user } = useQuery({
+    queryKey: ['radius-user', currentWorkspaceId, id],
     queryFn: async () => {
-      if (!id) return []
-      return radiusActivationApi.getUserActivations(Number(id), 100)
+      if (!id) throw new Error('Missing user ID')
+      return isUuid 
+        ? radiusUserApi.getByUuid(id)
+        : radiusUserApi.getById(Number(id))
     },
     enabled: !!id,
   })
 
+  // Fetch activations
+  const { data: activationsData, isLoading: isLoadingActivations } = useQuery({
+    queryKey: ['radius-activations', currentWorkspaceId, user?.id],
+    queryFn: async () => {
+      if (!user?.id) return []
+      return radiusActivationApi.getUserActivations(user.id, 100)
+    },
+    enabled: !!user?.id,
+  })
+
   // Fetch wallet history
   const { data: walletHistoryData, isLoading: isLoadingWallet } = useQuery({
-    queryKey: ['wallet-history', currentWorkspaceId, id],
+    queryKey: ['wallet-history', currentWorkspaceId, user?.id],
     queryFn: async () => {
-      if (!id) return { data: [], totalCount: 0 }
-      return walletHistoryApi.getByUser(Number(id), 1, 100)
+      if (!user?.id) return { data: [], totalCount: 0 }
+      return walletHistoryApi.getByUser(user.id, 1, 100)
     },
-    enabled: !!id,
+    enabled: !!user?.id,
   })
 
   // Combine all events into a unified timeline

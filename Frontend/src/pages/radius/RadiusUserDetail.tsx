@@ -30,11 +30,16 @@ export default function RadiusUserDetail() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [activationDialogOpen, setActivationDialogOpen] = useState(false)
 
+  // Check if id is a UUID (has dashes) or numeric ID
+  const isUuid = id?.includes('-')
+
   const { data: user, isLoading } = useQuery({
     queryKey: ['radius-user', currentWorkspaceId, id],
     queryFn: async () => {
       if (!id) throw new Error('Missing user ID')
-      return radiusUserApi.getById(Number(id))
+      return isUuid 
+        ? radiusUserApi.getByUuid(id)
+        : radiusUserApi.getById(Number(id))
     },
     enabled: !!id,
   })
