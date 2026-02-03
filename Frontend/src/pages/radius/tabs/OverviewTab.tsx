@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Zap, Trash2, Pencil, UserCog } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { radiusUserApi } from '@/api/radiusUserApi'
@@ -62,14 +62,13 @@ export function OverviewTab({
   isDeleting = false
 }: OverviewTabProps) {
   const navigate = useNavigate()
-  const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const [changeUsernameDialogOpen, setChangeUsernameDialogOpen] = useState(false)
   const [newUsername, setNewUsername] = useState('')
 
   const handleEdit = () => {
-    if (id) {
-      navigate(`/radius/users/${id}/edit`)
+    if (user.uuid) {
+      navigate(`/radius/users/${user.uuid}/edit`)
     }
   }
 
