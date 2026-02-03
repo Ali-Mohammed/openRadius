@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Zap, Trash2, Pencil, UserCog } from 'lucide-react'
+import { Zap, Trash2, Pencil, UserCog, UserPen } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -105,19 +105,43 @@ export function OverviewTab({
               <CardTitle>User Overview</CardTitle>
               <CardDescription>Basic information about the user</CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleEdit} variant="outline" size="sm">
+            <div className="inline-flex items-center rounded-md shadow-sm" role="group">
+              <Button 
+                onClick={handleEdit} 
+                variant="outline" 
+                size="sm"
+                className="rounded-r-none border-r-0"
+              >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Button>
+              <Button 
+                onClick={() => setChangeUsernameDialogOpen(true)} 
+                variant="outline" 
+                size="sm"
+                className={`rounded-none ${onActivate ? 'border-r-0' : ''}`}
+              >
+                <UserPen className="h-4 w-4 mr-2" />
+                Change Username
+              </Button>
               {onActivate && (
-                <Button onClick={onActivate} size="sm">
+                <Button 
+                  onClick={onActivate} 
+                  variant="outline"
+                  size="sm"
+                  className="rounded-none border-r-0"
+                >
                   <Zap className="h-4 w-4 mr-2" />
                   Activate
                 </Button>
               )}
               {onDelete && (
-                <Button onClick={onDelete} variant="destructive" size="sm">
+                <Button 
+                  onClick={onDelete} 
+                  variant="destructive" 
+                  size="sm"
+                  className="rounded-l-none"
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </Button>
@@ -129,17 +153,7 @@ export function OverviewTab({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Username</p>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-primary">{user.username || '-'}</p>
-                <Button 
-                  onClick={() => setChangeUsernameDialogOpen(true)} 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-7 px-2"
-                >
-                  <UserCog className="h-3 w-3" />
-                </Button>
-              </div>
+              <p className="text-sm font-bold text-primary">{user.username || '-'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Email</p>
