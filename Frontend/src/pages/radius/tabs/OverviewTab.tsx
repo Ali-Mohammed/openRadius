@@ -1,8 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Zap, Trash2, Pencil } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Zap, Trash2, Pencil, UserCog } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { radiusUserApi } from '@/api/radiusUserApi'
+import { toast } from 'sonner'
+import { formatApiError } from '@/utils/errorHandler'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,9 +20,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface OverviewTabProps {
   user: {
+    id?: number
+    uuid?: string
     username?: string
     email?: string
     firstname?: string
@@ -46,11 +63,38 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
+  const [changeUsernameDialogOpen, setChangeUsernameDialogOpen] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
 
   const handleEdit = () => {
     if (id) {
       navigate(`/radius/users/${id}/edit`)
     }
+  }
+
+  const changeUsernameMutation = useMutation({
+    mutationFn: async (username: string) => {
+      if (!user.uuid) throw new Error('Missing user UUID')
+      return radiusUserApi.changeUsernameByUuid(user.uuid, username)
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['radius-user'] })
+      toast.success(data.message || 'Username changed successfully')
+      setChangeUsernameDialogOpen(false)
+      setNewUsername('')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to change username')
+    },
+  })
+
+  const handleChangeUsername = () => {
+    if (!newUsername.trim()) {
+      toast.error('Please enter a new username')
+      return
+    }
+    changeUsernameMutation.mutate(newUsername)
   }
 
   return (
@@ -85,8 +129,18 @@ export function OverviewTab({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Username</p>
-              <p className="text-sm font-bold text-primary">{user.username || '-'}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Username</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-primary">{user.username || '-'}</p>
+                <Button 
+                  onClick={() => setChangeUsernameDialogOpen(true)} 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-7 px-2"
+                >
+                  <UserCog className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Email</p>
@@ -157,6 +211,52 @@ export function OverviewTab({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Username Dialog */}
+      <Dialog open={changeUsernameDialogOpen} onOpenChange={setChangeUsernameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Username</DialogTitle>
+            <DialogDescription>
+              Enter a new username for {user.username}. This will update the username in both the user record and authentication system.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="current-username">Current Username</Label>
+              <Input id="current-username" value={user.username || ''} disabled />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-username">New Username</Label>
+              <Input 
+                id="new-username" 
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Enter new username"
+                disabled={changeUsernameMutation.isPending}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setChangeUsernameDialogOpen(false)
+                setNewUsername('')
+              }}
+              disabled={changeUsernameMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleChangeUsername}
+              disabled={changeUsernameMutation.isPending || !newUsername.trim()}
+            >
+              {changeUsernameMutation.isPending ? 'Changing...' : 'Change Username'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

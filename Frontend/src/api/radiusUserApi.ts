@@ -219,6 +219,17 @@ export const radiusUserApi = {
     await apiClient.post(`/api/radius/users/${userId}/tags`, tagIds)
   },
 
+  // Change username
+  changeUsername: async (id: number, newUsername: string): Promise<{ message: string; username: string }> => {
+    const response = await apiClient.put(`/api/radius/users/${id}/username`, { newUsername })
+    return response.data
+  },
+
+  changeUsernameByUuid: async (uuid: string, newUsername: string): Promise<{ message: string; username: string }> => {
+    const response = await apiClient.put(`/api/radius/users/uuid/${uuid}/username`, { newUsername })
+    return response.data
+  },
+
   // Bulk operations
   bulkDelete: async (userIds: number[]): Promise<{ message: string; count: number }> => {
     const response = await apiClient.post(`/api/radius/users/bulk-delete`, { userIds })

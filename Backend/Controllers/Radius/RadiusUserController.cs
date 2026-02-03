@@ -1203,6 +1203,86 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
+    // PUT: api/radius/users/{id}/username
+    [HttpPut("{id:int}/username")]
+    public async Task<ActionResult> ChangeUsername(int id, [FromBody] ChangeUsernameRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewUsername))
+        {
+            return BadRequest(new { message = "New username is required" });
+        }
+
+        var user = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        // Check if new username already exists
+        var existingUser = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Username == request.NewUsername && u.Id != id && !u.IsDeleted);
+
+        if (existingUser != null)
+        {
+            return BadRequest(new { message = "Username already exists" });
+        }
+
+        var oldUsername = user.Username;
+        user.Username = request.NewUsername;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        // Update username in radcheck table
+        await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE radcheck SET username = {0} WHERE username = {1}",
+            request.NewUsername, oldUsername);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Username changed successfully", username = user.Username });
+    }
+
+    // PUT: api/radius/users/uuid/{uuid}/username
+    [HttpPut("uuid/{uuid:guid}/username")]
+    public async Task<ActionResult> ChangeUsernameByUuid(Guid uuid, [FromBody] ChangeUsernameRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewUsername))
+        {
+            return BadRequest(new { message = "New username is required" });
+        }
+
+        var user = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Uuid == uuid && !u.IsDeleted);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        // Check if new username already exists
+        var existingUser = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Username == request.NewUsername && u.Id != user.Id && !u.IsDeleted);
+
+        if (existingUser != null)
+        {
+            return BadRequest(new { message = "Username already exists" });
+        }
+
+        var oldUsername = user.Username;
+        user.Username = request.NewUsername;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        // Update username in radcheck table
+        await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE radcheck SET username = {0} WHERE username = {1}",
+            request.NewUsername, oldUsername);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Username changed successfully", username = user.Username });
+    }
+
     // DELETE: api/radius/users/{id}
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)
@@ -1893,6 +1973,11 @@ public class RadiusUserController : ControllerBase
             return StatusCode(500, new { message = "Failed to assign zone" });
         }
     }
+}
+
+public class ChangeUsernameRequest
+{
+    public string NewUsername { get; set; } = string.Empty;
 }
 
 public class AssignZoneDto
