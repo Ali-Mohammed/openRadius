@@ -457,26 +457,6 @@ export default function RadiusUsers() {
     return () => clearTimeout(timeoutId)
   }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, currentWorkspaceId, preferencesLoaded])
 
-  // Get selected billing profile
-  const selectedBillingProfile = useMemo(() => {
-    if (!activationFormData.billingProfileId) return null
-    return billingProfiles.find(bp => bp.id.toString() === activationFormData.billingProfileId)
-  }, [activationFormData.billingProfileId, billingProfiles])
-
-  // Auto-update duration from selected billing profile's RADIUS profile
-  useEffect(() => {
-    if (!selectedBillingProfile) return
-
-    // Find the associated RADIUS profile
-    const radiusProfile = profiles.find(p => p.id === selectedBillingProfile.radiusProfileId)
-    if (radiusProfile && radiusProfile.expirationAmount) {
-      setActivationFormData(prev => ({
-        ...prev,
-        durationDays: radiusProfile.expirationAmount.toString()
-      }))
-    }
-  }, [selectedBillingProfile, profiles])
-
   // Virtual scrolling - optimized for large datasets
   const rowVirtualizer = useVirtualizer({
     count: users.length,
@@ -2696,7 +2676,6 @@ export default function RadiusUsers() {
   )
 }
 
-            <div className="overflow-y-auto flex-1 space-y-6">
               {/* User Information */}
               <div className="rounded-lg border bg-muted/50 p-4">
                 <div className="flex items-center gap-2 mb-3">
