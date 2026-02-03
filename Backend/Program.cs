@@ -63,6 +63,14 @@ builder.Services.AddHttpClient(); // Add HTTP client for Keycloak API calls
 builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
 builder.Services.AddControllers();
 
+// Add Health Checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        builder.Configuration.GetConnectionString("MasterConnection")!,
+        name: "master-database",
+        tags: new[] { "db", "master" })
+    .AddCheck("application", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Application is running"));
+
 // Configure Payment HTTP Clients with Resilience (Polly)
 Backend.Configuration.HttpClientConfiguration.AddPaymentHttpClients(builder.Services);
 
@@ -560,6 +568,7 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 Console.WriteLine($"📊 Default Hangfire dashboard at: /hangfire (points to Workspace 1)");
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapHub<SasSyncHub>("/hubs/sassync");
 app.MapHub<CdcHub>("/hubs/cdc");
 app.MapHub<LogsHub>("/hubs/logs");
