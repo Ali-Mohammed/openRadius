@@ -2678,7 +2678,24 @@ export default function RadiusUsers() {
       </AlertDialog>
 
       {/* Activation Dialog */}
-      <Dialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen}>
+      <UserActivationDialog
+        open={activationDialogOpen}
+        onOpenChange={(open) => {
+          setActivationDialogOpen(open)
+          if (!open) {
+            setUserToActivate(null)
+          }
+        }}
+        user={userToActivate}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+          queryClient.invalidateQueries({ queryKey: ['radius-activations'] })
+        }}
+      />
+    </div>
+  )
+}
+
         <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
