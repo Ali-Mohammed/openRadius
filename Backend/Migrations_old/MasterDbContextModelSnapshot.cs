@@ -77,6 +77,9 @@ namespace Backend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("approved_microservices");
@@ -153,6 +156,9 @@ namespace Backend.Migrations
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("CashbackSettings");
@@ -188,6 +194,9 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -278,6 +287,9 @@ namespace Backend.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("ValidateAudience")
                         .HasColumnType("boolean");
 
@@ -315,6 +327,9 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -354,6 +369,9 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -431,6 +449,9 @@ namespace Backend.Migrations
 
                     b.Property<string>("Username")
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -576,6 +597,9 @@ namespace Backend.Migrations
 
                     b.Property<int>("UpdatedBy")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

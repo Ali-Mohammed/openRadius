@@ -70,6 +70,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CustomWalletId");
@@ -125,6 +128,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("WorkflowJson")
                         .HasColumnType("text");
@@ -244,6 +250,9 @@ namespace Backend.Migrations.ApplicationDb
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("WalletDistribution")
                         .HasColumnType("text");
 
@@ -313,6 +322,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IsActive");
@@ -354,6 +366,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int?>("BillingGroupId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Color")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -369,20 +384,47 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ExpirationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOffer")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("OfferEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("OfferStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Platform")
                         .HasColumnType("text");
 
                     b.Property<decimal?>("Price")
                         .HasColumnType("numeric");
 
+                    b.Property<int?>("Priority")
+                        .HasColumnType("integer");
+
                     b.Property<int>("RadiusProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RequiresApproval")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TotalQuantity")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -390,6 +432,15 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
+
+                    b.Property<int>("UsedQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserType")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -426,11 +477,45 @@ namespace Backend.Migrations.ApplicationDb
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BillingProfileId");
 
                     b.ToTable("BillingProfileAddons");
+                });
+
+            modelBuilder.Entity("Backend.Models.BillingProfileUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("AssignedBy")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BillingProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BillingProfileId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("BillingProfileUsers");
                 });
 
             modelBuilder.Entity("Backend.Models.BillingProfileWallet", b =>
@@ -464,6 +549,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int?>("UserWalletId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("WalletType")
                         .IsRequired()
@@ -512,6 +600,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -576,6 +667,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -657,6 +751,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
@@ -710,6 +807,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("Dashboards");
@@ -750,6 +850,9 @@ namespace Backend.Migrations.ApplicationDb
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Value")
                         .HasColumnType("jsonb");
@@ -807,6 +910,9 @@ namespace Backend.Migrations.ApplicationDb
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TabId");
@@ -835,6 +941,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int>("OrderIndex")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -915,6 +1024,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("DebeziumConnectors");
@@ -946,6 +1058,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<string>("Username")
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -1191,6 +1306,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("WebhookToken")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1237,6 +1355,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("WalletId")
                         .HasColumnType("integer");
@@ -1296,6 +1417,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<string>("ServiceName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -1527,6 +1651,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("OltDevices");
@@ -1603,6 +1730,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("WalletTransactionId")
                         .HasColumnType("integer");
@@ -1934,6 +2064,9 @@ namespace Backend.Migrations.ApplicationDb
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApiStatus");
@@ -2005,6 +2138,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RadiusProfileId");
@@ -2064,6 +2200,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("RadiusGroups");
@@ -2112,6 +2251,9 @@ namespace Backend.Migrations.ApplicationDb
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
@@ -2148,6 +2290,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -2258,6 +2403,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Version")
                         .HasColumnType("text");
 
@@ -2350,6 +2498,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int>("UsersCount")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("RadiusProfiles");
@@ -2377,6 +2528,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -2422,6 +2576,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -2567,6 +2724,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<string>("Username")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<int?>("ZoneId")
                         .HasColumnType("integer");
 
@@ -2666,6 +2826,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -2767,6 +2930,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -2873,6 +3039,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -3069,6 +3238,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId", "TableName")
@@ -3184,6 +3356,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int?>("UserWalletId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("WalletType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -3244,6 +3419,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int>("TransactionId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
@@ -3277,6 +3455,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int>("TransactionId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -3323,6 +3504,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -3403,6 +3587,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<bool>("UsesCustomCashbackSetting")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CustomWalletId");
@@ -3434,6 +3621,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("ZoneId")
                         .HasColumnType("integer");
@@ -3497,6 +3687,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<int?>("UserWalletId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("WalletType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -3557,6 +3750,9 @@ namespace Backend.Migrations.ApplicationDb
                     b.Property<bool>("Success")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("WebhookId")
                         .HasColumnType("integer");
 
@@ -3590,6 +3786,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int>("NodeCount")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("WorkflowJson")
                         .IsRequired()
@@ -3649,6 +3848,9 @@ namespace Backend.Migrations.ApplicationDb
 
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -3718,6 +3920,17 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     b.HasOne("Backend.Models.BillingProfile", "BillingProfile")
                         .WithMany("ProfileAddons")
+                        .HasForeignKey("BillingProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BillingProfile");
+                });
+
+            modelBuilder.Entity("Backend.Models.BillingProfileUser", b =>
+                {
+                    b.HasOne("Backend.Models.BillingProfile", "BillingProfile")
+                        .WithMany("ProfileUsers")
                         .HasForeignKey("BillingProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -4140,6 +4353,8 @@ namespace Backend.Migrations.ApplicationDb
             modelBuilder.Entity("Backend.Models.BillingProfile", b =>
                 {
                     b.Navigation("ProfileAddons");
+
+                    b.Navigation("ProfileUsers");
 
                     b.Navigation("ProfileWallets");
                 });
