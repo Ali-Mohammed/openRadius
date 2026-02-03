@@ -29,6 +29,11 @@ export const formatApiError = (error: any): string => {
       return data.message
     }
 
+    // Error field format (common in custom API responses)
+    if (data.error) {
+      return data.error
+    }
+
     // Title format (common in ASP.NET Core)
     if (data.title) {
       return data.title
