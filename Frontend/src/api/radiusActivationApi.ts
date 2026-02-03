@@ -59,6 +59,7 @@ export interface CreateRadiusActivationRequest {
   type: string
   paymentMethod?: string
   durationDays?: number
+  profileChangeType?: string
   source?: string
   notes?: string
   isActionBehalf?: boolean

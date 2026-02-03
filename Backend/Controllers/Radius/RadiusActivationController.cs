@@ -1212,6 +1212,7 @@ public class RadiusActivationController : ControllerBase
                 PaymentMethod = request.PaymentMethod,
                 TransactionId = transactionId,
                 DurationDays = 30, // Enforce 30 days
+                ProfileChangeType = request.ProfileChangeType,
                 Source = request.Source ?? "web",
                 IpAddress = ipAddress,
                 UserAgent = userAgent,
@@ -1248,16 +1249,36 @@ public class RadiusActivationController : ControllerBase
                 activation.NextExpireDate = newExpiration;
             }
             
-            // Update RADIUS profile if specified
+            // Update RADIUS profile if specified and change type is Immediately
+            // If ProfileChangeType is "OnExpiration", the profile change will be scheduled for later
             if (request.RadiusProfileId.HasValue)
             {
-                radiusUser.ProfileId = request.RadiusProfileId.Value;
+                if (request.ProfileChangeType == "Immediately" || string.IsNullOrEmpty(request.ProfileChangeType))
+                {
+                    radiusUser.ProfileId = request.RadiusProfileId.Value;
+                    _logger.LogInformation($"Applied profile change immediately for user {radiusUser.Username}: ProfileId={request.RadiusProfileId.Value}");
+                }
+                else if (request.ProfileChangeType == "OnExpiration")
+                {
+                    _logger.LogInformation($"Scheduled profile change on expiration for user {radiusUser.Username}: ProfileId={request.RadiusProfileId.Value}");
+                    // Profile change will be applied when user expires/renews
+                    // The activation record will have the pending profile change information
+                }
             }
             
-            // Update billing profile if specified
+            // Update billing profile if specified and change type is Immediately
             if (request.BillingProfileId.HasValue)
             {
-                radiusUser.ProfileBillingId = request.BillingProfileId.Value;
+                if (request.ProfileChangeType == "Immediately" || string.IsNullOrEmpty(request.ProfileChangeType))
+                {
+                    radiusUser.ProfileBillingId = request.BillingProfileId.Value;
+                    _logger.LogInformation($"Applied billing profile change immediately for user {radiusUser.Username}: BillingProfileId={request.BillingProfileId.Value}");
+                }
+                else if (request.ProfileChangeType == "OnExpiration")
+                {
+                    _logger.LogInformation($"Scheduled billing profile change on expiration for user {radiusUser.Username}: BillingProfileId={request.BillingProfileId.Value}");
+                    // Billing profile change will be applied when user expires/renews
+                }
             }
             
             radiusUser.UpdatedAt = DateTime.UtcNow;

@@ -126,6 +126,10 @@ public class RadiusActivation
     // Duration in days for this activation
     public int? DurationDays { get; set; }
 
+    // Profile change timing: Immediately, OnExpiration (null = no profile change)
+    [MaxLength(20)]
+    public string? ProfileChangeType { get; set; }
+
     // Source of activation: web, api, auto_renew, admin, bulk, import
     [MaxLength(50)]
     public string? Source { get; set; }
@@ -202,6 +206,7 @@ public class RadiusActivationResponse
     public int? TransactionId { get; set; }
     public string? PaymentMethod { get; set; }
     public int? DurationDays { get; set; }
+    public string? ProfileChangeType { get; set; }
     public string? Source { get; set; }
     public string? IpAddress { get; set; }
     public string? Notes { get; set; }
@@ -225,6 +230,7 @@ public class CreateRadiusActivationRequest
     public string Type { get; set; } = "renew";
     public string? PaymentMethod { get; set; }
     public int? DurationDays { get; set; }
+    public string? ProfileChangeType { get; set; }
     public string? Source { get; set; }
     public string? Notes { get; set; }
     public bool IsActionBehalf { get; set; } = false;
