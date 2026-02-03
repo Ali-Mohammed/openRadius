@@ -41,6 +41,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
   const [applyCashback, setApplyCashback] = useState(true)
   const [selectedPayerWalletId, setSelectedPayerWalletId] = useState('')
   const [allowProfileChange, setAllowProfileChange] = useState(false)
+  const [profileChangeType, setProfileChangeType] = useState<'Immediately' | 'OnExpiration'>('Immediately')
 
   // Billing profiles query
   const { data: billingProfilesData } = useQuery({
@@ -122,6 +123,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     setApplyCashback(true)
     setSelectedPayerWalletId('')
     setAllowProfileChange(false)
+    setProfileChangeType('Immediately')
   }
 
   // Auto-select billing profile when user changes (always pre-select current profile)
@@ -154,6 +156,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     }))
     // Reset profile change checkbox when user changes
     setAllowProfileChange(false)
+    setProfileChangeType('Immediately')
   }, [user, billingProfiles, open])
 
   const handleSubmit = () => {
@@ -190,6 +193,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
       type: 'Activation',
       paymentMethod: activationFormData.paymentMethod,
       durationDays: durationDays,
+      profileChangeType: allowProfileChange ? profileChangeType : undefined,
       source: 'Web',
       notes: activationFormData.notes || undefined,
       isActionBehalf: isOnBehalfActivation,
@@ -304,7 +308,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
             
             <div className="grid gap-4">
               {/* Change Profile Checkbox */}
-              <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/20 p-3">
+              <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/20 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="change-profile-toggle" className="text-sm font-medium">
@@ -320,6 +324,38 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     onCheckedChange={setAllowProfileChange}
                   />
                 </div>
+                
+                {/* Profile Change Timing - shown when Change Profile is enabled */}
+                {allowProfileChange && (
+                  <div className="pt-3 border-t border-amber-200 dark:border-amber-800">
+                    <Label className="text-sm font-medium mb-2 block">When to apply change?</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={profileChangeType === 'Immediately' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setProfileChangeType('Immediately')}
+                        className="w-full"
+                      >
+                        Immediately
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={profileChangeType === 'OnExpiration' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setProfileChangeType('OnExpiration')}
+                        className="w-full"
+                      >
+                        On Expiration
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {profileChangeType === 'Immediately' 
+                        ? 'Profile will be changed right away'
+                        : 'Profile will be changed when current period expires'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-2">
