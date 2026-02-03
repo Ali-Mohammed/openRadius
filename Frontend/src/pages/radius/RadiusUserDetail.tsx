@@ -1,11 +1,24 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { radiusUserApi } from '@/api/radiusUserApi'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Zap, Users, Package, DollarSign } from 'lucide-react'
+import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
+import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
+import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
+import userWalletApi from '@/api/userWallets'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatApiError } from '@/utils/errorHandler'
 import { OverviewTab } from './tabs/OverviewTab'
 import { EditTab } from './tabs/EditTab'
 import { TrafficTab } from './tabs/TrafficTab'
@@ -22,7 +35,19 @@ export default function RadiusUserDetail() {
   const navigate = useNavigate()
   const location = useLocation()
   const { currentWorkspaceId } = useWorkspace()
+  const queryClient = useQueryClient()
   const activeTab = tab || 'overview'
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false)
+  const [activationFormData, setActivationFormData] = useState({
+    billingProfileId: '',
+    paymentMethod: 'Wallet',
+    durationDays: '30',
+    notes: '',
+  })
+
+  const currencySymbol = '$'
+  const formatCurrency = (value: number) => value.toFixed(2)
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['radius-user', currentWorkspaceId, id],
@@ -32,6 +57,135 @@ export default function RadiusUserDetail() {
     },
     enabled: !!id,
   })
+
+  // Billing profiles query for activation
+  const { data: billingProfilesData } = useQuery({
+    queryKey: ['billing-profiles', currentWorkspaceId],
+    queryFn: () => getProfiles({ includeDeleted: false }),
+    enabled: !!currentWorkspaceId && activationDialogOpen,
+  })
+
+  const billingProfiles = useMemo(() => {
+    return billingProfilesData?.data?.filter((bp: BillingProfile) => bp.isActive) || []
+  }, [billingProfilesData])
+
+  const selectedBillingProfile = useMemo(() => {
+    if (!activationFormData.billingProfileId) return null
+    return billingProfiles.find((bp: BillingProfile) => bp.id.toString() === activationFormData.billingProfileId)
+  }, [activationFormData.billingProfileId, billingProfiles])
+
+  const deleteMutation = useMutation({
+    mutationFn: (userId: number) => radiusUserApi.delete(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+      toast.success('User deleted successfully')
+      navigate('/radius/users')
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to delete user')
+    },
+  })
+
+  const activationMutation = useMutation({
+    mutationFn: (data: CreateRadiusActivationRequest) => radiusActivationApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radius-user', currentWorkspaceId, id] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['radius-activations'] })
+      toast.success('User activated successfully')
+      setActivationDialogOpen(false)
+      setActivationFormData({
+        billingProfileId: '',
+        paymentMethod: 'Wallet',
+        durationDays: '30',
+        notes: '',
+      })
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || 'Failed to activate user')
+    },
+  })
+
+  const handleDelete = () => {
+    if (user?.id) {
+      deleteMutation.mutate(user.id)
+      setDeleteDialogOpen(false)
+    }
+  }
+
+  const handleActivate = () => {
+    if (!user) return
+    
+    // Auto-select billing profile based on user's current profile
+    let autoSelectedBillingProfileId = ''
+    
+    if (user.profileBillingId) {
+      const matchedByBillingId = billingProfiles.find(
+        (bp: BillingProfile) => bp.id === user.profileBillingId && bp.isActive
+      )
+      if (matchedByBillingId) {
+        autoSelectedBillingProfileId = matchedByBillingId.id.toString()
+      }
+    }
+    
+    if (!autoSelectedBillingProfileId && user.profileId) {
+      const matchedByProfileId = billingProfiles.find(
+        (bp: BillingProfile) => bp.radiusProfileId === user.profileId && bp.isActive
+      )
+      if (matchedByProfileId) {
+        autoSelectedBillingProfileId = matchedByProfileId.id.toString()
+      }
+    }
+    
+    setActivationFormData({
+      billingProfileId: autoSelectedBillingProfileId,
+      paymentMethod: 'Wallet',
+      durationDays: '30',
+      notes: '',
+    })
+    setActivationDialogOpen(true)
+  }
+
+  const handleSubmitActivation = () => {
+    if (!user || !activationFormData.billingProfileId) {
+      toast.error('Please select a billing profile')
+      return
+    }
+
+    if (!selectedBillingProfile) {
+      toast.error('Selected billing profile not found')
+      return
+    }
+
+    const durationDays = parseInt(activationFormData.durationDays) || 30
+    const now = new Date()
+    let baseDate = now
+    
+    if (user.expiration) {
+      const currentExpireDate = new Date(user.expiration)
+      if (currentExpireDate > now) {
+        baseDate = currentExpireDate
+      }
+    }
+    
+    const nextExpireDate = new Date(baseDate)
+    nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
+
+    const activationRequest: CreateRadiusActivationRequest = {
+      radiusUserId: user.id!,
+      radiusProfileId: selectedBillingProfile.radiusProfileId,
+      billingProfileId: selectedBillingProfile.id,
+      nextExpireDate: nextExpireDate.toISOString(),
+      amount: selectedBillingProfile.price || 0,
+      type: 'Activation',
+      paymentMethod: activationFormData.paymentMethod,
+      durationDays: durationDays,
+      source: 'Web',
+      notes: activationFormData.notes || undefined,
+    }
+
+    activationMutation.mutate(activationRequest)
+  }
 
   // Update breadcrumb when user data is loaded
   useEffect(() => {
@@ -98,7 +252,15 @@ export default function RadiusUserDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
-          <OverviewTab user={user} />
+          <OverviewTab 
+            user={user} 
+            onActivate={handleActivate}
+            onDelete={() => setDeleteDialogOpen(true)}
+            deleteDialogOpen={deleteDialogOpen}
+            onDeleteCancel={() => setDeleteDialogOpen(false)}
+            onDeleteConfirm={handleDelete}
+            isDeleting={deleteMutation.isPending}
+          />
         </TabsContent>
 
         {/* Edit Tab */}
