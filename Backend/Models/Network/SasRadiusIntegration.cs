@@ -29,6 +29,7 @@ public class SasRadiusIntegration
     public int? CardStockUserId { get; set; } // User ID who holds card stock (for PrepaidCard method)
     public bool AllowAnyCardStockUser { get; set; } = false; // Allow selecting any user with cards (for PrepaidCard method)
     public bool UseFreeCardsOnly { get; set; } = false; // Only use unassigned/free cards (for PrepaidCard method)
+    public bool CheckCardAvailabilityBeforeActivate { get; set; } = false; // Check if prepaid card is available before activation (for PrepaidCard method)
 
     // Sync Online Users Settings
     public bool SyncOnlineUsers { get; set; } = false; // Enable/disable periodic sync of online users from RADIUS to SAS4

@@ -1573,6 +1573,36 @@ export default function WorkspaceSettings() {
                         />
                       </div>
 
+                      {/* Check Card Availability Before Activate */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-medium">Check Card Availability Before Activate</Label>
+                          <p className="text-xs text-muted-foreground">Verify card is available before activation</p>
+                        </div>
+                        <Switch
+                          checked={selectedIntegrationForWebhook?.checkCardAvailabilityBeforeActivate || false}
+                          onCheckedChange={async (checked) => {
+                            if (!currentWorkspaceId || !selectedIntegrationForWebhook?.id) return;
+                            try {
+                              const updated = { 
+                                ...selectedIntegrationForWebhook, 
+                                checkCardAvailabilityBeforeActivate: checked 
+                              };
+                              await sasRadiusApi.update(
+                                Number(currentWorkspaceId),
+                                selectedIntegrationForWebhook.id,
+                                updated
+                              );
+                              setSelectedIntegrationForWebhook(updated);
+                              queryClient.invalidateQueries({ queryKey: ['sas-radius-integrations', currentWorkspaceId] });
+                              toast.success('Card availability check updated');
+                            } catch (error) {
+                              toast.error(formatApiError(error) || 'Failed to update settings');
+                            }
+                          }}
+                        />
+                      </div>
+
                       {/* Card Stock User Selector (shown when not allowing any user) */}
                       {!selectedIntegrationForWebhook?.allowAnyCardStockUser && (
                         <div className="space-y-2">

@@ -21,6 +21,7 @@ export interface SasRadiusIntegration {
   cardStockUserId?: number | null
   allowAnyCardStockUser?: boolean
   useFreeCardsOnly?: boolean
+  checkCardAvailabilityBeforeActivate?: boolean
   syncOnlineUsers?: boolean
   syncOnlineUsersIntervalMinutes?: number
   sessionSyncRecordsPerPage?: number
