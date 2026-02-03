@@ -214,6 +214,16 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     const nextExpireDate = new Date(baseDate)
     nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
 
+    // Calculate scheduled profile change date - use now if expired, otherwise use next expiration
+    let scheduledChangeDate = nextExpireDate
+    if (user.expiration) {
+      const currentExpireDate = new Date(user.expiration)
+      if (currentExpireDate < now) {
+        // User is expired, use current time as scheduled date
+        scheduledChangeDate = now
+      }
+    }
+
     const activationRequest: CreateRadiusActivationRequest = {
       radiusUserId: user.id!,
       radiusProfileId: selectedBillingProfile.radiusProfileId,
@@ -224,7 +234,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
       paymentMethod: activationFormData.paymentMethod,
       durationDays: durationDays,
       profileChangeType: allowProfileChange ? profileChangeType : undefined,
-      scheduledProfileChangeDate: allowProfileChange && profileChangeType === 'OnExpiration' ? nextExpireDate.toISOString() : undefined,
+      scheduledProfileChangeDate: allowProfileChange && profileChangeType === 'OnExpiration' ? scheduledChangeDate.toISOString() : undefined,
       source: 'Web',
       notes: activationFormData.notes || undefined,
       isActionBehalf: isOnBehalfActivation,
@@ -395,7 +405,11 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                         )
                         : calculatedNextExpiration ? (
                           <span>
-                            Profile will be changed on <strong>{calculatedNextExpiration.toLocaleDateString()}</strong> (when current period expires)
+                            {remainingDays > 0 ? (
+                              <>Profile will be changed on <strong>{calculatedNextExpiration.toLocaleDateString()}</strong> (when current period expires)</>
+                            ) : (
+                              <>Profile will be changed <strong>immediately</strong> (user is already expired)</>
+                            )}
                           </span>
                         ) : 'Profile will be changed when current period expires'}
                     </p>
