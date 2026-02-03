@@ -851,63 +851,6 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // GET: api/radius/users/{id}
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<RadiusUserResponse>> GetUser(int id)
-    {
-        var user = await _context.RadiusUsers
-            .Include(u => u.RadiusGroup)
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-        if (user == null)
-        {
-            return NotFound(new { message = "User not found" });
-        }
-
-        // Get IP reservation for this user
-        var ipReservation = await _context.RadiusIpReservations
-            .Where(r => r.RadiusUserId == id && r.DeletedAt == null)
-            .FirstOrDefaultAsync();
-
-        var response = new RadiusUserResponse
-        {
-            Id = user.Id,
-            Uuid = user.Uuid,
-            ExternalId = user.ExternalId,
-            Username = user.Username,
-            Firstname = user.Firstname,
-            Lastname = user.Lastname,
-            City = user.City,
-            Phone = user.Phone,
-            Email = user.Email,
-            ProfileId = user.ProfileId,
-            Balance = user.Balance,
-            LoanBalance = user.LoanBalance,
-            Expiration = user.Expiration,
-            LastOnline = user.LastOnline,
-            Enabled = user.Enabled,
-            OnlineStatus = user.OnlineStatus,
-            RemainingDays = CalculateRemainingDays(user.Expiration),
-            DebtDays = user.DebtDays,
-            StaticIp = ipReservation?.IpAddress,
-            Company = user.Company,
-            Address = user.Address,
-            ContractId = user.ContractId,
-            Notes = user.Notes,
-            GpsLat = user.GpsLat,
-            GpsLng = user.GpsLng,
-            GroupId = user.GroupId,
-            GroupName = user.RadiusGroup != null ? user.RadiusGroup.Name : null,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
-            LastSyncedAt = user.LastSyncedAt,
-            DeletedAt = user.DeletedAt,
-            DeletedBy = user.DeletedBy
-        };
-
-        return Ok(response);
-    }
-
     // POST: api/radius/users
     [HttpPost]
     public async Task<ActionResult<RadiusUserResponse>> CreateUser([FromBody] CreateUserRequest request)
@@ -1105,144 +1048,6 @@ public class RadiusUserController : ControllerBase
         return Ok(response);
     }
 
-    // PUT: api/radius/users/{id}
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<RadiusUserResponse>> UpdateUser(int id, [FromBody] UpdateUserRequest request)
-    {
-        var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-        if (user == null)
-        {
-            return NotFound(new { message = "User not found" });
-        }
-
-        // Update only provided fields
-        if (request.Username != null) user.Username = request.Username;
-        if (request.Password != null) user.Password = request.Password;
-        if (request.Firstname != null) user.Firstname = request.Firstname;
-        if (request.Lastname != null) user.Lastname = request.Lastname;
-        if (request.Email != null) user.Email = request.Email;
-        if (request.Phone != null) user.Phone = request.Phone;
-        if (request.City != null) user.City = request.City;
-        if (request.ProfileId.HasValue) user.ProfileId = request.ProfileId;
-        if (request.Balance.HasValue) user.Balance = request.Balance.Value;
-        if (request.Expiration.HasValue) 
-        {
-            // Ensure DateTime is in UTC for PostgreSQL
-            user.Expiration = request.Expiration.Value.Kind == DateTimeKind.Utc 
-                ? request.Expiration 
-                : DateTime.SpecifyKind(request.Expiration.Value, DateTimeKind.Utc);
-        }
-        if (request.Enabled.HasValue) user.Enabled = request.Enabled.Value;
-        // StaticIp is managed via IP Reservations, not updated here
-        if (request.Company != null) user.Company = request.Company;
-        if (request.Address != null) user.Address = request.Address;
-        if (request.ContractId != null) user.ContractId = request.ContractId;
-        if (request.Notes != null) user.Notes = request.Notes;
-        if (request.DeviceSerialNumber != null) user.DeviceSerialNumber = request.DeviceSerialNumber;
-        if (request.GpsLat != null) user.GpsLat = request.GpsLat;
-        if (request.GpsLng != null) user.GpsLng = request.GpsLng;
-        if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;
-        if (request.ZoneId.HasValue) user.ZoneId = request.ZoneId;
-        if (request.GroupId.HasValue) user.GroupId = request.GroupId;
-
-        user.UpdatedAt = DateTime.UtcNow;
-
-        // Update password in radcheck table if provided
-        if (!string.IsNullOrWhiteSpace(request.Password))
-        {
-            // Remove existing password entries for this user
-            await _context.Database.ExecuteSqlRawAsync(
-                "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                user.Username!);
-
-            // Insert new password
-            await _context.Database.ExecuteSqlRawAsync(
-                "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
-                user.Username!, request.Password);
-        }
-
-        await _context.SaveChangesAsync();
-
-        // Get IP reservation for this user
-        var updateUserIpReservation = await _context.RadiusIpReservations
-            .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
-            .FirstOrDefaultAsync();
-
-        var response = new RadiusUserResponse
-        {
-            Id = user.Id,
-            Uuid = user.Uuid,
-            ExternalId = user.ExternalId,
-            Username = user.Username,
-            Firstname = user.Firstname,
-            Lastname = user.Lastname,
-            City = user.City,
-            Phone = user.Phone,
-            Email = user.Email,
-            ProfileId = user.ProfileId,
-            Balance = user.Balance,
-            LoanBalance = user.LoanBalance,
-            Expiration = user.Expiration,
-            LastOnline = user.LastOnline,
-            Enabled = user.Enabled,
-            OnlineStatus = user.OnlineStatus,
-            RemainingDays = CalculateRemainingDays(user.Expiration),
-            DebtDays = user.DebtDays,
-            StaticIp = updateUserIpReservation?.IpAddress,
-            Company = user.Company,
-            Address = user.Address,
-            ContractId = user.ContractId,
-            GroupId = user.GroupId,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
-            LastSyncedAt = user.LastSyncedAt
-        };
-
-        return Ok(response);
-    }
-
-    // PUT: api/radius/users/{id}/username
-    [HttpPut("{id:int}/username")]
-    public async Task<ActionResult> ChangeUsername(int id, [FromBody] ChangeUsernameRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.NewUsername))
-        {
-            return BadRequest(new { message = "New username is required" });
-        }
-
-        var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
-
-        if (user == null)
-        {
-            return NotFound(new { message = "User not found" });
-        }
-
-        // Check if new username already exists
-        var existingUser = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Username == request.NewUsername && u.Id != id && !u.IsDeleted);
-
-        if (existingUser != null)
-        {
-            return BadRequest(new { message = "Username already exists" });
-        }
-
-        var oldUsername = user.Username;
-        user.Username = request.NewUsername;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        // Update username in radcheck table
-        await _context.Database.ExecuteSqlRawAsync(
-            "UPDATE radcheck SET username = {0} WHERE username = {1}",
-            request.NewUsername, oldUsername);
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Username changed successfully", username = user.Username });
-    }
-
     // PUT: api/radius/users/uuid/{uuid}/username
     [HttpPut("uuid/{uuid:guid}/username")]
     public async Task<ActionResult> ChangeUsernameByUuid(Guid uuid, [FromBody] ChangeUsernameRequest request)
@@ -1283,32 +1088,12 @@ public class RadiusUserController : ControllerBase
         return Ok(new { message = "Username changed successfully", username = user.Username });
     }
 
-    // DELETE: api/radius/users/{id}
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteUser(int id)
+    // POST: api/radius/users/uuid/{uuid}/restore
+    [HttpPost("uuid/{uuid:guid}/restore")]
+    public async Task<IActionResult> RestoreUser(Guid uuid)
     {
         var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
-
-        if (user == null)
-        {
-            return NotFound(new { message = "User not found" });
-        }
-
-        user.IsDeleted = true;
-        user.DeletedAt = DateTime.UtcNow;
-        user.DeletedBy = User.GetSystemUserId();
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    // POST: api/radius/users/{id}/restore
-    [HttpPost("{id}/restore")]
-    public async Task<IActionResult> RestoreUser(int id)
-    {
-        var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Id == id && u.IsDeleted);
+            .FirstOrDefaultAsync(u => u.Uuid == uuid && u.IsDeleted);
 
         if (user == null)
         {
@@ -1875,15 +1660,15 @@ public class RadiusUserController : ControllerBase
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
-    // POST: api/radius/users/{id}/tags
-    [HttpPost("{id}/tags")]
-    public async Task<IActionResult> AssignTags(int id, [FromBody] List<int> tagIds)
+    // POST: api/radius/users/uuid/{uuid}/tags
+    [HttpPost("uuid/{uuid:guid}/tags")]
+    public async Task<IActionResult> AssignTags(Guid uuid, [FromBody] List<int> tagIds)
     {
         try
         {
             var user = await _context.RadiusUsers
                 .Include(u => u.RadiusUserTags)
-                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.Uuid == uuid && !u.IsDeleted);
 
             if (user == null)
             {
@@ -1898,7 +1683,7 @@ public class RadiusUserController : ControllerBase
             {
                 user.RadiusUserTags.Add(new RadiusUserTag
                 {
-                    RadiusUserId = id,
+                    RadiusUserId = user.Id,
                     RadiusTagId = tagId,
                     AssignedAt = DateTime.UtcNow
                 });
@@ -1910,19 +1695,27 @@ public class RadiusUserController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error assigning tags to user {UserId}", id);
+            _logger.LogError(ex, "Error assigning tags to user {UserUuid}", uuid);
             return StatusCode(500, new { message = "Failed to assign tags" });
         }
     }
 
-    // GET: api/radius/users/{id}/tags
-    [HttpGet("{id:int}/tags")]
-    public async Task<ActionResult<IEnumerable<object>>> GetUserTags(int id)
+    // GET: api/radius/users/uuid/{uuid}/tags
+    [HttpGet("uuid/{uuid:guid}/tags")]
+    public async Task<ActionResult<IEnumerable<object>>> GetUserTags(Guid uuid)
     {
         try
         {
+            var user = await _context.RadiusUsers
+                .FirstOrDefaultAsync(u => u.Uuid == uuid && !u.IsDeleted);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
             var tags = await _context.RadiusUserTags
-                .Where(rut => rut.RadiusUserId == id)
+                .Where(rut => rut.RadiusUserId == user.Id)
                 .Select(rut => new
                 {
                     rut.RadiusTag.Id,
@@ -1938,7 +1731,7 @@ public class RadiusUserController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching tags for user {UserId}", id);
+            _logger.LogError(ex, "Error fetching tags for user {UserUuid}", uuid);
             return StatusCode(500, new { message = "Failed to fetch user tags" });
         }
     }
