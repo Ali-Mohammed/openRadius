@@ -81,7 +81,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     queryKey: ['cashback-calculation', selectedBillingProfile?.id, selectedPayerWallet?.userId],
     queryFn: async () => {
       if (!selectedBillingProfile || !selectedPayerWallet?.userId) return null
-      return cashbackApi.calculateCashback(selectedBillingProfile.id, selectedPayerWallet.userId)
+      return userCashbackApi.calculateCashback(selectedPayerWallet.userId, selectedBillingProfile.id)
     },
     enabled: !!selectedBillingProfile && !!selectedPayerWallet && isOnBehalfActivation,
   })
