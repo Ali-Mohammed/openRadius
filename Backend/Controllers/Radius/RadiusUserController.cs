@@ -851,7 +851,7 @@ public class RadiusUserController : ControllerBase
     }
 
     // GET: api/radius/users/{id}
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<RadiusUserResponse>> GetUser(int id)
     {
         var user = await _context.RadiusUsers
@@ -1104,7 +1104,7 @@ public class RadiusUserController : ControllerBase
     }
 
     // PUT: api/radius/users/{id}
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     public async Task<ActionResult<RadiusUserResponse>> UpdateUser(int id, [FromBody] UpdateUserRequest request)
     {
         var user = await _context.RadiusUsers
@@ -1201,7 +1201,7 @@ public class RadiusUserController : ControllerBase
     }
 
     // DELETE: api/radius/users/{id}
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _context.RadiusUsers
@@ -1833,7 +1833,7 @@ public class RadiusUserController : ControllerBase
     }
 
     // GET: api/radius/users/{id}/tags
-    [HttpGet("{id}/tags")]
+    [HttpGet("{id:int}/tags")]
     public async Task<ActionResult<IEnumerable<object>>> GetUserTags(int id)
     {
         try
