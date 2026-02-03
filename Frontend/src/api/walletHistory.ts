@@ -69,6 +69,16 @@ const walletHistoryApi = {
     return response.data
   },
 
+  getByUser: async (userId: number, page = 1, pageSize = 50): Promise<WalletHistoryResponse> => {
+    const params = new URLSearchParams()
+    params.append('userId', userId.toString())
+    params.append('page', page.toString())
+    params.append('pageSize', pageSize.toString())
+
+    const response = await apiClient.get(`/api/wallet-history?${params}`)
+    return response.data
+  },
+
   getStats: async (filters?: Omit<WalletHistoryFilters, 'page' | 'pageSize'>): Promise<WalletHistoryStats> => {
     const params = new URLSearchParams()
     if (filters?.walletType) params.append('walletType', filters.walletType)
