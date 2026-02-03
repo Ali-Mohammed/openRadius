@@ -78,6 +78,7 @@ public class SasRadiusIntegrationController : ControllerBase
             integration.CardStockUserId,
             integration.AllowAnyCardStockUser,
             integration.UseFreeCardsOnly,
+            integration.CheckCardAvailabilityBeforeActivate,
             integration.SyncOnlineUsers,
             integration.SyncOnlineUsersIntervalMinutes,
             integration.SessionSyncRecordsPerPage,
@@ -197,6 +198,7 @@ public class SasRadiusIntegrationController : ControllerBase
         existingIntegration.CardStockUserId = integration.CardStockUserId;
         existingIntegration.AllowAnyCardStockUser = integration.AllowAnyCardStockUser;
         existingIntegration.UseFreeCardsOnly = integration.UseFreeCardsOnly;
+        existingIntegration.CheckCardAvailabilityBeforeActivate = integration.CheckCardAvailabilityBeforeActivate;
         
         // Update sync online users settings
         var syncSettingsChanged = existingIntegration.SyncOnlineUsers != integration.SyncOnlineUsers ||
