@@ -4,10 +4,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Backend.Migrations.ApplicationDb
+namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialWithUuid : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,6 +18,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Icon = table.Column<string>(type: "text", nullable: true),
@@ -44,6 +45,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Icon = table.Column<string>(type: "text", nullable: true),
@@ -68,6 +70,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Icon = table.Column<string>(type: "text", nullable: true),
                     Color = table.Column<string>(type: "text", nullable: true),
@@ -88,6 +91,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     MaxFillLimit = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
@@ -118,6 +122,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     Icon = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
@@ -139,6 +144,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     ConnectorClass = table.Column<string>(type: "text", nullable: false),
                     DatabaseHostname = table.Column<string>(type: "text", nullable: false),
@@ -168,6 +174,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     ConnectUrl = table.Column<string>(type: "text", nullable: false),
                     Username = table.Column<string>(type: "text", nullable: true),
                     Password = table.Column<string>(type: "text", nullable: true),
@@ -186,6 +193,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     IntegrationName = table.Column<string>(type: "text", nullable: false),
                     IntegrationType = table.Column<string>(type: "text", nullable: false),
@@ -214,6 +222,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     ServiceName = table.Column<string>(type: "text", nullable: false),
                     MachineId = table.Column<string>(type: "text", nullable: false),
                     ApprovalToken = table.Column<string>(type: "text", nullable: false),
@@ -238,6 +247,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -317,6 +327,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Gateway = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     TransactionId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     ReferenceId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
@@ -347,6 +358,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
@@ -406,6 +418,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     start_ip = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: false),
                     end_ip = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: false),
@@ -425,6 +438,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     ExternalId = table.Column<int>(type: "integer", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
@@ -450,6 +464,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Nasname = table.Column<string>(type: "text", nullable: false),
                     Shortname = table.Column<string>(type: "text", nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
@@ -490,6 +505,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     ExternalId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Enabled = table.Column<bool>(type: "boolean", nullable: false),
@@ -525,6 +541,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
@@ -545,6 +562,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Url = table.Column<string>(type: "text", nullable: false),
                     Username = table.Column<string>(type: "text", nullable: false),
@@ -560,6 +578,14 @@ namespace Backend.Migrations.ApplicationDb
                     ActivationUseExponentialBackoff = table.Column<bool>(type: "boolean", nullable: false),
                     ActivationTimeoutSeconds = table.Column<int>(type: "integer", nullable: false),
                     ActivationMaxConcurrency = table.Column<int>(type: "integer", nullable: false),
+                    ActivationMethod = table.Column<string>(type: "text", nullable: false),
+                    CardStockUserId = table.Column<int>(type: "integer", nullable: true),
+                    AllowAnyCardStockUser = table.Column<bool>(type: "boolean", nullable: false),
+                    UseFreeCardsOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncOnlineUsers = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncOnlineUsersIntervalMinutes = table.Column<int>(type: "integer", nullable: false),
+                    SessionSyncRecordsPerPage = table.Column<int>(type: "integer", nullable: false),
+                    UseSas4ForLiveSessions = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -568,6 +594,33 @@ namespace Backend.Migrations.ApplicationDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SasRadiusIntegrations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SessionSyncProgresses",
+                columns: table => new
+                {
+                    SyncId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IntegrationId = table.Column<int>(type: "integer", nullable: false),
+                    IntegrationName = table.Column<string>(type: "text", nullable: false),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    TotalOnlineUsers = table.Column<int>(type: "integer", nullable: false),
+                    ProcessedUsers = table.Column<int>(type: "integer", nullable: false),
+                    SuccessfulSyncs = table.Column<int>(type: "integer", nullable: false),
+                    FailedSyncs = table.Column<int>(type: "integer", nullable: false),
+                    NewSessions = table.Column<int>(type: "integer", nullable: false),
+                    UpdatedSessions = table.Column<int>(type: "integer", nullable: false),
+                    ProgressPercentage = table.Column<double>(type: "double precision", nullable: false),
+                    CurrentMessage = table.Column<string>(type: "text", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
+                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SessionSyncProgresses", x => x.SyncId);
                 });
 
             migrationBuilder.CreateTable(
@@ -630,6 +683,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     TableName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     ColumnWidths = table.Column<string>(type: "text", nullable: true),
@@ -651,6 +705,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     WebhookId = table.Column<int>(type: "integer", nullable: false),
                     WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     Method = table.Column<string>(type: "text", nullable: false),
@@ -675,6 +730,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Color = table.Column<string>(type: "text", nullable: true),
@@ -705,6 +761,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     AutomationId = table.Column<int>(type: "integer", nullable: false),
                     WorkflowJson = table.Column<string>(type: "text", nullable: false),
                     NodeCount = table.Column<int>(type: "integer", nullable: false),
@@ -768,6 +825,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Icon = table.Column<string>(type: "text", nullable: true),
@@ -798,6 +856,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     CustomWalletId = table.Column<int>(type: "integer", nullable: true),
                     CurrentBalance = table.Column<decimal>(type: "numeric", nullable: false),
@@ -837,6 +896,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     DashboardId = table.Column<int>(type: "integer", nullable: false),
                     Label = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
@@ -864,6 +924,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     DashboardId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     OrderIndex = table.Column<int>(type: "integer", nullable: false),
@@ -914,10 +975,23 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsOffer = table.Column<bool>(type: "boolean", nullable: false),
+                    Platform = table.Column<string>(type: "text", nullable: true),
+                    TotalQuantity = table.Column<int>(type: "integer", nullable: true),
+                    UsedQuantity = table.Column<int>(type: "integer", nullable: false),
+                    UserType = table.Column<string>(type: "text", nullable: true),
+                    ExpirationDays = table.Column<int>(type: "integer", nullable: true),
+                    OfferStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    OfferEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RequiresApproval = table.Column<bool>(type: "boolean", nullable: false),
+                    Priority = table.Column<int>(type: "integer", nullable: true),
+                    Color = table.Column<string>(type: "text", nullable: true),
+                    Icon = table.Column<string>(type: "text", nullable: true),
                     RadiusProfileId = table.Column<int>(type: "integer", nullable: false),
                     BillingGroupId = table.Column<int>(type: "integer", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -951,6 +1025,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     RadiusProfileId = table.Column<int>(type: "integer", nullable: false),
                     CustomWalletId = table.Column<int>(type: "integer", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
@@ -980,11 +1055,15 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     IntegrationId = table.Column<int>(type: "integer", nullable: false),
                     IntegrationName = table.Column<string>(type: "text", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     Username = table.Column<string>(type: "text", nullable: false),
                     ActivationData = table.Column<string>(type: "text", nullable: false),
+                    Pin = table.Column<string>(type: "text", nullable: true),
+                    CardSeries = table.Column<string>(type: "text", nullable: true),
+                    CardSerialNumber = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     RetryCount = table.Column<int>(type: "integer", nullable: false),
                     MaxRetries = table.Column<int>(type: "integer", nullable: false),
@@ -1014,6 +1093,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     ExternalId = table.Column<int>(type: "integer", nullable: false),
                     Username = table.Column<string>(type: "text", nullable: true),
                     Password = table.Column<string>(type: "text", nullable: true),
@@ -1087,6 +1167,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     ZoneId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -1109,6 +1190,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     TransactionType = table.Column<string>(type: "text", nullable: false),
                     AmountType = table.Column<string>(type: "text", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
@@ -1172,6 +1254,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     WalletType = table.Column<string>(type: "text", nullable: false),
                     CustomWalletId = table.Column<int>(type: "integer", nullable: true),
                     UserWalletId = table.Column<int>(type: "integer", nullable: true),
@@ -1210,6 +1293,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     TabId = table.Column<int>(type: "integer", nullable: false),
                     Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
@@ -1275,6 +1359,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     BillingProfileId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
@@ -1293,11 +1378,35 @@ namespace Backend.Migrations.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "BillingProfileUsers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
+                    BillingProfileId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AssignedBy = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BillingProfileUsers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BillingProfileUsers_BillingProfiles_BillingProfileId",
+                        column: x => x.BillingProfileId,
+                        principalTable: "BillingProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BillingProfileWallets",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     BillingProfileId = table.Column<int>(type: "integer", nullable: false),
                     WalletType = table.Column<string>(type: "text", nullable: false),
                     UserWalletId = table.Column<int>(type: "integer", nullable: true),
@@ -1337,6 +1446,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     CashbackGroupId = table.Column<int>(type: "integer", nullable: false),
                     BillingProfileId = table.Column<int>(type: "integer", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
@@ -1370,6 +1480,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     SupervisorId = table.Column<int>(type: "integer", nullable: false),
                     SubAgentId = table.Column<int>(type: "integer", nullable: false),
                     BillingProfileId = table.Column<int>(type: "integer", nullable: false),
@@ -1399,6 +1510,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     BillingProfileId = table.Column<int>(type: "integer", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
@@ -1426,6 +1538,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     AttributeName = table.Column<string>(type: "text", nullable: false),
                     AttributeValue = table.Column<string>(type: "text", nullable: false),
                     LinkType = table.Column<string>(type: "text", nullable: false),
@@ -1459,6 +1572,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     IpAddress = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     RadiusUserId = table.Column<int>(type: "integer", nullable: true),
@@ -1509,6 +1623,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     BillingProfileId = table.Column<int>(type: "integer", nullable: true),
                     BillingProfileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     RadiusUserId = table.Column<int>(type: "integer", nullable: false),
@@ -1564,6 +1679,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     TransactionId = table.Column<int>(type: "integer", nullable: false),
                     Comment = table.Column<string>(type: "text", nullable: false),
                     Tags = table.Column<string>(type: "text", nullable: true),
@@ -1588,6 +1704,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     TransactionId = table.Column<int>(type: "integer", nullable: false),
                     Action = table.Column<string>(type: "text", nullable: false),
                     Changes = table.Column<string>(type: "text", nullable: true),
@@ -1646,6 +1763,7 @@ namespace Backend.Migrations.ApplicationDb
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
                     ActionById = table.Column<int>(type: "integer", nullable: true),
                     ActionByUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     ActionForId = table.Column<int>(type: "integer", nullable: true),
@@ -1833,6 +1951,12 @@ namespace Backend.Migrations.ApplicationDb
                 name: "IX_BillingProfiles_RadiusProfileId",
                 table: "BillingProfiles",
                 column: "RadiusProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BillingProfileUsers_BillingProfileId_UserId",
+                table: "BillingProfileUsers",
+                columns: new[] { "BillingProfileId", "UserId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_BillingProfileWallets_BillingProfileId",
@@ -2291,6 +2415,9 @@ namespace Backend.Migrations.ApplicationDb
                 name: "BillingProfileAddons");
 
             migrationBuilder.DropTable(
+                name: "BillingProfileUsers");
+
+            migrationBuilder.DropTable(
                 name: "BillingProfileWallets");
 
             migrationBuilder.DropTable(
@@ -2355,6 +2482,9 @@ namespace Backend.Migrations.ApplicationDb
 
             migrationBuilder.DropTable(
                 name: "SasActivationLogs");
+
+            migrationBuilder.DropTable(
+                name: "SessionSyncProgresses");
 
             migrationBuilder.DropTable(
                 name: "SubAgentCashbacks");
