@@ -947,7 +947,7 @@ public class RadiusUserController : ControllerBase
             LastSyncedAt = user.LastSyncedAt
         };
 
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, response);
+        return CreatedAtAction(nameof(GetUserByUuid), new { uuid = user.Uuid }, response);
     }
 
     // PUT: api/radius/users/uuid/{uuid}
@@ -962,50 +962,162 @@ public class RadiusUserController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
+        // Track changes for history
+        var changes = new List<string>();
+        
         // Update only provided fields
-        if (request.Username != null) user.Username = request.Username;
-        if (request.Password != null) user.Password = request.Password;
-        if (request.Firstname != null) user.Firstname = request.Firstname;
-        if (request.Lastname != null) user.Lastname = request.Lastname;
-        if (request.Email != null) user.Email = request.Email;
-        if (request.Phone != null) user.Phone = request.Phone;
-        if (request.City != null) user.City = request.City;
-        if (request.ProfileId.HasValue) user.ProfileId = request.ProfileId;
-        if (request.Balance.HasValue) user.Balance = request.Balance.Value;
+        if (request.Username != null && request.Username != user.Username) 
+        {
+            changes.Add($"Username: '{user.Username}' → '{request.Username}'");
+            user.Username = request.Username;
+        }
+        if (request.Password != null)
+        {
+            changes.Add("Password changed");
+            user.Password = request.Password;
+        }
+        if (request.Firstname != null && request.Firstname != user.Firstname)
+        {
+            changes.Add($"First name: '{user.Firstname}' → '{request.Firstname}'");
+            user.Firstname = request.Firstname;
+        }
+        if (request.Lastname != null && request.Lastname != user.Lastname)
+        {
+            changes.Add($"Last name: '{user.Lastname}' → '{request.Lastname}'");
+            user.Lastname = request.Lastname;
+        }
+        if (request.Email != null && request.Email != user.Email)
+        {
+            changes.Add($"Email: '{user.Email}' → '{request.Email}'");
+            user.Email = request.Email;
+        }
+        if (request.Phone != null && request.Phone != user.Phone)
+        {
+            changes.Add($"Phone: '{user.Phone}' → '{request.Phone}'");
+            user.Phone = request.Phone;
+        }
+        if (request.City != null && request.City != user.City)
+        {
+            changes.Add($"City: '{user.City}' → '{request.City}'");
+            user.City = request.City;
+        }
+        if (request.ProfileId.HasValue && request.ProfileId != user.ProfileId)
+        {
+            changes.Add($"Profile ID: {user.ProfileId} → {request.ProfileId}");
+            user.ProfileId = request.ProfileId;
+        }
+        if (request.Balance.HasValue && request.Balance != user.Balance)
+        {
+            changes.Add($"Balance: {user.Balance} → {request.Balance}");
+            user.Balance = request.Balance.Value;
+        }
         if (request.Expiration.HasValue) 
         {
-            // Ensure DateTime is in UTC for PostgreSQL
-            user.Expiration = request.Expiration.Value.Kind == DateTimeKind.Utc 
+            var newExpiration = request.Expiration.Value.Kind == DateTimeKind.Utc 
                 ? request.Expiration 
                 : DateTime.SpecifyKind(request.Expiration.Value, DateTimeKind.Utc);
+            if (newExpiration != user.Expiration)
+            {
+                changes.Add($"Expiration: {user.Expiration} → {newExpiration}");
+                user.Expiration = newExpiration;
+            }
         }
-        if (request.Enabled.HasValue) user.Enabled = request.Enabled.Value;
-        // StaticIp is managed via IP Reservations, not updated here
-        if (request.Company != null) user.Company = request.Company;
-        if (request.Address != null) user.Address = request.Address;
-        if (request.ContractId != null) user.ContractId = request.ContractId;
-        if (request.Notes != null) user.Notes = request.Notes;
-        if (request.DeviceSerialNumber != null) user.DeviceSerialNumber = request.DeviceSerialNumber;
-        if (request.GpsLat != null) user.GpsLat = request.GpsLat;
-        if (request.GpsLng != null) user.GpsLng = request.GpsLng;
-        if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;
-        if (request.ZoneId.HasValue) user.ZoneId = request.ZoneId;
-        if (request.GroupId.HasValue) user.GroupId = request.GroupId;
+        if (request.Enabled.HasValue && request.Enabled != user.Enabled)
+        {
+            changes.Add($"Enabled: {user.Enabled} → {request.Enabled}");
+            user.Enabled = request.Enabled.Value;
+        }
+        if (request.Company != null && request.Company != user.Company)
+        {
+            changes.Add($"Company: '{user.Company}' → '{request.Company}'");
+            user.Company = request.Company;
+        }
+        if (request.Address != null && request.Address != user.Address)
+        {
+            changes.Add($"Address: '{user.Address}' → '{request.Address}'");
+            user.Address = request.Address;
+        }
+        if (request.ContractId != null && request.ContractId != user.ContractId)
+        {
+            changes.Add($"Contract ID: '{user.ContractId}' → '{request.ContractId}'");
+            user.ContractId = request.ContractId;
+        }
+        if (request.Notes != null && request.Notes != user.Notes)
+        {
+            changes.Add($"Notes: '{user.Notes}' → '{request.Notes}'");
+            user.Notes = request.Notes;
+        }
+        if (request.DeviceSerialNumber != null && request.DeviceSerialNumber != user.DeviceSerialNumber)
+        {
+            changes.Add($"Device Serial: '{user.DeviceSerialNumber}' → '{request.DeviceSerialNumber}'");
+            user.DeviceSerialNumber = request.DeviceSerialNumber;
+        }
+        if (request.GpsLat != null && request.GpsLat != user.GpsLat)
+        {
+            changes.Add($"GPS Lat: {user.GpsLat} → {request.GpsLat}");
+            user.GpsLat = request.GpsLat;
+        }
+        if (request.GpsLng != null && request.GpsLng != user.GpsLng)
+        {
+            changes.Add($"GPS Lng: {user.GpsLng} → {request.GpsLng}");
+            user.GpsLng = request.GpsLng;
+        }
+        if (request.SimultaneousSessions.HasValue && request.SimultaneousSessions != user.SimultaneousSessions)
+        {
+            changes.Add($"Simultaneous Sessions: {user.SimultaneousSessions} → {request.SimultaneousSessions}");
+            user.SimultaneousSessions = request.SimultaneousSessions.Value;
+        }
+        if (request.ZoneId.HasValue && request.ZoneId != user.ZoneId)
+        {
+            changes.Add($"Zone ID: {user.ZoneId} → {request.ZoneId}");
+            user.ZoneId = request.ZoneId;
+        }
+        if (request.GroupId.HasValue && request.GroupId != user.GroupId)
+        {
+            changes.Add($"Group ID: {user.GroupId} → {request.GroupId}");
+            user.GroupId = request.GroupId;
+        }
 
         user.UpdatedAt = DateTime.UtcNow;
+
+        // Log history entry if there were changes
+        if (changes.Any())
+        {
+            var history = new RadiusUserHistory
+            {
+                RadiusUserId = user.Id,
+                EventType = "info_update",
+                Action = "Updated",
+                Description = $"User information updated: {string.Join(", ", changes)}",
+                Changes = System.Text.Json.JsonSerializer.Serialize(changes),
+                PerformedBy = User.Identity?.Name ?? "System",
+                PerformedById = User.GetSystemUserId(),
+                PerformedAt = DateTime.UtcNow,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+            };
+            _context.RadiusUserHistories.Add(history);
+        }
 
         // Update password in radcheck table if provided
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            // Remove existing password entries for this user
-            await _context.Database.ExecuteSqlRawAsync(
-                "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                user.Username!);
+            try
+            {
+                // Remove existing password entries for this user
+                await _context.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
+                    user.Username!);
 
-            // Insert new password
-            await _context.Database.ExecuteSqlRawAsync(
-                "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
-                user.Username!, request.Password);
+                // Insert new password
+                await _context.Database.ExecuteSqlRawAsync(
+                    "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
+                    user.Username!, request.Password);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not update radcheck table for user {Username}", user.Username);
+            }
         }
 
         await _context.SaveChangesAsync();
@@ -1078,10 +1190,38 @@ public class RadiusUserController : ControllerBase
         user.Username = request.NewUsername;
         user.UpdatedAt = DateTime.UtcNow;
 
-        // Update username in radcheck table
-        await _context.Database.ExecuteSqlRawAsync(
-            "UPDATE radcheck SET username = {0} WHERE username = {1}",
-            request.NewUsername, oldUsername);
+        // Log history entry for username change
+        var history = new RadiusUserHistory
+        {
+            RadiusUserId = user.Id,
+            EventType = "username_change",
+            Action = "Updated",
+            Description = $"Username changed from '{oldUsername}' to '{request.NewUsername}'",
+            OldValue = oldUsername,
+            NewValue = request.NewUsername,
+            PerformedBy = User.Identity?.Name ?? "System",
+            PerformedById = User.GetSystemUserId(),
+            PerformedAt = DateTime.UtcNow,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+        };
+        _context.RadiusUserHistories.Add(history);
+
+        // Update username in radcheck table (if it exists)
+        if (!string.IsNullOrEmpty(oldUsername))
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "UPDATE radcheck SET username = {0} WHERE username = {1}",
+                    request.NewUsername, oldUsername);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but continue - radcheck table may not exist in all environments
+                _logger.LogWarning(ex, "Could not update radcheck table for username change from {OldUsername} to {NewUsername}", oldUsername, request.NewUsername);
+            }
+        }
 
         await _context.SaveChangesAsync();
 
@@ -1658,6 +1798,63 @@ public class RadiusUserController : ControllerBase
         var fileBytes = package.GetAsByteArray();
 
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    // GET: api/radius/users/uuid/{uuid}/history
+    [HttpGet("uuid/{uuid:guid}/history")]
+    public async Task<ActionResult<object>> GetUserHistory(
+        Guid uuid,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? eventType = null)
+    {
+        var user = await _context.RadiusUsers
+            .FirstOrDefaultAsync(u => u.Uuid == uuid);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        var query = _context.RadiusUserHistories
+            .Where(h => h.RadiusUserId == user.Id);
+
+        if (!string.IsNullOrEmpty(eventType) && eventType != "all")
+        {
+            query = query.Where(h => h.EventType == eventType);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var history = await query
+            .OrderByDescending(h => h.PerformedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(h => new
+            {
+                h.Id,
+                h.Uuid,
+                h.EventType,
+                h.Action,
+                h.Description,
+                h.Changes,
+                h.OldValue,
+                h.NewValue,
+                h.PerformedBy,
+                h.PerformedAt,
+                h.IpAddress,
+                h.UserAgent
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            data = history,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        });
     }
 
     // POST: api/radius/users/uuid/{uuid}/tags

@@ -73,6 +73,16 @@ export function HistoryTab() {
     enabled: !!user?.id,
   })
 
+  // Fetch user change history
+  const { data: userHistoryData, isLoading: isLoadingUserHistory } = useQuery({
+    queryKey: ['user-history', currentWorkspaceId, user?.uuid, eventFilter],
+    queryFn: async () => {
+      if (!user?.uuid) return { data: [], totalCount: 0 }
+      return radiusUserApi.getUserHistory(user.uuid, 1, 100, eventFilter === 'all' ? undefined : eventFilter)
+    },
+    enabled: !!user?.uuid,
+  })
+
   // Combine all events into a unified timeline
   const allEvents: UserHistoryEvent[] = []
 
@@ -124,6 +134,29 @@ export function HistoryTab() {
     })
   }
 
+  // Add user change history
+  if (userHistoryData?.data) {
+    userHistoryData.data.forEach((historyEvent: any) => {
+      allEvents.push({
+        id: historyEvent.id,
+        eventType: historyEvent.eventType,
+        timestamp: historyEvent.performedAt,
+        performedBy: historyEvent.performedBy || 'System',
+        performedFor: user?.username || '',
+        isOnBehalf: false,
+        description: historyEvent.description,
+        details: {
+          action: historyEvent.action,
+          changes: historyEvent.changes,
+          oldValue: historyEvent.oldValue,
+          newValue: historyEvent.newValue,
+          ipAddress: historyEvent.ipAddress,
+          userAgent: historyEvent.userAgent,
+        },
+      })
+    })
+  }
+
   // Sort by timestamp
   const sortedEvents = allEvents.sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -145,6 +178,8 @@ export function HistoryTab() {
     switch (type) {
       case 'activation':
         return <Zap className="h-4 w-4" />
+      case 'username_change':
+        return <UserCheck className="h-4 w-4" />
       case 'password_change':
         return <Lock className="h-4 w-4" />
       case 'info_update':
@@ -168,6 +203,8 @@ export function HistoryTab() {
     switch (type) {
       case 'activation':
         return 'bg-green-500/10 text-green-700 border-green-500/20'
+      case 'username_change':
+        return 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20'
       case 'password_change':
         return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20'
       case 'info_update':
@@ -189,6 +226,8 @@ export function HistoryTab() {
     switch (type) {
       case 'activation':
         return 'Activation'
+      case 'username_change':
+        return 'Username Change'
       case 'password_change':
         return 'Password Change'
       case 'info_update':
@@ -208,7 +247,7 @@ export function HistoryTab() {
     }
   }
 
-  if (isLoadingActivations || isLoadingWallet) {
+  if (isLoadingActivations || isLoadingWallet || isLoadingUserHistory) {
     return (
       <Card>
         <CardContent className="p-6 space-y-4">

@@ -245,4 +245,22 @@ export const radiusUserApi = {
     const response = await apiClient.post(`/api/radius/users/bulk-renew`, { userIds })
     return response.data
   },
+
+  // Get user history
+  getUserHistory: async (
+    uuid: string,
+    page: number = 1,
+    pageSize: number = 50,
+    eventType?: string
+  ): Promise<{ data: any[]; totalCount: number; page: number; pageSize: number; totalPages: number }> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    })
+    if (eventType) {
+      params.append('eventType', eventType)
+    }
+    const response = await apiClient.get(`/api/radius/users/uuid/${uuid}/history?${params.toString()}`)
+    return response.data
+  },
 }
