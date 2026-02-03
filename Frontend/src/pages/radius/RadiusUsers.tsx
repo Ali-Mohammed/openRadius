@@ -2696,18 +2696,6 @@ export default function RadiusUsers() {
   )
 }
 
-        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-green-600" />
-              Activate User
-            </DialogTitle>
-            <DialogDescription>
-              Activate this user with a billing profile
-            </DialogDescription>
-          </DialogHeader>
-
-          {userToActivate && (
             <div className="overflow-y-auto flex-1 space-y-6">
               {/* User Information */}
               <div className="rounded-lg border bg-muted/50 p-4">
