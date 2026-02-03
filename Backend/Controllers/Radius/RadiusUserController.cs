@@ -969,7 +969,13 @@ public class RadiusUserController : ControllerBase
         if (request.City != null) user.City = request.City;
         if (request.ProfileId.HasValue) user.ProfileId = request.ProfileId;
         if (request.Balance.HasValue) user.Balance = request.Balance.Value;
-        if (request.Expiration.HasValue) user.Expiration = request.Expiration;
+        if (request.Expiration.HasValue) 
+        {
+            // Ensure DateTime is in UTC for PostgreSQL
+            user.Expiration = request.Expiration.Value.Kind == DateTimeKind.Utc 
+                ? request.Expiration 
+                : DateTime.SpecifyKind(request.Expiration.Value, DateTimeKind.Utc);
+        }
         if (request.Enabled.HasValue) user.Enabled = request.Enabled.Value;
         // StaticIp is managed via IP Reservations, not updated here
         if (request.Company != null) user.Company = request.Company;
