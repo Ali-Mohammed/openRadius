@@ -206,10 +206,11 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     }
     if (location.pathname.includes('/radius/users')) {
-      // Check if it's a user detail page
-      const userIdMatch = location.pathname.match(/\/radius\/users\/(\d+)(\/([a-z]+))?$/)
+      // Check if it's a user detail page (supports both numeric IDs and UUIDs)
+      const userIdMatch = location.pathname.match(/\/radius\/users\/([\w-]+)(\/([a-z]+))?$/)
       if (userIdMatch) {
         const username = document.getElementById('user-detail-breadcrumb')?.textContent || 'User Details'
+        const userId = userIdMatch[1]
         const tab = userIdMatch[3]
         const tabNames: Record<string, string> = {
           overview: 'Overview',
@@ -227,7 +228,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         if (tab && tabNames[tab]) {
           return {
             parent: { title: 'RADIUS Users', href: '/radius/users', icon: Users },
-            parentSecondary: { title: username, href: `/radius/users/${userIdMatch[1]}`, icon: Users },
+            parentSecondary: { title: username, href: `/radius/users/${userId}`, icon: Users },
             current: tabNames[tab],
             icon: Users
           }
