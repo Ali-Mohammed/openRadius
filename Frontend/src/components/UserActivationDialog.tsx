@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { Zap, Users, Package, DollarSign } from 'lucide-react'
+import { Zap, Users, Package, DollarSign, AlertCircle } from 'lucide-react'
 import { type RadiusUser } from '@/api/radiusUserApi'
 import { getProfiles, type BillingProfile } from '@/api/billingProfiles'
 import { radiusActivationApi, type CreateRadiusActivationRequest } from '@/api/radiusActivationApi'
@@ -75,6 +75,14 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     if (!selectedPayerWalletId || !allUserWalletsData?.data) return null
     return allUserWalletsData.data.find((w: any) => w.id?.toString() === selectedPayerWalletId)
   }, [selectedPayerWalletId, allUserWalletsData])
+
+  // Check if user has wallet (either current user's wallet or selected payer's wallet)
+  const hasWallet = useMemo(() => {
+    if (isOnBehalfActivation) {
+      return !!selectedPayerWallet
+    }
+    return !!myWallet && myWallet.status?.toLowerCase() === 'active'
+  }, [isOnBehalfActivation, selectedPayerWallet, myWallet])
 
   // Cashback calculation query
   const { data: cashbackData } = useQuery({
@@ -205,6 +213,35 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 space-y-6">
+          {/* Wallet Warning */}
+          {!isOnBehalfActivation && (!myWallet || myWallet.status?.toLowerCase() !== 'active') && (
+            <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-destructive mb-1">No Active Wallet Found</h4>
+                  <p className="text-sm text-muted-foreground">
+                    You don't have an active wallet. Please create a wallet first before activating users.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isOnBehalfActivation && !selectedPayerWallet && selectedPayerWalletId && (
+            <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-destructive mb-1">No Active Wallet Found</h4>
+                  <p className="text-sm text-muted-foreground">
+                    The selected user doesn't have an active wallet. Please select a user with an active wallet.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* User Information */}
           <div className="rounded-lg border bg-muted/50 p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -481,7 +518,11 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={!activationFormData.billingProfileId || activationMutation.isPending}
+            disabled={
+              !activationFormData.billingProfileId || 
+              activationMutation.isPending || 
+              !hasWallet
+            }
           >
             {activationMutation.isPending ? 'Activating...' : 'Activate User'}
           </Button>
