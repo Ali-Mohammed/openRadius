@@ -924,60 +924,6 @@ export default function RadiusUsers() {
     setActivationDialogOpen(true)
   }
 
-  const handleSubmitActivation = () => {
-    if (!userToActivate || !activationFormData.billingProfileId) {
-      toast.error('Please select a billing profile')
-      return
-    }
-
-    const selectedBillingProfile = billingProfiles.find(
-      bp => bp.id.toString() === activationFormData.billingProfileId
-    )
-
-    if (!selectedBillingProfile) {
-      toast.error('Selected billing profile not found')
-      return
-    }
-
-    // Calculate next expire date based on current expiration + duration days
-    const durationDays = parseInt(activationFormData.durationDays) || 30
-    const now = new Date()
-    let baseDate = now
-    
-    // If user has a current expiration date and it's in the future, use it as base
-    // Otherwise use today's date
-    if (userToActivate.expiration) {
-      const currentExpireDate = new Date(userToActivate.expiration)
-      if (currentExpireDate > now) {
-        baseDate = currentExpireDate
-      }
-    }
-    
-    const nextExpireDate = new Date(baseDate)
-    nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
-
-    const activationRequest: CreateRadiusActivationRequest = {
-      radiusUserId: userToActivate.id!,
-      radiusProfileId: selectedBillingProfile.radiusProfileId,
-      billingProfileId: selectedBillingProfile.id,
-      nextExpireDate: nextExpireDate.toISOString(),
-      amount: selectedBillingProfile.price || 0,
-      type: 'Activation',
-      paymentMethod: activationFormData.paymentMethod,
-      durationDays: durationDays,
-      source: 'Web',
-      notes: activationFormData.notes || undefined,
-      // On-behalf activation parameters
-      isActionBehalf: isOnBehalfActivation,
-      payerUserId: isOnBehalfActivation && selectedPayerWallet?.userId ? selectedPayerWallet.userId : undefined,
-      payerUsername: isOnBehalfActivation && selectedPayerWallet?.userName ? selectedPayerWallet.userName : undefined,
-      // Apply cashback for both on-behalf and normal activations (when user has wallet with cashback)
-      applyCashback: applyCashback && cashbackData && cashbackData.cashbackAmount > 0,
-    }
-
-    activationMutation.mutate(activationRequest)
-  }
-
   const handleResetColumns = () => {
     setResetColumnsDialogOpen(true)
   }
