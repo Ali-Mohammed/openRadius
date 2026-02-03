@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Zap, Trash2 } from 'lucide-react'
+import { Zap, Trash2, Pencil } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,15 @@ export function OverviewTab({
   onDeleteConfirm,
   isDeleting = false
 }: OverviewTabProps) {
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+
+  const handleEdit = () => {
+    if (id) {
+      navigate(`/radius/users/${id}/edit`)
+    }
+  }
+
   return (
     <>
       <Card>
@@ -53,6 +63,10 @@ export function OverviewTab({
               <CardDescription>Basic information about the user</CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button onClick={handleEdit} variant="outline" size="sm">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
               {onActivate && (
                 <Button onClick={onActivate} size="sm">
                   <Zap className="h-4 w-4 mr-2" />

@@ -1238,7 +1238,11 @@ export default function RadiusUsers() {
         )
       case 'username':
         return (
-          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>{user.username}</TableCell>
+          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>
+            <Link to={`/radius/users/${user.uuid}/overview`} className="hover:underline text-primary">
+              {user.username}
+            </Link>
+          </TableCell>
         )
       case 'name':
         return (
@@ -1416,7 +1420,7 @@ export default function RadiusUsers() {
                   {!showTrash ? (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link to={`/radius/users/${user.uuid}`} className="flex items-center">
+                        <Link to={`/radius/users/${user.uuid}/overview`} className="flex items-center">
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Link>
