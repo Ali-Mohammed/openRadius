@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package, Eye, MoreHorizontal } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, RotateCcw, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, FileText, List, Users, Settings, Tag, Zap, CreditCard, Calendar, DollarSign, Package, Eye, MoreHorizontal, Copy } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { radiusUserApi, type RadiusUser } from '@/api/radiusUserApi'
 import { radiusProfileApi } from '@/api/radiusProfileApi'
@@ -84,6 +84,7 @@ export default function RadiusUsers() {
   
   // Default column settings
   const DEFAULT_COLUMN_VISIBILITY = {
+    uuid: false,
     username: true,
     name: true,
     email: true,
@@ -115,6 +116,7 @@ export default function RadiusUsers() {
 
   const DEFAULT_COLUMN_WIDTHS = {
     checkbox: 50,
+    uuid: 280,
     username: 150,
     name: 180,
     email: 200,
@@ -147,6 +149,7 @@ export default function RadiusUsers() {
 
   const DEFAULT_COLUMN_ORDER = [
     'checkbox',
+    'uuid',
     'username',
     'name',
     'email',
@@ -1283,6 +1286,7 @@ export default function RadiusUsers() {
   const renderColumnHeader = (columnKey: string) => {
     const columnConfig: Record<string, { label: string | JSX.Element, sortKey?: string, align?: string, draggable?: boolean }> = {
       checkbox: { label: <Checkbox checked={selectedUserIds.length === users.length && users.length > 0} onCheckedChange={handleSelectAll} />, draggable: false },
+      uuid: { label: 'UUID', sortKey: 'uuid' },
       username: { label: t('radiusUsers.username'), sortKey: 'username' },
       name: { label: t('radiusUsers.name'), sortKey: 'name' },
       email: { label: t('radiusUsers.email'), sortKey: 'email' },
@@ -1409,6 +1413,27 @@ export default function RadiusUsers() {
               checked={selectedUserIds.includes(user.id!)}
               onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
             />
+          </TableCell>
+        )
+      case 'uuid':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-muted px-2 py-1 rounded">{user.uuid}</code>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigator.clipboard.writeText(user.uuid)
+                  toast.success('UUID copied to clipboard')
+                }}
+                title="Copy UUID"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
           </TableCell>
         )
       case 'username':
@@ -1735,12 +1760,14 @@ export default function RadiusUsers() {
                       checked={Object.values(columnVisibility).every(v => v)}
                       onCheckedChange={(checked) => {
                         setColumnVisibility({
+                          uuid: checked,
                           username: checked,
                           name: checked,
                           email: checked,
                           phone: checked,
                           city: checked,
                           profile: checked,
+                          group: checked,
                           status: checked,
                           balance: checked,
                           loanBalance: checked,
@@ -1769,6 +1796,13 @@ export default function RadiusUsers() {
                       {Object.values(columnVisibility).every(v => v) ? 'Hide All' : 'Show All'}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={columnVisibility.uuid}
+                      onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, uuid: checked }))}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      UUID
+                    </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={columnVisibility.username}
                       onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, username: checked }))}

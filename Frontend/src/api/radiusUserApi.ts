@@ -15,6 +15,7 @@ export interface RadiusTag {
 
 export interface RadiusUser {
   id?: number
+  uuid: string
   externalId?: number
   username: string
   firstname?: string

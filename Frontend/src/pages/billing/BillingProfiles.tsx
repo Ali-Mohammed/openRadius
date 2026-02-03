@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Settings, RotateCcw, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArchiveRestore, Search, Wallet, Package, DollarSign, X, Check, Archive, RefreshCw, Receipt, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Settings, RotateCcw, GripVertical, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getProfiles,
@@ -171,6 +171,7 @@ export default function BillingProfiles() {
 
   // Default column settings
   const DEFAULT_COLUMN_VISIBILITY = {
+    uuid: true,
     name: true,
     description: true,
     price: true,
@@ -183,6 +184,7 @@ export default function BillingProfiles() {
   };
 
   const DEFAULT_COLUMN_WIDTHS = {
+    uuid: 280,
     name: 180,
     description: 250,
     price: 120,
@@ -196,6 +198,7 @@ export default function BillingProfiles() {
   };
 
   const DEFAULT_COLUMN_ORDER = [
+    'uuid',
     'name',
     'description',
     'price',
@@ -772,6 +775,7 @@ export default function BillingProfiles() {
   // Render column header with drag and drop
   const renderColumnHeader = (columnKey: string) => {
     const columnConfig: Record<string, { label: string, sortKey?: string, align?: string, draggable?: boolean }> = {
+      uuid: { label: 'UUID', sortKey: 'uuid' },
       name: { label: 'Name', sortKey: 'name' },
       description: { label: 'Description', sortKey: 'description' },
       price: { label: 'Price', sortKey: 'price', align: 'right' },
@@ -850,6 +854,27 @@ export default function BillingProfiles() {
     const opacityClass = profile.isDeleted ? 'opacity-60' : ''
 
     switch (columnKey) {
+      case 'uuid':
+        return (
+          <TableCell key={columnKey} className={`h-12 px-4 ${opacityClass}`} style={baseStyle}>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-muted px-2 py-1 rounded">{profile.uuid}</code>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigator.clipboard.writeText(profile.uuid)
+                  toast.success('UUID copied to clipboard')
+                }}
+                title="Copy UUID"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </TableCell>
+        )
       case 'name':
         const IconComponent = profile.icon ? getIconComponent(profile.icon) : null
         return (
@@ -1044,6 +1069,13 @@ export default function BillingProfiles() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.uuid}
+                  onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, uuid: checked }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  UUID
+                </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={columnVisibility.name}
                   onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, name: checked }))}
