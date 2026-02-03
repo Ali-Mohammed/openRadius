@@ -431,21 +431,38 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     <SelectValue placeholder="Select a billing profile" />
                   </SelectTrigger>
                   <SelectContent>
-                    {billingProfiles.map((bp: BillingProfile) => (
-                      <SelectItem key={bp.id} value={bp.id.toString()}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{bp.name}</span>
-                          <span className="ml-2 text-muted-foreground">
-                            {currencySymbol} {formatCurrency(bp.price || 0)}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {billingProfiles.map((bp: BillingProfile) => {
+                      const isCurrentProfile = user?.profileBillingId === bp.id
+                      return (
+                        <SelectItem 
+                          key={bp.id} 
+                          value={bp.id.toString()}
+                          disabled={allowProfileChange && isCurrentProfile}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className="flex items-center gap-2">
+                              {bp.name}
+                              {isCurrentProfile && (
+                                <Badge variant="secondary" className="text-xs">Current</Badge>
+                              )}
+                            </span>
+                            <span className="ml-2 text-muted-foreground">
+                              {currencySymbol} {formatCurrency(bp.price || 0)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
                 {!allowProfileChange && activationFormData.billingProfileId && (
                   <p className="text-xs text-muted-foreground">
                     Using current profile. Enable "Change Profile" to select a different one.
+                  </p>
+                )}
+                {allowProfileChange && activationFormData.billingProfileId && user?.profileBillingId === parseInt(activationFormData.billingProfileId) && (
+                  <p className="text-xs text-amber-600">
+                    You cannot select the same profile. Please choose a different billing profile.
                   </p>
                 )}
               </div>
@@ -645,7 +662,8 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
             disabled={
               !activationFormData.billingProfileId || 
               activationMutation.isPending || 
-              !hasWallet
+              !hasWallet ||
+              (allowProfileChange && user?.profileBillingId === parseInt(activationFormData.billingProfileId))
             }
           >
             {activationMutation.isPending ? 'Activating...' : 'Activate User'}
