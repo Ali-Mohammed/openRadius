@@ -794,7 +794,7 @@ public class RadiusUserController : ControllerBase
     }
 
     // GET: api/radius/users/uuid/{uuid}
-    [HttpGet("uuid/{uuid}")]
+    [HttpGet("uuid/{uuid:guid}")]
     public async Task<ActionResult<RadiusUserResponse>> GetUserByUuid(Guid uuid)
     {
         var user = await _context.RadiusUsers
@@ -1006,7 +1006,7 @@ public class RadiusUserController : ControllerBase
     }
 
     // PUT: api/radius/users/uuid/{uuid}
-    [HttpPut("uuid/{uuid}")]
+    [HttpPut("uuid/{uuid:guid}")]
     public async Task<ActionResult<RadiusUserResponse>> UpdateUserByUuid(Guid uuid, [FromBody] UpdateUserRequest request)
     {
         var user = await _context.RadiusUsers
@@ -1171,104 +1171,6 @@ public class RadiusUserController : ControllerBase
         var response = new RadiusUserResponse
         {
             Id = user.Id,
-            ExternalId = user.ExternalId,
-            Username = user.Username,
-            Firstname = user.Firstname,
-            Lastname = user.Lastname,
-            City = user.City,
-            Phone = user.Phone,
-            Email = user.Email,
-            ProfileId = user.ProfileId,
-            Balance = user.Balance,
-            LoanBalance = user.LoanBalance,
-            Expiration = user.Expiration,
-            LastOnline = user.LastOnline,
-            Enabled = user.Enabled,
-            OnlineStatus = user.OnlineStatus,
-            RemainingDays = CalculateRemainingDays(user.Expiration),
-            DebtDays = user.DebtDays,
-            StaticIp = updateUserIpReservation?.IpAddress,
-            Company = user.Company,
-            Address = user.Address,
-            ContractId = user.ContractId,
-            GroupId = user.GroupId,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
-            LastSyncedAt = user.LastSyncedAt
-        };
-
-        return Ok(response);
-    }
-
-    // PUT: api/radius/users/uuid/{uuid}
-    [HttpPut("uuid/{uuid}")]
-    public async Task<ActionResult<RadiusUserResponse>> UpdateUserByUuid(Guid uuid, [FromBody] UpdateUserRequest request)
-    {
-        var user = await _context.RadiusUsers
-            .FirstOrDefaultAsync(u => u.Uuid == uuid);
-
-        if (user == null)
-        {
-            return NotFound(new { message = "User not found" });
-        }
-
-        // Update only provided fields
-        if (request.Username != null) user.Username = request.Username;
-        if (request.Password != null) user.Password = request.Password;
-        if (request.Firstname != null) user.Firstname = request.Firstname;
-        if (request.Lastname != null) user.Lastname = request.Lastname;
-        if (request.Email != null) user.Email = request.Email;
-        if (request.Phone != null) user.Phone = request.Phone;
-        if (request.City != null) user.City = request.City;
-        if (request.ProfileId.HasValue) user.ProfileId = request.ProfileId;
-        if (request.Balance.HasValue) user.Balance = request.Balance.Value;
-        if (request.Expiration.HasValue) 
-        {
-            // Ensure DateTime is in UTC for PostgreSQL
-            user.Expiration = request.Expiration.Value.Kind == DateTimeKind.Utc 
-                ? request.Expiration 
-                : DateTime.SpecifyKind(request.Expiration.Value, DateTimeKind.Utc);
-        }
-        if (request.Enabled.HasValue) user.Enabled = request.Enabled.Value;
-        // StaticIp is managed via IP Reservations, not updated here
-        if (request.Company != null) user.Company = request.Company;
-        if (request.Address != null) user.Address = request.Address;
-        if (request.ContractId != null) user.ContractId = request.ContractId;
-        if (request.Notes != null) user.Notes = request.Notes;
-        if (request.DeviceSerialNumber != null) user.DeviceSerialNumber = request.DeviceSerialNumber;
-        if (request.GpsLat != null) user.GpsLat = request.GpsLat;
-        if (request.GpsLng != null) user.GpsLng = request.GpsLng;
-        if (request.SimultaneousSessions.HasValue) user.SimultaneousSessions = request.SimultaneousSessions.Value;
-        if (request.ZoneId.HasValue) user.ZoneId = request.ZoneId;
-        if (request.GroupId.HasValue) user.GroupId = request.GroupId;
-
-        user.UpdatedAt = DateTime.UtcNow;
-
-        // Update password in radcheck table if provided
-        if (!string.IsNullOrWhiteSpace(request.Password))
-        {
-            // Remove existing password entries for this user
-            await _context.Database.ExecuteSqlRawAsync(
-                "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                user.Username!);
-
-            // Insert new password
-            await _context.Database.ExecuteSqlRawAsync(
-                "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
-                user.Username!, request.Password);
-        }
-
-        await _context.SaveChangesAsync();
-
-        // Get IP reservation for this user
-        var updateUserIpReservation = await _context.RadiusIpReservations
-            .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
-            .FirstOrDefaultAsync();
-
-        var response = new RadiusUserResponse
-        {
-            Id = user.Id,
-            Uuid = user.Uuid,
             ExternalId = user.ExternalId,
             Username = user.Username,
             Firstname = user.Firstname,
