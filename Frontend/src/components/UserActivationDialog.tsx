@@ -86,6 +86,36 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     return !!myWallet && myWallet.status?.toLowerCase() === 'active'
   }, [isOnBehalfActivation, selectedPayerWallet, myWallet])
 
+  // Calculate remaining days until expiration
+  const remainingDays = useMemo(() => {
+    if (!user?.expiration) return 0
+    const now = new Date()
+    const expireDate = new Date(user.expiration)
+    if (expireDate < now) return 0
+    const diffTime = expireDate.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays > 0 ? diffDays : 0
+  }, [user?.expiration])
+
+  // Calculate the next expiration date for display
+  const calculatedNextExpiration = useMemo(() => {
+    if (!user) return null
+    const durationDays = parseInt(activationFormData.durationDays) || 30
+    const now = new Date()
+    let baseDate = now
+    
+    if (user.expiration) {
+      const currentExpireDate = new Date(user.expiration)
+      if (currentExpireDate > now) {
+        baseDate = currentExpireDate
+      }
+    }
+    
+    const nextExpireDate = new Date(baseDate)
+    nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
+    return nextExpireDate
+  }, [user, activationFormData.durationDays])
+
   // Cashback calculation query
   const { data: cashbackData } = useQuery({
     queryKey: ['cashback-calculation', selectedBillingProfile?.id, selectedPayerWallet?.userId],
@@ -194,6 +224,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
       paymentMethod: activationFormData.paymentMethod,
       durationDays: durationDays,
       profileChangeType: allowProfileChange ? profileChangeType : undefined,
+      scheduledProfileChangeDate: allowProfileChange && profileChangeType === 'OnExpiration' ? nextExpireDate.toISOString() : undefined,
       source: 'Web',
       notes: activationFormData.notes || undefined,
       isActionBehalf: isOnBehalfActivation,
@@ -351,8 +382,22 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       {profileChangeType === 'Immediately' 
-                        ? 'Profile will be changed right away'
-                        : 'Profile will be changed when current period expires'}
+                        ? (
+                          <span className="flex items-start gap-1">
+                            <AlertCircle className="h-3 w-3 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <span>
+                              <strong className="text-amber-600">Warning:</strong> Profile will be changed immediately. 
+                              {remainingDays > 0 && (
+                                <strong className="text-destructive"> You will lose {remainingDays} day{remainingDays !== 1 ? 's' : ''} remaining on the current profile.</strong>
+                              )}
+                            </span>
+                          </span>
+                        )
+                        : calculatedNextExpiration ? (
+                          <span>
+                            Profile will be changed on <strong>{calculatedNextExpiration.toLocaleDateString()}</strong> (when current period expires)
+                          </span>
+                        ) : 'Profile will be changed when current period expires'}
                     </p>
                   </div>
                 )}
