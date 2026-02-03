@@ -1227,6 +1227,15 @@ public class RadiusActivationController : ControllerBase
                 return BadRequest(new { error = "Only 30 days duration is allowed for activations." });
             }
 
+            // Validate profile change - cannot change to the same profile
+            if (!string.IsNullOrEmpty(request.ProfileChangeType) && request.BillingProfileId.HasValue)
+            {
+                if (radiusUser.ProfileBillingId == request.BillingProfileId.Value)
+                {
+                    return BadRequest(new { error = "Cannot change to the same billing profile. Please select a different profile." });
+                }
+            }
+
             // Set duration to 30 days
             var durationDays = 30;
 
