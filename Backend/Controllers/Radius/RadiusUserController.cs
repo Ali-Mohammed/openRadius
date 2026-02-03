@@ -638,6 +638,7 @@ public class RadiusUserController : ControllerBase
         var response = users.Select(u => new RadiusUserResponse
         {
             Id = u.Id,
+            Uuid = u.Uuid,
             ExternalId = u.ExternalId,
             Username = u.Username,
             Firstname = u.Firstname,
@@ -972,6 +973,7 @@ public class RadiusUserController : ControllerBase
         var response = new RadiusUserResponse
         {
             Id = user.Id,
+            Uuid = user.Uuid,
             ExternalId = user.ExternalId,
             Username = user.Username,
             Firstname = user.Firstname,
@@ -1171,6 +1173,7 @@ public class RadiusUserController : ControllerBase
         var response = new RadiusUserResponse
         {
             Id = user.Id,
+            Uuid = user.Uuid,
             ExternalId = user.ExternalId,
             Username = user.Username,
             Firstname = user.Firstname,
