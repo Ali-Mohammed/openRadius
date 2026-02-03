@@ -80,7 +80,7 @@ builder.Services.AddSwaggerGen();
 
 // Configure Master PostgreSQL Database (for tenant/workspace management)
 builder.Services.AddDbContext<MasterDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("MasterConnection")));
 
 // Configure Finbuckle.MultiTenant
 builder.Services.AddScoped<WorkspaceTenantStore>();
