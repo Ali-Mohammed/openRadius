@@ -1213,20 +1213,29 @@ public class RadiusActivationController : ControllerBase
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Calculate the next expiration date
-            // If current expiration is in the past, use now + duration
-            // If current expiration is in the future, use current + duration
-            if (request.NextExpireDate.HasValue)
-            {
-                radiusUser.Expiration = request.NextExpireDate.Value;
-                activation.CurrentExpireDate = request.NextExpireDate.Value;
-            }
-            else if (request.DurationDays.HasValue)
-            {
-                var now = DateTime.UtcNow;
-                var currentExpiration = radiusUser.Expiration ?? now;
-                var baseDate = currentExpiration > now ? currentExpiration : now;
-                var newExpiration = baseDate.AddDays(request.DurationDays.Value);
+// Enforce 30 days duration
+        if (request.DurationDays.HasValue && request.DurationDays.Value != 30)
+        {
+            return BadRequest(new { error = "Only 30 days duration is allowed for activations." });
+        }
+
+        // Set duration to 30 days if not specified
+        var durationDays = 30;
+
+        // Calculate the next expiration date
+        // If current expiration is in the past, use now + duration
+        // If current expiration is in the future, use current + duration
+        if (request.NextExpireDate.HasValue)
+        {
+            radiusUser.Expiration = request.NextExpireDate.Value;
+            activation.CurrentExpireDate = request.NextExpireDate.Value;
+        }
+        else
+        {
+            var now = DateTime.UtcNow;
+            var currentExpiration = radiusUser.Expiration ?? now;
+            var baseDate = currentExpiration > now ? currentExpiration : now;
+            var newExpiration = baseDate.AddDays(durationDays);
                 
                 radiusUser.Expiration = newExpiration;
                 activation.CurrentExpireDate = currentExpiration;

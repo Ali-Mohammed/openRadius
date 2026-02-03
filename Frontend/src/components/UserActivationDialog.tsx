@@ -354,8 +354,9 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                         <Select
                           value={selectedPayerWalletId}
                           onValueChange={setSelectedPayerWalletId}
+                          disabled
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="opacity-60 cursor-not-allowed">
                             <SelectValue placeholder={isLoadingUserWallets ? "Loading users..." : "Select a user with wallet"} />
                           </SelectTrigger>
                           <SelectContent>
@@ -417,8 +418,9 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                       ...activationFormData,
                       paymentMethod: value
                     })}
+                    disabled
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="opacity-60 cursor-not-allowed">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -437,8 +439,9 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                       ...activationFormData,
                       durationDays: value
                     })}
+                    disabled
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="opacity-60 cursor-not-allowed">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
