@@ -396,6 +396,12 @@ public class RadiusActivationController : ControllerBase
             var transactionGroupId = Guid.NewGuid();
             _logger.LogInformation($"Generated transaction group ID {transactionGroupId} for activation {billingActivation.Id}");
 
+            // Enforce wallet payment method only
+            if (request.PaymentMethod?.ToLower() != "wallet")
+            {
+                return BadRequest(new { error = "Only Wallet payment method is allowed for activations." });
+            }
+
             // Wallet payment validation
             int? transactionId = null;
             var activationTransactionIds = new List<int>(); // Track all transaction IDs created in this activation
@@ -1205,7 +1211,7 @@ public class RadiusActivationController : ControllerBase
                 Status = "completed",
                 PaymentMethod = request.PaymentMethod,
                 TransactionId = transactionId,
-                DurationDays = request.DurationDays,
+                DurationDays = 30, // Enforce 30 days
                 Source = request.Source ?? "web",
                 IpAddress = ipAddress,
                 UserAgent = userAgent,
@@ -1213,29 +1219,29 @@ public class RadiusActivationController : ControllerBase
                 CreatedAt = DateTime.UtcNow
             };
 
-// Enforce 30 days duration
-        if (request.DurationDays.HasValue && request.DurationDays.Value != 30)
-        {
-            return BadRequest(new { error = "Only 30 days duration is allowed for activations." });
-        }
+            // Enforce 30 days duration
+            if (request.DurationDays.HasValue && request.DurationDays.Value != 30)
+            {
+                return BadRequest(new { error = "Only 30 days duration is allowed for activations." });
+            }
 
-        // Set duration to 30 days if not specified
-        var durationDays = 30;
+            // Set duration to 30 days
+            var durationDays = 30;
 
-        // Calculate the next expiration date
-        // If current expiration is in the past, use now + duration
-        // If current expiration is in the future, use current + duration
-        if (request.NextExpireDate.HasValue)
-        {
-            radiusUser.Expiration = request.NextExpireDate.Value;
-            activation.CurrentExpireDate = request.NextExpireDate.Value;
-        }
-        else
-        {
-            var now = DateTime.UtcNow;
-            var currentExpiration = radiusUser.Expiration ?? now;
-            var baseDate = currentExpiration > now ? currentExpiration : now;
-            var newExpiration = baseDate.AddDays(durationDays);
+            // Calculate the next expiration date
+            // If current expiration is in the past, use now + duration
+            // If current expiration is in the future, use current + duration
+            if (request.NextExpireDate.HasValue)
+            {
+                radiusUser.Expiration = request.NextExpireDate.Value;
+                activation.CurrentExpireDate = request.NextExpireDate.Value;
+            }
+            else
+            {
+                var now = DateTime.UtcNow;
+                var currentExpiration = radiusUser.Expiration ?? now;
+                var baseDate = currentExpiration > now ? currentExpiration : now;
+                var newExpiration = baseDate.AddDays(durationDays);
                 
                 radiusUser.Expiration = newExpiration;
                 activation.CurrentExpireDate = currentExpiration;
