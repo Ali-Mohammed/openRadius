@@ -41,6 +41,20 @@ interface OverviewTabProps {
     enabled?: boolean
     profileName?: string
     groupName?: string
+    balance?: number
+    loanBalance?: number
+    expiration?: string
+    lastOnline?: string
+    remainingDays?: number
+    debtDays?: number
+    city?: string
+    company?: string
+    address?: string
+    contractId?: string
+    staticIp?: string
+    zoneName?: string
+    zoneColor?: string
+    onlineStatus?: number
     createdAt?: string
     updatedAt?: string
   }
@@ -172,11 +186,43 @@ export function OverviewTab({
               <p className="text-sm">{user.phone || '-'}</p>
             </div>
             <div>
+              <p className="text-sm font-medium text-muted-foreground">City</p>
+              <p className="text-sm">{user.city || '-'}</p>
+            </div>
+            <div>
               <p className="text-sm font-medium text-muted-foreground">Status</p>
               <Badge variant={user.enabled ? 'default' : 'secondary'}>
                 {user.enabled ? 'Active' : 'Inactive'}
               </Badge>
             </div>
+            {user.expiration && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Expiration Date</p>
+                <p className="text-sm font-semibold">{new Date(user.expiration).toLocaleDateString()}</p>
+              </div>
+            )}
+            {user.remainingDays !== undefined && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Remaining Days</p>
+                <p className="text-sm">
+                  <Badge variant={user.remainingDays > 7 ? 'default' : user.remainingDays > 0 ? 'secondary' : 'destructive'}>
+                    {user.remainingDays} days
+                  </Badge>
+                </p>
+              </div>
+            )}
+            {user.balance !== undefined && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Balance</p>
+                <p className="text-sm font-semibold">${user.balance.toFixed(2)}</p>
+              </div>
+            )}
+            {user.loanBalance !== undefined && user.loanBalance > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Loan Balance</p>
+                <p className="text-sm font-semibold text-destructive">${user.loanBalance.toFixed(2)}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium text-muted-foreground">Profile</p>
               <p className="text-sm">{user.profileName || '-'}</p>
@@ -185,6 +231,50 @@ export function OverviewTab({
               <p className="text-sm font-medium text-muted-foreground">Group</p>
               <p className="text-sm">{user.groupName || '-'}</p>
             </div>
+            {user.zoneName && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Zone</p>
+                <div className="flex items-center gap-2">
+                  {user.zoneColor && (
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: user.zoneColor }}
+                    />
+                  )}
+                  <p className="text-sm">{user.zoneName}</p>
+                </div>
+              </div>
+            )}
+            {user.company && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Company</p>
+                <p className="text-sm">{user.company}</p>
+              </div>
+            )}
+            {user.address && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Address</p>
+                <p className="text-sm">{user.address}</p>
+              </div>
+            )}
+            {user.contractId && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Contract ID</p>
+                <p className="text-sm">{user.contractId}</p>
+              </div>
+            )}
+            {user.staticIp && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Static IP</p>
+                <p className="text-sm font-mono">{user.staticIp}</p>
+              </div>
+            )}
+            {user.lastOnline && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Last Online</p>
+                <p className="text-sm">{new Date(user.lastOnline).toLocaleString()}</p>
+              </div>
+            )}
             {user.createdAt && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Created At</p>
