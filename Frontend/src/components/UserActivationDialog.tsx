@@ -40,6 +40,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
   const [isOnBehalfActivation, setIsOnBehalfActivation] = useState(false)
   const [applyCashback, setApplyCashback] = useState(true)
   const [selectedPayerWalletId, setSelectedPayerWalletId] = useState('')
+  const [allowProfileChange, setAllowProfileChange] = useState(false)
 
   // Billing profiles query
   const { data: billingProfilesData } = useQuery({
@@ -120,9 +121,10 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     setIsOnBehalfActivation(false)
     setApplyCashback(true)
     setSelectedPayerWalletId('')
+    setAllowProfileChange(false)
   }
 
-  // Auto-select billing profile when user changes
+  // Auto-select billing profile when user changes (always pre-select current profile)
   useEffect(() => {
     if (!user || !open) return
 
@@ -150,6 +152,8 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
       ...prev,
       billingProfileId: autoSelectedBillingProfileId,
     }))
+    // Reset profile change checkbox when user changes
+    setAllowProfileChange(false)
   }, [user, billingProfiles, open])
 
   const handleSubmit = () => {
@@ -299,6 +303,25 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
             </div>
             
             <div className="grid gap-4">
+              {/* Change Profile Checkbox */}
+              <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/20 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="change-profile-toggle" className="text-sm font-medium">
+                      Change Profile
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enable to select a different billing profile
+                    </p>
+                  </div>
+                  <Switch
+                    id="change-profile-toggle"
+                    checked={allowProfileChange}
+                    onCheckedChange={setAllowProfileChange}
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="billingProfile">Billing Profile <span className="text-destructive">*</span></Label>
                 <Select
@@ -307,8 +330,9 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     ...activationFormData,
                     billingProfileId: value
                   })}
+                  disabled={!allowProfileChange}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={!allowProfileChange ? "opacity-60 cursor-not-allowed" : ""}>
                     <SelectValue placeholder="Select a billing profile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -324,6 +348,11 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     ))}
                   </SelectContent>
                 </Select>
+                {!allowProfileChange && activationFormData.billingProfileId && (
+                  <p className="text-xs text-muted-foreground">
+                    Using current profile. Enable "Change Profile" to select a different one.
+                  </p>
+                )}
               </div>
 
               {/* Selected Profile Details */}
