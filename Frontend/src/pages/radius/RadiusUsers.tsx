@@ -540,27 +540,6 @@ export default function RadiusUsers() {
     },
   })
 
-  // Activation mutation
-  const activationMutation = useMutation({
-    mutationFn: (data: CreateRadiusActivationRequest) => radiusActivationApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
-      queryClient.invalidateQueries({ queryKey: ['radius-activations'] })
-      toast.success('User activated successfully')
-      setActivationDialogOpen(false)
-      setUserToActivate(null)
-      setActivationFormData({
-        billingProfileId: '',
-        paymentMethod: 'Wallet',
-        durationDays: '30',
-        notes: '',
-      })
-    },
-    onError: (error: any) => {
-      toast.error(formatApiError(error) || 'Failed to activate user')
-    },
-  })
-
   // Bulk operations handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
