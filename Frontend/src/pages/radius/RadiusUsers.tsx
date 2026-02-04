@@ -76,7 +76,7 @@ export default function RadiusUsers() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<number | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
-  const [userToRestore, setUserToRestore] = useState<number | null>(null)
+  const [userToRestore, setUserToRestore] = useState<string | null>(null)
   const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
   
   // Default column settings
@@ -499,7 +499,7 @@ export default function RadiusUsers() {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: (id: number) => radiusUserApi.restore(id),
+    mutationFn: (uuid: string) => radiusUserApi.restoreByUuid(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
       toast.success('User restored successfully')
@@ -799,8 +799,8 @@ export default function RadiusUsers() {
     }
   }
 
-  const handleRestore = (userId: number) => {
-    setUserToRestore(userId)
+  const handleRestore = (userUuid: string) => {
+    setUserToRestore(userUuid)
     setRestoreDialogOpen(true)
   }
 
@@ -1443,7 +1443,7 @@ export default function RadiusUsers() {
                       </DropdownMenuItem>
                     </>
                   ) : (
-                    <DropdownMenuItem onClick={() => handleRestore(user.id!)}>
+                    <DropdownMenuItem onClick={() => handleRestore(user.uuid)}>
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Restore
                     </DropdownMenuItem>
