@@ -300,33 +300,33 @@ export function HistoryTab() {
                 {paginatedEvents.map((event, index) => (
                   <div
                     key={`${event.eventType}-${event.id}-${index}`}
-                    className="relative flex gap-4 pb-4 border-b last:border-0"
+                    className="relative flex gap-3 pb-3 border-b last:border-0"
                   >
                     {/* Timeline indicator */}
                     <div className="flex flex-col items-center">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full border ${getEventColor(event.eventType)}`}>
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${getEventColor(event.eventType)}`}>
                         {getEventIcon(event.eventType)}
                       </div>
                       {index < paginatedEvents.length - 1 && (
-                        <div className="w-px h-full bg-border mt-2" />
+                        <div className="w-px h-full bg-border mt-1" />
                       )}
                     </div>
 
                     {/* Event content */}
-                    <div className="flex-1 pt-1">
-                      <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 pt-0.5">
+                      <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={getEventColor(event.eventType)}>
+                          <Badge variant="outline" className={`${getEventColor(event.eventType)} text-xs py-0`}>
                             {getEventLabel(event.eventType)}
                           </Badge>
                           {event.isOnBehalf && (
-                            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20 text-xs py-0">
                               <UserCheck className="h-3 w-3 mr-1" />
                               On Behalf
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {formatDistance(new Date(event.timestamp), new Date(), { addSuffix: true })}
                         </div>
@@ -334,7 +334,7 @@ export function HistoryTab() {
 
                       <p className="font-medium text-sm mb-1">{event.description}</p>
 
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mb-1">
                         {event.performedBy && (
                           <div className="flex items-center gap-1">
                             <User className="h-3 w-3" />
@@ -351,8 +351,8 @@ export function HistoryTab() {
 
                       {/* Event details */}
                       {event.details && (
-                        <div className="mt-2 p-3 bg-muted/30 rounded-md">
-                          <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="mt-1.5 p-2 bg-muted/30 rounded-md">
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                             {event.eventType === 'activation' && (
                               <>
                                 {event.details.billingProfile && (
@@ -439,7 +439,7 @@ export function HistoryTab() {
                         </div>
                       )}
 
-                      <div className="text-xs text-muted-foreground mt-2">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {new Date(event.timestamp).toLocaleString()}
                       </div>
                     </div>

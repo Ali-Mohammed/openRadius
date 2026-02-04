@@ -1207,8 +1207,8 @@ export default function RadiusUsers() {
         }
         
         return (
-          <TableCell key={columnKey} className="h-12 px-4 relative" style={baseStyle}>
-            <div className={`absolute left-0 top-3 bottom-3 w-0.5 ${statusColor}`}></div>
+          <TableCell key={columnKey} className="h-10 px-3 relative" style={baseStyle}>
+            <div className={`absolute left-0 top-2 bottom-2 w-0.5 ${statusColor}`}></div>
             <Checkbox
               checked={selectedUserIds.includes(user.id!)}
               onCheckedChange={(checked) => handleSelectUser(user.id!, checked as boolean)}
@@ -1217,13 +1217,13 @@ export default function RadiusUsers() {
         )
       case 'uuid':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
-            <div className="flex items-center gap-2">
-              <code className="text-xs bg-muted px-2 py-1 rounded">{user.uuid}</code>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>
+            <div className="flex items-center gap-1.5">
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{user.uuid}</code>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
+                className="h-5 w-5 p-0"
                 onClick={(e) => {
                   e.stopPropagation()
                   navigator.clipboard.writeText(user.uuid)
@@ -1238,39 +1238,39 @@ export default function RadiusUsers() {
         )
       case 'username':
         return (
-          <TableCell key={columnKey} className="h-12 px-4 font-medium" style={baseStyle}>
-            <Link to={`/radius/users/${user.uuid}/overview`} className="hover:underline text-primary">
+          <TableCell key={columnKey} className="h-10 px-3 font-medium" style={baseStyle}>
+            <Link to={`/radius/users/${user.uuid}/overview`} className="hover:underline text-primary font-semibold">
               {user.username}
             </Link>
           </TableCell>
         )
       case 'name':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.firstname} {user.lastname}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.firstname} {user.lastname}</TableCell>
         )
       case 'email':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.email || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.email || '-'}</TableCell>
         )
       case 'phone':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.phone || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.phone || '-'}</TableCell>
         )
       case 'city':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.city || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.city || '-'}</TableCell>
         )
       case 'profile':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.profileName || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.profileName || '-'}</TableCell>
         )
       case 'group':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.groupName || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.groupName || '-'}</TableCell>
         )
       case 'status':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>
             <Badge variant={user.enabled ? 'success' : 'destructive'}>
               {user.enabled ? t('radiusUsers.active') : t('radiusUsers.inactive')}
             </Badge>
@@ -1290,15 +1290,15 @@ export default function RadiusUsers() {
         )
       case 'expiration':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.expiration)}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{formatDate(user.expiration)}</TableCell>
         )
       case 'lastOnline':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.lastOnline)}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{formatDate(user.lastOnline)}</TableCell>
         )
       case 'onlineStatus':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>
             <Badge variant={user.onlineStatus ? 'success' : 'secondary'}>
               {user.onlineStatus ? 'Online' : 'Offline'}
             </Badge>
@@ -1310,7 +1310,7 @@ export default function RadiusUsers() {
         const percentage = Math.min((days / maxDays) * 100, 100)
         const barColor = days === 0 ? 'bg-red-500' : days <= 3 ? 'bg-red-500' : days <= 7 ? 'bg-orange-500' : days <= 14 ? 'bg-yellow-500' : 'bg-green-500'
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>
             <div className="flex items-center gap-2 min-w-[100px]">
               <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                 <div 
@@ -1332,23 +1332,23 @@ export default function RadiusUsers() {
         )
       case 'staticIp':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.staticIp || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.staticIp || '-'}</TableCell>
         )
       case 'company':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.company || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.company || '-'}</TableCell>
         )
       case 'address':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.address || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.address || '-'}</TableCell>
         )
       case 'contractId':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.contractId || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.contractId || '-'}</TableCell>
         )
       case 'notes':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>
             <div className="max-w-xs truncate" title={user.notes || ''}>
               {user.notes || '-'}
             </div>
@@ -1356,15 +1356,15 @@ export default function RadiusUsers() {
         )
       case 'deviceSerialNumber':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.deviceSerialNumber || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.deviceSerialNumber || '-'}</TableCell>
         )
       case 'gpsLat':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.gpsLat || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.gpsLat || '-'}</TableCell>
         )
       case 'gpsLng':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{user.gpsLng || '-'}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{user.gpsLng || '-'}</TableCell>
         )
       case 'simultaneousSessions':
         return (
@@ -1374,15 +1374,15 @@ export default function RadiusUsers() {
         )
       case 'createdAt':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.createdAt)}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{formatDate(user.createdAt)}</TableCell>
         )
       case 'updatedAt':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>{formatDate(user.updatedAt)}</TableCell>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>{formatDate(user.updatedAt)}</TableCell>
         )
       case 'tags':
         return (
-          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+          <TableCell key={columnKey} className="h-10 px-3" style={baseStyle}>
             {user.tags && user.tags.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {user.tags.map(tag => {
