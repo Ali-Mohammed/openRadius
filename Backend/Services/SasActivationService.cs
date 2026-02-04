@@ -22,6 +22,7 @@ public interface ISasActivationService
     Task<SasActivationLog?> GetActivationLogAsync(int logId);
     Task<ActivationMetrics> GetMetricsAsync(int integrationId, DateTime? fromDate = null);
     Task<bool> IsIntegrationHealthyAsync(int integrationId);
+    Task<(bool available, string? errorMessage)> CheckCardAvailabilityAsync(int integrationId, int radiusProfileId);
 }
 
 public class SasActivationService : ISasActivationService
@@ -1037,6 +1038,91 @@ public class SasActivationService : ISasActivationService
         {
             _logger.LogError(ex, $"[SAS_Activation_056] Error getting prepaid card PIN for profile {profileExternalId}");
             return (null, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Check if prepaid cards are available for activation
+    /// </summary>
+    public async Task<(bool available, string? errorMessage)> CheckCardAvailabilityAsync(
+        int integrationId,
+        int radiusProfileId)
+    {
+        try
+        {
+            var integration = await _context.SasRadiusIntegrations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.Id == integrationId);
+
+            if (integration == null)
+            {
+                return (false, "Integration not found");
+            }
+
+            // Only check if CheckCardAvailabilityBeforeActivate is enabled and using PrepaidCard method
+            if (!integration.CheckCardAvailabilityBeforeActivate || integration.ActivationMethod != "PrepaidCard")
+            {
+                return (true, null); // Check not required
+            }
+
+            // Get the radius profile to fetch its ExternalId (SAS4 profile ID)
+            var radiusProfile = await _context.RadiusProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == radiusProfileId);
+
+            if (radiusProfile == null)
+            {
+                return (false, "RADIUS profile not found");
+            }
+
+            if (radiusProfile.ExternalId == 0)
+            {
+                return (false, $"RADIUS profile '{radiusProfile.Name}' does not have an ExternalId (SAS4 profile ID). Please sync profiles first.");
+            }
+
+            _logger.LogInformation($"[SAS_CardCheck_001] Checking card availability for profile '{radiusProfile.Name}' (External ID: {radiusProfile.ExternalId})");
+
+            // Determine owner ID based on integration settings
+            int? ownerId = null;
+            if (!integration.AllowAnyCardStockUser && integration.CardStockUserId.HasValue)
+            {
+                ownerId = integration.CardStockUserId.Value;
+            }
+
+            // Get available card series
+            var availableSeries = await GetAvailableCardSeriesAsync(
+                integration,
+                radiusProfile.ExternalId,
+                ownerId,
+                integration.UseFreeCardsOnly);
+
+            if (availableSeries.Count == 0)
+            {
+                _logger.LogWarning($"[SAS_CardCheck_002] No card series available for profile '{radiusProfile.Name}' (External ID: {radiusProfile.ExternalId})");
+                return (false, $"No prepaid card series available for profile '{radiusProfile.Name}'. Please add cards to inventory.");
+            }
+
+            // Check if any series has available PINs
+            foreach (var series in availableSeries)
+            {
+                if (string.IsNullOrWhiteSpace(series.Series))
+                    continue;
+
+                var pinData = await GetUnusedPinFromSeriesAsync(integration, series.Series);
+                if (pinData != null && !string.IsNullOrWhiteSpace(pinData.Pin))
+                {
+                    _logger.LogInformation($"[SAS_CardCheck_003] Card available in series '{series.Series}' for profile '{radiusProfile.Name}'");
+                    return (true, null); // Card found
+                }
+            }
+
+            _logger.LogWarning($"[SAS_CardCheck_004] No unused cards found in any series for profile '{radiusProfile.Name}' (External ID: {radiusProfile.ExternalId})");
+            return (false, $"No unused prepaid cards available for profile '{radiusProfile.Name}'. All cards in inventory have been used.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"[SAS_CardCheck_005] Error checking card availability for profile {radiusProfileId}");
+            return (false, $"Error checking card availability: {ex.Message}");
         }
     }
 }

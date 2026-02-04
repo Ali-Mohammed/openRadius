@@ -325,6 +325,45 @@ public class RadiusActivationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RadiusActivationResponse>> CreateActivation([FromBody] CreateRadiusActivationRequest request)
     {
+        // Check card availability BEFORE starting transaction if SAS4 integration is enabled
+        try
+        {
+            var activeIntegration = await _context.SasRadiusIntegrations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.IsActive && i.SendActivationsToSas && !i.IsDeleted);
+
+            if (activeIntegration != null && 
+                activeIntegration.CheckCardAvailabilityBeforeActivate && 
+                activeIntegration.ActivationMethod == "PrepaidCard")
+            {
+                var radiusProfileId = request.RadiusProfileId ?? (await _context.RadiusUsers
+                    .AsNoTracking()
+                    .Where(u => u.Id == request.RadiusUserId)
+                    .Select(u => u.ProfileId)
+                    .FirstOrDefaultAsync());
+
+                if (radiusProfileId.HasValue)
+                {
+                    var (available, errorMessage) = await _sasActivationService.CheckCardAvailabilityAsync(
+                        activeIntegration.Id,
+                        radiusProfileId.Value);
+
+                    if (!available)
+                    {
+                        _logger.LogWarning($"Activation blocked: {errorMessage}");
+                        return BadRequest(new { error = errorMessage ?? "No prepaid cards available for activation" });
+                    }
+
+                    _logger.LogInformation($"Card availability check passed for profile {radiusProfileId.Value}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking card availability");
+            return StatusCode(500, new { error = "Failed to verify card availability" });
+        }
+
         // Use database transaction to ensure atomicity - all changes succeed or all are rolled back
         using var dbTransaction = await _context.Database.BeginTransactionAsync();
         
