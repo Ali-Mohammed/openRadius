@@ -290,11 +290,11 @@ export function HistoryTab() {
           </div>
 
           {/* Table */}
-          <div className="border rounded-md overflow-x-auto">
-            <Table>
-              <TableHeader>
+          <div className="border rounded-md overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+            <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+              <TableHeader className="sticky top-0 bg-muted z-10">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-10 px-3 w-[100px]">Type</TableHead>
+                  <TableHead className="h-10 px-3 w-[200px]">Type</TableHead>
                   <TableHead className="h-10 px-3 w-[300px]">Description</TableHead>
                   <TableHead className="h-10 px-3 w-[150px]">Performed By</TableHead>
                   <TableHead className="h-10 px-3 w-[150px]">Performed For</TableHead>
