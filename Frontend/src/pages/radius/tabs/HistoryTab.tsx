@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { 
   Activity, 
   Zap, 
@@ -250,10 +251,10 @@ export function HistoryTab() {
   if (isLoadingActivations || isLoadingWallet || isLoadingUserHistory) {
     return (
       <Card>
-        <CardContent className="p-6 space-y-4">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
+        <CardContent className="p-3 space-y-3">
+          <Skeleton className="h-7 w-full" />
+          <Skeleton className="h-7 w-full" />
+          <Skeleton className="h-7 w-full" />
         </CardContent>
       </Card>
     )
@@ -261,13 +262,13 @@ export function HistoryTab() {
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="space-y-6">
+      <CardContent className="p-3">
+        <div className="space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Activity History</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-base font-semibold">Activity History</h3>
+              <p className="text-xs text-muted-foreground">
                 Complete timeline of user activities and changes
               </p>
             </div>
@@ -288,111 +289,129 @@ export function HistoryTab() {
             </div>
           </div>
 
-          {/* Timeline */}
-          <div className="space-y-4">
-            {paginatedEvents.length === 0 ? (
-              <div className="text-center py-12">
-                <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No activity history found</p>
-              </div>
-            ) : (
-              <>
-                {paginatedEvents.map((event, index) => (
-                  <div
-                    key={`${event.eventType}-${event.id}-${index}`}
-                    className="relative flex gap-3 pb-3 border-b last:border-0"
-                  >
-                    {/* Timeline indicator */}
-                    <div className="flex flex-col items-center">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${getEventColor(event.eventType)}`}>
-                        {getEventIcon(event.eventType)}
-                      </div>
-                      {index < paginatedEvents.length - 1 && (
-                        <div className="w-px h-full bg-border mt-1" />
-                      )}
-                    </div>
-
-                    {/* Event content */}
-                    <div className="flex-1 pt-0.5">
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex items-center gap-2">
+          {/* Table */}
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-10 px-3 w-[100px]">Type</TableHead>
+                  <TableHead className="h-10 px-3">Description</TableHead>
+                  <TableHead className="h-10 px-3 w-[150px]">Performed By</TableHead>
+                  <TableHead className="h-10 px-3 w-[150px]">Performed For</TableHead>
+                  <TableHead className="h-10 px-3 w-[180px]">Profile</TableHead>
+                  <TableHead className="h-10 px-3 w-[180px]">Expiration</TableHead>
+                  <TableHead className="h-10 px-3 w-[150px]">Details</TableHead>
+                  <TableHead className="h-10 px-3 w-[180px]">Timestamp</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-32 text-center">
+                      <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No activity history found</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedEvents.map((event, index) => (
+                    <TableRow key={`${event.eventType}-${event.id}-${index}`}>
+                      {/* Type */}
+                      <TableCell className="h-10 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${getEventColor(event.eventType)}`}>
+                            {getEventIcon(event.eventType)}
+                          </div>
                           <Badge variant="outline" className={`${getEventColor(event.eventType)} text-xs py-0`}>
                             {getEventLabel(event.eventType)}
                           </Badge>
-                          {event.isOnBehalf && (
-                            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20 text-xs py-0">
-                              <UserCheck className="h-3 w-3 mr-1" />
-                              On Behalf
-                            </Badge>
-                          )}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {formatDistance(new Date(event.timestamp), new Date(), { addSuffix: true })}
+                        {event.isOnBehalf && (
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20 text-xs py-0 mt-1">
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            On Behalf
+                          </Badge>
+                        )}
+                      </TableCell>
+                      
+                      {/* Description */}
+                      <TableCell className="h-10 px-3">
+                        <p className="text-sm font-medium">{event.description}</p>
+                      </TableCell>
+                      
+                      {/* Performed By */}
+                      <TableCell className="h-10 px-3">
+                        <div className="flex items-center gap-1 text-sm">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span>{event.performedBy || '-'}</span>
                         </div>
-                      </div>
-
-                      <p className="font-medium text-sm mb-1">{event.description}</p>
-
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mb-1">
-                        {event.performedBy && (
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            <span>By: {event.performedBy}</span>
+                      </TableCell>
+                      
+                      {/* Performed For */}
+                      <TableCell className="h-10 px-3">
+                        {event.isOnBehalf && event.performedFor ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <UserCheck className="h-3 w-3 text-muted-foreground" />
+                            <span>{event.performedFor}</span>
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
                         )}
-                        {event.isOnBehalf && event.performedFor && (
-                          <div className="flex items-center gap-1">
-                            <UserCheck className="h-3 w-3" />
-                            <span>For: {event.performedFor}</span>
+                      </TableCell>
+                      
+                      {/* Profile */}
+                      <TableCell className="h-10 px-3">
+                        {event.details && event.eventType === 'activation' ? (
+                          <div className="text-xs space-y-0.5">
+                            {event.details.billingProfile && (
+                              <div className="truncate">
+                                <span className="text-muted-foreground">Billing:</span> {event.details.billingProfile}
+                              </div>
+                            )}
+                            {event.details.radiusProfile && (
+                              <div className="truncate">
+                                <span className="text-muted-foreground">Radius:</span> {event.details.radiusProfile}
+                              </div>
+                            )}
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
-                      </div>
-
-                      {/* Event details */}
-                      {event.details && (
-                        <div className="mt-1.5 p-2 bg-muted/30 rounded-md">
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      </TableCell>
+                      
+                      {/* Expiration */}
+                      <TableCell className="h-10 px-3">
+                        {event.details && event.eventType === 'activation' ? (
+                          <div className="text-xs space-y-0.5">
+                            {event.details.previousExpire && (
+                              <div>
+                                <span className="text-muted-foreground">Previous:</span> {new Date(event.details.previousExpire).toLocaleDateString()}
+                              </div>
+                            )}
+                            {event.details.currentExpire && (
+                              <div>
+                                <span className="text-muted-foreground">New:</span> {new Date(event.details.currentExpire).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Details */}
+                      <TableCell className="h-10 px-3">
+                        {event.details ? (
+                          <div className="text-xs space-y-0.5">
                             {event.eventType === 'activation' && (
                               <>
-                                {event.details.billingProfile && (
-                                  <div>
-                                    <span className="text-muted-foreground">Billing Profile:</span>
-                                    <span className="ml-2 font-medium">{event.details.billingProfile}</span>
-                                  </div>
-                                )}
-                                {event.details.radiusProfile && (
-                                  <div>
-                                    <span className="text-muted-foreground">Radius Profile:</span>
-                                    <span className="ml-2 font-medium">{event.details.radiusProfile}</span>
-                                  </div>
-                                )}
                                 {event.details.amount && (
                                   <div>
-                                    <span className="text-muted-foreground">Amount:</span>
-                                    <span className="ml-2 font-medium">${event.details.amount}</span>
-                                  </div>
-                                )}
-                                {event.details.previousExpire && (
-                                  <div>
-                                    <span className="text-muted-foreground">Previous Expire:</span>
-                                    <span className="ml-2 font-medium">
-                                      {new Date(event.details.previousExpire).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                )}
-                                {event.details.currentExpire && (
-                                  <div>
-                                    <span className="text-muted-foreground">New Expire:</span>
-                                    <span className="ml-2 font-medium">
-                                      {new Date(event.details.currentExpire).toLocaleDateString()}
-                                    </span>
+                                    <span className="text-muted-foreground">Amount:</span> ${event.details.amount}
                                   </div>
                                 )}
                                 {event.details.type && (
                                   <div>
-                                    <span className="text-muted-foreground">Type:</span>
-                                    <span className="ml-2 font-medium">{event.details.type}</span>
+                                    <span className="text-muted-foreground">Type:</span> {event.details.type}
                                   </div>
                                 )}
                               </>
@@ -400,64 +419,68 @@ export function HistoryTab() {
                             {event.eventType === 'wallet_transaction' && (
                               <>
                                 <div>
-                                  <span className="text-muted-foreground">Amount:</span>
-                                  <span className="ml-2 font-medium">
-                                    {event.details.amount} {event.details.currency}
-                                  </span>
+                                  <span className="text-muted-foreground">Amount:</span> {event.details.amount} {event.details.currency}
                                 </div>
-                                <div>
-                                  <span className="text-muted-foreground">Type:</span>
-                                  <span className="ml-2 font-medium">{event.details.transactionType}</span>
-                                </div>
+                                {event.details.transactionType && (
+                                  <div className="truncate">
+                                    <span className="text-muted-foreground">Type:</span> {event.details.transactionType}
+                                  </div>
+                                )}
                                 {event.details.balanceBefore !== undefined && (
                                   <div>
-                                    <span className="text-muted-foreground">Balance Before:</span>
-                                    <span className="ml-2 font-medium">{event.details.balanceBefore}</span>
+                                    <span className="text-muted-foreground">Before:</span> {event.details.balanceBefore}
                                   </div>
                                 )}
                                 {event.details.balanceAfter !== undefined && (
                                   <div>
-                                    <span className="text-muted-foreground">Balance After:</span>
-                                    <span className="ml-2 font-medium">{event.details.balanceAfter}</span>
+                                    <span className="text-muted-foreground">After:</span> {event.details.balanceAfter}
                                   </div>
                                 )}
                                 {event.details.description && (
-                                  <div className="col-span-2">
-                                    <span className="text-muted-foreground">Description:</span>
-                                    <span className="ml-2 font-medium">{event.details.description}</span>
+                                  <div className="truncate">
+                                    <span className="text-muted-foreground">Desc:</span> {event.details.description}
                                   </div>
                                 )}
                                 {event.details.reference && (
-                                  <div className="col-span-2">
-                                    <span className="text-muted-foreground">Reference:</span>
-                                    <span className="ml-2 font-medium">{event.details.reference}</span>
+                                  <div className="truncate">
+                                    <span className="text-muted-foreground">Ref:</span> {event.details.reference}
                                   </div>
                                 )}
                               </>
                             )}
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Timestamp */}
+                      <TableCell className="h-10 px-3">
+                        <div className="text-xs space-y-0.5">
+                          <div className="font-medium">
+                            {formatDistance(new Date(event.timestamp), new Date(), { addSuffix: true })}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {new Date(event.timestamp).toLocaleString()}
+                          </div>
                         </div>
-                      )}
-
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {new Date(event.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}
           {filteredEvents.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
-              <div className="flex items-center gap-4">
-                <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t">
+              <div className="flex items-center gap-3">
+                <div className="text-xs text-muted-foreground">
                   Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Events per page:</span>
+                  <span className="text-xs text-muted-foreground">Events per page:</span>
                   <Select
                     value={pageSize.toString()}
                     onValueChange={(value) => {
@@ -495,10 +518,10 @@ export function HistoryTab() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Page</span>
-                  <span className="text-sm font-medium">{currentPage}</span>
-                  <span className="text-sm text-muted-foreground">of</span>
-                  <span className="text-sm font-medium">{totalPages}</span>
+                  <span className="text-xs text-muted-foreground">Page</span>
+                  <span className="text-xs font-medium">{currentPage}</span>
+                  <span className="text-xs text-muted-foreground">of</span>
+                  <span className="text-xs font-medium">{totalPages}</span>
                 </div>
                 <Button
                   variant="outline"
