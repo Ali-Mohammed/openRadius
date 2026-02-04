@@ -662,8 +662,20 @@ export default function UserManagement() {
   const renderColumnHeader = (column: string) => {
     if (column === 'actions') {
       return (
-        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-[16]" style={{ width: `${columnWidths.actions}px` }}>
+        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-[16] relative" style={{ width: `${columnWidths.actions}px` }}>
           Actions
+          <div 
+            className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onMouseDown={(e) => { 
+              e.preventDefault()
+              e.stopPropagation() 
+              handleResize('actions', e.clientX, columnWidths.actions)
+            }}
+          />
         </TableHead>
       )
     }
@@ -695,7 +707,7 @@ export default function UserManagement() {
           {def.sortable && getSortIcon(column)}
         </span>
         <div 
-          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors z-10"
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -703,7 +715,7 @@ export default function UserManagement() {
           onMouseDown={(e) => { 
             e.preventDefault()
             e.stopPropagation() 
-            handleResize(column, e.clientX, columnWidths[column as keyof typeof columnWidths] || def.defaultWidth)
+            handleResize(column, e.clientX, columnWidths[column as keyof typeof columnWidths])
           }}
         />
       </TableHead>
