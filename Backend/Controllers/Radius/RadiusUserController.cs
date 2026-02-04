@@ -800,6 +800,7 @@ public class RadiusUserController : ControllerBase
     {
         var user = await _context.RadiusUsers
             .Include(u => u.RadiusGroup)
+            .Include(u => u.Profile)
             .FirstOrDefaultAsync(u => u.Uuid == uuid);
 
         if (user == null)
@@ -824,6 +825,7 @@ public class RadiusUserController : ControllerBase
             Phone = user.Phone,
             Email = user.Email,
             ProfileId = user.ProfileId,
+            ProfileName = user.Profile?.Name,
             Balance = user.Balance,
             LoanBalance = user.LoanBalance,
             Expiration = user.Expiration,
