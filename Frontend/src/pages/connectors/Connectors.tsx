@@ -482,24 +482,25 @@ export default function Connectors() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8"></TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Database</TableHead>
-                  <TableHead>Tables</TableHead>
-                  <TableHead>Tasks</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="border rounded-md overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="h-10 px-3 w-[50px]"></TableHead>
+                    <TableHead className="h-10 px-3 w-[200px]">Name</TableHead>
+                    <TableHead className="h-10 px-3 w-[150px]">Type</TableHead>
+                    <TableHead className="h-10 px-3 w-[120px]">Status</TableHead>
+                    <TableHead className="h-10 px-3 w-[350px]">Database</TableHead>
+                    <TableHead className="h-10 px-3 w-[250px]">Tables</TableHead>
+                    <TableHead className="h-10 px-3 w-[120px]">Tasks</TableHead>
+                    <TableHead className="h-10 px-3 w-[150px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {connectors.map((connector) => (
                   <React.Fragment key={connector.name}>
                     <TableRow className="hover:bg-muted/50">
-                      <TableCell>
+                      <TableCell className="h-10 px-3">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -513,18 +514,25 @@ export default function Connectors() {
                           )}
                         </Button>
                       </TableCell>
-                      <TableCell className="font-medium">{connector.name}</TableCell>
-                      <TableCell>{connector.type}</TableCell>
-                      <TableCell>{getStatusBadge(connector.status)}</TableCell>
-                      <TableCell>
-                        {connector.config['database.hostname'] || connector.database?.databaseHostname || '-'}:
-                        {connector.config['database.port'] || connector.database?.databasePort || '-'}/
-                        {connector.config['database.dbname'] || connector.database?.databaseName || '-'}
+                      <TableCell className="h-10 px-3 font-semibold">{connector.name}</TableCell>
+                      <TableCell className="h-10 px-3 text-sm">{connector.type}</TableCell>
+                      <TableCell className="h-10 px-3">{getStatusBadge(connector.status)}</TableCell>
+                      <TableCell className="h-10 px-3">
+                        <div className="text-xs space-y-0.5">
+                          <div className="font-medium">
+                            {connector.config['database.hostname'] || connector.database?.databaseHostname || '-'}:{connector.config['database.port'] || connector.database?.databasePort || '-'}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {connector.config['database.dbname'] || connector.database?.databaseName || '-'}
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {connector.config['table.include.list'] || connector.database?.tableIncludeList || '-'}
+                      <TableCell className="h-10 px-3">
+                        <div className="text-xs text-muted-foreground truncate" title={connector.config['table.include.list'] || connector.database?.tableIncludeList || '-'}>
+                          {connector.config['table.include.list'] || connector.database?.tableIncludeList || '-'}
+                        </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="h-10 px-3">
                         <div className="flex items-center gap-2">
                           <span>{connector.tasks?.length || 0} task(s)</span>
                           {connector.tasks && connector.tasks.length > 0 && (
@@ -539,8 +547,8 @@ export default function Connectors() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <TableCell className="h-10 px-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         {connector.status === 'RUNNING' ? (
                           <Button
                             variant="ghost"
@@ -789,6 +797,7 @@ export default function Connectors() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
