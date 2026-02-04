@@ -799,6 +799,7 @@ public class RadiusUserController : ControllerBase
     public async Task<ActionResult<RadiusUserResponse>> GetUserByUuid(Guid uuid)
     {
         var user = await _context.RadiusUsers
+            .IgnoreQueryFilters()
             .Include(u => u.RadiusGroup)
             .Include(u => u.Profile)
             .FirstOrDefaultAsync(u => u.Uuid == uuid);
