@@ -521,6 +521,9 @@ export default function UserManagement() {
   }
 
   const handleSort = useCallback((field: string) => {
+    // Prevent sorting if we just finished resizing
+    if (resizing) return
+    
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -528,7 +531,7 @@ export default function UserManagement() {
       setSortDirection('asc')
     }
     setCurrentPage(1)
-  }, [sortField, sortDirection])
+  }, [sortField, sortDirection, resizing])
 
   const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) {
@@ -1185,7 +1188,7 @@ export default function UserManagement() {
                   </div>
                 </div>
               )}
-              <Table>
+              <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-[15]">
                   <TableRow className="hover:bg-muted">
                     {columnOrder.map(column => renderColumnHeader(column))}
