@@ -41,6 +41,20 @@ const COLUMN_DEFINITIONS = {
   workspaces: { label: 'Workspaces', sortable: false, defaultWidth: 200 },
 }
 
+const DEFAULT_COLUMN_WIDTHS = {
+  name: 180,
+  username: 150,
+  email: 220,
+  status: 100,
+  supervisor: 180,
+  groups: 180,
+  roles: 180,
+  zones: 200,
+  defaultWorkspace: 180,
+  workspaces: 200,
+  actions: 180,
+}
+
 const DEFAULT_COLUMN_VISIBILITY = {
   name: true,
   username: true,
@@ -70,9 +84,13 @@ export default function UserManagement() {
   const [sortField, setSortField] = useState<string>(() => searchParams.get('sortField') || '')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc')
   
-  // Column visibility
+  // Column visibility and layout
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY)
-  const [columnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
+  const [columnWidths, setColumnWidths] = useState(DEFAULT_COLUMN_WIDTHS)
+  const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_COLUMN_ORDER)
+  const [resizing, setResizing] = useState<string | null>(null)
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -519,11 +537,76 @@ export default function UserManagement() {
     return pages
   }, [])
 
+  // Column resize handler
+  const handleResize = useCallback((column: string, startX: number, startWidth: number) => {
+    setResizing(column)
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(60, startWidth + diff) // Minimum width of 60px
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }))
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      setTimeout(() => setResizing(null), 100)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
+  // Column drag and drop handlers
+  const handleColumnDragStart = useCallback((e: React.DragEvent, column: string) => {
+    if (column === 'actions') return
+    setDraggingColumn(column)
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent, column: string) => {
+    if (!draggingColumn || column === 'actions') return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggingColumn !== column) {
+      setDragOverColumn(column)
+    }
+  }, [draggingColumn])
+
+  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumn: string) => {
+    e.preventDefault()
+    
+    if (!draggingColumn || draggingColumn === targetColumn || targetColumn === 'actions') {
+      setDraggingColumn(null)
+      setDragOverColumn(null)
+      return
+    }
+
+    setColumnOrder(prev => {
+      const newOrder = [...prev]
+      const dragIndex = newOrder.indexOf(draggingColumn)
+      const dropIndex = newOrder.indexOf(targetColumn)
+      
+      newOrder.splice(dragIndex, 1)
+      newOrder.splice(dropIndex, 0, draggingColumn)
+      
+      return newOrder
+    })
+
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [draggingColumn])
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggingColumn(null)
+    setDragOverColumn(null)
+  }, [])
+
   // Render column header
   const renderColumnHeader = (column: string) => {
     if (column === 'actions') {
       return (
-        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-[16]" style={{ width: 180 }}>
+        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-[16]" style={{ width: `${columnWidths.actions}px` }}>
           Actions
         </TableHead>
       )
@@ -534,26 +617,50 @@ export default function UserManagement() {
     const def = COLUMN_DEFINITIONS[column as keyof typeof COLUMN_DEFINITIONS]
     if (!def) return null
 
+    const isDraggable = column !== 'actions'
+    const isDragging = draggingColumn === column
+    const isDragOver = dragOverColumn === column
+    const dragClasses = isDragging ? 'opacity-50' : isDragOver ? 'bg-blue-100 dark:bg-blue-900' : ''
+
     return (
       <TableHead 
         key={column} 
-        className={`h-12 px-4 ${def.sortable ? 'cursor-pointer hover:bg-muted/80 select-none' : ''}`}
-        style={{ width: def.defaultWidth }}
+        className={`h-12 px-4 relative select-none ${def.sortable ? 'cursor-pointer hover:bg-muted/80' : ''} ${dragClasses}`}
+        style={{ width: `${columnWidths[column as keyof typeof columnWidths]}px` }}
         onClick={def.sortable ? () => handleSort(column) : undefined}
+        draggable={isDraggable}
+        onDragStart={isDraggable ? (e) => handleColumnDragStart(e, column) : undefined}
+        onDragOver={isDraggable ? (e) => handleColumnDragOver(e, column) : undefined}
+        onDrop={isDraggable ? (e) => handleColumnDrop(e, column) : undefined}
+        onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
       >
         <span className="flex items-center">
           {def.label}
           {def.sortable && getSortIcon(column)}
         </span>
+        <div 
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => { 
+            e.preventDefault()
+            e.stopPropagation() 
+            handleResize(column, e.clientX, columnWidths[column as keyof typeof columnWidths])
+          }}
+        />
       </TableHead>
     )
   }
 
   // Render table cell
   const renderTableCell = (column: string, user: User) => {
+    const cellWidth = columnWidths[column as keyof typeof columnWidths]
+    
     if (column === 'actions') {
       return (
-        <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background z-10">
+        <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background z-10" style={{ width: `${cellWidth}px` }}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" title="More actions">
@@ -656,19 +763,19 @@ export default function UserManagement() {
     switch (column) {
       case 'name':
         return (
-          <TableCell key={column} className="h-12 px-4 font-medium">
+          <TableCell key={column} className="h-12 px-4 font-medium" style={{ width: `${cellWidth}px` }}>
             {user.firstName || user.lastName
               ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
               : user.email}
           </TableCell>
         )
       case 'username':
-        return <TableCell key={column} className="h-12 px-4">{user.username || '-'}</TableCell>
+        return <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>{user.username || '-'}</TableCell>
       case 'email':
-        return <TableCell key={column} className="h-12 px-4">{user.email}</TableCell>
+        return <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>{user.email}</TableCell>
       case 'status':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             <Badge 
               variant={user.enabled !== false ? "outline" : "secondary"}
               className={user.enabled !== false 
@@ -681,7 +788,7 @@ export default function UserManagement() {
         )
       case 'supervisor':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             {user.supervisor ? (
               <span className="text-sm">
                 {user.supervisor.firstName || user.supervisor.lastName
@@ -695,7 +802,7 @@ export default function UserManagement() {
         )
       case 'groups':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1 items-center">
               {user.groups?.length ? (
                 <>
@@ -738,7 +845,7 @@ export default function UserManagement() {
         )
       case 'roles':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1 items-center">
               {user.roles?.length ? (
                 <>
@@ -781,7 +888,7 @@ export default function UserManagement() {
         )
       case 'zones':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1">
               {user.zones?.length ? user.zones.map((zone) => (
                 <Badge key={zone.id} variant="secondary" className="flex items-center gap-1.5 text-xs">
@@ -797,7 +904,7 @@ export default function UserManagement() {
         )
       case 'defaultWorkspace':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             {user.defaultWorkspace ? (
               <Badge variant="secondary" className="flex items-center gap-1.5 text-xs w-fit">
                 <div
@@ -811,7 +918,7 @@ export default function UserManagement() {
         )
       case 'workspaces':
         return (
-          <TableCell key={column} className="h-12 px-4">
+          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1">
               {user.workspaces?.length ? user.workspaces.map((workspace) => (
                 <Badge key={workspace.id} variant="outline" className="flex items-center gap-1.5 text-xs">
