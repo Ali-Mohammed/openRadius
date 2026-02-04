@@ -290,18 +290,18 @@ export function HistoryTab() {
           </div>
 
           {/* Table */}
-          <div className="border rounded-md">
+          <div className="border rounded-md overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="h-10 px-3 w-[100px]">Type</TableHead>
-                  <TableHead className="h-10 px-3">Description</TableHead>
+                  <TableHead className="h-10 px-3 w-[300px]">Description</TableHead>
                   <TableHead className="h-10 px-3 w-[150px]">Performed By</TableHead>
                   <TableHead className="h-10 px-3 w-[150px]">Performed For</TableHead>
                   <TableHead className="h-10 px-3 w-[180px]">Profile</TableHead>
                   <TableHead className="h-10 px-3 w-[180px]">Expiration</TableHead>
-                  <TableHead className="h-10 px-3 w-[150px]">Details</TableHead>
-                  <TableHead className="h-10 px-3 w-[180px]">Timestamp</TableHead>
+                  <TableHead className="h-10 px-3 w-[220px]">Details</TableHead>
+                  <TableHead className="h-10 px-3 w-[220px]">Timestamp</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
