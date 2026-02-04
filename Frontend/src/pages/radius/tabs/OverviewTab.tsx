@@ -191,9 +191,11 @@ export function OverviewTab({
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Status</p>
-              <Badge variant={user.enabled ? 'default' : 'secondary'}>
-                {user.enabled ? 'Active' : 'Inactive'}
-              </Badge>
+              <div>
+                <Badge variant={user.enabled ? 'default' : 'secondary'}>
+                  {user.enabled ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
             </div>
             {user.expiration && (
               <div>
@@ -204,11 +206,11 @@ export function OverviewTab({
             {user.remainingDays !== undefined && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Remaining Days</p>
-                <p className="text-sm">
+                <div className="text-sm">
                   <Badge variant={user.remainingDays > 7 ? 'default' : user.remainingDays > 0 ? 'secondary' : 'destructive'}>
                     {user.remainingDays} days
                   </Badge>
-                </p>
+                </div>
               </div>
             )}
             {user.balance !== undefined && (
