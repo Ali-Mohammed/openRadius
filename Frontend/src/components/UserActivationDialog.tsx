@@ -363,6 +363,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     id="change-profile-toggle"
                     checked={allowProfileChange}
                     onCheckedChange={setAllowProfileChange}
+                    disabled={activationMutation.isPending}
                   />
                 </div>
                 
@@ -377,6 +378,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                         size="sm"
                         onClick={() => setProfileChangeType('Immediately')}
                         className="w-full"
+                        disabled={activationMutation.isPending}
                       >
                         Immediately
                       </Button>
@@ -386,6 +388,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                         size="sm"
                         onClick={() => setProfileChangeType('OnExpiration')}
                         className="w-full"
+                        disabled={activationMutation.isPending}
                       >
                         On Expiration
                       </Button>
@@ -425,7 +428,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     ...activationFormData,
                     billingProfileId: value
                   })}
-                  disabled={!allowProfileChange}
+                  disabled={!allowProfileChange || activationMutation.isPending}
                 >
                   <SelectTrigger className={!allowProfileChange ? "opacity-60 cursor-not-allowed" : ""}>
                     <SelectValue placeholder="Select a billing profile" />
@@ -523,6 +526,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                           setSelectedPayerWalletId('')
                         }
                       }}
+                      disabled={activationMutation.isPending}
                     />
                   </div>
                   {isOnBehalfActivation && (
@@ -532,7 +536,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                         <Select
                           value={selectedPayerWalletId}
                           onValueChange={setSelectedPayerWalletId}
-                          disabled
+                          disabled={activationMutation.isPending}
                         >
                           <SelectTrigger className="opacity-60 cursor-not-allowed">
                             <SelectValue placeholder={isLoadingUserWallets ? "Loading users..." : "Select a user with wallet"} />
@@ -577,7 +581,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                             id="cashback-toggle"
                             checked={applyCashback}
                             onCheckedChange={setApplyCashback}
-                            disabled={!cashbackData || cashbackData.cashbackAmount <= 0}
+                            disabled={!cashbackData || cashbackData.cashbackAmount <= 0 || activationMutation.isPending}
                           />
                         </div>
                       )}
@@ -596,7 +600,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                       ...activationFormData,
                       paymentMethod: value
                     })}
-                    disabled
+                    disabled={activationMutation.isPending}
                   >
                     <SelectTrigger className="opacity-60 cursor-not-allowed">
                       <SelectValue />
@@ -617,7 +621,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                       ...activationFormData,
                       durationDays: value
                     })}
-                    disabled
+                    disabled={activationMutation.isPending}
                   >
                     <SelectTrigger className="opacity-60 cursor-not-allowed">
                       <SelectValue />
@@ -647,6 +651,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
                     notes: e.target.value
                   })}
                   rows={3}
+                  disabled={activationMutation.isPending}
                 />
               </div>
             </div>
@@ -654,7 +659,7 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={activationMutation.isPending}>
             Cancel
           </Button>
           <Button 
