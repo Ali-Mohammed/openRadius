@@ -299,7 +299,7 @@ export function HistoryTab() {
                   <TableHead className="h-10 px-3 w-[150px]">Performed By</TableHead>
                   <TableHead className="h-10 px-3 w-[150px]">Performed For</TableHead>
                   <TableHead className="h-10 px-3 w-[180px]">Profile</TableHead>
-                  <TableHead className="h-10 px-3 w-[180px]">Expiration</TableHead>
+                  <TableHead className="h-10 px-3 w-[240px]">Expiration</TableHead>
                   <TableHead className="h-10 px-3 w-[220px]">Details</TableHead>
                   <TableHead className="h-10 px-3 w-[220px]">Timestamp</TableHead>
                 </TableRow>
