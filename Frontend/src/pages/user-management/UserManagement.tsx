@@ -24,6 +24,7 @@ import { userManagementApi, type User } from '@/api/userManagementApi'
 import { zoneApi } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
@@ -91,6 +92,7 @@ export default function UserManagement() {
   const [resizing, setResizing] = useState<string | null>(null)
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
 
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -140,6 +142,60 @@ export default function UserManagement() {
     if (sortDirection !== 'asc') params.sortDirection = sortDirection
     setSearchParams(params, { replace: true })
   }, [currentPage, pageSize, searchQuery, sortField, sortDirection, setSearchParams])
+
+  // Load table preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const preferences = await tablePreferenceApi.getPreference('user-management')
+        if (preferences) {
+          if (preferences.columnWidths) {
+            setColumnWidths({ ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(preferences.columnWidths) })
+          }
+          if (preferences.columnOrder) {
+            setColumnOrder(JSON.parse(preferences.columnOrder))
+          }
+          if (preferences.columnVisibility) {
+            setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(preferences.columnVisibility) })
+          }
+          if (preferences.sortField) {
+            setSortField(preferences.sortField)
+            setSortDirection((preferences.sortDirection as 'asc' | 'desc') || 'asc')
+          }
+        }
+      } catch (error) {
+        console.log('No saved preferences found', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  // Auto-save preferences when they change
+  useEffect(() => {
+    if (!preferencesLoaded) return
+
+    const savePreferences = async () => {
+      try {
+        await tablePreferenceApi.savePreference({
+          tableName: 'user-management',
+          columnWidths: JSON.stringify(columnWidths),
+          columnOrder: JSON.stringify(columnOrder),
+          columnVisibility: JSON.stringify(columnVisibility),
+          sortField: sortField || undefined,
+          sortDirection: sortDirection,
+        })
+        console.log('Table preferences saved successfully')
+      } catch (error) {
+        console.error('Failed to save table preferences:', error)
+      }
+    }
+
+    const timeoutId = setTimeout(savePreferences, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [columnWidths, columnOrder, columnVisibility, sortField, sortDirection, preferencesLoaded])
 
   // Queries
   const { data: users = [], isLoading, isFetching } = useQuery({
@@ -639,7 +695,7 @@ export default function UserManagement() {
           {def.sortable && getSortIcon(column)}
         </span>
         <div 
-          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors z-10"
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -647,7 +703,7 @@ export default function UserManagement() {
           onMouseDown={(e) => { 
             e.preventDefault()
             e.stopPropagation() 
-            handleResize(column, e.clientX, columnWidths[column as keyof typeof columnWidths])
+            handleResize(column, e.clientX, columnWidths[column as keyof typeof columnWidths] || def.defaultWidth)
           }}
         />
       </TableHead>
