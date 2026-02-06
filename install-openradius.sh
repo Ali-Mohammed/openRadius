@@ -848,8 +848,10 @@ configure_keycloak() {
         print_success "Default client scopes assigned"
     fi
     
-    # Create openradius-admin client (confidential/service account)
-    print_info "Creating openradius-admin client..."
+    # Create/Update openradius-admin client (confidential/service account)
+    print_info "Configuring openradius-admin client..."
+    
+    # Try to create the client first
     docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
         -r openradius \
         -s clientId=openradius-admin \
@@ -862,7 +864,25 @@ configure_keycloak() {
         -s directAccessGrantsEnabled=false \
         -s serviceAccountsEnabled=true \
         -s secret=openradius-admin-secret-2026 \
-        -s 'attributes.access.token.lifespan=3600' 2>/dev/null || print_warning "Client may already exist"
+        -s 'attributes."access.token.lifespan"=3600' 2>/dev/null || {
+        
+        # If creation fails, update existing client
+        print_info "Client exists, updating configuration..."
+        ADMIN_CLIENT_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get clients \
+            -r openradius --fields id,clientId 2>/dev/null | grep -B1 '"clientId" : "openradius-admin"' | grep '"id"' | cut -d'"' -f4)
+        
+        if [ -n "$ADMIN_CLIENT_ID" ]; then
+            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update clients/$ADMIN_CLIENT_ID \
+                -r openradius \
+                -s enabled=true \
+                -s publicClient=false \
+                -s serviceAccountsEnabled=true \
+                -s secret=openradius-admin-secret-2026 \
+                -s 'attributes."access.token.lifespan"=3600' 2>/dev/null || true
+        fi
+    }
+    
+    print_success "openradius-admin client configured"
     
     # Create openradius-api client (bearer only)
     print_info "Creating openradius-api client..."
