@@ -77,22 +77,30 @@ validate_email() {
     return 0
 }
 
-# Check if running as root
+# Check if running as root or has sudo access
 check_root() {
     if [[ $EUID -eq 0 ]]; then
-        print_error "This script should NOT be run as root!"
-        print_info "Please run as a regular user with sudo privileges."
-        exit 1
+        IS_ROOT=true
+        print_success "Running as root user"
+    else
+        IS_ROOT=false
+        print_warning "Running as non-root user. Sudo privileges required."
     fi
 }
 
 # Check if user has sudo privileges
 check_sudo() {
-    if ! sudo -n true 2>/dev/null; then
-        print_warning "This script requires sudo privileges."
-        print_info "You may be prompted for your password."
-        sudo -v
+    if [[ "$IS_ROOT" == "true" ]]; then
+        # Running as root, no need for sudo
+        return 0
     fi
+    
+    print_info "Checking sudo privileges..."
+    if ! sudo -v; then
+        print_error "Sudo privileges required. Please run with sudo or as root."
+        exit 1
+    fi
+    print_success "Sudo access confirmed"
 }
 
 # Check Ubuntu version
@@ -109,6 +117,15 @@ check_ubuntu() {
     fi
     
     print_success "Ubuntu $VERSION_ID detected"
+}
+
+# Helper function for sudo commands
+run_sudo() {
+    if [[ "$IS_ROOT" == "true" ]]; then
+        "$@"
+    else
+        sudo "$@"
+    fi
 }
 
 # =============================================================================
