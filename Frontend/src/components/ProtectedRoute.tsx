@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useKeycloak } from '../contexts/KeycloakContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { Loader2 } from 'lucide-react'
+import logoSvg from '@/openradius.svg'
 
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { authenticated, initialized } = useKeycloak()
@@ -20,7 +21,7 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6">
         <img 
-          src="/src/openradius.svg" 
+          src={logoSvg} 
           alt="OpenRadius Logo" 
           className="h-40 w-40 transition-all"
           style={{ 

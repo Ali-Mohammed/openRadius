@@ -4,6 +4,7 @@ import { useKeycloak } from '../contexts/KeycloakContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Avatar, AvatarFallback } from './ui/avatar'
+import logoSvg from '@/openradius.svg'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -139,7 +140,7 @@ export const Header = () => {
         <div className={`flex h-16 items-center justify-between px-6 ${layout === 'full-width' ? 'w-full' : 'max-w-7xl mx-auto'}`}>
           <div className="flex items-center gap-4">
             <img 
-              src="/src/openradius.svg" 
+              src={logoSvg} 
               alt="OpenRadius Logo" 
               className="h-10 w-10 transition-all"
               style={{ 

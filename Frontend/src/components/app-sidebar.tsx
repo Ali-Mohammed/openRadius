@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
 import { dashboardApi } from "@/api/dashboardApi"
 import type { Dashboard } from "@/types/dashboard"
+import logoSvg from '@/openradius.svg'
 
 import { SearchForm } from "@/components/search-form"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
@@ -398,7 +399,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <Link to="/dashboard" className="flex items-center gap-3 px-2 py-3 hover:bg-accent rounded-md transition-colors">
           <img 
-            src="/src/openradius.svg" 
+            src={logoSvg} 
             alt="OpenRadius Logo" 
             className="h-10 w-10 transition-all"
             style={{ 

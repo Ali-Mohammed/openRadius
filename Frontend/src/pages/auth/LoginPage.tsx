@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { appConfig } from '@/config/app.config'
 import { useTheme } from '@/contexts/ThemeContext'
+import logoSvg from '@/openradius.svg'
 
 interface OidcProvider {
   id: number
@@ -110,7 +111,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-6">
             <img 
-              src="/src/openradius.svg" 
+              src={logoSvg} 
               alt="OpenRadius Logo" 
               className="h-28 w-28 transition-all animate-in fade-in-0 zoom-in-50 duration-700"
               style={{ 
