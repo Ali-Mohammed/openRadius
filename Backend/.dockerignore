@@ -1,0 +1,36 @@
+# .NET Build artifacts
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/*.user
+**/*.suo
+
+# Logs
+**/Logs/
+**/*.log
+
+# Temporary files
+**/Temp/
+**/.tmp/
+
+# Database files
+**/*.db
+**/*.sqlite
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+
+# Migration scripts
+**/*.sh
+**/*.sql
