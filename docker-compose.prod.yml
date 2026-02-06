@@ -139,8 +139,6 @@ services:
       CONSOLE_CONFIG_FILE: |
         kafka:
           brokers: ["redpanda:9092"]
-        connect:
-          enabled: false
         redpanda:
           adminApi:
             enabled: true
