@@ -757,6 +757,29 @@ configure_keycloak() {
         -s name=manager \
         -s description="Manager role with elevated permissions" 2>/dev/null || print_warning "Role may already exist"
     
+    # Add 'sub' claim mapper to openid client scope (CRITICAL for backend auth)
+    print_info "Adding 'sub' claim mapper to openid scope..."
+    OPENID_SCOPE_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get client-scopes \
+        -r openradius --fields id,name 2>/dev/null | grep -B1 '"name" : "openid"' | grep '"id"' | cut -d'"' -f4)
+    
+    if [ -n "$OPENID_SCOPE_ID" ]; then
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create \
+            client-scopes/$OPENID_SCOPE_ID/protocol-mappers/models \
+            -r openradius \
+            -s name="User ID" \
+            -s protocol=openid-connect \
+            -s protocolMapper=oidc-usermodel-property-mapper \
+            -s 'config."user.attribute"=id' \
+            -s 'config."claim.name"=sub' \
+            -s 'config."id.token.claim"=true' \
+            -s 'config."access.token.claim"=true' \
+            -s 'config."userinfo.token.claim"=true' \
+            -s 'config."jsonType.label"=String' 2>/dev/null || print_warning "Mapper may already exist"
+        print_success "'sub' claim mapper added successfully"
+    else
+        print_warning "Could not find openid client scope"
+    fi
+    
     print_success "Keycloak realm and clients configured successfully!"
     print_info "You can now access Keycloak at: https://auth.$DOMAIN"
     print_info "Admin console: https://auth.$DOMAIN/admin"
