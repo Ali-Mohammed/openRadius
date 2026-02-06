@@ -517,6 +517,11 @@ generate_ssl_certificates() {
     
     print_step "Generating SSL certificates with Let's Encrypt..."
     
+    # Ensure certbot directories exist
+    sudo mkdir -p /var/log/letsencrypt
+    sudo mkdir -p /etc/letsencrypt
+    sudo mkdir -p /var/lib/letsencrypt
+    
     # Stop nginx if running (certbot needs port 80)
     if systemctl is-active --quiet nginx 2>/dev/null; then
         print_info "Stopping system nginx temporarily for certificate generation..."
@@ -526,15 +531,39 @@ generate_ssl_certificates() {
         NGINX_WAS_RUNNING=false
     fi
     
-    # Generate certificates using standalone mode
-    sudo certbot certonly --standalone --non-interactive --agree-tos \
+    # Stop any Docker containers using port 80
+    print_info "Ensuring port 80 is available..."
+    docker ps --format '{{.Names}}' | grep -q openradius-nginx && docker stop openradius-nginx 2>/dev/null || true
+    
+    # Generate certificates using standalone mode with verbose output
+    print_info "Requesting SSL certificates from Let's Encrypt..."
+    if sudo certbot certonly --standalone --non-interactive --agree-tos \
         --email "$SSL_EMAIL" \
         -d "$DOMAIN" \
         -d "api.$DOMAIN" \
         -d "auth.$DOMAIN" \
         -d "logs.$DOMAIN" \
         -d "kafka.$DOMAIN" \
-        -d "cdc.$DOMAIN"
+        -d "cdc.$DOMAIN" 2>&1 | tee /tmp/certbot-output.log; then
+        print_success "SSL certificates generated successfully"
+    else
+        print_error "Failed to generate SSL certificates"
+        print_info "Check the log: cat /tmp/certbot-output.log"
+        print_warning "Falling back to self-signed certificates for now..."
+        
+        # Create self-signed certificates as fallback
+        sudo mkdir -p /opt/openradius/nginx/ssl
+        sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /opt/openradius/nginx/ssl/privkey.pem \
+            -out /opt/openradius/nginx/ssl/fullchain.pem \
+            -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN"
+        sudo chmod 644 /opt/openradius/nginx/ssl/fullchain.pem
+        sudo chmod 600 /opt/openradius/nginx/ssl/privkey.pem
+        
+        print_warning "Using self-signed certificates. Generate real certificates later with:"
+        print_info "  sudo certbot certonly --standalone -d $DOMAIN -d api.$DOMAIN -d auth.$DOMAIN -d logs.$DOMAIN -d kafka.$DOMAIN -d cdc.$DOMAIN"
+        return
+    fi
     
     # Only restart nginx if it was running before (system nginx, not Docker)
     if [[ "$NGINX_WAS_RUNNING" == "true" ]] && systemctl is-enabled --quiet nginx 2>/dev/null; then
