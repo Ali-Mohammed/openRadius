@@ -692,6 +692,57 @@ configure_keycloak() {
         -s 'attributes.pkce.code.challenge.method=S256' \
         -s 'attributes.post.logout.redirect.uris=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
     
+    # Add protocol mappers to openradius-web client
+    print_info "Adding protocol mappers to openradius-web client..."
+    WEB_CLIENT_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get clients \
+        -r openradius --fields id,clientId 2>/dev/null | grep -B1 '"clientId" : "openradius-web"' | grep '"id"' | cut -d'"' -f4)
+    
+    if [ -n "$WEB_CLIENT_ID" ]; then
+        # Add groups mapper
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create \
+            clients/$WEB_CLIENT_ID/protocol-mappers/models \
+            -r openradius \
+            -s name="groups" \
+            -s protocol=openid-connect \
+            -s protocolMapper=oidc-group-membership-mapper \
+            -s 'config."full.path"=false' \
+            -s 'config."id.token.claim"=true' \
+            -s 'config."access.token.claim"=true' \
+            -s 'config."claim.name"=groups' \
+            -s 'config."userinfo.token.claim"=true' 2>/dev/null || print_warning "Groups mapper may already exist"
+        
+        # Add picture mapper
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create \
+            clients/$WEB_CLIENT_ID/protocol-mappers/models \
+            -r openradius \
+            -s name="picture" \
+            -s protocol=openid-connect \
+            -s protocolMapper=oidc-usermodel-attribute-mapper \
+            -s 'config."user.attribute"=picture' \
+            -s 'config."id.token.claim"=true' \
+            -s 'config."access.token.claim"=true' \
+            -s 'config."claim.name"=picture' \
+            -s 'config."userinfo.token.claim"=true' \
+            -s 'config."jsonType.label"=String' 2>/dev/null || print_warning "Picture mapper may already exist"
+        
+        print_success "Protocol mappers added to openradius-web client"
+    fi
+    
+    # Assign default client scopes to openradius-web client
+    print_info "Assigning default client scopes to openradius-web client..."
+    if [ -n "$WEB_CLIENT_ID" ]; then
+        for scope in "profile" "email" "roles" "web-origins" "acr"; do
+            SCOPE_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get client-scopes \
+                -r openradius --fields id,name 2>/dev/null | grep -B1 "\"name\" : \"$scope\"" | grep '"id"' | cut -d'"' -f4)
+            if [ -n "$SCOPE_ID" ]; then
+                docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update \
+                    clients/$WEB_CLIENT_ID/default-client-scopes/$SCOPE_ID \
+                    -r openradius 2>/dev/null || true
+            fi
+        done
+        print_success "Default client scopes assigned"
+    fi
+    
     # Create openradius-admin client (confidential/service account)
     print_info "Creating openradius-admin client..."
     docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
