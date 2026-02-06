@@ -322,6 +322,12 @@ collect_configuration() {
     read -p "> " install_sample
     INSTALL_SAMPLE=${install_sample:-n}
     
+    # Keycloak auto-configuration
+    echo -e "${CYAN}Auto-configure Keycloak realm and clients? [Y/n]: ${NC}"
+    echo -e "${GRAY}  This will create: openradius realm, openradius-web client, openradius-admin client, openradius-api client${NC}"
+    read -p "> " configure_keycloak
+    CONFIGURE_KEYCLOAK=${configure_keycloak:-y}
+    
     # Backup configuration
     echo -e "${CYAN}Enable automated backups? [Y/n]: ${NC}"
     read -p "> " enable_backup
@@ -632,6 +638,131 @@ wait_for_services() {
 }
 
 # =============================================================================
+# Configure Keycloak Realm and Clients
+# =============================================================================
+
+configure_keycloak() {
+    if [[ "$CONFIGURE_KEYCLOAK" != "y" ]]; then
+        print_step "Skipping Keycloak auto-configuration"
+        return
+    fi
+    
+    print_step "Configuring Keycloak realm and clients..."
+    print_info "Waiting for Keycloak to be fully ready..."
+    
+    # Wait a bit more for Keycloak to be fully initialized
+    sleep 10
+    
+    # Get admin token
+    print_info "Authenticating with Keycloak..."
+    KEYCLOAK_TOKEN=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+        --server http://localhost:8080 \
+        --realm master \
+        --user admin \
+        --password "$KEYCLOAK_ADMIN_PASSWORD" 2>&1 | grep -v "Logging into" || true)
+    
+    # Create openradius realm
+    print_info "Creating openradius realm..."
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+        -s realm=openradius \
+        -s enabled=true \
+        -s displayName="OpenRadius" \
+        -s loginTheme=keycloak \
+        -s accessTokenLifespan=3600 \
+        -s ssoSessionIdleTimeout=1800 \
+        -s ssoSessionMaxLifespan=36000 2>/dev/null || print_warning "Realm may already exist"
+    
+    # Create openradius-web client (public/SPA)
+    print_info "Creating openradius-web client..."
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
+        -r openradius \
+        -s clientId=openradius-web \
+        -s name="OpenRadius Web Application" \
+        -s description="OpenRadius frontend application using OIDC" \
+        -s enabled=true \
+        -s publicClient=true \
+        -s standardFlowEnabled=true \
+        -s implicitFlowEnabled=false \
+        -s directAccessGrantsEnabled=true \
+        -s serviceAccountsEnabled=false \
+        -s 'redirectUris=["https://'$DOMAIN'/*","http://localhost:5173/*"]' \
+        -s 'webOrigins=["https://'$DOMAIN'","http://localhost:5173"]' \
+        -s baseUrl="https://$DOMAIN" \
+        -s rootUrl="https://$DOMAIN" \
+        -s 'attributes.pkce.code.challenge.method=S256' \
+        -s 'attributes.post.logout.redirect.uris=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
+    
+    # Create openradius-admin client (confidential/service account)
+    print_info "Creating openradius-admin client..."
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
+        -r openradius \
+        -s clientId=openradius-admin \
+        -s name="OpenRadius Admin Client" \
+        -s description="Service account for backend admin operations" \
+        -s enabled=true \
+        -s publicClient=false \
+        -s standardFlowEnabled=false \
+        -s implicitFlowEnabled=false \
+        -s directAccessGrantsEnabled=false \
+        -s serviceAccountsEnabled=true \
+        -s secret=openradius-admin-secret-2026 \
+        -s 'attributes.access.token.lifespan=3600' 2>/dev/null || print_warning "Client may already exist"
+    
+    # Create openradius-api client (bearer only)
+    print_info "Creating openradius-api client..."
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
+        -r openradius \
+        -s clientId=openradius-api \
+        -s name="OpenRadius API" \
+        -s description="Backend API for token validation" \
+        -s enabled=true \
+        -s publicClient=false \
+        -s bearerOnly=true \
+        -s standardFlowEnabled=false \
+        -s implicitFlowEnabled=false \
+        -s directAccessGrantsEnabled=false \
+        -s 'attributes.access.token.lifespan=3600' 2>/dev/null || print_warning "Client may already exist"
+    
+    # Create groups
+    print_info "Creating user groups..."
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create groups \
+        -r openradius \
+        -s name=Administrators \
+        -s 'attributes.description=["Full system administrators with all permissions"]' 2>/dev/null || print_warning "Group may already exist"
+    
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create groups \
+        -r openradius \
+        -s name=Users \
+        -s 'attributes.description=["Standard users with limited permissions"]' 2>/dev/null || print_warning "Group may already exist"
+    
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create groups \
+        -r openradius \
+        -s name=Managers \
+        -s 'attributes.description=["Managers with elevated permissions"]' 2>/dev/null || print_warning "Group may already exist"
+    
+    # Create roles
+    print_info "Creating realm roles..."
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create roles \
+        -r openradius \
+        -s name=admin \
+        -s description="Administrator role with full access" 2>/dev/null || print_warning "Role may already exist"
+    
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create roles \
+        -r openradius \
+        -s name=user \
+        -s description="Standard user role" 2>/dev/null || print_warning "Role may already exist"
+    
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create roles \
+        -r openradius \
+        -s name=manager \
+        -s description="Manager role with elevated permissions" 2>/dev/null || print_warning "Role may already exist"
+    
+    print_success "Keycloak realm and clients configured successfully!"
+    print_info "You can now access Keycloak at: https://auth.$DOMAIN"
+    print_info "Admin console: https://auth.$DOMAIN/admin"
+}
+
+# =============================================================================
 # Setup Backup Script
 # =============================================================================
 
@@ -724,11 +855,18 @@ show_summary() {
     fi
     
     echo -e "${YELLOW}Next Steps:${NC}"
-    echo -e "  1. Access Keycloak admin console"
-    echo -e "  2. Configure OpenRadius realm and clients"
-    echo -e "  3. Set up initial users and permissions"
-    echo -e "  4. Test all service URLs"
-    echo -e "  5. Configure monitoring and alerting"
+    if [[ "$CONFIGURE_KEYCLOAK" == "y" ]]; then
+        echo -e "  1. Access Keycloak admin console (already configured)"
+        echo -e "  2. Create initial users via Keycloak admin UI"
+        echo -e "  3. Test all service URLs"
+        echo -e "  4. Configure monitoring and alerting"
+    else
+        echo -e "  1. Access Keycloak admin console"
+        echo -e "  2. Configure OpenRadius realm and clients"
+        echo -e "  3. Set up initial users and permissions"
+        echo -e "  4. Test all service URLs"
+        echo -e "  5. Configure monitoring and alerting"
+    fi
     echo ""
     
     print_warning "IMPORTANT: Securely store the credentials file and delete it from the server!"
@@ -787,6 +925,9 @@ main() {
     pull_docker_images
     start_services
     wait_for_services
+    
+    # Configure Keycloak
+    configure_keycloak
     
     # Post-installation
     setup_backup
