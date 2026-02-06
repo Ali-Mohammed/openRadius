@@ -1069,6 +1069,28 @@ show_summary() {
     fi
     echo ""
     
+    echo -e "${CYAN}⚠️  IMPORTANT: Configure 'sub' Claim Mapper${NC}"
+    echo -e "${YELLOW}If you encounter 'Missing required sub claim' errors:${NC}"
+    echo ""
+    echo -e "  1. Go to: ${GREEN}https://auth.$DOMAIN/admin${NC}"
+    echo -e "  2. Navigate: ${CYAN}Clients → openradius-web → Client scopes${NC}"
+    echo -e "  3. Click on: ${CYAN}openid${NC} (in Assigned default client scopes)"
+    echo -e "  4. Go to: ${CYAN}Mappers tab${NC}"
+    echo -e "  5. Check if ${YELLOW}'sub'${NC} mapper exists"
+    echo -e "  6. If NOT, click: ${CYAN}Add mapper → By configuration → User Property${NC}"
+    echo -e "     - Name: ${GREEN}sub${NC}"
+    echo -e "     - Property: ${GREEN}id${NC}"
+    echo -e "     - Token Claim Name: ${GREEN}sub${NC}"
+    echo -e "     - Claim JSON Type: ${GREEN}String${NC}"
+    echo -e "     - ✅ Add to ID token"
+    echo -e "     - ✅ Add to access token"
+    echo -e "     - ✅ Add to userinfo"
+    echo -e "  7. Click: ${CYAN}Save${NC}"
+    echo -e "  8. ${YELLOW}Logout and login again${NC} to get new tokens"
+    echo ""
+    echo -e "  ${CYAN}📖 Full guide: ${GREEN}KEYCLOAK_SUB_CLAIM_FIX.md${NC}"
+    echo ""
+    
     print_warning "IMPORTANT: Securely store the credentials file and delete it from the server!"
 }
 
