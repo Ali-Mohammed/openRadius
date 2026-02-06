@@ -321,17 +321,20 @@ collect_configuration() {
     echo -e "${CYAN}Install sample data? [y/N]: ${NC}"
     read -p "> " install_sample
     INSTALL_SAMPLE=${install_sample:-n}
+    INSTALL_SAMPLE=${INSTALL_SAMPLE,,}  # Convert to lowercase
     
     # Keycloak auto-configuration
     echo -e "${CYAN}Auto-configure Keycloak realm and clients? [Y/n]: ${NC}"
     echo -e "${GRAY}  This will create: openradius realm, openradius-web client, openradius-admin client, openradius-api client${NC}"
     read -p "> " configure_keycloak
     CONFIGURE_KEYCLOAK=${configure_keycloak:-y}
+    CONFIGURE_KEYCLOAK=${CONFIGURE_KEYCLOAK,,}  # Convert to lowercase
     
     # Backup configuration
     echo -e "${CYAN}Enable automated backups? [Y/n]: ${NC}"
     read -p "> " enable_backup
     ENABLE_BACKUP=${enable_backup:-y}
+    ENABLE_BACKUP=${ENABLE_BACKUP,,}  # Convert to lowercase
 }
 
 # =============================================================================
@@ -484,6 +487,7 @@ show_dns_instructions() {
     
     echo -e "${YELLOW}Have you configured DNS records? [y/N]: ${NC}"
     read -p "> " dns_configured
+    dns_configured=${dns_configured,,}  # Convert to lowercase
     
     if [[ "$dns_configured" != "y" ]]; then
         print_warning "Please configure DNS records before continuing."
@@ -1093,6 +1097,7 @@ check_existing_installation() {
         echo ""
         echo -e "${YELLOW}Do you want to remove the existing installation and start fresh? [y/N]: ${NC}"
         read -p "> " remove_confirm
+        remove_confirm=${remove_confirm,,}  # Convert to lowercase
         
         if [[ "$remove_confirm" != "y" ]]; then
             print_error "Installation cancelled. Existing installation preserved."
@@ -1158,6 +1163,7 @@ main() {
     
     echo -e "${YELLOW}Do you want to continue? [y/N]: ${NC}"
     read -p "> " confirm
+    confirm=${confirm,,}  # Convert to lowercase
     if [[ "$confirm" != "y" ]]; then
         print_error "Installation cancelled"
         exit 0
