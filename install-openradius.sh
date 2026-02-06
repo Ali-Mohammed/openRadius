@@ -685,8 +685,8 @@ configure_keycloak() {
         -s implicitFlowEnabled=false \
         -s directAccessGrantsEnabled=true \
         -s serviceAccountsEnabled=false \
-        -s 'redirectUris=["https://'$DOMAIN'/*","http://localhost:5173/*"]' \
-        -s 'webOrigins=["https://'$DOMAIN'","http://localhost:5173"]' \
+        -s 'redirectUris=["https://'$DOMAIN'/*"]' \
+        -s 'webOrigins=["https://'$DOMAIN'"]' \
         -s baseUrl="https://$DOMAIN" \
         -s rootUrl="https://$DOMAIN" \
         -s 'attributes.pkce.code.challenge.method=S256' \
