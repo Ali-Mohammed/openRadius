@@ -13,7 +13,7 @@
 [![Keycloak](https://img.shields.io/badge/Keycloak-26.4-008aaa?style=for-the-badge&logo=keycloak&logoColor=white)](https://www.keycloak.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](#-architecture) • [API](#-api-reference)
+[Features](#-features) • [Installation](#-installation) • [Documentation](#-documentation) • [Architecture](#-architecture) • [API](#-api-reference)
 
 </div>
 
@@ -21,11 +21,11 @@
 
 ## 📋 Table of Contents
 
+- [Installation](#-installation)
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
-- [Prerequisites](#-prerequisites)
-- [Quick Start](#-quick-start)
+- [Quick Start (Development)](#-quick-start-development)
 - [Project Structure](#-project-structure)
 - [Documentation](#-documentation)
 - [API Reference](#-api-reference)
@@ -34,6 +34,63 @@
 - [Deployment](#-deployment)
 - [Contributing](#-contributing)
 - [License](#-license)
+
+---
+
+## 🚀 Installation
+
+### Production Installation (Ubuntu)
+
+**One-Command Install:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-openradius.sh | bash
+```
+
+**Manual Install:**
+```bash
+# Clone repository
+git clone https://github.com/Ali-Mohammed/openRadius.git
+cd openRadius
+
+# Run installation script
+chmod +x install-openradius.sh
+./install-openradius.sh
+```
+
+The installation script will:
+- ✅ Install Docker & Docker Compose
+- ✅ Configure firewall (UFW)
+- ✅ Generate SSL certificates (Let's Encrypt)
+- ✅ Set up nginx reverse proxy
+- ✅ Deploy all services
+- ✅ Configure automated backups
+
+**📚 Complete Guide**: [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+
+### Local Testing
+
+Test the full stack locally without domain/SSL:
+
+```bash
+# Start local stack
+docker compose -f docker-compose.local.yml up -d
+
+# Access services
+# Frontend:  http://localhost
+# API:       http://localhost:5000
+# Keycloak:  http://localhost:8080
+# Seq Logs:  http://localhost:5341
+```
+
+**📚 Testing Guide**: [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md)
+
+### Docker Images
+
+Pre-built images available on Docker Hub:
+- **Backend**: `alimohammed/openradius-backend:latest`
+- **Frontend**: `alimohammed/openradius-frontend:latest`
+
+**📚 Docker Guide**: [DOCKER_DEPLOYMENT_GUIDE.md](DOCKER_DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -146,7 +203,9 @@
 
 ---
 
-## 📦 Prerequisites
+## 🏃 Quick Start (Development)
+
+### Prerequisites
 
 Before you begin, ensure you have the following installed:
 
@@ -161,13 +220,13 @@ Before you begin, ensure you have the following installed:
 
 ---
 
-## 🚀 Quick Start
+### Development Setup
 
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/openradius.git
-cd openradius
+git clone https://github.com/Ali-Mohammed/openRadius.git
+cd openRadius
 ```
 
 ### 2️⃣ Start Docker Services
