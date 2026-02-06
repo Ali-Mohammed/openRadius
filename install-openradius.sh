@@ -614,6 +614,12 @@ clone_repository() {
     
     local install_dir="/opt/openradius"
     
+    # Ensure we're in a valid directory before cloning
+    cd /tmp || cd / || {
+        print_error "Failed to navigate to a valid directory"
+        exit 1
+    }
+    
     # Clone repository (directory already exists with .env file)
     run_sudo git clone https://github.com/Ali-Mohammed/openRadius.git "$install_dir/temp"
     
