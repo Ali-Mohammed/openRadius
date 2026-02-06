@@ -743,16 +743,19 @@ configure_keycloak() {
         -s description="OpenRadius frontend application using OIDC" \
         -s enabled=true \
         -s publicClient=true \
+        -s protocol=openid-connect \
         -s standardFlowEnabled=true \
         -s implicitFlowEnabled=false \
         -s directAccessGrantsEnabled=true \
         -s serviceAccountsEnabled=false \
-        -s 'redirectUris=["https://'$DOMAIN'/*"]' \
+        -s authorizationServicesEnabled=false \
+        -s 'redirectUris=["https://'$DOMAIN'/*","https://'$DOMAIN'"]' \
         -s 'webOrigins=["https://'$DOMAIN'"]' \
         -s baseUrl="https://$DOMAIN" \
         -s rootUrl="https://$DOMAIN" \
+        -s adminUrl="https://$DOMAIN" \
         -s 'attributes.pkce.code.challenge.method=S256' \
-        -s 'attributes.post.logout.redirect.uris=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
+        -s 'attributes."post.logout.redirect.uris"=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
     
     # Add protocol mappers to openradius-web client
     print_info "Adding protocol mappers to openradius-web client..."
