@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
-      POSTGRES_DB: openradius_master
+      POSTGRES_DB: openradius
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
@@ -25,7 +25,7 @@ services:
     networks:
       - openradius-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d openradius_master"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d openradius"]
       interval: 10s
       timeout: 5s
       retries: 5
