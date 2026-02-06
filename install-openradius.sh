@@ -225,7 +225,8 @@ collect_configuration() {
     
     # Domain Configuration
     while true; do
-        read -p "$(echo -e ${CYAN}Enter your domain name (e.g., example.com): ${NC})" DOMAIN
+        echo -e "${CYAN}Enter your domain name (e.g., example.com): ${NC}"
+        read -p "> " DOMAIN
         if validate_domain "$DOMAIN"; then
             break
         else
@@ -235,7 +236,8 @@ collect_configuration() {
     
     # Email for Let's Encrypt
     while true; do
-        read -p "$(echo -e ${CYAN}Enter your email for SSL certificates: ${NC})" SSL_EMAIL
+        echo -e "${CYAN}Enter your email for SSL certificates: ${NC}"
+        read -p "> " SSL_EMAIL
         if validate_email "$SSL_EMAIL"; then
             break
         else
@@ -247,12 +249,14 @@ collect_configuration() {
     echo -e "\n${YELLOW}Password Configuration${NC}"
     echo "1) Auto-generate secure passwords (recommended)"
     echo "2) Enter custom passwords"
-    read -p "$(echo -e ${CYAN}Choose option [1/2]: ${NC})" password_option
+    echo -e "${CYAN}Choose option [1/2]: ${NC}"
+    read -p "> " password_option
     
     if [[ "$password_option" == "2" ]]; then
         # Custom passwords
         while true; do
-            read -sp "$(echo -e ${CYAN}Enter PostgreSQL password (min 16 characters): ${NC})" POSTGRES_PASSWORD
+            echo -e "${CYAN}Enter PostgreSQL password (min 16 characters): ${NC}"
+            read -sp "> " POSTGRES_PASSWORD
             echo
             if [[ ${#POSTGRES_PASSWORD} -ge 16 ]]; then
                 break
@@ -262,7 +266,8 @@ collect_configuration() {
         done
         
         while true; do
-            read -sp "$(echo -e ${CYAN}Enter Keycloak admin password (min 16 characters): ${NC})" KEYCLOAK_ADMIN_PASSWORD
+            echo -e "${CYAN}Enter Keycloak admin password (min 16 characters): ${NC}"
+            read -sp "> " KEYCLOAK_ADMIN_PASSWORD
             echo
             if [[ ${#KEYCLOAK_ADMIN_PASSWORD} -ge 16 ]]; then
                 break
@@ -272,7 +277,8 @@ collect_configuration() {
         done
         
         while true; do
-            read -sp "$(echo -e ${CYAN}Enter Redis password (min 16 characters): ${NC})" REDIS_PASSWORD
+            echo -e "${CYAN}Enter Redis password (min 16 characters): ${NC}"
+            read -sp "> " REDIS_PASSWORD
             echo
             if [[ ${#REDIS_PASSWORD} -ge 16 ]]; then
                 break
@@ -295,11 +301,13 @@ collect_configuration() {
     fi
     
     # Additional configuration
-    read -p "$(echo -e ${CYAN}Install sample data? [y/N]: ${NC})" install_sample
+    echo -e "${CYAN}Install sample data? [y/N]: ${NC}"
+    read -p "> " install_sample
     INSTALL_SAMPLE=${install_sample:-n}
     
     # Backup configuration
-    read -p "$(echo -e ${CYAN}Enable automated backups? [Y/n]: ${NC})" enable_backup
+    echo -e "${CYAN}Enable automated backups? [Y/n]: ${NC}"
+    read -p "> " enable_backup
     ENABLE_BACKUP=${enable_backup:-y}
 }
 
@@ -445,7 +453,8 @@ show_dns_instructions() {
     echo "  cdc.$DOMAIN          →  $DOMAIN"
     echo ""
     
-    read -p "$(echo -e ${YELLOW}Have you configured DNS records? [y/N]: ${NC})" dns_configured
+    echo -e "${YELLOW}Have you configured DNS records? [y/N]: ${NC}"
+    read -p "> " dns_configured
     
     if [[ "$dns_configured" != "y" ]]; then
         print_warning "Please configure DNS records before continuing."
@@ -680,7 +689,8 @@ main() {
     echo "  • Automated backups (optional)"
     echo ""
     
-    read -p "$(echo -e ${YELLOW}Do you want to continue? [y/N]: ${NC})" confirm
+    echo -e "${YELLOW}Do you want to continue? [y/N]: ${NC}"
+    read -p "> " confirm
     if [[ "$confirm" != "y" ]]; then
         print_error "Installation cancelled"
         exit 0
