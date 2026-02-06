@@ -10,7 +10,7 @@ services:
   # PostgreSQL Database
   # ---------------------------------------------------------------------------
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.1
     container_name: openradius-postgres
     restart: unless-stopped
     environment:
@@ -42,7 +42,7 @@ services:
   # Keycloak - Identity & Access Management
   # ---------------------------------------------------------------------------
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.5
     container_name: openradius-keycloak
     restart: unless-stopped
     environment:
@@ -94,7 +94,7 @@ services:
   # Redpanda - Kafka-compatible Event Streaming
   # ---------------------------------------------------------------------------
   redpanda:
-    image: docker.redpanda.com/redpandadata/redpanda:latest
+    image: redpandadata/redpanda:v25.3.4
     container_name: openradius-redpanda
     restart: unless-stopped
     command:
@@ -129,7 +129,7 @@ services:
   # Redpanda Console - Kafka UI
   # ---------------------------------------------------------------------------
   redpanda-console:
-    image: docker.redpanda.com/redpandadata/console:latest
+    image: redpandadata/console:v3.4.0
     container_name: openradius-redpanda-console
     restart: unless-stopped
     entrypoint: /bin/sh
