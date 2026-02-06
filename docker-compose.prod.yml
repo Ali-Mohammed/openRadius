@@ -187,6 +187,27 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
+  # Seq - Structured Log Server
+  # ---------------------------------------------------------------------------
+  seq:
+    image: datalust/seq:2025.1
+    container_name: openradius-seq
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: Y
+    ports:
+      - "5341:80"
+    volumes:
+      - seq_data:/data
+    networks:
+      - openradius-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
   # OpenRadius Backend API
   # ---------------------------------------------------------------------------
   backend:
@@ -210,6 +231,10 @@ services:
       # ASP.NET Core
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5000"
+      
+      # Seq Logging
+      Seq__ServerUrl: "http://seq:80"
+      Seq__ApiKey: "${SEQ_API_KEY:-}"
       
       # Switch Decryption (set your actual key)
       Switch__DecryptionKey: "${SWITCH_DECRYPTION_KEY:-YOUR_SWITCH_DECRYPTION_KEY_HEX}"
@@ -274,4 +299,6 @@ volumes:
   redpanda_data:
     driver: local
   backend_logs:
+    driver: local
+  seq_data:
     driver: local
