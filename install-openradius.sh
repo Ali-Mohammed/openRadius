@@ -609,33 +609,45 @@ start_services() {
 wait_for_services() {
     print_step "Waiting for services to be healthy..."
     
-    local max_wait=300  # 5 minutes
+    local max_wait=600  # 10 minutes (increased from 5)
     local elapsed=0
     local interval=10
     
+    # Services that must be healthy
+    local required_services="postgres redis keycloak backend"
+    
     while [ $elapsed -lt $max_wait ]; do
         local all_healthy=true
+        local unhealthy_services=""
         
-        # Check each service
-        for service in postgres redis backend frontend nginx; do
-            if ! docker compose -f docker-compose.prod.yml ps $service | grep -q "healthy"; then
+        # Check each required service
+        for service in $required_services; do
+            local status=$(docker compose -f docker-compose.prod.yml ps $service 2>/dev/null | grep -o "healthy\|unhealthy\|starting" | head -1)
+            if [[ "$status" != "healthy" ]]; then
                 all_healthy=false
-                break
+                unhealthy_services="$unhealthy_services $service($status)"
             fi
         done
         
         if [ "$all_healthy" = true ]; then
-            print_success "All services are healthy!"
+            echo ""
+            print_success "All critical services are healthy!"
+            
+            # Give nginx and frontend a bit more time to start
+            print_info "Starting remaining services..."
+            sleep 5
             return 0
         fi
         
-        echo -ne "\r${YELLOW}Waiting for services... ${elapsed}s${NC}"
+        echo -ne "\r${YELLOW}Waiting for services... ${elapsed}s - Not ready:${unhealthy_services}${NC}                    "
         sleep $interval
         elapsed=$((elapsed + interval))
     done
     
     echo ""
-    print_warning "Some services may not be healthy yet. Check with: docker compose -f docker-compose.prod.yml ps"
+    print_warning "Timeout waiting for services. Checking status..."
+    docker compose -f docker-compose.prod.yml ps
+    print_info "You can check logs with: docker compose -f docker-compose.prod.yml logs -f"
 }
 
 # =============================================================================
