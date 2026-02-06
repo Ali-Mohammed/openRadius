@@ -953,6 +953,26 @@ show_summary() {
     echo -e "  Update:          ${YELLOW}docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d${NC}"
     echo ""
     
+    echo -e "${CYAN}View Logs by Service:${NC}"
+    echo -e "  All services:    ${YELLOW}docker compose -f docker-compose.prod.yml logs -f${NC}"
+    echo -e "  Backend:         ${YELLOW}docker logs openradius-backend -f${NC}"
+    echo -e "  Frontend:        ${YELLOW}docker logs openradius-frontend -f${NC}"
+    echo -e "  Nginx:           ${YELLOW}docker logs openradius-nginx -f${NC}"
+    echo -e "  PostgreSQL:      ${YELLOW}docker logs openradius-postgres -f${NC}"
+    echo -e "  Keycloak:        ${YELLOW}docker logs openradius-keycloak -f${NC}"
+    echo -e "  Redis:           ${YELLOW}docker logs openradius-redis -f${NC}"
+    echo -e "  Redpanda:        ${YELLOW}docker logs openradius-redpanda -f${NC}"
+    echo -e "  Debezium:        ${YELLOW}docker logs openradius-debezium -f${NC}"
+    echo -e "  Seq:             ${YELLOW}docker logs openradius-seq -f${NC}"
+    echo ""
+    
+    echo -e "${CYAN}Troubleshooting:${NC}"
+    echo -e "  Last 100 lines:  ${YELLOW}docker logs openradius-<service> --tail 100${NC}"
+    echo -e "  Search errors:   ${YELLOW}docker logs openradius-<service> 2>&1 | grep -i error${NC}"
+    echo -e "  Check health:    ${YELLOW}docker inspect openradius-<service> | jq '.[0].State.Health'${NC}"
+    echo -e "  Enter container: ${YELLOW}docker exec -it openradius-<service> /bin/bash${NC}"
+    echo ""
+    
     if [[ "$ENABLE_BACKUP" == "y" ]]; then
         echo -e "${CYAN}Backups:${NC}"
         echo -e "  Location:        ${GREEN}/opt/openradius-backups${NC}"
