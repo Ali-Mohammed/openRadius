@@ -539,6 +539,39 @@ generate_ssl_certificates() {
 }
 
 # =============================================================================
+# Clone Repository
+# =============================================================================
+
+clone_repository() {
+    print_step "Cloning OpenRadius repository..."
+    
+    local install_dir="/opt/openradius"
+    
+    # Remove existing directory if it exists
+    if [ -d "$install_dir" ]; then
+        print_warning "Existing installation found, removing..."
+        run_sudo rm -rf "$install_dir"
+    fi
+    
+    # Clone repository
+    run_sudo git clone https://github.com/Ali-Mohammed/openRadius.git "$install_dir"
+    
+    # Navigate to installation directory
+    cd "$install_dir" || {
+        print_error "Failed to navigate to installation directory"
+        exit 1
+    }
+    
+    # Copy .env file if we generated it in a different location
+    if [ -f ~/..env ] && [ ! -f .env ]; then
+        run_sudo cp ~/.env .env
+        run_sudo chmod 600 .env
+    fi
+    
+    print_success "Repository cloned to $install_dir"
+}
+
+# =============================================================================
 # Pull Docker Images
 # =============================================================================
 
@@ -749,7 +782,8 @@ main() {
     show_dns_instructions
     generate_ssl_certificates
     
-    # Deploy application
+    # Clone repository and deploy
+    clone_repository
     pull_docker_images
     start_services
     wait_for_services
