@@ -505,7 +505,13 @@ generate_ssl_certificates() {
     
     print_step "Generating SSL certificates with Let's Encrypt..."
     
-    # Temporarily start nginx to pass Let's Encrypt challenge
+    # Stop nginx if running (certbot needs port 80)
+    if systemctl is-active --quiet nginx; then
+        print_info "Stopping nginx temporarily for certificate generation..."
+        sudo systemctl stop nginx
+    fi
+    
+    # Generate certificates using standalone mode
     sudo certbot certonly --standalone --non-interactive --agree-tos \
         --email "$SSL_EMAIL" \
         -d "$DOMAIN" \
@@ -514,6 +520,12 @@ generate_ssl_certificates() {
         -d "logs.$DOMAIN" \
         -d "kafka.$DOMAIN" \
         -d "cdc.$DOMAIN"
+    
+    # Restart nginx after certificate generation
+    if systemctl is-enabled --quiet nginx; then
+        print_info "Restarting nginx..."
+        sudo systemctl start nginx
+    fi
     
     # Create symbolic links in nginx/ssl directory
     sudo mkdir -p nginx/ssl
