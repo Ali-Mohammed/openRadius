@@ -947,6 +947,95 @@ show_summary() {
 }
 
 # =============================================================================
+# Check Existing Installation
+# =============================================================================
+
+check_existing_installation() {
+    local has_installation=false
+    
+    # Check if docker-compose.prod.yml exists
+    if [[ -f "/opt/openradius/docker-compose.prod.yml" ]]; then
+        has_installation=true
+    fi
+    
+    # Check if OpenRadius containers are running
+    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "openradius-"; then
+        has_installation=true
+    fi
+    
+    # Check if OpenRadius volumes exist
+    if docker volume ls --format '{{.Name}}' 2>/dev/null | grep -q "openradius_"; then
+        has_installation=true
+    fi
+    
+    if [[ "$has_installation" == "true" ]]; then
+        print_warning "Existing OpenRadius installation detected!"
+        echo ""
+        echo -e "${YELLOW}Found existing installation components:${NC}"
+        
+        if [[ -f "/opt/openradius/docker-compose.prod.yml" ]]; then
+            echo "  • Configuration files in /opt/openradius"
+        fi
+        
+        if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "openradius-"; then
+            echo "  • Running or stopped containers"
+            docker ps -a --format '  - {{.Names}} ({{.Status}})' | grep openradius-
+        fi
+        
+        if docker volume ls --format '{{.Name}}' 2>/dev/null | grep -q "openradius_"; then
+            echo "  • Docker volumes with data"
+            docker volume ls --format '  - {{.Name}}' | grep openradius_
+        fi
+        
+        echo ""
+        echo -e "${RED}⚠️  WARNING: Continuing will DELETE ALL existing data! ⚠️${NC}"
+        echo -e "${RED}This includes:${NC}"
+        echo -e "${RED}  • All database data${NC}"
+        echo -e "${RED}  • All user accounts${NC}"
+        echo -e "${RED}  • All configuration${NC}"
+        echo -e "${RED}  • All logs${NC}"
+        echo ""
+        echo -e "${YELLOW}Do you want to remove the existing installation and start fresh? [y/N]: ${NC}"
+        read -p "> " remove_confirm
+        
+        if [[ "$remove_confirm" != "y" ]]; then
+            print_error "Installation cancelled. Existing installation preserved."
+            echo ""
+            echo -e "${CYAN}To manually remove the existing installation, run:${NC}"
+            echo "  cd /opt/openradius"
+            echo "  docker compose -f docker-compose.prod.yml down -v"
+            echo "  cd / && rm -rf /opt/openradius"
+            echo "  docker system prune -a --volumes -f"
+            exit 0
+        fi
+        
+        print_step "Removing existing installation..."
+        
+        # Stop and remove containers
+        if [[ -f "/opt/openradius/docker-compose.prod.yml" ]]; then
+            cd /opt/openradius
+            docker compose -f docker-compose.prod.yml down -v 2>/dev/null || true
+        fi
+        
+        # Remove any remaining containers
+        docker ps -a --format '{{.Names}}' 2>/dev/null | grep "openradius-" | xargs -r docker rm -f 2>/dev/null || true
+        
+        # Remove volumes
+        docker volume ls --format '{{.Name}}' 2>/dev/null | grep "openradius_" | xargs -r docker volume rm -f 2>/dev/null || true
+        
+        # Remove installation directory
+        run_sudo rm -rf /opt/openradius
+        
+        # Clean up dangling images
+        docker image prune -f 2>/dev/null || true
+        
+        print_success "Existing installation removed successfully"
+        echo ""
+        sleep 2
+    fi
+}
+
+# =============================================================================
 # Main Installation Flow
 # =============================================================================
 
@@ -974,6 +1063,9 @@ main() {
     check_root
     check_sudo
     check_ubuntu
+    
+    # Check for existing installation
+    check_existing_installation
     
     # Install dependencies
     install_docker
