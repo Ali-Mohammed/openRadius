@@ -1054,6 +1054,14 @@ check_existing_installation() {
 # =============================================================================
 
 main() {
+    # Auto-elevate to root if not running as root
+    if [[ $EUID -ne 0 ]]; then
+        print_warning "This script requires root privileges."
+        print_info "Re-running with sudo..."
+        exec sudo bash "$0" "$@"
+        exit $?
+    fi
+    
     clear
     print_header "OpenRadius Enterprise Installation"
     
