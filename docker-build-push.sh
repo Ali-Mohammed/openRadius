@@ -22,6 +22,7 @@ DOCKER_USERNAME="alimohammed"
 BACKEND_IMAGE="${DOCKER_USERNAME}/openradius-backend"
 FRONTEND_IMAGE="${DOCKER_USERNAME}/openradius-frontend"
 VERSION="${1:-latest}"
+PLATFORMS="linux/amd64,linux/arm64"  # Support both Intel/AMD and ARM architectures
 
 # Functions
 print_header() {
@@ -56,6 +57,22 @@ check_docker() {
     print_success "Docker is running"
 }
 
+# Setup Docker buildx for multi-platform builds
+setup_buildx() {
+    print_info "Setting up Docker buildx for multi-platform builds..."
+    
+    # Create builder if it doesn't exist
+    if ! docker buildx ls | grep -q "openradius-builder"; then
+        print_info "Creating new buildx builder..."
+        docker buildx create --name openradius-builder --use --bootstrap
+    else
+        print_info "Using existing buildx builder..."
+        docker buildx use openradius-builder
+    fi
+    
+    print_success "Buildx configured for platforms: ${PLATFORMS}"
+}
+
 # Check if logged in to Docker Hub
 check_docker_login() {
     print_info "Checking Docker Hub authentication..."
@@ -69,81 +86,73 @@ check_docker_login() {
 
 # Build backend image
 build_backend() {
-    print_header "Building Backend Image"
+    print_header "Building Backend Image (Multi-Platform)"
     print_info "Image: ${BACKEND_IMAGE}:${VERSION}"
+    print_info "Platforms: ${PLATFORMS}"
     
     if [ "$VERSION" != "latest" ]; then
-        docker build \
+        docker buildx build \
+            --platform "${PLATFORMS}" \
             -t "${BACKEND_IMAGE}:${VERSION}" \
             -t "${BACKEND_IMAGE}:latest" \
+            --push \
             ./Backend
     else
-        docker build \
+        docker buildx build \
+            --platform "${PLATFORMS}" \
             -t "${BACKEND_IMAGE}:latest" \
+            --push \
             ./Backend
     fi
     
-    print_success "Backend image built successfully"
+    print_success "Backend image built and pushed for ${PLATFORMS}"
 }
 
 # Build frontend image
 build_frontend() {
-    print_header "Building Frontend Image"
+    print_header "Building Frontend Image (Multi-Platform)"
     print_info "Image: ${FRONTEND_IMAGE}:${VERSION}"
+    print_info "Platforms: ${PLATFORMS}"
     
     if [ "$VERSION" != "latest" ]; then
-        docker build \
+        docker buildx build \
+            --platform "${PLATFORMS}" \
             -t "${FRONTEND_IMAGE}:${VERSION}" \
             -t "${FRONTEND_IMAGE}:latest" \
+            --push \
             ./Frontend
     else
-        docker build \
+        docker buildx build \
+            --platform "${PLATFORMS}" \
             -t "${FRONTEND_IMAGE}:latest" \
+            --push \
             ./Frontend
     fi
     
-    print_success "Frontend image built successfully"
+    print_success "Frontend image built and pushed for ${PLATFORMS}"
 }
 
 # Push backend image
 push_backend() {
-    print_header "Pushing Backend Image to Docker Hub"
-    
-    if [ "$VERSION" != "latest" ]; then
-        print_info "Pushing ${BACKEND_IMAGE}:${VERSION}..."
-        docker push "${BACKEND_IMAGE}:${VERSION}"
-        print_success "Pushed ${BACKEND_IMAGE}:${VERSION}"
-    fi
-    
-    print_info "Pushing ${BACKEND_IMAGE}:latest..."
-    docker push "${BACKEND_IMAGE}:latest"
-    print_success "Pushed ${BACKEND_IMAGE}:latest"
+    print_info "Backend images already pushed during build (buildx --push)"
+    print_success "Backend available on Docker Hub for ${PLATFORMS}"
 }
 
 # Push frontend image
 push_frontend() {
-    print_header "Pushing Frontend Image to Docker Hub"
-    
-    if [ "$VERSION" != "latest" ]; then
-        print_info "Pushing ${FRONTEND_IMAGE}:${VERSION}..."
-        docker push "${FRONTEND_IMAGE}:${VERSION}"
-        print_success "Pushed ${FRONTEND_IMAGE}:${VERSION}"
-    fi
-    
-    print_info "Pushing ${FRONTEND_IMAGE}:latest..."
-    docker push "${FRONTEND_IMAGE}:latest"
-    print_success "Pushed ${FRONTEND_IMAGE}:latest"
+    print_info "Frontend images already pushed during build (buildx --push)"
+    print_success "Frontend available on Docker Hub for ${PLATFORMS}"
 }
 
 # Verify images
 verify_images() {
-    print_header "Verifying Built Images"
+    print_header "Verifying Multi-Platform Images"
     
-    echo -e "\n${BLUE}Backend Images:${NC}"
-    docker images | grep "${DOCKER_USERNAME}/openradius-backend" || print_warning "No backend images found"
+    echo -e "\n${BLUE}Backend Manifest:${NC}"
+    docker buildx imagetools inspect "${BACKEND_IMAGE}:${VERSION}" | grep -E "Name:|Platform:" || print_warning "Could not inspect backend image"
     
-    echo -e "\n${BLUE}Frontend Images:${NC}"
-    docker images | grep "${DOCKER_USERNAME}/openradius-frontend" || print_warning "No frontend images found"
+    echo -e "\n${BLUE}Frontend Manifest:${NC}"
+    docker buildx imagetools inspect "${FRONTEND_IMAGE}:${VERSION}" | grep -E "Name:|Platform:" || print_warning "Could not inspect frontend image"
 }
 
 # Summary
@@ -152,6 +161,7 @@ print_summary() {
     
     echo -e "${GREEN}✓ Backend:  ${BACKEND_IMAGE}:${VERSION}${NC}"
     echo -e "${GREEN}✓ Frontend: ${FRONTEND_IMAGE}:${VERSION}${NC}"
+    echo -e "${GREEN}✓ Platforms: ${PLATFORMS}${NC}"
     
     if [ "$VERSION" != "latest" ]; then
         echo -e "${GREEN}✓ Both also tagged as :latest${NC}"
@@ -160,6 +170,10 @@ print_summary() {
     echo -e "\n${BLUE}Docker Hub URLs:${NC}"
     echo -e "  Backend:  https://hub.docker.com/r/${DOCKER_USERNAME}/openradius-backend"
     echo -e "  Frontend: https://hub.docker.com/r/${DOCKER_USERNAME}/openradius-frontend"
+    
+    echo -e "\n${BLUE}Supported Platforms:${NC}"
+    echo -e "  ✓ linux/amd64 (Intel/AMD servers, Ubuntu, Debian, etc.)"
+    echo -e "  ✓ linux/arm64 (Apple Silicon, ARM servers, Raspberry Pi, etc.)"
 }
 
 # Cleanup on error
@@ -193,15 +207,16 @@ main() {
     
     # Pre-flight checks
     check_docker
+    setup_buildx
     check_docker_login
     
-    # Build images
+    # Build images (buildx automatically pushes with --push flag)
     echo ""
     build_backend
     echo ""
     build_frontend
     
-    # Push images
+    # Verify images (push already done during build)
     echo ""
     push_backend
     echo ""
