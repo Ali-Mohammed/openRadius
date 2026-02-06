@@ -10,7 +10,7 @@ import { RadiusDashboardWidget } from './RadiusDashboardWidget'
 import { Button } from '../ui/button'
 import { Pencil, Trash2, GripVertical } from 'lucide-react'
 import 'react-grid-layout/css/styles.css'
-import 'react-resizable/css/styles.css'
+import 'react-resizable/css/styles.css' // Temporarily disabled for production build
 
 interface DashboardGridProps {
   items: DashboardItem[]
