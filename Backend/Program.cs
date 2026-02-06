@@ -249,19 +249,6 @@ using (var scope = app.Services.CreateScope())
     // Ensure master database is created and migrations are applied
     masterContext.Database.Migrate();
     
-    // Also migrate the default database (openradius)
-    var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (!string.IsNullOrEmpty(defaultConnectionString))
-    {
-        var defaultDbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(defaultConnectionString)
-            .Options;
-            
-        using var defaultContext = new ApplicationDbContext(defaultDbContextOptions);
-        defaultContext.Database.Migrate();
-        Console.WriteLine("✓ Default database (openradius) migrated successfully");
-    }
-    
     // Seed roles, permissions, and groups
     SeedData.Initialize(masterContext);
     
