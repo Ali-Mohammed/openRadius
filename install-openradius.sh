@@ -512,9 +512,12 @@ generate_ssl_certificates() {
     print_step "Generating SSL certificates with Let's Encrypt..."
     
     # Stop nginx if running (certbot needs port 80)
-    if systemctl is-active --quiet nginx; then
-        print_info "Stopping nginx temporarily for certificate generation..."
+    if systemctl is-active --quiet nginx 2>/dev/null; then
+        print_info "Stopping system nginx temporarily for certificate generation..."
         sudo systemctl stop nginx
+        NGINX_WAS_RUNNING=true
+    else
+        NGINX_WAS_RUNNING=false
     fi
     
     # Generate certificates using standalone mode
@@ -527,9 +530,9 @@ generate_ssl_certificates() {
         -d "kafka.$DOMAIN" \
         -d "cdc.$DOMAIN"
     
-    # Restart nginx after certificate generation
-    if systemctl is-enabled --quiet nginx; then
-        print_info "Restarting nginx..."
+    # Only restart nginx if it was running before (system nginx, not Docker)
+    if [[ "$NGINX_WAS_RUNNING" == "true" ]] && systemctl is-enabled --quiet nginx 2>/dev/null; then
+        print_info "Restarting system nginx..."
         sudo systemctl start nginx
     fi
     
