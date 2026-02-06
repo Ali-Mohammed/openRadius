@@ -717,27 +717,37 @@ configure_keycloak() {
     
     # Get admin token
     print_info "Authenticating with Keycloak..."
-    KEYCLOAK_TOKEN=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
         --server http://localhost:8080 \
         --realm master \
         --user admin \
-        --password "$KEYCLOAK_ADMIN_PASSWORD" 2>&1 | grep -v "Logging into" || true)
+        --password "$KEYCLOAK_ADMIN_PASSWORD" 2>&1 | grep -v "Logging into" || true
     
-    # Create openradius realm
-    print_info "Creating openradius realm..."
-    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
-        -s realm=openradius \
-        -s enabled=true \
-        -s displayName="OpenRadius" \
-        -s loginTheme=keycloak \
-        -s accessTokenLifespan=3600 \
-        -s ssoSessionIdleTimeout=1800 \
-        -s ssoSessionMaxLifespan=36000 2>/dev/null || print_warning "Realm may already exist"
-    
-    # Create openradius-web client (public/SPA)
-    print_info "Creating openradius-web client..."
-    docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
-        -r openradius \
+    # Check if keycloak-config.json exists and import it
+    if [ -f "/opt/openradius/keycloak/keycloak-config.json" ]; then
+        print_info "Importing Keycloak configuration from keycloak-config.json..."
+        
+        # Update the config file with production domain before importing
+        print_info "Updating configuration with production domain..."
+        sed -i "s|http://localhost:5173|https://$DOMAIN|g" /opt/openradius/keycloak/keycloak-config.json
+        
+        # Copy config file to container
+        docker cp /opt/openradius/keycloak/keycloak-config.json openradius-keycloak:/tmp/keycloak-config.json
+        
+        # Import the realm configuration
+        print_info "Importing openradius realm..."
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+            -f /tmp/keycloak-config.json 2>/dev/null || print_warning "Realm may already exist, updating instead..."
+        
+        # If realm exists, update it
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update realms/openradius \
+            -f /tmp/keycloak-config.json 2>/dev/null || true
+        
+        print_success "Keycloak configuration imported from keycloak-config.json"
+    else
+        print_warning "keycloak-config.json not found, creating minimal configuration..."
+        
+        # Fallback to manual creation if config file doesn't exist
         -s clientId=openradius-web \
         -s name="OpenRadius Web Application" \
         -s description="OpenRadius frontend application using OIDC" \
@@ -895,6 +905,7 @@ configure_keycloak() {
     else
         print_warning "Could not find openid client scope"
     fi
+    fi  # End of else block for manual configuration
     
     print_success "Keycloak realm and clients configured successfully!"
     print_info "You can now access Keycloak at: https://auth.$DOMAIN"
