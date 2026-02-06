@@ -7,6 +7,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak')\gexec
 EOSQL
 
+# Create openradius database if it doesn't exist (used by backend/Hangfire)
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    SELECT 'CREATE DATABASE openradius'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'openradius')\gexec
+EOSQL
+
 # Create workspace database if it doesn't exist
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     SELECT 'CREATE DATABASE openradius_workspace_1'
