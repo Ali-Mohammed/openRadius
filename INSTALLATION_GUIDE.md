@@ -9,11 +9,16 @@
 - **Network**: Public IP address
 - **Domain**: Registered domain name with DNS access
 
-### One-Command Install
+### Quick Install
 
+**Download and Run:**
 ```bash
-# Download and run installation script
-curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-openradius.sh | bash
+# Download the script
+curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-openradius.sh -o install-openradius.sh
+
+# Make executable and run
+chmod +x install-openradius.sh
+./install-openradius.sh
 ```
 
 ### Manual Installation

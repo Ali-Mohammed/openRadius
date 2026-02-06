@@ -41,18 +41,18 @@
 
 ### Production Installation (Ubuntu)
 
-**One-Command Install:**
+**Quick Install:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-openradius.sh | bash
+# Download and run installation script
+curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-openradius.sh -o install-openradius.sh
+chmod +x install-openradius.sh
+./install-openradius.sh
 ```
 
-**Manual Install:**
+**Clone Repository:**
 ```bash
-# Clone repository
 git clone https://github.com/Ali-Mohammed/openRadius.git
 cd openRadius
-
-# Run installation script
 chmod +x install-openradius.sh
 ./install-openradius.sh
 ```
