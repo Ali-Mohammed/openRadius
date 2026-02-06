@@ -1,0 +1,268 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: openradius-postgres-local
+    environment:
+      POSTGRES_USER: openradius
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_change_me}
+      POSTGRES_DB: openradius
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openradius"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Keycloak OIDC Provider
+  # =============================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: openradius-keycloak-local
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: openradius
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_change_me}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: false
+      KC_PROXY: edge
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # Redis Cache
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: openradius-redis-local
+    command: redis-server --requirepass ${REDIS_PASSWORD:-dev_redis_password}
+    volumes:
+      - redis_data_local:/data
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # =============================================================================
+  # Redpanda (Kafka Alternative)
+  # =============================================================================
+  redpanda:
+    image: vectorized/redpanda:latest
+    container_name: openradius-redpanda-local
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --smp 1
+      - --memory 1G
+      - --mode dev-container
+      - --default-log-level=info
+    volumes:
+      - redpanda_data_local:/var/lib/redpanda/data
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # =============================================================================
+  # Redpanda Console
+  # =============================================================================
+  redpanda-console:
+    image: vectorized/console:latest
+    container_name: openradius-redpanda-console-local
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_SCHEMAREGISTRY_ENABLED: true
+      KAFKA_SCHEMAREGISTRY_URLS: http://redpanda:8081
+    depends_on:
+      - redpanda
+    networks:
+      - openradius-network-local
+
+  # =============================================================================
+  # Debezium Connect (CDC)
+  # =============================================================================
+  debezium:
+    image: debezium/connect:2.7
+    container_name: openradius-debezium-local
+    environment:
+      BOOTSTRAP_SERVERS: redpanda:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      ENABLE_DEBEZIUM_SCRIPTING: true
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # =============================================================================
+  # Seq Structured Logging
+  # =============================================================================
+  seq:
+    image: datalust/seq:2025.1
+    container_name: openradius-seq-local
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_API_KEY: ${SEQ_API_KEY:-dev_seq_api_key}
+    volumes:
+      - seq_data_local:/data
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/api || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Nginx Reverse Proxy
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: openradius-nginx-local
+    ports:
+      - "80:80"       # Main App
+      - "5000:5000"   # API
+      - "8080:8080"   # Keycloak
+      - "5341:5341"   # Seq
+      - "8090:8090"   # Redpanda Console
+      - "8083:8083"   # Debezium
+    volumes:
+      - ./nginx/nginx-local.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs_local:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+      - keycloak
+      - seq
+      - redpanda-console
+      - debezium
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Backend API
+  # =============================================================================
+  backend:
+    image: alimohammed/openradius-backend:latest
+    container_name: openradius-backend-local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=openradius;Username=openradius;Password=${POSTGRES_PASSWORD:-dev_password_change_me}
+      ConnectionStrings__RedisConnection: redis:6379,password=${REDIS_PASSWORD:-dev_redis_password}
+      Oidc__Authority: http://localhost:8080/realms/openradius
+      Oidc__MetadataAddress: http://keycloak:8080/realms/openradius/.well-known/openid-configuration
+      Oidc__Issuer: http://localhost:8080/realms/openradius
+      Oidc__Audience: openradius-api
+      Oidc__ValidateAudience: true
+      Oidc__ValidateIssuer: true
+      Oidc__RequireHttpsMetadata: false
+      Seq__ServerUrl: http://seq:80
+      Seq__ApiKey: ${SEQ_API_KEY:-dev_seq_api_key}
+      SwitchDecryptionKey: ${SWITCH_DECRYPTION_KEY:-0123456789ABCDEF0123456789ABCDEF}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - backend_logs_local:/app/Logs
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # Frontend Application
+  # =============================================================================
+  frontend:
+    image: alimohammed/openradius-frontend:latest
+    container_name: openradius-frontend-local
+    depends_on:
+      - backend
+    networks:
+      - openradius-network-local
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data_local:
+    name: openradius-postgres-data-local
+  redis_data_local:
+    name: openradius-redis-data-local
+  redpanda_data_local:
+    name: openradius-redpanda-data-local
+  backend_logs_local:
+    name: openradius-backend-logs-local
+  seq_data_local:
+    name: openradius-seq-data-local
+  nginx_logs_local:
+    name: openradius-nginx-logs-local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  openradius-network-local:
+    name: openradius-network-local
+    driver: bridge

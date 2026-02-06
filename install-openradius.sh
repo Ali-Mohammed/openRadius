@@ -1,0 +1,728 @@
+#!/bin/bash
+
+# =============================================================================
+# OpenRadius Enterprise Installation Script
+# =============================================================================
+# This script installs Docker, Docker Compose, and sets up OpenRadius
+# with nginx reverse proxy for production deployment on Ubuntu.
+# =============================================================================
+
+set -e  # Exit on any error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+print_header() {
+    echo -e "\n${PURPLE}================================================================================================${NC}"
+    echo -e "${PURPLE}$1${NC}"
+    echo -e "${PURPLE}================================================================================================${NC}\n"
+}
+
+print_success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}✗ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}ℹ $1${NC}"
+}
+
+print_step() {
+    echo -e "${BLUE}➜ $1${NC}"
+}
+
+# Generate secure random password
+generate_password() {
+    local length=${1:-32}
+    openssl rand -base64 $length | tr -d "=+/" | cut -c1-$length
+}
+
+# Generate hex key
+generate_hex_key() {
+    openssl rand -hex 16
+}
+
+# Validate domain name
+validate_domain() {
+    local domain=$1
+    if [[ ! $domain =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Validate email
+validate_email() {
+    local email=$1
+    if [[ ! $email =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Check if running as root
+check_root() {
+    if [[ $EUID -eq 0 ]]; then
+        print_error "This script should NOT be run as root!"
+        print_info "Please run as a regular user with sudo privileges."
+        exit 1
+    fi
+}
+
+# Check if user has sudo privileges
+check_sudo() {
+    if ! sudo -n true 2>/dev/null; then
+        print_warning "This script requires sudo privileges."
+        print_info "You may be prompted for your password."
+        sudo -v
+    fi
+}
+
+# Check Ubuntu version
+check_ubuntu() {
+    if [[ ! -f /etc/os-release ]]; then
+        print_error "Cannot detect OS. This script is designed for Ubuntu."
+        exit 1
+    fi
+    
+    source /etc/os-release
+    if [[ "$ID" != "ubuntu" ]]; then
+        print_error "This script is designed for Ubuntu. Detected: $ID"
+        exit 1
+    fi
+    
+    print_success "Ubuntu $VERSION_ID detected"
+}
+
+# =============================================================================
+# Docker Installation
+# =============================================================================
+
+install_docker() {
+    print_step "Checking Docker installation..."
+    
+    if command -v docker &> /dev/null; then
+        local docker_version=$(docker --version | awk '{print $3}' | tr -d ',')
+        print_success "Docker is already installed (version $docker_version)"
+        return 0
+    fi
+    
+    print_step "Installing Docker..."
+    
+    # Update package index
+    sudo apt-get update
+    
+    # Install prerequisites
+    sudo apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release
+    
+    # Add Docker's official GPG key
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    
+    # Set up Docker repository
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    # Install Docker Engine
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    # Add current user to docker group
+    sudo usermod -aG docker $USER
+    
+    print_success "Docker installed successfully"
+    print_warning "You may need to log out and back in for group permissions to take effect"
+}
+
+# =============================================================================
+# Docker Compose Installation
+# =============================================================================
+
+install_docker_compose() {
+    print_step "Checking Docker Compose installation..."
+    
+    if docker compose version &> /dev/null; then
+        local compose_version=$(docker compose version --short)
+        print_success "Docker Compose is already installed (version $compose_version)"
+        return 0
+    fi
+    
+    print_success "Docker Compose plugin installed with Docker"
+}
+
+# =============================================================================
+# System Prerequisites
+# =============================================================================
+
+install_prerequisites() {
+    print_step "Installing system prerequisites..."
+    
+    sudo apt-get update
+    sudo apt-get install -y \
+        git \
+        curl \
+        wget \
+        openssl \
+        certbot \
+        python3-certbot-nginx \
+        ufw \
+        jq \
+        apache2-utils
+    
+    print_success "Prerequisites installed"
+}
+
+# =============================================================================
+# Firewall Configuration
+# =============================================================================
+
+configure_firewall() {
+    print_step "Configuring firewall..."
+    
+    # Enable UFW if not already enabled
+    if ! sudo ufw status | grep -q "Status: active"; then
+        sudo ufw --force enable
+    fi
+    
+    # Allow SSH (important!)
+    sudo ufw allow 22/tcp comment 'SSH'
+    
+    # Allow HTTP and HTTPS
+    sudo ufw allow 80/tcp comment 'HTTP'
+    sudo ufw allow 443/tcp comment 'HTTPS'
+    
+    print_success "Firewall configured (ports 22, 80, 443 open)"
+}
+
+# =============================================================================
+# Collect Configuration
+# =============================================================================
+
+collect_configuration() {
+    print_header "CONFIGURATION"
+    
+    # Domain Configuration
+    while true; do
+        read -p "$(echo -e ${CYAN}Enter your domain name (e.g., example.com): ${NC})" DOMAIN
+        if validate_domain "$DOMAIN"; then
+            break
+        else
+            print_error "Invalid domain name. Please try again."
+        fi
+    done
+    
+    # Email for Let's Encrypt
+    while true; do
+        read -p "$(echo -e ${CYAN}Enter your email for SSL certificates: ${NC})" SSL_EMAIL
+        if validate_email "$SSL_EMAIL"; then
+            break
+        else
+            print_error "Invalid email address. Please try again."
+        fi
+    done
+    
+    # Ask if user wants to generate passwords or provide their own
+    echo -e "\n${YELLOW}Password Configuration${NC}"
+    echo "1) Auto-generate secure passwords (recommended)"
+    echo "2) Enter custom passwords"
+    read -p "$(echo -e ${CYAN}Choose option [1/2]: ${NC})" password_option
+    
+    if [[ "$password_option" == "2" ]]; then
+        # Custom passwords
+        while true; do
+            read -sp "$(echo -e ${CYAN}Enter PostgreSQL password (min 16 characters): ${NC})" POSTGRES_PASSWORD
+            echo
+            if [[ ${#POSTGRES_PASSWORD} -ge 16 ]]; then
+                break
+            else
+                print_error "Password must be at least 16 characters"
+            fi
+        done
+        
+        while true; do
+            read -sp "$(echo -e ${CYAN}Enter Keycloak admin password (min 16 characters): ${NC})" KEYCLOAK_ADMIN_PASSWORD
+            echo
+            if [[ ${#KEYCLOAK_ADMIN_PASSWORD} -ge 16 ]]; then
+                break
+            else
+                print_error "Password must be at least 16 characters"
+            fi
+        done
+        
+        while true; do
+            read -sp "$(echo -e ${CYAN}Enter Redis password (min 16 characters): ${NC})" REDIS_PASSWORD
+            echo
+            if [[ ${#REDIS_PASSWORD} -ge 16 ]]; then
+                break
+            else
+                print_error "Password must be at least 16 characters"
+            fi
+        done
+        
+        SEQ_API_KEY=$(generate_password 32)
+        SWITCH_DECRYPTION_KEY=$(generate_hex_key)
+    else
+        # Auto-generate passwords
+        print_step "Generating secure passwords..."
+        POSTGRES_PASSWORD=$(generate_password 32)
+        KEYCLOAK_ADMIN_PASSWORD=$(generate_password 32)
+        REDIS_PASSWORD=$(generate_password 32)
+        SEQ_API_KEY=$(generate_password 32)
+        SWITCH_DECRYPTION_KEY=$(generate_hex_key)
+        print_success "Passwords generated"
+    fi
+    
+    # Additional configuration
+    read -p "$(echo -e ${CYAN}Install sample data? [y/N]: ${NC})" install_sample
+    INSTALL_SAMPLE=${install_sample:-n}
+    
+    # Backup configuration
+    read -p "$(echo -e ${CYAN}Enable automated backups? [Y/n]: ${NC})" enable_backup
+    ENABLE_BACKUP=${enable_backup:-y}
+}
+
+# =============================================================================
+# Generate Environment File
+# =============================================================================
+
+generate_env_file() {
+    print_step "Generating .env file..."
+    
+    cat > .env << EOF
+# =============================================================================
+# OpenRadius Production Environment Configuration
+# Generated on: $(date)
+# =============================================================================
+
+# =============================================================================
+# Domain Configuration
+# =============================================================================
+DOMAIN=$DOMAIN
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+
+# =============================================================================
+# Keycloak Configuration
+# =============================================================================
+KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+REDIS_PASSWORD=$REDIS_PASSWORD
+
+# =============================================================================
+# OIDC Configuration
+# =============================================================================
+OIDC_AUTHORITY=https://auth.$DOMAIN/realms/openradius
+OIDC_METADATA_ADDRESS=https://auth.$DOMAIN/realms/openradius/.well-known/openid-configuration
+OIDC_ISSUER=https://auth.$DOMAIN/realms/openradius
+
+# =============================================================================
+# Seq Logging Configuration
+# =============================================================================
+SEQ_API_KEY=$SEQ_API_KEY
+
+# =============================================================================
+# Switch Decryption Configuration
+# =============================================================================
+SWITCH_DECRYPTION_KEY=$SWITCH_DECRYPTION_KEY
+EOF
+    
+    chmod 600 .env
+    print_success ".env file created with secure permissions (600)"
+}
+
+# =============================================================================
+# Save Credentials
+# =============================================================================
+
+save_credentials() {
+    print_step "Saving credentials to secure file..."
+    
+    local creds_file="openradius-credentials-$(date +%Y%m%d-%H%M%S).txt"
+    
+    cat > "$creds_file" << EOF
+# =============================================================================
+# OpenRadius Installation Credentials
+# Generated on: $(date)
+# =============================================================================
+
+IMPORTANT: Store this file securely and delete it after saving the credentials!
+
+Domain: $DOMAIN
+SSL Email: $SSL_EMAIL
+
+PostgreSQL:
+  - Database: openradius
+  - Username: openradius
+  - Password: $POSTGRES_PASSWORD
+
+Keycloak Admin:
+  - URL: https://auth.$DOMAIN/admin
+  - Username: admin
+  - Password: $KEYCLOAK_ADMIN_PASSWORD
+
+Redis:
+  - Password: $REDIS_PASSWORD
+
+Seq:
+  - URL: https://logs.$DOMAIN
+  - API Key: $SEQ_API_KEY
+
+Switch Decryption Key: $SWITCH_DECRYPTION_KEY
+
+# =============================================================================
+# Service URLs
+# =============================================================================
+Main Application: https://$DOMAIN
+API: https://api.$DOMAIN
+Keycloak: https://auth.$DOMAIN
+Seq Logs: https://logs.$DOMAIN
+Kafka Console: https://kafka.$DOMAIN
+Debezium API: https://cdc.$DOMAIN
+
+# =============================================================================
+# Next Steps
+# =============================================================================
+1. Configure DNS records (see installation output)
+2. Wait for SSL certificates to be issued
+3. Access Keycloak admin to configure realm
+4. Set up initial users and permissions
+
+EOF
+    
+    chmod 600 "$creds_file"
+    print_success "Credentials saved to: $creds_file"
+    print_warning "Store this file securely and delete it after recording the credentials!"
+}
+
+# =============================================================================
+# DNS Configuration Instructions
+# =============================================================================
+
+show_dns_instructions() {
+    print_header "DNS CONFIGURATION REQUIRED"
+    
+    echo -e "${YELLOW}Please configure the following DNS records at your domain registrar:${NC}\n"
+    
+    local server_ip=$(curl -s ifconfig.me || echo "YOUR_SERVER_IP")
+    
+    echo -e "${CYAN}A Records:${NC}"
+    echo "  $DOMAIN              →  $server_ip"
+    echo ""
+    
+    echo -e "${CYAN}CNAME Records:${NC}"
+    echo "  api.$DOMAIN          →  $DOMAIN"
+    echo "  auth.$DOMAIN         →  $DOMAIN"
+    echo "  logs.$DOMAIN         →  $DOMAIN"
+    echo "  kafka.$DOMAIN        →  $DOMAIN"
+    echo "  cdc.$DOMAIN          →  $DOMAIN"
+    echo ""
+    
+    read -p "$(echo -e ${YELLOW}Have you configured DNS records? [y/N]: ${NC})" dns_configured
+    
+    if [[ "$dns_configured" != "y" ]]; then
+        print_warning "Please configure DNS records before continuing."
+        print_info "You can run the SSL certificate generation later with:"
+        print_info "  sudo certbot --nginx -d $DOMAIN -d api.$DOMAIN -d auth.$DOMAIN -d logs.$DOMAIN -d kafka.$DOMAIN -d cdc.$DOMAIN"
+        SKIP_SSL=true
+    else
+        SKIP_SSL=false
+    fi
+}
+
+# =============================================================================
+# SSL Certificate Generation
+# =============================================================================
+
+generate_ssl_certificates() {
+    if [[ "$SKIP_SSL" == "true" ]]; then
+        print_warning "Skipping SSL certificate generation"
+        print_info "Generating self-signed certificates for testing..."
+        
+        sudo mkdir -p nginx/ssl
+        sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout nginx/ssl/key.pem \
+            -out nginx/ssl/cert.pem \
+            -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN"
+        
+        print_success "Self-signed certificates generated"
+        print_warning "Remember to generate Let's Encrypt certificates later!"
+        return
+    fi
+    
+    print_step "Generating SSL certificates with Let's Encrypt..."
+    
+    # Temporarily start nginx to pass Let's Encrypt challenge
+    sudo certbot certonly --standalone --non-interactive --agree-tos \
+        --email "$SSL_EMAIL" \
+        -d "$DOMAIN" \
+        -d "api.$DOMAIN" \
+        -d "auth.$DOMAIN" \
+        -d "logs.$DOMAIN" \
+        -d "kafka.$DOMAIN" \
+        -d "cdc.$DOMAIN"
+    
+    # Create symbolic links in nginx/ssl directory
+    sudo mkdir -p nginx/ssl
+    sudo ln -sf /etc/letsencrypt/live/$DOMAIN/fullchain.pem nginx/ssl/cert.pem
+    sudo ln -sf /etc/letsencrypt/live/$DOMAIN/privkey.pem nginx/ssl/key.pem
+    
+    # Set up auto-renewal
+    echo "0 0 * * * root certbot renew --quiet && docker-compose -f /opt/openradius/docker-compose.prod.yml restart nginx" | sudo tee -a /etc/crontab
+    
+    print_success "SSL certificates generated and auto-renewal configured"
+}
+
+# =============================================================================
+# Pull Docker Images
+# =============================================================================
+
+pull_docker_images() {
+    print_step "Pulling Docker images..."
+    
+    docker compose -f docker-compose.prod.yml pull
+    
+    print_success "Docker images pulled successfully"
+}
+
+# =============================================================================
+# Start Services
+# =============================================================================
+
+start_services() {
+    print_step "Starting OpenRadius services..."
+    
+    docker compose -f docker-compose.prod.yml up -d
+    
+    print_success "Services started"
+}
+
+# =============================================================================
+# Health Checks
+# =============================================================================
+
+wait_for_services() {
+    print_step "Waiting for services to be healthy..."
+    
+    local max_wait=300  # 5 minutes
+    local elapsed=0
+    local interval=10
+    
+    while [ $elapsed -lt $max_wait ]; do
+        local all_healthy=true
+        
+        # Check each service
+        for service in postgres redis backend frontend nginx; do
+            if ! docker compose -f docker-compose.prod.yml ps $service | grep -q "healthy"; then
+                all_healthy=false
+                break
+            fi
+        done
+        
+        if [ "$all_healthy" = true ]; then
+            print_success "All services are healthy!"
+            return 0
+        fi
+        
+        echo -ne "\r${YELLOW}Waiting for services... ${elapsed}s${NC}"
+        sleep $interval
+        elapsed=$((elapsed + interval))
+    done
+    
+    echo ""
+    print_warning "Some services may not be healthy yet. Check with: docker compose -f docker-compose.prod.yml ps"
+}
+
+# =============================================================================
+# Setup Backup Script
+# =============================================================================
+
+setup_backup() {
+    if [[ "$ENABLE_BACKUP" != "y" ]]; then
+        return
+    fi
+    
+    print_step "Setting up automated backups..."
+    
+    cat > backup-openradius.sh << 'EOF'
+#!/bin/bash
+# OpenRadius Backup Script
+
+BACKUP_DIR="/opt/openradius-backups"
+DATE=$(date +%Y%m%d-%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/openradius-backup-$DATE.tar.gz"
+
+mkdir -p "$BACKUP_DIR"
+
+# Backup database
+docker compose -f /opt/openradius/docker-compose.prod.yml exec -T postgres \
+    pg_dump -U openradius openradius | gzip > "$BACKUP_DIR/db-$DATE.sql.gz"
+
+# Backup volumes
+docker run --rm \
+    -v openradius-postgres-data:/data \
+    -v $BACKUP_DIR:/backup \
+    alpine tar czf /backup/volumes-$DATE.tar.gz /data
+
+# Backup configuration
+tar czf "$BACKUP_DIR/config-$DATE.tar.gz" \
+    /opt/openradius/.env \
+    /opt/openradius/docker-compose.prod.yml \
+    /opt/openradius/nginx/
+
+# Remove backups older than 30 days
+find "$BACKUP_DIR" -name "*.tar.gz" -mtime +30 -delete
+find "$BACKUP_DIR" -name "*.sql.gz" -mtime +30 -delete
+
+echo "Backup completed: $BACKUP_FILE"
+EOF
+    
+    chmod +x backup-openradius.sh
+    
+    # Add to crontab (daily at 2 AM)
+    echo "0 2 * * * root /opt/openradius/backup-openradius.sh" | sudo tee -a /etc/crontab
+    
+    print_success "Automated backups configured (daily at 2 AM)"
+}
+
+# =============================================================================
+# Post-Installation Summary
+# =============================================================================
+
+show_summary() {
+    print_header "INSTALLATION COMPLETE!"
+    
+    echo -e "${GREEN}OpenRadius has been successfully installed!${NC}\n"
+    
+    echo -e "${CYAN}Service URLs:${NC}"
+    echo -e "  Main App:        ${GREEN}https://$DOMAIN${NC}"
+    echo -e "  API:             ${GREEN}https://api.$DOMAIN${NC}"
+    echo -e "  Keycloak:        ${GREEN}https://auth.$DOMAIN${NC}"
+    echo -e "  Seq Logs:        ${GREEN}https://logs.$DOMAIN${NC}"
+    echo -e "  Kafka Console:   ${GREEN}https://kafka.$DOMAIN${NC}"
+    echo -e "  Debezium:        ${GREEN}https://cdc.$DOMAIN${NC}"
+    echo ""
+    
+    echo -e "${CYAN}Keycloak Admin:${NC}"
+    echo -e "  URL:      ${GREEN}https://auth.$DOMAIN/admin${NC}"
+    echo -e "  Username: ${GREEN}admin${NC}"
+    echo -e "  Password: ${YELLOW}[See credentials file]${NC}"
+    echo ""
+    
+    echo -e "${CYAN}Useful Commands:${NC}"
+    echo -e "  View logs:       ${YELLOW}docker compose -f docker-compose.prod.yml logs -f${NC}"
+    echo -e "  Check status:    ${YELLOW}docker compose -f docker-compose.prod.yml ps${NC}"
+    echo -e "  Restart:         ${YELLOW}docker compose -f docker-compose.prod.yml restart${NC}"
+    echo -e "  Stop:            ${YELLOW}docker compose -f docker-compose.prod.yml down${NC}"
+    echo -e "  Update:          ${YELLOW}docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d${NC}"
+    echo ""
+    
+    if [[ "$ENABLE_BACKUP" == "y" ]]; then
+        echo -e "${CYAN}Backups:${NC}"
+        echo -e "  Location:        ${GREEN}/opt/openradius-backups${NC}"
+        echo -e "  Schedule:        ${GREEN}Daily at 2:00 AM${NC}"
+        echo -e "  Manual backup:   ${YELLOW}./backup-openradius.sh${NC}"
+        echo ""
+    fi
+    
+    echo -e "${YELLOW}Next Steps:${NC}"
+    echo -e "  1. Access Keycloak admin console"
+    echo -e "  2. Configure OpenRadius realm and clients"
+    echo -e "  3. Set up initial users and permissions"
+    echo -e "  4. Test all service URLs"
+    echo -e "  5. Configure monitoring and alerting"
+    echo ""
+    
+    print_warning "IMPORTANT: Securely store the credentials file and delete it from the server!"
+}
+
+# =============================================================================
+# Main Installation Flow
+# =============================================================================
+
+main() {
+    clear
+    print_header "OpenRadius Enterprise Installation"
+    
+    echo -e "${CYAN}This script will install and configure:${NC}"
+    echo "  • Docker & Docker Compose"
+    echo "  • OpenRadius with all services"
+    echo "  • Nginx reverse proxy"
+    echo "  • SSL certificates (Let's Encrypt)"
+    echo "  • Firewall configuration"
+    echo "  • Automated backups (optional)"
+    echo ""
+    
+    read -p "$(echo -e ${YELLOW}Do you want to continue? [y/N]: ${NC})" confirm
+    if [[ "$confirm" != "y" ]]; then
+        print_error "Installation cancelled"
+        exit 0
+    fi
+    
+    # Pre-installation checks
+    check_root
+    check_sudo
+    check_ubuntu
+    
+    # Install dependencies
+    install_docker
+    install_docker_compose
+    install_prerequisites
+    
+    # Configure system
+    configure_firewall
+    
+    # Collect configuration
+    collect_configuration
+    
+    # Generate configuration files
+    generate_env_file
+    save_credentials
+    
+    # DNS and SSL
+    show_dns_instructions
+    generate_ssl_certificates
+    
+    # Deploy application
+    pull_docker_images
+    start_services
+    wait_for_services
+    
+    # Post-installation
+    setup_backup
+    
+    # Show summary
+    show_summary
+    
+    print_success "Installation script completed!"
+}
+
+# Run main function
+main
