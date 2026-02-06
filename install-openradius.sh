@@ -542,13 +542,32 @@ generate_ssl_certificates() {
         sudo systemctl start nginx
     fi
     
-    # Create symbolic links in nginx/ssl directory
-    sudo mkdir -p nginx/ssl
-    sudo ln -sf /etc/letsencrypt/live/$DOMAIN/fullchain.pem nginx/ssl/cert.pem
-    sudo ln -sf /etc/letsencrypt/live/$DOMAIN/privkey.pem nginx/ssl/key.pem
+    # Copy actual certificate files to nginx/ssl directory (not symlinks)
+    # Symlinks don't work in Docker volumes because the target path doesn't exist in container
+    print_info "Copying SSL certificates to nginx directory..."
+    sudo mkdir -p /opt/openradius/nginx/ssl
+    sudo cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem /opt/openradius/nginx/ssl/fullchain.pem
+    sudo cp /etc/letsencrypt/live/$DOMAIN/privkey.pem /opt/openradius/nginx/ssl/privkey.pem
+    sudo chmod 644 /opt/openradius/nginx/ssl/fullchain.pem
+    sudo chmod 600 /opt/openradius/nginx/ssl/privkey.pem
     
-    # Set up auto-renewal
-    echo "0 0 * * * root certbot renew --quiet && docker-compose -f /opt/openradius/docker-compose.prod.yml restart nginx" | sudo tee -a /etc/crontab
+    # Set up auto-renewal with certificate copy
+    print_info "Setting up auto-renewal..."
+    cat > /tmp/renew-certs.sh << 'RENEWSCRIPT'
+#!/bin/bash
+# Renew certificates and copy to nginx directory
+certbot renew --quiet
+if [ $? -eq 0 ]; then
+    cp /etc/letsencrypt/live/*/fullchain.pem /opt/openradius/nginx/ssl/fullchain.pem
+    cp /etc/letsencrypt/live/*/privkey.pem /opt/openradius/nginx/ssl/privkey.pem
+    chmod 644 /opt/openradius/nginx/ssl/fullchain.pem
+    chmod 600 /opt/openradius/nginx/ssl/privkey.pem
+    cd /opt/openradius && docker compose -f docker-compose.prod.yml restart nginx
+fi
+RENEWSCRIPT
+    sudo mv /tmp/renew-certs.sh /usr/local/bin/renew-openradius-certs.sh
+    sudo chmod +x /usr/local/bin/renew-openradius-certs.sh
+    echo "0 0 * * * root /usr/local/bin/renew-openradius-certs.sh" | sudo tee -a /etc/crontab
     
     print_success "SSL certificates generated and auto-renewal configured"
 }
