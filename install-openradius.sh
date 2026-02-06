@@ -737,23 +737,43 @@ configure_keycloak() {
     if [ -f "/opt/openradius/keycloak/keycloak-config.json" ]; then
         print_info "Importing Keycloak configuration from keycloak-config.json..."
         
+        # Create a temporary copy for production
+        cp /opt/openradius/keycloak/keycloak-config.json /tmp/keycloak-config-prod.json
+        
         # Update the config file with production domain before importing
         print_info "Updating configuration with production domain..."
-        sed -i "s|http://localhost:5173|https://$DOMAIN|g" /opt/openradius/keycloak/keycloak-config.json
+        sed -i "s|http://localhost:5173|https://$DOMAIN|g" /tmp/keycloak-config-prod.json
+        sed -i "s|http://localhost:8080|https://auth.$DOMAIN|g" /tmp/keycloak-config-prod.json
         
         # Copy config file to container
-        docker cp /opt/openradius/keycloak/keycloak-config.json openradius-keycloak:/tmp/keycloak-config.json
+        docker cp /tmp/keycloak-config-prod.json openradius-keycloak:/tmp/keycloak-config.json
         
-        # Import the realm configuration
-        print_info "Importing openradius realm..."
-        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
-            -f /tmp/keycloak-config.json 2>/dev/null || print_warning "Realm may already exist, updating instead..."
+        # Use partial import to properly import client scopes and all configurations
+        print_info "Importing openradius realm and client scopes..."
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partialImport \
+            -r openradius \
+            -s ifResourceExists=OVERWRITE \
+            -f /tmp/keycloak-config.json 2>&1 | grep -v "^$" || {
+            
+            # If partial import fails, realm might not exist yet - create it first
+            print_info "Creating realm first, then importing configuration..."
+            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+                -s realm=openradius \
+                -s enabled=true \
+                -s displayName="OpenRadius" \
+                -s loginWithEmailAllowed=true 2>/dev/null || true
+            
+            # Now do partial import
+            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partialImport \
+                -r openradius \
+                -s ifResourceExists=OVERWRITE \
+                -f /tmp/keycloak-config.json 2>&1 | grep -v "^$" || true
+        }
         
-        # If realm exists, update it
-        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update realms/openradius \
-            -f /tmp/keycloak-config.json 2>/dev/null || true
+        # Clean up temp file
+        rm -f /tmp/keycloak-config-prod.json
         
-        print_success "Keycloak configuration imported from keycloak-config.json"
+        print_success "Keycloak configuration imported successfully with all client scopes"
     else
         print_warning "keycloak-config.json not found, creating minimal configuration..."
         
