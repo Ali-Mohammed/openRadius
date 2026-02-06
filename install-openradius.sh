@@ -401,9 +401,10 @@ EOF
 save_credentials() {
     print_step "Saving credentials to secure file..."
     
-    local creds_file="openradius-credentials-$(date +%Y%m%d-%H%M%S).txt"
+    # Save to /opt/openradius directory
+    local creds_file="/opt/openradius/openradius-credentials-$(date +%Y%m%d-%H%M%S).txt"
     
-    cat > "$creds_file" << EOF
+    run_sudo tee "$creds_file" > /dev/null << EOF
 # =============================================================================
 # OpenRadius Installation Credentials
 # Generated on: $(date)
@@ -453,7 +454,7 @@ Debezium API: https://cdc.$DOMAIN
 
 EOF
     
-    chmod 600 "$creds_file"
+    run_sudo chmod 600 "$creds_file"
     print_success "Credentials saved to: $creds_file"
     print_warning "Store this file securely and delete it after recording the credentials!"
 }
