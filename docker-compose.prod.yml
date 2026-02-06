@@ -52,9 +52,13 @@ services:
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HOSTNAME: auth.open-radius.org
       KC_HOSTNAME_STRICT: false
       KC_HTTP_ENABLED: true
       KC_PROXY: edge
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_URL: https://auth.open-radius.org
+      KC_HOSTNAME_ADMIN_URL: https://auth.open-radius.org
     expose:
       - "8080"
     networks:
