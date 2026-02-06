@@ -18,7 +18,7 @@ export interface SasActivationLog {
   nextRetryAt?: string;
 }
 
-export enum ActivationStatus {
+export const enum ActivationStatus {
   Pending = 0,
   Processing = 1,
   Success = 2,

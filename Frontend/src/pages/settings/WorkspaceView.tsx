@@ -86,7 +86,7 @@ export default function WorkspaceView() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [editingworkspace, setEditingworkspace] = useState<Workspace | null>(null)
   const [iconPopoverOpen, setIconPopoverOpen] = useState(false)
-  const [formData, setFormData] = useState<workspaceCreateDto>({
+  const [formData, setFormData] = useState<WorkspaceCreateDto>({
     title: '',
     name: '',
     location: '',
@@ -173,7 +173,7 @@ export default function WorkspaceView() {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<workspaceCreateDto> }) => 
+    mutationFn: ({ id, data }: { id: number; data: Partial<WorkspaceCreateDto> }) => 
       workspaceApi.update(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['workspaces-view'] })
