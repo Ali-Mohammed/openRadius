@@ -341,7 +341,10 @@ collect_configuration() {
 generate_env_file() {
     print_step "Generating .env file..."
     
-    cat > .env << EOF
+    # Ensure /opt/openradius directory exists
+    run_sudo mkdir -p /opt/openradius
+    
+    cat > /tmp/openradius.env << EOF
 # =============================================================================
 # OpenRadius Production Environment Configuration
 # Generated on: $(date)
@@ -385,7 +388,9 @@ SEQ_API_KEY=$SEQ_API_KEY
 SWITCH_DECRYPTION_KEY=$SWITCH_DECRYPTION_KEY
 EOF
     
-    chmod 600 .env
+    # Move the env file to /opt/openradius with secure permissions
+    run_sudo mv /tmp/openradius.env /opt/openradius/.env
+    run_sudo chmod 600 /opt/openradius/.env
     print_success ".env file created with secure permissions (600)"
 }
 
@@ -556,26 +561,19 @@ clone_repository() {
     
     local install_dir="/opt/openradius"
     
-    # Remove existing directory if it exists
-    if [ -d "$install_dir" ]; then
-        print_warning "Existing installation found, removing..."
-        run_sudo rm -rf "$install_dir"
-    fi
+    # Clone repository (directory already exists with .env file)
+    run_sudo git clone https://github.com/Ali-Mohammed/openRadius.git "$install_dir/temp"
     
-    # Clone repository
-    run_sudo git clone https://github.com/Ali-Mohammed/openRadius.git "$install_dir"
+    # Move repository contents to install_dir (preserving .env)
+    run_sudo cp -r "$install_dir/temp/"* "$install_dir/"
+    run_sudo cp -r "$install_dir/temp/".git* "$install_dir/" 2>/dev/null || true
+    run_sudo rm -rf "$install_dir/temp"
     
     # Navigate to installation directory
     cd "$install_dir" || {
         print_error "Failed to navigate to installation directory"
         exit 1
     }
-    
-    # Copy .env file if we generated it in a different location
-    if [ -f ~/..env ] && [ ! -f .env ]; then
-        run_sudo cp ~/.env .env
-        run_sudo chmod 600 .env
-    fi
     
     print_success "Repository cloned to $install_dir"
 }
