@@ -759,10 +759,10 @@ configure_keycloak() {
         # Import the realm configuration (creates or updates)
         print_info "Importing openradius realm and all configurations..."
         if docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
-            -f /tmp/keycloak-config.json 2>&1 | grep -q "Created new realm"; then
+            -f /tmp/keycloak-config.json 2>/dev/null; then
             print_success "Realm and all configurations created successfully"
         else
-            print_info "Realm exists, updating all configurations..."
+            print_info "Realm may already exist, updating configurations..."
             docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update realms/openradius \
                 -f /tmp/keycloak-config.json 2>&1 || print_warning "Some configurations may already exist"
             print_success "Realm updated with latest configurations"
@@ -778,25 +778,38 @@ configure_keycloak() {
         ls -la /opt/openradius/keycloak/ 2>/dev/null || print_error "Directory does not exist"
         print_warning "Creating minimal Keycloak configuration instead..."
         
-        # Fallback to manual creation if config file doesn't exist
-        -s clientId=openradius-web \
-        -s name="OpenRadius Web Application" \
-        -s description="OpenRadius frontend application using OIDC" \
-        -s enabled=true \
-        -s publicClient=true \
-        -s protocol=openid-connect \
-        -s standardFlowEnabled=true \
-        -s implicitFlowEnabled=false \
-        -s directAccessGrantsEnabled=true \
-        -s serviceAccountsEnabled=false \
-        -s authorizationServicesEnabled=false \
-        -s 'redirectUris=["https://'$DOMAIN'/*","https://'$DOMAIN'"]' \
-        -s 'webOrigins=["https://'$DOMAIN'"]' \
-        -s baseUrl="https://$DOMAIN" \
-        -s rootUrl="https://$DOMAIN" \
-        -s adminUrl="https://$DOMAIN" \
-        -s 'attributes.pkce.code.challenge.method=S256' \
-        -s 'attributes."post.logout.redirect.uris"=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
+        # Fallback: Create the openradius realm first
+        print_info "Creating openradius realm..."
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+            -s realm=openradius \
+            -s enabled=true \
+            -s displayName="OpenRadius" \
+            -s registrationAllowed=false \
+            -s resetPasswordAllowed=true \
+            -s loginWithEmailAllowed=true 2>/dev/null || print_warning "Realm may already exist"
+        
+        # Fallback: Create openradius-web client
+        print_info "Creating openradius-web client..."
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
+            -r openradius \
+            -s clientId=openradius-web \
+            -s name="OpenRadius Web Application" \
+            -s description="OpenRadius frontend application using OIDC" \
+            -s enabled=true \
+            -s publicClient=true \
+            -s protocol=openid-connect \
+            -s standardFlowEnabled=true \
+            -s implicitFlowEnabled=false \
+            -s directAccessGrantsEnabled=true \
+            -s serviceAccountsEnabled=false \
+            -s authorizationServicesEnabled=false \
+            -s 'redirectUris=["https://'$DOMAIN'/*","https://'$DOMAIN'"]' \
+            -s 'webOrigins=["https://'$DOMAIN'"]' \
+            -s baseUrl="https://$DOMAIN" \
+            -s rootUrl="https://$DOMAIN" \
+            -s adminUrl="https://$DOMAIN" \
+            -s 'attributes.pkce.code.challenge.method=S256' \
+            -s 'attributes."post.logout.redirect.uris"=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
     
     # Add protocol mappers to openradius-web client
     print_info "Adding protocol mappers to openradius-web client..."
@@ -884,6 +897,32 @@ configure_keycloak() {
     }
     
     print_success "openradius-admin client configured"
+    
+    # Assign realm-management roles to service-account-openradius-admin
+    print_info "Assigning realm-management roles to openradius-admin service account..."
+    REALM_MGMT_CLIENT_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get clients \
+        -r openradius --fields id,clientId 2>/dev/null | grep -B1 '"clientId" : "realm-management"' | grep '"id"' | cut -d'"' -f4)
+    
+    SA_USER_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get users \
+        -r openradius -q username=service-account-openradius-admin --fields id 2>/dev/null | grep '"id"' | cut -d'"' -f4)
+    
+    if [ -n "$REALM_MGMT_CLIENT_ID" ] && [ -n "$SA_USER_ID" ]; then
+        for role_name in "view-users" "query-users" "manage-users" "view-clients" "query-clients"; do
+            ROLE_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get \
+                clients/$REALM_MGMT_CLIENT_ID/roles/$role_name \
+                -r openradius --fields id,name 2>/dev/null)
+            if [ -n "$ROLE_ID" ]; then
+                docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create \
+                    users/$SA_USER_ID/role-mappings/clients/$REALM_MGMT_CLIENT_ID \
+                    -r openradius \
+                    -s "id=$(echo $ROLE_ID | grep '"id"' | cut -d'"' -f4)" \
+                    -s "name=$role_name" 2>/dev/null || true
+            fi
+        done
+        print_success "Service account roles assigned"
+    else
+        print_warning "Could not find realm-management client or service account user"
+    fi
     
     # Create openradius-api client (bearer only)
     print_info "Creating openradius-api client..."
