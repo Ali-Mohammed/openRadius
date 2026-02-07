@@ -42,3 +42,4 @@ postgres_data/
 Backend/Backups/
 legacy
 balance_system-legacy
+keycloak/import/
