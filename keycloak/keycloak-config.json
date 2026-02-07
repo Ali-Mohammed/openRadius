@@ -716,17 +716,17 @@
       }
     },
     {
-      "username": "manager",
+      "username": "openradius",
       "enabled": true,
       "emailVerified": true,
-      "firstName": "Manager",
-      "lastName": "Smith",
-      "email": "manager@example.com",
+      "firstName": "OpenRadius",
+      "lastName": "Manager",
+      "email": "manager@openradius.com",
       "credentials": [
         {
           "type": "password",
-          "value": "manager123",
-          "temporary": false
+          "value": "CHANGE_ME_ON_FIRST_LOGIN",
+          "temporary": true
         }
       ],
       "realmRoles": [

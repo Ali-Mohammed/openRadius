@@ -315,6 +315,7 @@ collect_configuration() {
         POSTGRES_PASSWORD=$(generate_password 32)
         KEYCLOAK_ADMIN_PASSWORD=$(generate_password 32)
         REDIS_PASSWORD=$(generate_password 32)
+        OPENRADIUS_USER_PASSWORD=$(generate_password 24)
         SEQ_API_KEY=$(generate_password 32)
         SWITCH_DECRYPTION_KEY=$(generate_hex_key)
         print_success "Passwords generated"
@@ -430,6 +431,11 @@ Keycloak Admin:
   - URL: https://auth.$DOMAIN/admin
   - Username: admin
   - Password: $KEYCLOAK_ADMIN_PASSWORD
+
+OpenRadius Manager User:
+  - URL: https://$DOMAIN
+  - Username: openradius
+  - Password: $OPENRADIUS_USER_PASSWORD
 
 Redis:
   - Password: $REDIS_PASSWORD
@@ -1033,6 +1039,58 @@ configure_keycloak() {
             -r openradius -s name="$role_name" 2>/dev/null || true
     done
     
+    # Create openradius manager user with auto-generated password
+    print_info "Creating openradius manager user..."
+    OPENRADIUS_USER_EXISTS=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get users \
+        -r openradius -q username=openradius --fields username 2>/dev/null | grep -c '"username" : "openradius"' || true)
+    
+    if [ "$OPENRADIUS_USER_EXISTS" -eq 0 ] 2>/dev/null; then
+        # Create user
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create users \
+            -r openradius \
+            -s username=openradius \
+            -s enabled=true \
+            -s emailVerified=true \
+            -s firstName="OpenRadius" \
+            -s lastName="Manager" \
+            -s email="manager@openradius.com" 2>/dev/null || true
+        
+        # Set password
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh set-password \
+            -r openradius \
+            --username openradius \
+            --new-password "$OPENRADIUS_USER_PASSWORD" 2>/dev/null || true
+        
+        # Get user ID
+        OPENRADIUS_USER_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get users \
+            -r openradius -q username=openradius --fields id 2>/dev/null | grep '"id"' | head -1 | cut -d'"' -f4)
+        
+        if [ -n "$OPENRADIUS_USER_ID" ]; then
+            # Assign roles
+            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh add-roles \
+                -r openradius \
+                --uid "$OPENRADIUS_USER_ID" \
+                --rolename manager \
+                --rolename user 2>/dev/null || true
+            
+            # Get Managers group ID
+            MANAGERS_GROUP_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get groups \
+                -r openradius --fields id,name 2>/dev/null | grep -B1 '"name" : "Managers"' | grep '"id"' | cut -d'"' -f4)
+            
+            if [ -n "$MANAGERS_GROUP_ID" ]; then
+                # Add user to Managers group
+                docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update users/"$OPENRADIUS_USER_ID"/groups/"$MANAGERS_GROUP_ID" \
+                    -r openradius -s realm=openradius -s userId="$OPENRADIUS_USER_ID" -s groupId="$MANAGERS_GROUP_ID" -n 2>/dev/null || true
+            fi
+            
+            print_success "openradius user created successfully"
+        else
+            print_warning "Could not get openradius user ID"
+        fi
+    else
+        print_success "openradius user already exists"
+    fi
+    
     # Verify 'sub' claim mapper in openid scope
     print_info "Verifying 'sub' claim mapper in openid scope..."
     OPENID_SCOPE_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get client-scopes \
@@ -1142,6 +1200,12 @@ show_summary() {
     echo -e "  URL:      ${GREEN}https://auth.$DOMAIN/admin${NC}"
     echo -e "  Username: ${GREEN}admin${NC}"
     echo -e "  Password: ${YELLOW}$KEYCLOAK_ADMIN_PASSWORD${NC}"
+    echo ""
+    
+    echo -e "${CYAN}OpenRadius Manager User:${NC}"
+    echo -e "  URL:      ${GREEN}https://$DOMAIN${NC}"
+    echo -e "  Username: ${GREEN}openradius${NC}"
+    echo -e "  Password: ${YELLOW}$OPENRADIUS_USER_PASSWORD${NC}"
     echo ""
     
     echo -e "${CYAN}Useful Commands:${NC}"
