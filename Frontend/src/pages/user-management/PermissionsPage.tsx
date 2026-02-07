@@ -45,14 +45,16 @@ export default function PermissionsPage() {
   const { data: permissions = [], isLoading } = useQuery({
     queryKey: ['permissions', showDeleted],
     queryFn: () => userManagementApi.getPermissions(showDeleted),
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   // Fetch categories dynamically from backend
   const { data: backendCategories = [] } = useQuery({
     queryKey: ['permission-categories'],
     queryFn: () => userManagementApi.getPermissionCategories(),
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   // Create
