@@ -1,6 +1,7 @@
 {
   "realm": "openradius",
   "enabled": true,
+  "sslRequired": "none",
   "displayName": "OpenRadius",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
