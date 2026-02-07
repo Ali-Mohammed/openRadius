@@ -756,28 +756,22 @@ configure_keycloak() {
         # Copy config file to container
         docker cp /tmp/keycloak-config-prod.json openradius-keycloak:/tmp/keycloak-config.json
         
-        # First, create the realm from the config file
-        print_info "Creating openradius realm..."
+        # Import the realm configuration (creates or updates)
+        print_info "Importing openradius realm and all configurations..."
         if docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
             -f /tmp/keycloak-config.json 2>&1 | grep -q "Created new realm"; then
-            print_success "Realm created successfully"
+            print_success "Realm and all configurations created successfully"
         else
-            print_info "Realm may already exist, updating instead..."
+            print_info "Realm exists, updating all configurations..."
             docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update realms/openradius \
-                -f /tmp/keycloak-config.json 2>/dev/null || true
+                -f /tmp/keycloak-config.json 2>&1 || print_warning "Some configurations may already exist"
+            print_success "Realm updated with latest configurations"
         fi
-        
-        # Now import everything else (client scopes, clients, etc) using partial import
-        print_info "Importing client scopes, clients, and configurations..."
-        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partials/import \
-            -r openradius \
-            -s ifResourceExists=OVERWRITE \
-            -f /tmp/keycloak-config.json 2>&1 || print_warning "Some resources may already exist"
         
         # Clean up temp file
         rm -f /tmp/keycloak-config-prod.json
         
-        print_success "Keycloak configuration imported successfully with all client scopes"
+        print_success "Keycloak configuration imported successfully"
     else
         print_error "keycloak-config.json NOT found at /opt/openradius/keycloak/keycloak-config.json"
         print_info "Listing files in /opt/openradius/keycloak/:"
