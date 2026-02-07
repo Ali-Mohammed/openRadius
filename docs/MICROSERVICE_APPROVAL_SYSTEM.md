@@ -206,7 +206,7 @@ curl -X GET http://localhost:5000/hubs/microservices/GetPendingApprovals
 # Approve (replace ID and approvedBy)
 curl -X POST http://localhost:5000/hubs/microservices/ApproveConnection \
   -H "Content-Type: application/json" \
-  -d '{"approvalId": 1, "approvedBy": "admin@openradius.com"}'
+  -d '{"approvalId": 1, "approvedBy": "admin@open-radius.org"}'
 ```
 
 ### Subsequent Connection

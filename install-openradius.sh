@@ -1053,7 +1053,7 @@ configure_keycloak() {
             -s emailVerified=true \
             -s firstName="OpenRadius" \
             -s lastName="Manager" \
-            -s email="manager@openradius.com" 2>/dev/null || true
+            -s email="manager@open-radius.org" 2>/dev/null || true
         
         # Set password
         docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh set-password \

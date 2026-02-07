@@ -721,7 +721,7 @@
       "emailVerified": true,
       "firstName": "OpenRadius",
       "lastName": "Manager",
-      "email": "manager@openradius.com",
+      "email": "manager@open-radius.org",
       "credentials": [
         {
           "type": "password",
@@ -922,8 +922,8 @@
     "auth": "true",
     "port": "587",
     "host": "smtp.sendgrid.net",
-    "replyTo": "noreply@openradius.com",
-    "from": "noreply@openradius.com",
+    "replyTo": "noreply@open-radius.org",
+    "from": "noreply@open-radius.org",
     "fromDisplayName": "OpenRadius",
     "ssl": "false",
     "user": "apikey",

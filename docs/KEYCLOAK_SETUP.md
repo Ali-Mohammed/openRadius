@@ -139,7 +139,7 @@ For each client (`openradius-api` and `openradius-web`):
 2. Click **"Add user"**
 3. Fill in the details:
    - **Username**: `testuser`
-   - **Email**: `test@openradius.com`
+   - **Email**: `test@open-radius.org`
    - **First name**: `Test`
    - **Last name**: `User`
    - **Email verified**: ON
@@ -161,7 +161,7 @@ For accessing the admin panel:
 1. Navigate to **Users** → **"Add user"**
 2. Fill in the details:
    - **Username**: `admin`
-   - **Email**: `admin@openradius.com`
+   - **Email**: `admin@open-radius.org`
    - **First name**: `Admin`
    - **Last name**: `User`
    - **Email verified**: ON
