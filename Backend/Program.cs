@@ -20,8 +20,20 @@ using Hangfire.PostgreSql;
 // Configure EPPlus license for version 8.x - Noncommercial use
 ExcelPackage.License.SetNonCommercialPersonal("OpenRadius Development");
 
+// Load configuration early for Serilog setup
+var configBuilder = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+var configuration = configBuilder.Build();
+
+// Get Seq URL from configuration with fallback
+var seqUrl = configuration["Seq:ServerUrl"] ?? "http://localhost:5341";
+var seqApiKey = configuration["Seq:ApiKey"];
+
 // Configure Serilog
-Log.Logger = new LoggerConfiguration()
+var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
@@ -43,9 +55,19 @@ Log.Logger = new LoggerConfiguration()
         "Logs/openradius-.log",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}")
-    .WriteTo.Seq("http://localhost:5341") // Seq UI
-    .CreateLogger();
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}");
+
+// Add Seq sink with API key if provided
+if (!string.IsNullOrEmpty(seqApiKey))
+{
+    loggerConfig.WriteTo.Seq(seqUrl, apiKey: seqApiKey);
+}
+else
+{
+    loggerConfig.WriteTo.Seq(seqUrl);
+}
+
+Log.Logger = loggerConfig.CreateLogger();
 
 try
 {
