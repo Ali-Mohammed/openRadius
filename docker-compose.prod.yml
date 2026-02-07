@@ -256,6 +256,9 @@ services:
       # Kafka
       Kafka__BootstrapServers: "redpanda:9092"
       
+      # Debezium
+      Debezium__ConnectUrl: "http://debezium:8083"
+      
       # ASP.NET Core
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5000"

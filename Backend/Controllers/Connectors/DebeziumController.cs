@@ -24,15 +24,18 @@ public class DebeziumController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<DebeziumController> _logger;
+    private readonly IConfiguration _configuration;
 
     public DebeziumController(
         ApplicationDbContext context,
         IHttpClientFactory httpClientFactory,
-        ILogger<DebeziumController> logger)
+        ILogger<DebeziumController> logger,
+        IConfiguration configuration)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _configuration = configuration;
     }
 
     // Settings endpoints
@@ -42,9 +45,11 @@ public class DebeziumController : ControllerBase
         var settings = await _context.DebeziumSettings.FirstOrDefaultAsync(s => s.IsDefault);
         if (settings == null)
         {
+            // Use configuration value if available, otherwise use localhost
+            var defaultUrl = _configuration["Debezium:ConnectUrl"] ?? "http://localhost:8083";
             settings = new DebeziumSettings
             {
-                ConnectUrl = "http://localhost:8083",
+                ConnectUrl = defaultUrl,
                 IsDefault = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -241,7 +246,10 @@ public class DebeziumController : ControllerBase
     private async Task<string> GetDebeziumUrl()
     {
         var settings = await _context.DebeziumSettings.FirstOrDefaultAsync(s => s.IsDefault);
-        return settings?.ConnectUrl ?? "http://localhost:8083";
+        // Priority: DB settings > appsettings.json > default
+        return settings?.ConnectUrl 
+            ?? _configuration["Debezium:ConnectUrl"] 
+            ?? "http://localhost:8083";
     }
 
     // Connector endpoints - List all connectors
