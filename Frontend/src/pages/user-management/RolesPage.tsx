@@ -23,6 +23,8 @@ export default function RolesPage() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleDesc, setNewRoleDesc] = useState('')
+  const [editRoleName, setEditRoleName] = useState('')
+  const [editRoleDesc, setEditRoleDesc] = useState('')
   const [selectedIcon, setSelectedIcon] = useState<string>('Shield')
   const [selectedColor, setSelectedColor] = useState<string>('#3b82f6')
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([])
@@ -93,6 +95,8 @@ export default function RolesPage() {
       userManagementApi.assignPermissionsToRole(roleId, permissionIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] })
+      // Notify sidebar to refresh its navigation menu
+      window.dispatchEvent(new Event('permissions-changed'))
       toast.success('Permissions updated successfully')
     },
     onError: (error: any) => {
@@ -121,8 +125,8 @@ export default function RolesPage() {
     await updateRoleMutation.mutateAsync({
       id: editingRole.id,
       data: {
-        name: editingRole.name,
-        description: editingRole.description,
+        name: editRoleName,
+        description: editRoleDesc,
         icon: selectedIcon,
         color: selectedColor
       }
@@ -140,6 +144,8 @@ export default function RolesPage() {
 
   const openEditDialog = async (role: Role) => {
     setEditingRole(role)
+    setEditRoleName(role.name)
+    setEditRoleDesc(role.description || '')
     setSelectedIcon(role.icon || 'Shield')
     setSelectedColor(role.color || '#3b82f6')
     try {
@@ -307,39 +313,84 @@ export default function RolesPage() {
             </div>
 
             <div className="border-t pt-4">
-              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-base font-semibold">Permissions</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedPermissions(permissions.map(p => p.id))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedPermissions([])}
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
               {permissionsLoading ? (
                 <p className="text-sm text-muted-foreground">Loading permissions...</p>
               ) : (
                 <div className="space-y-4">
-                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                    <div key={category} className="space-y-2">
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        {category}
-                      </p>
-                      <div className="ml-6 space-y-2">
-                        {categoryPermissions.map(permission => (
-                          <div key={permission.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`perm-${permission.id}`}
-                              checked={selectedPermissions.includes(permission.id)}
-                              onCheckedChange={() => handlePermissionToggle(permission.id)}
-                            />
-                            <label
-                              htmlFor={`perm-${permission.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
-                              {permission.name}
-                              {permission.description && (
-                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
-                              )}
-                            </label>
-                          </div>
-                        ))}
+                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => {
+                    const allSelected = categoryPermissions.every(p => selectedPermissions.includes(p.id))
+                    const someSelected = categoryPermissions.some(p => selectedPermissions.includes(p.id))
+                    return (
+                      <div key={category} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`create-cat-${category}`}
+                            checked={allSelected}
+                            ref={(el) => {
+                              if (el) {
+                                const input = el as unknown as HTMLButtonElement
+                                input.dataset.indeterminate = (!allSelected && someSelected) ? 'true' : 'false'
+                              }
+                            }}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedPermissions(prev => [
+                                  ...new Set([...prev, ...categoryPermissions.map(p => p.id)])
+                                ])
+                              } else {
+                                const catIds = new Set(categoryPermissions.map(p => p.id))
+                                setSelectedPermissions(prev => prev.filter(id => !catIds.has(id)))
+                              }
+                            }}
+                          />
+                          <label htmlFor={`create-cat-${category}`} className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                            <Lock className="h-4 w-4" />
+                            {category}
+                            <Badge variant="secondary" className="text-xs">{categoryPermissions.length}</Badge>
+                          </label>
+                        </div>
+                        <div className="ml-6 space-y-2">
+                          {categoryPermissions.map(permission => (
+                            <div key={permission.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`perm-${permission.id}`}
+                                checked={selectedPermissions.includes(permission.id)}
+                                onCheckedChange={() => handlePermissionToggle(permission.id)}
+                              />
+                              <label
+                                htmlFor={`perm-${permission.id}`}
+                                className="text-sm cursor-pointer flex-1"
+                              >
+                                <span className="font-mono text-xs">{permission.name}</span>
+                                {permission.description && (
+                                  <span className="text-muted-foreground ml-2">- {permission.description}</span>
+                                )}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   {permissions.length === 0 && (
                     <p className="text-sm text-muted-foreground">No permissions available. Create permissions first.</p>
                   )}
@@ -423,7 +474,7 @@ export default function RolesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Permissions Dialog */}
+      {/* Edit Role Dialog */}
       <Dialog open={!!editingRole} onOpenChange={(open) => !open && setEditingRole(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -433,40 +484,105 @@ export default function RolesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
+            {/* Name and Description */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role-name">Role Name *</Label>
+              <Input
+                id="edit-role-name"
+                placeholder="e.g., Admin, Manager, Viewer"
+                value={editRoleName}
+                onChange={(e) => setEditRoleName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role-desc">Description</Label>
+              <Input
+                id="edit-role-desc"
+                placeholder="Brief description of this role"
+                value={editRoleDesc}
+                onChange={(e) => setEditRoleDesc(e.target.value)}
+              />
+            </div>
+
             <div className="border-t pt-4">
-              <Label className="text-base font-semibold mb-3 block">Permissions</Label>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-base font-semibold">Permissions</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedPermissions(permissions.map(p => p.id))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedPermissions([])}
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
               {permissionsLoading ? (
                 <p className="text-sm text-muted-foreground">Loading permissions...</p>
               ) : (
                 <div className="space-y-4">
-                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                    <div key={category} className="space-y-2">
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        {category}
-                      </p>
-                      <div className="ml-6 space-y-2">
-                        {categoryPermissions.map(permission => (
-                          <div key={permission.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`edit-perm-${permission.id}`}
-                              checked={selectedPermissions.includes(permission.id)}
-                              onCheckedChange={() => handlePermissionToggle(permission.id)}
-                            />
-                            <label
-                              htmlFor={`edit-perm-${permission.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
-                              {permission.name}
-                              {permission.description && (
-                                <span className="text-muted-foreground ml-2">- {permission.description}</span>
-                              )}
-                            </label>
-                          </div>
-                        ))}
+                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => {
+                    const allSelected = categoryPermissions.every(p => selectedPermissions.includes(p.id))
+                    const someSelected = categoryPermissions.some(p => selectedPermissions.includes(p.id))
+                    return (
+                      <div key={category} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`edit-cat-${category}`}
+                            checked={allSelected}
+                            ref={(el) => {
+                              if (el) {
+                                const input = el as unknown as HTMLButtonElement
+                                input.dataset.indeterminate = (!allSelected && someSelected) ? 'true' : 'false'
+                              }
+                            }}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedPermissions(prev => [
+                                  ...new Set([...prev, ...categoryPermissions.map(p => p.id)])
+                                ])
+                              } else {
+                                const catIds = new Set(categoryPermissions.map(p => p.id))
+                                setSelectedPermissions(prev => prev.filter(id => !catIds.has(id)))
+                              }
+                            }}
+                          />
+                          <label htmlFor={`edit-cat-${category}`} className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                            <Lock className="h-4 w-4" />
+                            {category}
+                            <Badge variant="secondary" className="text-xs">{categoryPermissions.length}</Badge>
+                          </label>
+                        </div>
+                        <div className="ml-6 space-y-2">
+                          {categoryPermissions.map(permission => (
+                            <div key={permission.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`edit-perm-${permission.id}`}
+                                checked={selectedPermissions.includes(permission.id)}
+                                onCheckedChange={() => handlePermissionToggle(permission.id)}
+                              />
+                              <label
+                                htmlFor={`edit-perm-${permission.id}`}
+                                className="text-sm cursor-pointer flex-1"
+                              >
+                                <span className="font-mono text-xs">{permission.name}</span>
+                                {permission.description && (
+                                  <span className="text-muted-foreground ml-2">- {permission.description}</span>
+                                )}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -530,8 +646,8 @@ export default function RolesPage() {
               Cancel
             </Button>
             <Button 
-              onClick={() => editingRole && handleSaveRole(editingRole.id)}
-              disabled={updateRoleMutation.isPending || assignPermissionsMutation.isPending}
+              onClick={handleSaveRole}
+              disabled={!editRoleName.trim() || updateRoleMutation.isPending || assignPermissionsMutation.isPending}
             >
               {(updateRoleMutation.isPending || assignPermissionsMutation.isPending) ? 'Saving...' : 'Save Changes'}
             </Button>

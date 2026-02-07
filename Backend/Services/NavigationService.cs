@@ -75,11 +75,12 @@ public class NavigationService : INavigationService
         }
         else if (userPermissions.Count == 0 && systemUserId.HasValue)
         {
-            // User exists but has no permissions assigned yet — show full menu
-            // This ensures backward compatibility during rollout
-            filteredMenu = fullMenu;
+            // User has no permissions assigned — show only the dashboard
+            filteredMenu = fullMenu
+                .Where(m => m.TitleKey == "navigation.dashboards")
+                .ToList();
             _logger.LogInformation(
-                "User {SystemUserId} has no permissions assigned — returning full menu for backward compatibility",
+                "User {SystemUserId} has no permissions assigned — returning dashboard-only menu",
                 systemUserId.Value);
         }
         else

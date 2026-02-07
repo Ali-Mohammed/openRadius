@@ -1187,6 +1187,66 @@ public class UserManagementDbController : ControllerBase
         }
     }
 
+    // PUT: api/user-management/permissions/{id}
+    [HttpPut("permissions/{id}")]
+    public async Task<IActionResult> UpdatePermission(int id, [FromBody] CreatePermissionRequest request)
+    {
+        try
+        {
+            var permission = await _context.Permissions.FindAsync(id);
+            if (permission == null)
+            {
+                return NotFound(new { message = "Permission not found" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return BadRequest(new { message = "Permission name is required" });
+            }
+
+            // Check if another permission has the same name (excluding current)
+            if (await _context.Permissions.AnyAsync(p => p.Name == request.Name.Trim() && p.Id != id))
+            {
+                return Conflict(new { message = "A permission with this name already exists" });
+            }
+
+            permission.Name = request.Name.Trim();
+            permission.Description = request.Description?.Trim();
+            permission.Category = request.Category?.Trim() ?? permission.Category;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(permission);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating permission {PermissionId}", id);
+            return StatusCode(500, new { message = "Failed to update permission", error = ex.Message });
+        }
+    }
+
+    // GET: api/user-management/permissions/categories
+    [HttpGet("permissions/categories")]
+    public async Task<IActionResult> GetPermissionCategories()
+    {
+        try
+        {
+            var categories = await _context.Permissions
+                .Where(p => !p.IsDeleted)
+                .Select(p => p.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            return Ok(categories);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching permission categories");
+            return StatusCode(500, new { message = "Failed to fetch categories", error = ex.Message });
+        }
+    }
+
     // GET: api/user-management/roles/{roleId}/permissions
     [HttpGet("roles/{roleId}/permissions")]
     public async Task<IActionResult> GetRolePermissions(int roleId)

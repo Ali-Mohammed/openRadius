@@ -122,23 +122,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [menuLoading, setMenuLoading] = React.useState(true)
 
   // Load navigation menu from backend (filtered by user permissions)
-  React.useEffect(() => {
-    const loadNavigation = async () => {
-      try {
-        setMenuLoading(true)
-        const response = await navigationApi.getMenu()
-        const items = toNavItems(response.menu)
-        setNavItems(items)
-      } catch (error) {
-        console.error('Error loading navigation menu:', error)
-        // Navigation failed — leave menu empty so user sees no items
-        setNavItems([])
-      } finally {
-        setMenuLoading(false)
-      }
+  const loadNavigation = React.useCallback(async () => {
+    try {
+      setMenuLoading(true)
+      const response = await navigationApi.getMenu()
+      const items = toNavItems(response.menu)
+      setNavItems(items)
+    } catch (error) {
+      console.error('Error loading navigation menu:', error)
+      setNavItems([])
+    } finally {
+      setMenuLoading(false)
     }
-    loadNavigation()
   }, [])
+
+  React.useEffect(() => {
+    loadNavigation()
+  }, [loadNavigation])
+
+  // Listen for permission changes so sidebar auto-refreshes
+  React.useEffect(() => {
+    const handler = () => loadNavigation()
+    window.addEventListener('permissions-changed', handler)
+    return () => window.removeEventListener('permissions-changed', handler)
+  }, [loadNavigation])
 
   // Load dashboards
   React.useEffect(() => {

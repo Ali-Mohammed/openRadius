@@ -210,6 +210,11 @@ export const userManagementApi = {
     return response.data
   },
 
+  updatePermission: async (id: number, data: CreatePermissionRequest): Promise<Permission> => {
+    const response = await apiClient.put(`/api/user-management/permissions/${id}`, data)
+    return response.data
+  },
+
   deletePermission: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/api/user-management/permissions/${id}`)
     return response.data
@@ -217,6 +222,11 @@ export const userManagementApi = {
 
   restorePermission: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.post(`/api/user-management/permissions/${id}/restore`)
+    return response.data
+  },
+
+  getPermissionCategories: async (): Promise<string[]> => {
+    const response = await apiClient.get('/api/user-management/permissions/categories')
     return response.data
   },
 
