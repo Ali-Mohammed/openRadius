@@ -503,7 +503,13 @@ public static class SeedData
             new Permission { Name = "settings.oidc.update", Description = "Update OIDC settings", Category = "Settings" },
             new Permission { Name = "settings.payment-history.view", Description = "View payment history", Category = "Settings" },
             new Permission { Name = "settings.database-backup.view", Description = "View database backup settings", Category = "Settings" },
+            new Permission { Name = "settings.database-backup.create", Description = "Create database backups", Category = "Settings" },
+            new Permission { Name = "settings.database-backup.update", Description = "Update database backup settings", Category = "Settings" },
+            new Permission { Name = "settings.database-backup.delete", Description = "Delete database backups", Category = "Settings" },
             new Permission { Name = "settings.integrations.view", Description = "View integrations settings", Category = "Settings" },
+            new Permission { Name = "settings.integrations.create", Description = "Create integrations", Category = "Settings" },
+            new Permission { Name = "settings.integrations.update", Description = "Update integrations", Category = "Settings" },
+            new Permission { Name = "settings.integrations.delete", Description = "Delete integrations", Category = "Settings" },
             // User Management
             new Permission { Name = "users.view", Description = "View users", Category = "UserManagement" },
             new Permission { Name = "users.create", Description = "Create users", Category = "UserManagement" },
@@ -529,8 +535,12 @@ public static class SeedData
             new Permission { Name = "groups.delete", Description = "Delete user groups", Category = "UserManagement" },
             // Dashboard & Reports
             new Permission { Name = "dashboard.view", Description = "View dashboard", Category = "General" },
+            new Permission { Name = "dashboard.create", Description = "Create dashboard widgets", Category = "General" },
+            new Permission { Name = "dashboard.update", Description = "Update dashboard widgets", Category = "General" },
+            new Permission { Name = "dashboard.delete", Description = "Delete dashboard widgets", Category = "General" },
             new Permission { Name = "reports.view", Description = "View reports", Category = "General" },
             new Permission { Name = "reports.export", Description = "Export reports", Category = "General" },
+            new Permission { Name = "reports.create", Description = "Create reports", Category = "General" },
             // Audit & Logs
             new Permission { Name = "audit.view", Description = "View audit logs", Category = "General" },
             new Permission { Name = "logs.view", Description = "View system logs", Category = "General" },
@@ -540,38 +550,91 @@ public static class SeedData
             new Permission { Name = "billing.profiles.update", Description = "Update billing profiles", Category = "Billing" },
             new Permission { Name = "billing.profiles.delete", Description = "Delete billing profiles", Category = "Billing" },
             new Permission { Name = "billing.activations.view", Description = "View billing activations", Category = "Billing" },
+            new Permission { Name = "billing.activations.create", Description = "Create billing activations", Category = "Billing" },
+            // Billing Addons
             new Permission { Name = "billing.addons.view", Description = "View billing addons", Category = "Billing" },
             new Permission { Name = "billing.addons.create", Description = "Create billing addons", Category = "Billing" },
             new Permission { Name = "billing.addons.update", Description = "Update billing addons", Category = "Billing" },
             new Permission { Name = "billing.addons.delete", Description = "Delete billing addons", Category = "Billing" },
+            // Billing Groups
             new Permission { Name = "billing.groups.view", Description = "View billing groups", Category = "Billing" },
+            new Permission { Name = "billing.groups.create", Description = "Create billing groups", Category = "Billing" },
+            new Permission { Name = "billing.groups.update", Description = "Update billing groups", Category = "Billing" },
+            new Permission { Name = "billing.groups.delete", Description = "Delete billing groups", Category = "Billing" },
+            // Billing Cashbacks
             new Permission { Name = "billing.cashbacks.view", Description = "View cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.cashbacks.create", Description = "Create cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.cashbacks.update", Description = "Update cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.cashbacks.delete", Description = "Delete cashbacks", Category = "Billing" },
+            // Billing Cashback Groups
             new Permission { Name = "billing.cashback-groups.view", Description = "View cashback groups", Category = "Billing" },
+            new Permission { Name = "billing.cashback-groups.create", Description = "Create cashback groups", Category = "Billing" },
+            new Permission { Name = "billing.cashback-groups.update", Description = "Update cashback groups", Category = "Billing" },
+            new Permission { Name = "billing.cashback-groups.delete", Description = "Delete cashback groups", Category = "Billing" },
+            // Billing Sub-Agent Cashbacks
             new Permission { Name = "billing.sub-agent-cashbacks.view", Description = "View sub-agent cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.sub-agent-cashbacks.create", Description = "Create sub-agent cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.sub-agent-cashbacks.update", Description = "Update sub-agent cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.sub-agent-cashbacks.delete", Description = "Delete sub-agent cashbacks", Category = "Billing" },
+            // Billing Wallets
             new Permission { Name = "billing.wallets.view", Description = "View custom wallets", Category = "Billing" },
+            new Permission { Name = "billing.wallets.create", Description = "Create custom wallets", Category = "Billing" },
+            new Permission { Name = "billing.wallets.update", Description = "Update custom wallets", Category = "Billing" },
+            new Permission { Name = "billing.wallets.delete", Description = "Delete custom wallets", Category = "Billing" },
+            // Billing User Wallets
             new Permission { Name = "billing.user-wallets.view", Description = "View user wallets", Category = "Billing" },
+            new Permission { Name = "billing.user-wallets.create", Description = "Create user wallets", Category = "Billing" },
+            new Permission { Name = "billing.user-wallets.update", Description = "Update user wallets", Category = "Billing" },
+            new Permission { Name = "billing.user-wallets.delete", Description = "Delete user wallets", Category = "Billing" },
+            // Billing Top-Up
             new Permission { Name = "billing.topup.view", Description = "View top-up", Category = "Billing" },
+            new Permission { Name = "billing.topup.create", Description = "Create top-up", Category = "Billing" },
+            // Billing History
             new Permission { Name = "billing.history.view", Description = "View wallet history", Category = "Billing" },
+            // Billing Transactions
             new Permission { Name = "billing.transactions.view", Description = "View transactions", Category = "Billing" },
+            new Permission { Name = "billing.transactions.create", Description = "Create transactions", Category = "Billing" },
+            new Permission { Name = "billing.transactions.delete", Description = "Delete transactions", Category = "Billing" },
+            // Billing Balances
             new Permission { Name = "billing.balances.view", Description = "View balances", Category = "Billing" },
+            // Billing Automations
             new Permission { Name = "billing.automations.view", Description = "View billing automations", Category = "Billing" },
-            // Network
+            new Permission { Name = "billing.automations.create", Description = "Create billing automations", Category = "Billing" },
+            new Permission { Name = "billing.automations.update", Description = "Update billing automations", Category = "Billing" },
+            new Permission { Name = "billing.automations.delete", Description = "Delete billing automations", Category = "Billing" },
+            // Network - OLTs
             new Permission { Name = "network.olts.view", Description = "View OLT devices", Category = "Network" },
             new Permission { Name = "network.olts.create", Description = "Create OLT devices", Category = "Network" },
             new Permission { Name = "network.olts.update", Description = "Update OLT devices", Category = "Network" },
             new Permission { Name = "network.olts.delete", Description = "Delete OLT devices", Category = "Network" },
+            // Network - FDTs
             new Permission { Name = "network.fdts.view", Description = "View FDT devices", Category = "Network" },
+            new Permission { Name = "network.fdts.create", Description = "Create FDT devices", Category = "Network" },
+            new Permission { Name = "network.fdts.update", Description = "Update FDT devices", Category = "Network" },
+            new Permission { Name = "network.fdts.delete", Description = "Delete FDT devices", Category = "Network" },
+            // Network - FATs
             new Permission { Name = "network.fats.view", Description = "View FAT devices", Category = "Network" },
+            new Permission { Name = "network.fats.create", Description = "Create FAT devices", Category = "Network" },
+            new Permission { Name = "network.fats.update", Description = "Update FAT devices", Category = "Network" },
+            new Permission { Name = "network.fats.delete", Description = "Delete FAT devices", Category = "Network" },
+            // Network - Other
             new Permission { Name = "network.provisioning.view", Description = "View network provisioning", Category = "Network" },
             new Permission { Name = "network.monitoring.view", Description = "View network monitoring", Category = "Network" },
             new Permission { Name = "network.reports.view", Description = "View network reports", Category = "Network" },
             new Permission { Name = "network.settings.view", Description = "View network settings", Category = "Network" },
+            new Permission { Name = "network.settings.update", Description = "Update network settings", Category = "Network" },
             // Connectors
             new Permission { Name = "connectors.list.view", Description = "View CDC connectors", Category = "Connectors" },
+            new Permission { Name = "connectors.list.create", Description = "Create CDC connectors", Category = "Connectors" },
+            new Permission { Name = "connectors.list.update", Description = "Update CDC connectors", Category = "Connectors" },
+            new Permission { Name = "connectors.list.delete", Description = "Delete CDC connectors", Category = "Connectors" },
+            new Permission { Name = "connectors.list.manage", Description = "Manage CDC connectors (pause/resume/restart)", Category = "Connectors" },
             new Permission { Name = "connectors.cdc-monitor.view", Description = "View CDC monitor", Category = "Connectors" },
             new Permission { Name = "connectors.settings.view", Description = "View connector settings", Category = "Connectors" },
+            new Permission { Name = "connectors.settings.update", Description = "Update connector settings", Category = "Connectors" },
             // Microservices
             new Permission { Name = "microservices.radius-sync.view", Description = "View RADIUS sync service", Category = "Microservices" },
+            new Permission { Name = "microservices.radius-sync.manage", Description = "Manage RADIUS sync service", Category = "Microservices" },
         };
     }
 }
