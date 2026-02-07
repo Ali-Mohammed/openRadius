@@ -11,7 +11,11 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error: any) => {
+        // Never retry 429 rate-limit errors
+        if (error?.response?.status === 429) return false
+        return failureCount < 1
+      },
       staleTime: 0, // Changed from 5 minutes to 0 for fresh data
     },
   },
@@ -28,8 +32,10 @@ function AppWithConnectionCheck() {
         await apiClient.get('/health')
         setHasConnectionError(false)
       } catch (error: any) {
-        // Check if it's a connection error
-        if (
+        // 429 means server is alive — not a connection error
+        if (error.response?.status === 429) {
+          setHasConnectionError(false)
+        } else if (
           error.code === 'ERR_NETWORK' ||
           error.code === 'ERR_CONNECTION_REFUSED' ||
           error.message === 'Network Error' ||

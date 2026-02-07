@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { toast } from 'sonner'
 import { appConfig } from '../config/app.config'
 import keycloak from '../keycloak'
 
@@ -12,6 +13,31 @@ export const apiClient = axios.create({
     'Expires': '0',
   },
 })
+
+// --- Global 429 Rate Limit Interceptor ---
+let rateLimitToastShown = false
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 429) {
+      // Parse retry-after info from the response body
+      const retryAfter = error.response.data?.retryAfter || '60 seconds'
+
+      // Deduplicate: only show one toast at a time
+      if (!rateLimitToastShown) {
+        rateLimitToastShown = true
+        toast.warning('Slow down! Too many requests', {
+          description: `You've hit the rate limit. Please wait ${retryAfter} before trying again.`,
+          duration: 8000,
+          onAutoClose: () => { rateLimitToastShown = false },
+          onDismiss: () => { rateLimitToastShown = false },
+        })
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 // Add auth interceptor
 apiClient.interceptors.request.use(
