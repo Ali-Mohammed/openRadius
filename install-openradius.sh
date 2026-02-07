@@ -1157,8 +1157,13 @@ show_summary() {
     
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${PURPLE}                    Powered by Ali Al-Estarbadee${NC}"
-    echo -e "${PURPLE}                    Email: ali87mohammed@hotmail.com${NC}"
+    echo -e "${GREEN}                    ✨ Installation Successful! ✨${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${PURPLE}                         Powered By${NC}"
+    echo -e "${PURPLE}                    Ali Al-Estarbadee${NC}"
+    echo -e "${CYAN}                 📧 ali87mohammed@hotmail.com${NC}"
+    echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 }
