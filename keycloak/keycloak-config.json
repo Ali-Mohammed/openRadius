@@ -740,6 +740,24 @@
         "location": ["Branch Office"],
         "picture": ["https://ui-avatars.com/api/?name=Manager+Smith&background=8b5cf6&color=fff"]
       }
+    },
+    {
+      "username": "service-account-openradius-admin",
+      "enabled": true,
+      "emailVerified": false,
+      "serviceAccountClientId": "openradius-admin",
+      "realmRoles": [
+        "default-roles-openradius"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "query-users",
+          "manage-users",
+          "view-clients",
+          "query-clients"
+        ]
+      }
     }
   ],
   "roles": {
@@ -790,8 +808,139 @@
       }
     ]
   },
-  "scopeMappings": [],
-  "clientScopeMappings": {},
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Standard user with basic access",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "permissions": ["read:profile", "update:own-profile", "read:dashboard"]
+        }
+      },
+      {
+        "name": "manager",
+        "description": "Manager with team management capabilities",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "permissions": [
+            "read:profile",
+            "update:own-profile",
+            "read:dashboard",
+            "read:reports",
+            "create:reports",
+            "manage:team",
+            "approve:requests"
+          ]
+        }
+      },
+      {
+        "name": "admin",
+        "description": "Administrator with full system access",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "permissions": [
+            "read:*",
+            "write:*",
+            "delete:*",
+            "manage:users",
+            "manage:roles",
+            "manage:settings",
+            "manage:system",
+            "view:audit-logs"
+          ]
+        }
+      }
+    ],
+    "client": {
+      "realm-management": [
+        {
+          "name": "view-users",
+          "description": "${role_view-users}",
+          "composite": true,
+          "composites": {
+            "client": {
+              "realm-management": ["query-users", "query-groups"]
+            }
+          },
+          "clientRole": true,
+          "containerId": "realm-management"
+        },
+        {
+          "name": "query-users",
+          "description": "${role_query-users}",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "realm-management"
+        },
+        {
+          "name": "query-groups",
+          "description": "${role_query-groups}",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "realm-management"
+        },
+        {
+          "name": "manage-users",
+          "description": "${role_manage-users}",
+          "composite": true,
+          "composites": {
+            "client": {
+              "realm-management": [
+                "query-users",
+                "query-groups",
+                "view-users"
+              ]
+            }
+          },
+          "clientRole": true,
+          "containerId": "realm-management"
+        },
+        {
+          "name": "view-clients",
+          "description": "${role_view-clients}",
+          "composite": true,
+          "composites": {
+            "client": {
+              "realm-management": ["query-clients"]
+            }
+          },
+          "clientRole": true,
+          "containerId": "realm-management"
+        },
+        {
+          "name": "query-clients",
+          "description": "${role_query-clients}",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "realm-management"
+        }
+      ]
+    }
+  },
+  "scopeMappings": [
+    {
+      "clientScope": "offline_access",
+      "roles": ["offline_access"]
+    }
+  ],
+  "clientScopeMappings": {
+    "realm-management": [
+      {
+        "client": "openradius-admin",
+        "roles": [
+          "view-users",
+          "query-users",
+          "manage-users",
+          "view-clients",
+          "query-clients"
+        ]
+      }
+    ]
+  },
   "defaultDefaultClientScopes": [
     "role_list",
     "profile",
