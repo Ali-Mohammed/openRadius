@@ -898,7 +898,7 @@ configure_keycloak() {
         -r openradius --fields id,clientId 2>/dev/null | grep -B1 '"clientId" : "openradius-admin"' | grep '"id"' | cut -d'"' -f4)
     
     if [ -z "$ADMIN_CLIENT_ID" ]; then
-        print_info "Creating openradius-admin client..."
+        print_info "Creating openradius-admin client with service account..."
         docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
             -r openradius \
             -s clientId=openradius-admin \
@@ -910,36 +910,100 @@ configure_keycloak() {
             -s serviceAccountsEnabled=true \
             -s secret=openradius-admin-secret-2026 \
             -s 'attributes."access.token.lifespan"=3600' 2>&1 || print_warning "Failed to create openradius-admin client"
+        
+        # Wait for service account user to be auto-created
+        sleep 5
+        print_success "openradius-admin client created"
     else
         print_success "openradius-admin client already exists"
+        
+        # Ensure service accounts are enabled on existing client
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update clients/$ADMIN_CLIENT_ID \
+            -r openradius \
+            -s serviceAccountsEnabled=true 2>/dev/null || true
+    fi
+    
+    # Verify service account user exists (should be auto-created by Keycloak)
+    print_info "Verifying service account user exists..."
+    sleep 2
+    SA_USER_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get users \
+        -r openradius -q username=service-account-openradius-admin --fields id 2>/dev/null | grep '"id"' | head -1 | cut -d'"' -f4)
+    
+    if [ -z "$SA_USER_ID" ]; then
+        print_warning "Service account user not found. It should be auto-created. Retrying..."
+        sleep 5
+        SA_USER_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get users \
+            -r openradius -q username=service-account-openradius-admin --fields id 2>/dev/null | grep '"id"' | head -1 | cut -d'"' -f4)
+    fi
+    
+    if [ -n "$SA_USER_ID" ]; then
+        print_success "Service account user found: $SA_USER_ID"
+    else
+        print_error "Service account user was not created automatically!"
+        print_info "You may need to recreate the openradius-admin client from Keycloak UI"
     fi
     
     # Assign realm-management roles to service-account-openradius-admin
     print_info "Assigning realm-management roles to openradius-admin service account..."
-    sleep 3
     
     REALM_MGMT_CLIENT_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get clients \
-        -r openradius --fields id,clientId 2>/dev/null | grep -B1 '"clientId" : "realm-management"' | grep '"id"' | cut -d'"' -f4)
-    
-    SA_USER_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get users \
-        -r openradius -q username=service-account-openradius-admin --fields id 2>/dev/null | grep '"id"' | cut -d'"' -f4)
+        -r openradius --fields id,clientId 2>/dev/null | grep -B1 '"clientId" : "realm-management"' | grep '"id"' | head -1 | cut -d'"' -f4)
     
     if [ -n "$REALM_MGMT_CLIENT_ID" ] && [ -n "$SA_USER_ID" ]; then
-        for role_name in "view-users" "query-users" "manage-users" "view-clients" "query-clients"; do
-            ROLE_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get \
+        print_info "realm-management client ID: $REALM_MGMT_CLIENT_ID"
+        print_info "Service account user ID: $SA_USER_ID"
+        
+        # Get available client roles for realm-management
+        AVAILABLE_ROLES=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get \
+            users/$SA_USER_ID/role-mappings/clients/$REALM_MGMT_CLIENT_ID/available \
+            -r openradius 2>/dev/null)
+        
+        # Assign each role individually with better error handling
+        for role_name in "view-users" "query-users" "manage-users" "view-clients" "query-clients" "query-groups"; do
+            print_info "  Assigning role: $role_name"
+            
+            # Get role details
+            ROLE_JSON=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get \
                 clients/$REALM_MGMT_CLIENT_ID/roles/$role_name \
-                -r openradius --fields id,name 2>/dev/null)
-            if [ -n "$ROLE_ID" ]; then
-                docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create \
-                    users/$SA_USER_ID/role-mappings/clients/$REALM_MGMT_CLIENT_ID \
+                -r openradius 2>/dev/null)
+            
+            if [ -n "$ROLE_JSON" ]; then
+                ROLE_ID=$(echo "$ROLE_JSON" | grep '"id"' | head -1 | cut -d'"' -f4)
+                
+                # Create role mapping using kcadm.sh add-roles command (more reliable)
+                docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh add-roles \
                     -r openradius \
-                    -s "id=$(echo $ROLE_ID | grep '"id"' | cut -d'"' -f4)" \
-                    -s "name=$role_name" 2>/dev/null || true
+                    --uusername service-account-openradius-admin \
+                    --cclientid realm-management \
+                    --rolename "$role_name" 2>&1 | grep -v "already exists" || true
+                
+                print_success "    ✓ $role_name assigned"
+            else
+                print_warning "    ✗ Role $role_name not found"
             fi
         done
-        print_success "Service account realm-management roles assigned"
+        
+        # Verify role assignments
+        print_info "Verifying role assignments..."
+        ASSIGNED_ROLES=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get \
+            users/$SA_USER_ID/role-mappings/clients/$REALM_MGMT_CLIENT_ID \
+            -r openradius 2>/dev/null | grep '"name"' | cut -d'"' -f4)
+        
+        if [ -n "$ASSIGNED_ROLES" ]; then
+            print_success "Service account roles assigned successfully:"
+            echo "$ASSIGNED_ROLES" | while read -r role; do
+                echo -e "  ${GREEN}✓${NC} $role"
+            done
+        else
+            print_warning "Could not verify role assignments"
+        fi
     else
-        print_warning "Could not assign service account roles (realm-mgmt: '$REALM_MGMT_CLIENT_ID', sa-user: '$SA_USER_ID')"
+        print_warning "Could not assign service account roles"
+        print_warning "  realm-management client ID: ${REALM_MGMT_CLIENT_ID:-NOT FOUND}"
+        print_warning "  service account user ID: ${SA_USER_ID:-NOT FOUND}"
+        print_info "You will need to assign these roles manually from Keycloak UI:"
+        print_info "  Admin Console → Users → service-account-openradius-admin → Role mapping"
+        print_info "  Filter by clients → realm-management → Assign: view-users, query-users, manage-users"
     fi
     
     # Ensure openradius-api client exists
