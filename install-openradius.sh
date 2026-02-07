@@ -646,28 +646,23 @@ prepare_keycloak_import() {
         return
     fi
     
-    print_step "Preparing Keycloak realm import..."
+    print_step "Preparing Keycloak realm configuration..."
     
     local install_dir="/opt/openradius"
-    local import_dir="$install_dir/keycloak/import"
-    
-    # Create import directory
-    mkdir -p "$import_dir"
     
     if [ -f "$install_dir/keycloak/keycloak-config.json" ]; then
-        print_info "Found keycloak-config.json, preparing for auto-import..."
+        print_info "Found keycloak-config.json, preparing production config..."
         
-        # Copy config to import directory (Keycloak reads from /opt/keycloak/data/import/)
-        cp "$install_dir/keycloak/keycloak-config.json" "$import_dir/openradius-realm.json"
+        # Create a production-ready copy with domain URLs replaced
+        cp "$install_dir/keycloak/keycloak-config.json" /tmp/keycloak-import.json
         
         # Update URLs with production domain
-        sed -i "s|http://localhost:5173|https://$DOMAIN|g" "$import_dir/openradius-realm.json"
-        sed -i "s|http://localhost:8080|https://auth.$DOMAIN|g" "$import_dir/openradius-realm.json"
+        sed -i "s|http://localhost:5173|https://$DOMAIN|g" /tmp/keycloak-import.json
+        sed -i "s|http://localhost:8080|https://auth.$DOMAIN|g" /tmp/keycloak-import.json
         
-        print_success "Keycloak realm config prepared for auto-import at startup"
-        print_info "Keycloak will automatically import the realm when it starts"
+        print_success "Keycloak realm config prepared with production URLs"
     else
-        print_warning "keycloak-config.json not found - Keycloak will start without realm configuration"
+        print_warning "keycloak-config.json not found at $install_dir/keycloak/"
         print_info "Realm will be created manually after Keycloak starts"
     fi
 }
@@ -761,22 +756,25 @@ configure_keycloak() {
         return
     fi
     
-    print_step "Verifying Keycloak realm configuration..."
+    print_step "Configuring Keycloak realm and clients..."
     print_info "Waiting for Keycloak to be fully ready..."
     
-    # Wait for Keycloak to finish startup import
+    # Wait for Keycloak to be fully initialized
     sleep 15
     
-    # Get admin token
+    # Get admin token with retries
     print_info "Authenticating with Keycloak..."
-    local max_retries=5
+    local max_retries=6
     local retry=0
+    local auth_success=false
     while [ $retry -lt $max_retries ]; do
         if docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
             --server http://localhost:8080 \
             --realm master \
             --user admin \
             --password "$KEYCLOAK_ADMIN_PASSWORD" 2>/dev/null; then
+            auth_success=true
+            print_success "Authenticated with Keycloak"
             break
         fi
         retry=$((retry + 1))
@@ -784,22 +782,56 @@ configure_keycloak() {
         sleep 10
     done
     
-    # Check if the realm was auto-imported by --import-realm
-    print_info "Checking if openradius realm exists..."
+    if [ "$auth_success" != "true" ]; then
+        print_error "Failed to authenticate with Keycloak after $max_retries attempts"
+        print_info "You may need to configure Keycloak manually"
+        return 1
+    fi
+    
+    # === Step 1: Import realm from JSON config (if available) ===
+    local realm_exists=false
+    
+    # Check if realm already exists
     if docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get realms/openradius \
         --fields realm 2>/dev/null | grep -q "openradius"; then
-        print_success "Realm 'openradius' found! (imported at startup via --import-realm)"
-    else
-        print_warning "Realm 'openradius' not found - creating manually..."
+        print_success "Realm 'openradius' already exists"
+        realm_exists=true
+    fi
+    
+    if [ "$realm_exists" != "true" ] && [ -f "/tmp/keycloak-import.json" ]; then
+        # Try importing the full realm config via docker cp + kcadm.sh
+        print_info "Importing realm from keycloak-config.json..."
         
-        # Create realm manually
+        docker cp /tmp/keycloak-import.json openradius-keycloak:/tmp/keycloak-import.json
+        
+        # Try to create the realm with the full config - SHOW errors for debugging
+        IMPORT_OUTPUT=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+            -f /tmp/keycloak-import.json 2>&1)
+        IMPORT_EXIT=$?
+        
+        if [ $IMPORT_EXIT -eq 0 ]; then
+            print_success "Realm imported successfully from keycloak-config.json!"
+            realm_exists=true
+        else
+            print_warning "JSON import failed (exit code: $IMPORT_EXIT)"
+            print_info "Import output: $IMPORT_OUTPUT"
+            print_info "Falling back to manual realm creation..."
+        fi
+        
+        # Clean up
+        rm -f /tmp/keycloak-import.json
+    fi
+    
+    # === Step 2: Manual realm creation (fallback) ===
+    if [ "$realm_exists" != "true" ]; then
+        print_info "Creating openradius realm manually..."
         docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
             -s realm=openradius \
             -s enabled=true \
             -s displayName="OpenRadius" \
             -s registrationAllowed=false \
             -s resetPasswordAllowed=true \
-            -s loginWithEmailAllowed=true 2>/dev/null || print_warning "Realm may already exist"
+            -s loginWithEmailAllowed=true 2>&1 || print_error "Failed to create realm"
         
         # Create openradius-web client
         print_info "Creating openradius-web client..."
@@ -817,10 +849,10 @@ configure_keycloak() {
             -s baseUrl="https://$DOMAIN" \
             -s rootUrl="https://$DOMAIN" \
             -s 'attributes.pkce.code.challenge.method=S256' \
-            -s 'attributes."post.logout.redirect.uris"=https://'$DOMAIN'/*' 2>/dev/null || print_warning "Client may already exist"
+            -s 'attributes."post.logout.redirect.uris"=https://'$DOMAIN'/*' 2>&1 || print_warning "Client may already exist"
     fi
     
-    # === Post-import configuration (runs regardless of import method) ===
+    # === Step 3: Post-import configuration (always runs) ===
     
     # Ensure openradius-admin client exists with service account
     print_info "Ensuring openradius-admin client is configured..."
@@ -839,15 +871,13 @@ configure_keycloak() {
             -s directAccessGrantsEnabled=false \
             -s serviceAccountsEnabled=true \
             -s secret=openradius-admin-secret-2026 \
-            -s 'attributes."access.token.lifespan"=3600' 2>/dev/null || print_warning "Failed to create openradius-admin client"
+            -s 'attributes."access.token.lifespan"=3600' 2>&1 || print_warning "Failed to create openradius-admin client"
     else
-        print_success "openradius-admin client exists (id: $ADMIN_CLIENT_ID)"
+        print_success "openradius-admin client already exists"
     fi
     
     # Assign realm-management roles to service-account-openradius-admin
     print_info "Assigning realm-management roles to openradius-admin service account..."
-    
-    # Wait a moment for service account to be provisioned
     sleep 3
     
     REALM_MGMT_CLIENT_ID=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get clients \
@@ -871,10 +901,10 @@ configure_keycloak() {
         done
         print_success "Service account realm-management roles assigned"
     else
-        print_warning "Could not assign service account roles (realm-mgmt: $REALM_MGMT_CLIENT_ID, sa-user: $SA_USER_ID)"
+        print_warning "Could not assign service account roles (realm-mgmt: '$REALM_MGMT_CLIENT_ID', sa-user: '$SA_USER_ID')"
     fi
     
-    # Ensure openradius-api client exists (bearer only)
+    # Ensure openradius-api client exists
     print_info "Ensuring openradius-api client exists..."
     docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create clients \
         -r openradius \
@@ -885,7 +915,7 @@ configure_keycloak() {
         -s bearerOnly=true \
         -s standardFlowEnabled=false \
         -s directAccessGrantsEnabled=false \
-        -s 'attributes.access.token.lifespan=3600' 2>/dev/null || print_warning "openradius-api client may already exist"
+        -s 'attributes.access.token.lifespan=3600' 2>/dev/null || true
     
     # Ensure groups exist
     print_info "Ensuring user groups exist..."
@@ -907,7 +937,6 @@ configure_keycloak() {
         -r openradius --fields id,name 2>/dev/null | grep -B1 '"name" : "openid"' | grep '"id"' | cut -d'"' -f4)
     
     if [ -n "$OPENID_SCOPE_ID" ]; then
-        # Check if sub mapper already exists
         SUB_MAPPER_EXISTS=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh get \
             client-scopes/$OPENID_SCOPE_ID/protocol-mappers/models \
             -r openradius --fields name 2>/dev/null | grep -c '"User ID"\|"sub"' || true)
@@ -929,7 +958,7 @@ configure_keycloak() {
         fi
         print_success "'sub' claim mapper verified"
     else
-        print_warning "Could not find openid client scope - 'sub' claim may be missing!"
+        print_warning "Could not find openid client scope - 'sub' claim may need manual setup"
     fi
     
     print_success "Keycloak realm and clients configured successfully!"
