@@ -229,6 +229,13 @@ main() {
     print_summary
     
     print_success "\nAll done! Images are available on Docker Hub."
+    
+    # Credits
+    echo ""
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${GREEN}Powered by Ali Al-Estarbadee${NC}"
+    echo -e "${BLUE}Email: ali87mohammed@hotmail.com${NC}"
+    echo -e "${BLUE}========================================${NC}"
 }
 
 # Run main function
