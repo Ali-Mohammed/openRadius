@@ -249,6 +249,11 @@ using (var scope = app.Services.CreateScope())
     // Ensure master database is created and migrations are applied
     masterContext.Database.Migrate();
     
+    // Apply migrations to default ApplicationDbContext database
+    var defaultContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    defaultContext.Database.Migrate();
+    Console.WriteLine("✓ Default database migrations applied");
+    
     // Seed roles, permissions, and groups
     SeedData.Initialize(masterContext);
     
