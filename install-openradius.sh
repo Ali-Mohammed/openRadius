@@ -756,27 +756,23 @@ configure_keycloak() {
         # Copy config file to container
         docker cp /tmp/keycloak-config-prod.json openradius-keycloak:/tmp/keycloak-config.json
         
-        # Use partial import to properly import client scopes and all configurations
-        print_info "Importing openradius realm and client scopes..."
+        # First, create the realm from the config file
+        print_info "Creating openradius realm..."
+        if docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+            -f /tmp/keycloak-config.json 2>&1 | grep -q "Created new realm"; then
+            print_success "Realm created successfully"
+        else
+            print_info "Realm may already exist, updating instead..."
+            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh update realms/openradius \
+                -f /tmp/keycloak-config.json 2>/dev/null || true
+        fi
+        
+        # Now import everything else (client scopes, clients, etc) using partial import
+        print_info "Importing client scopes, clients, and configurations..."
         docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partialImport \
             -r openradius \
             -s ifResourceExists=OVERWRITE \
-            -f /tmp/keycloak-config.json 2>&1 | grep -v "^$" || {
-            
-            # If partial import fails, realm might not exist yet - create it first
-            print_info "Creating realm first, then importing configuration..."
-            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
-                -s realm=openradius \
-                -s enabled=true \
-                -s displayName="OpenRadius" \
-                -s loginWithEmailAllowed=true 2>/dev/null || true
-            
-            # Now do partial import
-            docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partialImport \
-                -r openradius \
-                -s ifResourceExists=OVERWRITE \
-                -f /tmp/keycloak-config.json 2>&1 | grep -v "^$" || true
-        }
+            -f /tmp/keycloak-config.json 2>&1 || print_warning "Some resources may already exist"
         
         # Clean up temp file
         rm -f /tmp/keycloak-config-prod.json
