@@ -799,27 +799,62 @@ configure_keycloak() {
     fi
     
     if [ "$realm_exists" != "true" ] && [ -f "/tmp/keycloak-import.json" ]; then
-        # Try importing the full realm config via docker cp + kcadm.sh
         print_info "Importing realm from keycloak-config.json..."
         
-        docker cp /tmp/keycloak-import.json openradius-keycloak:/tmp/keycloak-import.json
+        # Step 1a: Clean the JSON to remove fields that conflict with built-in realm-management client
+        # The REST API rejects attempts to define roles for built-in clients (realm-management)
+        print_info "Cleaning JSON for REST API compatibility..."
+        # Remove: realm-management client roles, client scope mappings, scope mappings, 
+        # user clientRoles (assigned later via kcadm.sh), and keycloakVersion mismatch
+        jq 'del(.roles.client, .clientScopeMappings, .scopeMappings, .keycloakVersion) |
+            .users |= map(del(.clientRoles))' \
+            /tmp/keycloak-import.json > /tmp/keycloak-import-clean.json 2>/dev/null
         
-        # Try to create the realm with the full config - SHOW errors for debugging
-        IMPORT_OUTPUT=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
-            -f /tmp/keycloak-import.json 2>&1)
-        IMPORT_EXIT=$?
-        
-        if [ $IMPORT_EXIT -eq 0 ]; then
-            print_success "Realm imported successfully from keycloak-config.json!"
-            realm_exists=true
+        if [ -f "/tmp/keycloak-import-clean.json" ] && [ -s "/tmp/keycloak-import-clean.json" ]; then
+            # Copy cleaned config into container
+            docker cp /tmp/keycloak-import-clean.json openradius-keycloak:/tmp/keycloak-import.json
+            
+            # Try kcadm.sh create realms with the cleaned JSON
+            print_info "Creating realm via kcadm.sh create realms..."
+            IMPORT_OUTPUT=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+                -f /tmp/keycloak-import.json 2>&1)
+            IMPORT_EXIT=$?
+            
+            if [ $IMPORT_EXIT -eq 0 ]; then
+                print_success "Realm imported successfully via kcadm.sh!"
+                realm_exists=true
+            else
+                print_warning "kcadm.sh import failed (exit: $IMPORT_EXIT): $IMPORT_OUTPUT"
+                
+                # Step 1b: Try via Keycloak REST API partial-import as alternative
+                print_info "Trying partial-import as alternative..."
+                
+                # Create bare realm first
+                docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create realms \
+                    -s realm=openradius -s enabled=true -s displayName="OpenRadius" 2>/dev/null
+                
+                # Use kcadm.sh partial-import with cleaned JSON + SKIP conflicts
+                # (maps to POST /admin/realms/{realm}/partialImport)
+                PARTIAL_OUTPUT=$(docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partialImport \
+                    -r openradius -o \
+                    -s ifResourceExists=SKIP \
+                    -f /tmp/keycloak-import.json 2>&1)
+                PARTIAL_EXIT=$?
+                
+                if [ $PARTIAL_EXIT -eq 0 ]; then
+                    print_success "Realm configuration imported via partial-import!"
+                    realm_exists=true
+                else
+                    print_warning "Partial import failed (exit: $PARTIAL_EXIT)"
+                    print_info "Output: $(echo $PARTIAL_OUTPUT | head -c 500)"
+                fi
+            fi
         else
-            print_warning "JSON import failed (exit code: $IMPORT_EXIT)"
-            print_info "Import output: $IMPORT_OUTPUT"
-            print_info "Falling back to manual realm creation..."
+            print_warning "jq failed to clean JSON - falling back to manual creation"
         fi
         
-        # Clean up
-        rm -f /tmp/keycloak-import.json
+        # Clean up temp files
+        rm -f /tmp/keycloak-import.json /tmp/keycloak-import-clean.json
     fi
     
     # === Step 2: Manual realm creation (fallback) ===
