@@ -1,10 +1,11 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin, Layers, WalletCards, TrendingUp, PiggyBank, Globe, FileStack, HardDrive, Cog, SquareStack, RefreshCcw } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin, Layers, WalletCards, TrendingUp, PiggyBank, Globe, FileStack, HardDrive, Cog, SquareStack, RefreshCcw, Loader2, type LucideIcon } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router-dom"
 import { dashboardApi } from "@/api/dashboardApi"
+import { navigationApi, type MenuItem } from "@/api/navigationApi"
 import type { Dashboard } from "@/types/dashboard"
 import logoSvg from '@/openradius.svg'
 
@@ -31,295 +32,84 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
-const DEFAULT_workspace_ID = 1 // Fallback
+/**
+ * Map of icon name strings (from backend) → Lucide React icon components.
+ * The backend returns icon names as strings; this map resolves them to components.
+ */
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  CircleUser,
+  Building2,
+  Settings,
+  Radio,
+  Eye,
+  Wrench,
+  SlidersHorizontal,
+  Key,
+  DollarSign,
+  UserCog,
+  Shield,
+  Lock,
+  Tag,
+  UsersRound,
+  UserRound,
+  Server,
+  Network,
+  CreditCard,
+  Package,
+  Gift,
+  Wallet,
+  History,
+  Coins,
+  FileText,
+  UserCheck,
+  Database,
+  Activity,
+  ArrowUpCircle,
+  Receipt,
+  Antenna,
+  Cable,
+  Box,
+  Zap,
+  Monitor,
+  BarChart3,
+  MapPin,
+  Layers,
+  WalletCards,
+  TrendingUp,
+  PiggyBank,
+  Globe,
+  FileStack,
+  HardDrive,
+  Cog,
+  SquareStack,
+  RefreshCcw,
+  Plug,
+}
 
-// Function to create nav data with dynamic workspace ID
-const getNavData = (workspaceId: number) => ({
-  versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
-  navMain: [
-    {
-      titleKey: "navigation.dashboards",
-      url: "/dashboards",
-      icon: LayoutDashboard,
-      items: [], // Will be populated with actual dashboards
-    },
-    {
-      titleKey: "navigation.radius",
-      url: "#",
-      icon: LayoutDashboard,
-      items: [
-        {
-          titleKey: "navigation.users",
-          url: `/radius/users`,
-          icon: Users,
-        },
-        {
-          titleKey: "navigation.profiles",
-          url: `/radius/profiles`,
-          icon: CircleUser,
-        },
-        {
-          titleKey: "navigation.groups",
-          url: `/radius/groups`,
-          icon: UsersRound,
-        },
-        {
-          titleKey: "navigation.tags",
-          url: `/radius/tags`,
-          icon: Tag,
-        },
-        {
-          titleKey: "navigation.nas",
-          url: `/radius/nas`,
-          icon: Server,
-        },
-        {
-          titleKey: "navigation.ipPools",
-          url: `/radius/ip-pools`,
-          icon: Network,
-        },
-        {
-          titleKey: "navigation.ipReservations",
-          url: `/radius/ip-reservations`,
-          icon: Layers,
-        },
-        {
-          titleKey: "navigation.customAttributes",
-          url: `/radius/custom-attributes`,
-          icon: Settings,
-        },
-        {
-          titleKey: "navigation.zones",
-          url: `/radius/zones`,
-          icon: MapPin,
-        },
-        {
-          titleKey: "navigation.activations",
-          url: `/radius/activations`,
-          icon: Activity,
-        },
-      ],
-    },
-    {
-      titleKey: "navigation.billing",
-      url: "#",
-      icon: CreditCard,
-      items: [
-        {
-          titleKey: "navigation.billingProfiles",
-          url: '/billing/profiles',
-          icon: FileText,
-        },
-        {
-          titleKey: "navigation.activations",
-          url: '/billing/activations',
-          icon: History,
-        },
-        {
-          titleKey: "navigation.addons",
-          url: "/billing/addons",
-          icon: Package,
-        },
-        {
-          titleKey: "navigation.groups",
-          url: "/billing/groups",
-          icon: TrendingUp,
-        },
-        {
-          titleKey: "navigation.cashbacks",
-          url: "/billing/cashbacks",
-          icon: Gift,
-        },
-        {
-          titleKey: "navigation.cashbackGroups",
-          url: "/billing/cashback-groups",
-          icon: PiggyBank,
-        },
-        {
-          titleKey: "navigation.subAgentCashbacks",
-          url: "/billing/sub-agent-cashbacks",
-          icon: UsersRound,
-        },
-        {
-          titleKey: "navigation.customWallets",
-          url: "/billing/wallets",
-          icon: Wallet,
-        },
-        {
-          titleKey: "navigation.userWallets",
-          url: "/billing/user-wallets",
-          icon: WalletCards,
-        },
-        {
-          titleKey: "navigation.topUp",
-          url: "/billing/topup",
-          icon: ArrowUpCircle,
-        },
-        {
-          titleKey: "navigation.walletHistory",
-          url: "/billing/history",
-          icon: History,
-        },
-        {
-          titleKey: "navigation.transactions",
-          url: "/billing/transactions",
-          icon: Receipt,
-        },
-        {
-          titleKey: "navigation.balances",
-          url: "/billing/balances",
-          icon: Coins,
-        },
-        {
-          titleKey: "navigation.automations",
-          url: "/billing/automations",
-          icon: Zap,
-        },
-      ],
-    },
-    {
-      titleKey: "navigation.network",
-      url: "#",
-      icon: Antenna,
-      items: [
-        {
-          titleKey: "navigation.olts",
-          url: "/network/olts",
-          icon: Cable,
-        },
-        {
-          titleKey: "navigation.fdts",
-          url: "/network/fdts",
-          icon: Box,
-        },
-        {
-          titleKey: "navigation.fats",
-          url: "/network/fats",
-          icon: SquareStack,
-        },
-        {
-          titleKey: "navigation.provisioning",
-          url: "/network/provisioning",
-          icon: Globe,
-        },
-        {
-          titleKey: "navigation.monitoring",
-          url: "/network/monitoring",
-          icon: Monitor,
-        },
-        {
-          titleKey: "navigation.networkReports",
-          url: "/network/reports",
-          icon: BarChart3,
-        },
-        {
-          titleKey: "navigation.networkSettings",
-          url: "/network/settings",
-          icon: Cog,
-        },
-      ],
-    },
-    {
-      titleKey: "navigation.connectors",
-      url: "#",
-      icon: Database,
-      items: [
-        {
-          titleKey: "navigation.connectorList",
-          url: "/connectors",
-          icon: FileStack,
-        },
-        {
-          titleKey: "navigation.cdcMonitor",
-          url: "/cdc-monitor",
-          icon: Activity,
-        },
-        {
-          titleKey: "navigation.connectorSettings",
-          url: "/connectors/settings",
-          icon: Wrench,
-        },
-      ],
-    },
-    {
-      titleKey: "navigation.microservices",
-      url: "#",
-      icon: Server,
-      items: [
-        {
-          titleKey: "navigation.radiusSyncService",
-          url: "/microservices/radius-sync",
-          icon: RefreshCcw,
-        },
-      ],
-    },
-    {
-      titleKey: "navigation.appSetting",
-      url: "#",
-      icon: SlidersHorizontal,
-      items: [
-        {
-          titleKey: "navigation.workspace",
-          url: "/workspace/view",
-          icon: Eye,
-        },
-        {
-          titleKey: "navigation.general",
-          url: "/settings/general",
-          icon: DollarSign,
-        },
-        {
-          titleKey: "navigation.paymentInformation",
-          url: "/settings/payment-history",
-          icon: CreditCard,
-        },
-        {
-          titleKey: "navigation.oidc",
-          url: "/settings/oidc",
-          icon: Key,
-        },
-        {
-          titleKey: "navigation.databaseBackup",
-          url: "/settings/database-backup",
-          icon: HardDrive,
-        },
-        {
-          titleKey: "navigation.integrations",
-          url: "/integrations",
-          icon: Radio,
-        },
-      ],
-    },
-    {
-      titleKey: "navigation.userManagement",
-      url: "#",
-      icon: UserCog,
-      items: [
-        {
-          titleKey: "navigation.users",
-          url: "/users",
-          icon: UserCheck,
-        },
-        {
-          titleKey: "navigation.roles",
-          url: "/roles",
-          icon: Shield,
-        },
-        {
-          titleKey: "navigation.permissions",
-          url: "/permissions",
-          icon: Lock,
-        },
-        {
-          titleKey: "navigation.userGroups",
-          url: "/groups",
-          icon: UserRound,
-        },
-      ],
-    },
-  ],
-})
+/** Resolves an icon name string to a Lucide component. Falls back to Settings. */
+const resolveIcon = (iconName: string): LucideIcon => {
+  return iconMap[iconName] ?? Settings
+}
+
+/** Converts backend MenuItem DTOs into the shape used by the sidebar renderer */
+interface NavItem {
+  titleKey: string
+  url: string
+  icon: LucideIcon
+  items: NavItem[]
+  isDynamic?: boolean
+}
+
+const toNavItems = (items: MenuItem[]): NavItem[] =>
+  items.map((item) => ({
+    titleKey: item.titleKey,
+    url: item.url,
+    icon: resolveIcon(item.icon),
+    isDynamic: item.isDynamic,
+    items: item.items ? toNavItems(item.items) : [],
+  }))
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { theme, primaryColor } = useTheme()
@@ -328,6 +118,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState("")
   const [dashboards, setDashboards] = React.useState<Dashboard[]>([])
+  const [navItems, setNavItems] = React.useState<NavItem[]>([])
+  const [menuLoading, setMenuLoading] = React.useState(true)
+
+  // Load navigation menu from backend (filtered by user permissions)
+  React.useEffect(() => {
+    const loadNavigation = async () => {
+      try {
+        setMenuLoading(true)
+        const response = await navigationApi.getMenu()
+        const items = toNavItems(response.menu)
+        setNavItems(items)
+      } catch (error) {
+        console.error('Error loading navigation menu:', error)
+        // Navigation failed — leave menu empty so user sees no items
+        setNavItems([])
+      } finally {
+        setMenuLoading(false)
+      }
+    }
+    loadNavigation()
+  }, [])
 
   // Load dashboards
   React.useEffect(() => {
@@ -342,47 +153,49 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     loadDashboards()
   }, [])
 
-  // Get nav data with current workspace ID (fallback to 1 if not loaded yet)
-  const data = React.useMemo(() => {
-    const navData = getNavData(currentWorkspaceId || 1)
-    // Update dashboards items with actual dashboard data
-    const dashboardsIndex = navData.navMain.findIndex(item => item.titleKey === 'navigation.dashboards')
-    if (dashboardsIndex !== -1 && dashboards.length > 0) {
-      navData.navMain[dashboardsIndex].items = dashboards.map(dashboard => ({
-        titleKey: dashboard.name, // Use dashboard name directly, not a translation key
-        url: `/dashboards/${dashboard.id}`,
-        icon: LayoutDashboard,
-      }))
-    }
-    return navData
-  }, [currentWorkspaceId, dashboards])
+  // Merge dashboards into the dynamic dashboard section
+  const navMain = React.useMemo(() => {
+    if (navItems.length === 0) return []
+    
+    return navItems.map(item => {
+      // For the dashboards section (isDynamic), populate children with actual dashboards
+      if (item.isDynamic && item.titleKey === 'navigation.dashboards' && dashboards.length > 0) {
+        return {
+          ...item,
+          items: dashboards.map(dashboard => ({
+            titleKey: dashboard.name, // Use dashboard name directly, not a translation key
+            url: `/dashboards/${dashboard.id}`,
+            icon: LayoutDashboard,
+            items: [],
+          })),
+        }
+      }
+      return item
+    })
+  }, [navItems, dashboards])
 
   // Filter and sort menu items based on search query
   const filteredNavMain = React.useMemo(() => {
     if (!searchQuery.trim()) {
-      // Return items in original order (dashboards first)
-      return [...data.navMain]
+      return [...navMain]
     }
 
     const query = searchQuery.toLowerCase()
-    return data.navMain
+    return navMain
       .map(item => {
         const parentMatch = t(item.titleKey).toLowerCase().includes(query)
         
-        // Handle items without sub-items
         if (!item.items || item.items.length === 0) {
           return parentMatch ? item : null
         }
         
         const filteredItems = item.items.filter(subItem => {
-          // For dashboards, use the name directly instead of translation
           const subItemName = item.titleKey === 'navigation.dashboards' 
             ? subItem.titleKey.toLowerCase() 
             : t(subItem.titleKey).toLowerCase()
           return subItemName.includes(query)
         })
         
-        // Include parent if it matches or has matching children
         if (parentMatch || filteredItems.length > 0) {
           return {
             ...item,
@@ -391,8 +204,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         }
         return null
       })
-      .filter(Boolean)
-  }, [searchQuery, t, data.navMain])
+      .filter(Boolean) as NavItem[]
+  }, [searchQuery, t, navMain])
 
   return (
     <Sidebar {...props} className="overflow-x-hidden">
@@ -417,9 +230,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SearchForm searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       </SidebarHeader>
       <SidebarContent className="gap-0">
-        {/* We create a collapsible SidebarGroup for each parent. */}
-        {filteredNavMain.map((item) => (
-          item.items ? (
+        {/* Loading state while fetching menu from backend */}
+        {menuLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredNavMain.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            {searchQuery ? t('navigation.noResults', 'No results found') : t('navigation.noAccess', 'No menu items available')}
+          </div>
+        ) : (
+        /* We create a collapsible SidebarGroup for each parent. */
+        filteredNavMain.map((item) => (
+          item.items && item.items.length > 0 ? (
             <Collapsible
               key={item.titleKey}
               title={t(item.titleKey)}
@@ -491,7 +314,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </SidebarMenu>
             </SidebarGroup>
           )
-        ))}
+        ))
+        )}
       </SidebarContent>
       <SidebarFooter className="mb-4">
         <NavUser />

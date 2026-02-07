@@ -33,7 +33,17 @@ public static class SeedData
         }
         else
         {
-            Console.WriteLine($"⊘ Skipping Permissions (already exists: {permissionsCount})");
+            Console.WriteLine($"⊘ Checking for new permissions to add (existing: {permissionsCount})...");
+            var addedCount = UpsertNewPermissions(context);
+            if (addedCount > 0)
+            {
+                Console.WriteLine($"✓ {addedCount} new permissions added");
+                permissionsCount = context.Permissions.Count();
+            }
+            else
+            {
+                Console.WriteLine($"⊘ All permissions up to date ({permissionsCount})");
+            }
         }
 
         // Seed Roles
@@ -80,93 +90,7 @@ public static class SeedData
 
     private static void SeedPermissions(MasterDbContext context)
     {
-        var permissions = new List<Permission>
-        {
-            // Integration Permissions
-            new Permission { Name = "integration.sas_radius.view", Description = "View SAS RADIUS integration", Category = "Integration" },
-            new Permission { Name = "integration.sas_radius.create", Description = "Create SAS RADIUS integration", Category = "Integration" },
-            new Permission { Name = "integration.sas_radius.update", Description = "Update SAS RADIUS integration", Category = "Integration" },
-            new Permission { Name = "integration.sas_radius.delete", Description = "Delete SAS RADIUS integration", Category = "Integration" },
-            new Permission { Name = "integration.sas_radius.sync", Description = "Sync SAS RADIUS integration", Category = "Integration" },
-
-            // RADIUS Users Permissions
-            new Permission { Name = "radius.users.view", Description = "View RADIUS users", Category = "RADIUS" },
-            new Permission { Name = "radius.users.create", Description = "Create RADIUS users", Category = "RADIUS" },
-            new Permission { Name = "radius.users.update", Description = "Update RADIUS users", Category = "RADIUS" },
-            new Permission { Name = "radius.users.delete", Description = "Delete RADIUS users", Category = "RADIUS" },
-            new Permission { Name = "radius.users.import", Description = "Import RADIUS users", Category = "RADIUS" },
-            new Permission { Name = "radius.users.export", Description = "Export RADIUS users", Category = "RADIUS" },
-
-            // RADIUS Profiles Permissions
-            new Permission { Name = "radius.profiles.view", Description = "View RADIUS profiles", Category = "RADIUS" },
-            new Permission { Name = "radius.profiles.create", Description = "Create RADIUS profiles", Category = "RADIUS" },
-            new Permission { Name = "radius.profiles.update", Description = "Update RADIUS profiles", Category = "RADIUS" },
-            new Permission { Name = "radius.profiles.delete", Description = "Delete RADIUS profiles", Category = "RADIUS" },
-
-            // RADIUS Groups Permissions
-            new Permission { Name = "radius.groups.view", Description = "View RADIUS groups", Category = "RADIUS" },
-            new Permission { Name = "radius.groups.create", Description = "Create RADIUS groups", Category = "RADIUS" },
-            new Permission { Name = "radius.groups.update", Description = "Update RADIUS groups", Category = "RADIUS" },
-            new Permission { Name = "radius.groups.delete", Description = "Delete RADIUS groups", Category = "RADIUS" },
-
-            // RADIUS Tags Permissions
-            new Permission { Name = "radius.tags.view", Description = "View RADIUS tags", Category = "RADIUS" },
-            new Permission { Name = "radius.tags.create", Description = "Create RADIUS tags", Category = "RADIUS" },
-            new Permission { Name = "radius.tags.update", Description = "Update RADIUS tags", Category = "RADIUS" },
-            new Permission { Name = "radius.tags.delete", Description = "Delete RADIUS tags", Category = "RADIUS" },
-
-            // Workspace Permissions
-            new Permission { Name = "workspace.view", Description = "View workspace details", Category = "Workspace" },
-            new Permission { Name = "workspace.create", Description = "Create workspaces", Category = "Workspace" },
-            new Permission { Name = "workspace.update", Description = "Update workspace settings", Category = "Workspace" },
-            new Permission { Name = "workspace.delete", Description = "Delete workspaces", Category = "Workspace" },
-            new Permission { Name = "workspace.switch", Description = "Switch between workspaces", Category = "Workspace" },
-            new Permission { Name = "workspace.settings.view", Description = "View workspace settings", Category = "Workspace" },
-            new Permission { Name = "workspace.settings.update", Description = "Update workspace settings", Category = "Workspace" },
-
-            // App Settings Permissions
-            new Permission { Name = "settings.general.view", Description = "View general settings", Category = "Settings" },
-            new Permission { Name = "settings.general.update", Description = "Update general settings", Category = "Settings" },
-            new Permission { Name = "settings.oidc.view", Description = "View OIDC settings", Category = "Settings" },
-            new Permission { Name = "settings.oidc.update", Description = "Update OIDC settings", Category = "Settings" },
-
-            // User Management Permissions
-            new Permission { Name = "users.view", Description = "View users", Category = "UserManagement" },
-            new Permission { Name = "users.create", Description = "Create users", Category = "UserManagement" },
-            new Permission { Name = "users.update", Description = "Update users", Category = "UserManagement" },
-            new Permission { Name = "users.delete", Description = "Delete users", Category = "UserManagement" },
-            new Permission { Name = "users.assign_roles", Description = "Assign roles to users", Category = "UserManagement" },
-            new Permission { Name = "users.assign_groups", Description = "Assign groups to users", Category = "UserManagement" },
-
-            // Roles Management Permissions
-            new Permission { Name = "roles.view", Description = "View roles", Category = "UserManagement" },
-            new Permission { Name = "roles.create", Description = "Create roles", Category = "UserManagement" },
-            new Permission { Name = "roles.update", Description = "Update roles", Category = "UserManagement" },
-            new Permission { Name = "roles.delete", Description = "Delete roles", Category = "UserManagement" },
-            new Permission { Name = "roles.assign_permissions", Description = "Assign permissions to roles", Category = "UserManagement" },
-
-            // Permissions Management Permissions
-            new Permission { Name = "permissions.view", Description = "View permissions", Category = "UserManagement" },
-            new Permission { Name = "permissions.create", Description = "Create permissions", Category = "UserManagement" },
-            new Permission { Name = "permissions.update", Description = "Update permissions", Category = "UserManagement" },
-            new Permission { Name = "permissions.delete", Description = "Delete permissions", Category = "UserManagement" },
-
-            // Groups Management Permissions
-            new Permission { Name = "groups.view", Description = "View user groups", Category = "UserManagement" },
-            new Permission { Name = "groups.create", Description = "Create user groups", Category = "UserManagement" },
-            new Permission { Name = "groups.update", Description = "Update user groups", Category = "UserManagement" },
-            new Permission { Name = "groups.delete", Description = "Delete user groups", Category = "UserManagement" },
-
-            // Dashboard & Reports Permissions
-            new Permission { Name = "dashboard.view", Description = "View dashboard", Category = "General" },
-            new Permission { Name = "reports.view", Description = "View reports", Category = "General" },
-            new Permission { Name = "reports.export", Description = "Export reports", Category = "General" },
-
-            // Audit & Logs Permissions
-            new Permission { Name = "audit.view", Description = "View audit logs", Category = "General" },
-            new Permission { Name = "logs.view", Description = "View system logs", Category = "General" },
-        };
-
+        var permissions = GetAllPermissionDefinitions();
         context.Permissions.AddRange(permissions);
         context.SaveChanges();
     }
@@ -450,5 +374,204 @@ public static class SeedData
 
         context.RolePermissions.AddRange(rolePermissions);
         context.SaveChanges();
+    }
+
+    /// <summary>
+    /// Adds any new permissions that don't already exist in the database.
+    /// This ensures existing installations get new permissions when the application is updated.
+    /// </summary>
+    private static int UpsertNewPermissions(MasterDbContext context)
+    {
+        // Get all permission definitions (same list as SeedPermissions)
+        var allDefinedPermissions = GetAllPermissionDefinitions();
+        var existingNames = context.Permissions.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var newPermissions = allDefinedPermissions
+            .Where(p => !existingNames.Contains(p.Name))
+            .ToList();
+
+        if (newPermissions.Count == 0)
+            return 0;
+
+        context.Permissions.AddRange(newPermissions);
+        context.SaveChanges();
+
+        // Also assign new permissions to Super Administrator role if it exists
+        var superAdmin = context.Roles.FirstOrDefault(r => r.Name == "Super Administrator");
+        if (superAdmin != null)
+        {
+            var existingRolePermissionIds = context.RolePermissions
+                .Where(rp => rp.RoleId == superAdmin.Id)
+                .Select(rp => rp.PermissionId)
+                .ToHashSet();
+
+            var newRolePermissions = newPermissions
+                .Where(p => !existingRolePermissionIds.Contains(p.Id))
+                .Select(p => new RolePermission
+                {
+                    RoleId = superAdmin.Id,
+                    PermissionId = p.Id
+                })
+                .ToList();
+
+            if (newRolePermissions.Count > 0)
+            {
+                context.RolePermissions.AddRange(newRolePermissions);
+                context.SaveChanges();
+                Console.WriteLine($"  → Assigned {newRolePermissions.Count} new permissions to Super Administrator");
+            }
+        }
+
+        return newPermissions.Count;
+    }
+
+    /// <summary>
+    /// Returns all permission definitions. Shared between SeedPermissions and UpsertNewPermissions.
+    /// </summary>
+    private static List<Permission> GetAllPermissionDefinitions()
+    {
+        return new List<Permission>
+        {
+            // Integration Permissions
+            new Permission { Name = "integration.sas_radius.view", Description = "View SAS RADIUS integration", Category = "Integration" },
+            new Permission { Name = "integration.sas_radius.create", Description = "Create SAS RADIUS integration", Category = "Integration" },
+            new Permission { Name = "integration.sas_radius.update", Description = "Update SAS RADIUS integration", Category = "Integration" },
+            new Permission { Name = "integration.sas_radius.delete", Description = "Delete SAS RADIUS integration", Category = "Integration" },
+            new Permission { Name = "integration.sas_radius.sync", Description = "Sync SAS RADIUS integration", Category = "Integration" },
+            // RADIUS Users
+            new Permission { Name = "radius.users.view", Description = "View RADIUS users", Category = "RADIUS" },
+            new Permission { Name = "radius.users.create", Description = "Create RADIUS users", Category = "RADIUS" },
+            new Permission { Name = "radius.users.update", Description = "Update RADIUS users", Category = "RADIUS" },
+            new Permission { Name = "radius.users.delete", Description = "Delete RADIUS users", Category = "RADIUS" },
+            new Permission { Name = "radius.users.import", Description = "Import RADIUS users", Category = "RADIUS" },
+            new Permission { Name = "radius.users.export", Description = "Export RADIUS users", Category = "RADIUS" },
+            // RADIUS Profiles
+            new Permission { Name = "radius.profiles.view", Description = "View RADIUS profiles", Category = "RADIUS" },
+            new Permission { Name = "radius.profiles.create", Description = "Create RADIUS profiles", Category = "RADIUS" },
+            new Permission { Name = "radius.profiles.update", Description = "Update RADIUS profiles", Category = "RADIUS" },
+            new Permission { Name = "radius.profiles.delete", Description = "Delete RADIUS profiles", Category = "RADIUS" },
+            // RADIUS Groups
+            new Permission { Name = "radius.groups.view", Description = "View RADIUS groups", Category = "RADIUS" },
+            new Permission { Name = "radius.groups.create", Description = "Create RADIUS groups", Category = "RADIUS" },
+            new Permission { Name = "radius.groups.update", Description = "Update RADIUS groups", Category = "RADIUS" },
+            new Permission { Name = "radius.groups.delete", Description = "Delete RADIUS groups", Category = "RADIUS" },
+            // RADIUS Tags
+            new Permission { Name = "radius.tags.view", Description = "View RADIUS tags", Category = "RADIUS" },
+            new Permission { Name = "radius.tags.create", Description = "Create RADIUS tags", Category = "RADIUS" },
+            new Permission { Name = "radius.tags.update", Description = "Update RADIUS tags", Category = "RADIUS" },
+            new Permission { Name = "radius.tags.delete", Description = "Delete RADIUS tags", Category = "RADIUS" },
+            // RADIUS NAS
+            new Permission { Name = "radius.nas.view", Description = "View RADIUS NAS devices", Category = "RADIUS" },
+            new Permission { Name = "radius.nas.create", Description = "Create RADIUS NAS devices", Category = "RADIUS" },
+            new Permission { Name = "radius.nas.update", Description = "Update RADIUS NAS devices", Category = "RADIUS" },
+            new Permission { Name = "radius.nas.delete", Description = "Delete RADIUS NAS devices", Category = "RADIUS" },
+            // RADIUS IP Pools
+            new Permission { Name = "radius.ip-pools.view", Description = "View RADIUS IP pools", Category = "RADIUS" },
+            new Permission { Name = "radius.ip-pools.create", Description = "Create RADIUS IP pools", Category = "RADIUS" },
+            new Permission { Name = "radius.ip-pools.update", Description = "Update RADIUS IP pools", Category = "RADIUS" },
+            new Permission { Name = "radius.ip-pools.delete", Description = "Delete RADIUS IP pools", Category = "RADIUS" },
+            // RADIUS IP Reservations
+            new Permission { Name = "radius.ip-reservations.view", Description = "View RADIUS IP reservations", Category = "RADIUS" },
+            new Permission { Name = "radius.ip-reservations.create", Description = "Create RADIUS IP reservations", Category = "RADIUS" },
+            new Permission { Name = "radius.ip-reservations.update", Description = "Update RADIUS IP reservations", Category = "RADIUS" },
+            new Permission { Name = "radius.ip-reservations.delete", Description = "Delete RADIUS IP reservations", Category = "RADIUS" },
+            // RADIUS Custom Attributes
+            new Permission { Name = "radius.custom-attributes.view", Description = "View RADIUS custom attributes", Category = "RADIUS" },
+            new Permission { Name = "radius.custom-attributes.create", Description = "Create RADIUS custom attributes", Category = "RADIUS" },
+            new Permission { Name = "radius.custom-attributes.update", Description = "Update RADIUS custom attributes", Category = "RADIUS" },
+            new Permission { Name = "radius.custom-attributes.delete", Description = "Delete RADIUS custom attributes", Category = "RADIUS" },
+            // RADIUS Zones
+            new Permission { Name = "radius.zones.view", Description = "View RADIUS zones", Category = "RADIUS" },
+            new Permission { Name = "radius.zones.create", Description = "Create RADIUS zones", Category = "RADIUS" },
+            new Permission { Name = "radius.zones.update", Description = "Update RADIUS zones", Category = "RADIUS" },
+            new Permission { Name = "radius.zones.delete", Description = "Delete RADIUS zones", Category = "RADIUS" },
+            // RADIUS Activations
+            new Permission { Name = "radius.activations.view", Description = "View RADIUS activations", Category = "RADIUS" },
+            new Permission { Name = "radius.activations.create", Description = "Create RADIUS activations", Category = "RADIUS" },
+            // Workspace
+            new Permission { Name = "workspace.view", Description = "View workspace details", Category = "Workspace" },
+            new Permission { Name = "workspace.create", Description = "Create workspaces", Category = "Workspace" },
+            new Permission { Name = "workspace.update", Description = "Update workspace settings", Category = "Workspace" },
+            new Permission { Name = "workspace.delete", Description = "Delete workspaces", Category = "Workspace" },
+            new Permission { Name = "workspace.switch", Description = "Switch between workspaces", Category = "Workspace" },
+            new Permission { Name = "workspace.settings.view", Description = "View workspace settings", Category = "Workspace" },
+            new Permission { Name = "workspace.settings.update", Description = "Update workspace settings", Category = "Workspace" },
+            // App Settings
+            new Permission { Name = "settings.general.view", Description = "View general settings", Category = "Settings" },
+            new Permission { Name = "settings.general.update", Description = "Update general settings", Category = "Settings" },
+            new Permission { Name = "settings.oidc.view", Description = "View OIDC settings", Category = "Settings" },
+            new Permission { Name = "settings.oidc.update", Description = "Update OIDC settings", Category = "Settings" },
+            new Permission { Name = "settings.payment-history.view", Description = "View payment history", Category = "Settings" },
+            new Permission { Name = "settings.database-backup.view", Description = "View database backup settings", Category = "Settings" },
+            new Permission { Name = "settings.integrations.view", Description = "View integrations settings", Category = "Settings" },
+            // User Management
+            new Permission { Name = "users.view", Description = "View users", Category = "UserManagement" },
+            new Permission { Name = "users.create", Description = "Create users", Category = "UserManagement" },
+            new Permission { Name = "users.update", Description = "Update users", Category = "UserManagement" },
+            new Permission { Name = "users.delete", Description = "Delete users", Category = "UserManagement" },
+            new Permission { Name = "users.assign_roles", Description = "Assign roles to users", Category = "UserManagement" },
+            new Permission { Name = "users.assign_groups", Description = "Assign groups to users", Category = "UserManagement" },
+            // Roles Management
+            new Permission { Name = "roles.view", Description = "View roles", Category = "UserManagement" },
+            new Permission { Name = "roles.create", Description = "Create roles", Category = "UserManagement" },
+            new Permission { Name = "roles.update", Description = "Update roles", Category = "UserManagement" },
+            new Permission { Name = "roles.delete", Description = "Delete roles", Category = "UserManagement" },
+            new Permission { Name = "roles.assign_permissions", Description = "Assign permissions to roles", Category = "UserManagement" },
+            // Permissions Management
+            new Permission { Name = "permissions.view", Description = "View permissions", Category = "UserManagement" },
+            new Permission { Name = "permissions.create", Description = "Create permissions", Category = "UserManagement" },
+            new Permission { Name = "permissions.update", Description = "Update permissions", Category = "UserManagement" },
+            new Permission { Name = "permissions.delete", Description = "Delete permissions", Category = "UserManagement" },
+            // Groups Management
+            new Permission { Name = "groups.view", Description = "View user groups", Category = "UserManagement" },
+            new Permission { Name = "groups.create", Description = "Create user groups", Category = "UserManagement" },
+            new Permission { Name = "groups.update", Description = "Update user groups", Category = "UserManagement" },
+            new Permission { Name = "groups.delete", Description = "Delete user groups", Category = "UserManagement" },
+            // Dashboard & Reports
+            new Permission { Name = "dashboard.view", Description = "View dashboard", Category = "General" },
+            new Permission { Name = "reports.view", Description = "View reports", Category = "General" },
+            new Permission { Name = "reports.export", Description = "Export reports", Category = "General" },
+            // Audit & Logs
+            new Permission { Name = "audit.view", Description = "View audit logs", Category = "General" },
+            new Permission { Name = "logs.view", Description = "View system logs", Category = "General" },
+            // Billing
+            new Permission { Name = "billing.profiles.view", Description = "View billing profiles", Category = "Billing" },
+            new Permission { Name = "billing.profiles.create", Description = "Create billing profiles", Category = "Billing" },
+            new Permission { Name = "billing.profiles.update", Description = "Update billing profiles", Category = "Billing" },
+            new Permission { Name = "billing.profiles.delete", Description = "Delete billing profiles", Category = "Billing" },
+            new Permission { Name = "billing.activations.view", Description = "View billing activations", Category = "Billing" },
+            new Permission { Name = "billing.addons.view", Description = "View billing addons", Category = "Billing" },
+            new Permission { Name = "billing.addons.create", Description = "Create billing addons", Category = "Billing" },
+            new Permission { Name = "billing.addons.update", Description = "Update billing addons", Category = "Billing" },
+            new Permission { Name = "billing.addons.delete", Description = "Delete billing addons", Category = "Billing" },
+            new Permission { Name = "billing.groups.view", Description = "View billing groups", Category = "Billing" },
+            new Permission { Name = "billing.cashbacks.view", Description = "View cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.cashback-groups.view", Description = "View cashback groups", Category = "Billing" },
+            new Permission { Name = "billing.sub-agent-cashbacks.view", Description = "View sub-agent cashbacks", Category = "Billing" },
+            new Permission { Name = "billing.wallets.view", Description = "View custom wallets", Category = "Billing" },
+            new Permission { Name = "billing.user-wallets.view", Description = "View user wallets", Category = "Billing" },
+            new Permission { Name = "billing.topup.view", Description = "View top-up", Category = "Billing" },
+            new Permission { Name = "billing.history.view", Description = "View wallet history", Category = "Billing" },
+            new Permission { Name = "billing.transactions.view", Description = "View transactions", Category = "Billing" },
+            new Permission { Name = "billing.balances.view", Description = "View balances", Category = "Billing" },
+            new Permission { Name = "billing.automations.view", Description = "View billing automations", Category = "Billing" },
+            // Network
+            new Permission { Name = "network.olts.view", Description = "View OLT devices", Category = "Network" },
+            new Permission { Name = "network.olts.create", Description = "Create OLT devices", Category = "Network" },
+            new Permission { Name = "network.olts.update", Description = "Update OLT devices", Category = "Network" },
+            new Permission { Name = "network.olts.delete", Description = "Delete OLT devices", Category = "Network" },
+            new Permission { Name = "network.fdts.view", Description = "View FDT devices", Category = "Network" },
+            new Permission { Name = "network.fats.view", Description = "View FAT devices", Category = "Network" },
+            new Permission { Name = "network.provisioning.view", Description = "View network provisioning", Category = "Network" },
+            new Permission { Name = "network.monitoring.view", Description = "View network monitoring", Category = "Network" },
+            new Permission { Name = "network.reports.view", Description = "View network reports", Category = "Network" },
+            new Permission { Name = "network.settings.view", Description = "View network settings", Category = "Network" },
+            // Connectors
+            new Permission { Name = "connectors.list.view", Description = "View CDC connectors", Category = "Connectors" },
+            new Permission { Name = "connectors.cdc-monitor.view", Description = "View CDC monitor", Category = "Connectors" },
+            new Permission { Name = "connectors.settings.view", Description = "View connector settings", Category = "Connectors" },
+            // Microservices
+            new Permission { Name = "microservices.radius-sync.view", Description = "View RADIUS sync service", Category = "Microservices" },
+        };
     }
 }

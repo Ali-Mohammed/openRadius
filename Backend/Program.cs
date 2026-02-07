@@ -190,6 +190,9 @@ try
     // Add Claims Transformation for automatic impersonation support
     builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, ImpersonationClaimsTransformation>();
 
+    // Add Navigation Service for dynamic permission-based menu
+    builder.Services.AddScoped<INavigationService, NavigationService>();
+
     // Add SignalR for real-time sync progress updates
     builder.Services.AddSignalR();
 
@@ -282,8 +285,8 @@ try
         // Seed default OIDC provider if no providers exist
         if (!masterContext.OidcSettings.Any())
         {
-            var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-            var oidcConfig = configuration.GetSection("Oidc");
+            var oidcConfiguration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            var oidcConfig = oidcConfiguration.GetSection("Oidc");
 
             masterContext.OidcSettings.Add(new Backend.Models.OidcSettings
             {
