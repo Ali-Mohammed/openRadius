@@ -806,54 +806,6 @@
           ]
         }
       }
-    ]
-  },
-  "roles": {
-    "realm": [
-      {
-        "name": "user",
-        "description": "Standard user with basic access",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {
-          "permissions": ["read:profile", "update:own-profile", "read:dashboard"]
-        }
-      },
-      {
-        "name": "manager",
-        "description": "Manager with team management capabilities",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {
-          "permissions": [
-            "read:profile",
-            "update:own-profile",
-            "read:dashboard",
-            "read:reports",
-            "create:reports",
-            "manage:team",
-            "approve:requests"
-          ]
-        }
-      },
-      {
-        "name": "admin",
-        "description": "Administrator with full system access",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {
-          "permissions": [
-            "read:*",
-            "write:*",
-            "delete:*",
-            "manage:users",
-            "manage:roles",
-            "manage:settings",
-            "manage:system",
-            "view:audit-logs"
-          ]
-        }
-      }
     ],
     "client": {
       "realm-management": [
