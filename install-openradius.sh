@@ -1042,7 +1042,7 @@ show_summary() {
     echo -e "${CYAN}Keycloak Admin:${NC}"
     echo -e "  URL:      ${GREEN}https://auth.$DOMAIN/admin${NC}"
     echo -e "  Username: ${GREEN}admin${NC}"
-    echo -e "  Password: ${YELLOW}[See credentials file]${NC}"
+    echo -e "  Password: ${YELLOW}$KEYCLOAK_ADMIN_PASSWORD${NC}"
     echo ""
     
     echo -e "${CYAN}Useful Commands:${NC}"
@@ -1119,6 +1119,13 @@ show_summary() {
     echo ""
     
     print_warning "IMPORTANT: Securely store the credentials file and delete it from the server!"
+    
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${PURPLE}                    Powered by Ali Al-Estarbadee${NC}"
+    echo -e "${PURPLE}                    Email: ali87mohammed@hotmail.com${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
 }
 
 # =============================================================================
