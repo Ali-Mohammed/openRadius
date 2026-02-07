@@ -5,6 +5,9 @@
 # =============================================================================
 # This script installs Docker, Docker Compose, and sets up OpenRadius
 # with nginx reverse proxy for production deployment on Ubuntu.
+#
+# Powered By: Ali Al-Estarbadee
+# Email: ali87mohammed@hotmail.com
 # =============================================================================
 
 set -e  # Exit on any error
