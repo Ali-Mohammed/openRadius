@@ -1093,6 +1093,7 @@ public class UserManagementDbController : ControllerBase
             var permissions = includeDeleted
                 ? await _context.Permissions.Where(p => p.IsDeleted).ToListAsync()
                 : await _context.Permissions.Where(p => !p.IsDeleted).ToListAsync();
+            _logger.LogWarning("GetPermissions returning {Count} permissions (includeDeleted={IncludeDeleted})", permissions.Count, includeDeleted);
             return Ok(permissions);
         }
         catch (Exception ex)
