@@ -734,8 +734,9 @@ configure_keycloak() {
         --password "$KEYCLOAK_ADMIN_PASSWORD" 2>&1 | grep -v "Logging into" || true
     
     # Check if keycloak-config.json exists and import it
+    print_info "Checking for keycloak-config.json..."
     if [ -f "/opt/openradius/keycloak/keycloak-config.json" ]; then
-        print_info "Importing Keycloak configuration from keycloak-config.json..."
+        print_success "Found keycloak-config.json, importing configuration..."
         
         # Create a temporary copy for production
         cp /opt/openradius/keycloak/keycloak-config.json /tmp/keycloak-config-prod.json
@@ -775,7 +776,10 @@ configure_keycloak() {
         
         print_success "Keycloak configuration imported successfully with all client scopes"
     else
-        print_warning "keycloak-config.json not found, creating minimal configuration..."
+        print_error "keycloak-config.json NOT found at /opt/openradius/keycloak/keycloak-config.json"
+        print_info "Listing files in /opt/openradius/keycloak/:"
+        ls -la /opt/openradius/keycloak/ 2>/dev/null || print_error "Directory does not exist"
+        print_warning "Creating minimal Keycloak configuration instead..."
         
         # Fallback to manual creation if config file doesn't exist
         -s clientId=openradius-web \
