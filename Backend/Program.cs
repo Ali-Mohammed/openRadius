@@ -453,16 +453,16 @@ using (var scope = app.Services.CreateScope())
                 builder.Configuration.GetConnectionString("DefaultConnection")!,
                 workspace.Id
             );
-            
-            using var jobScope = app.Services.CreateScope();
+
+                using var jobScope = app.Services.CreateScope();
             var dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseNpgsql(tenantConnectionString)
                 .Options;
-            
-            using var context = new ApplicationDbContext(dbContextOptions, null!);
-            
-            // Find all integrations with sync enabled
-            var integrationsWithSync = await context.SasRadiusIntegrations
+
+                using var context = new ApplicationDbContext(dbContextOptions, null!);
+
+                // Find all integrations with sync enabled
+                var integrationsWithSync = await context.SasRadiusIntegrations
                 .Where(i => i.SyncOnlineUsers && i.IsActive && !i.IsDeleted)
                 .ToListAsync();
             
