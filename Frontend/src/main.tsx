@@ -5,7 +5,8 @@ import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { ConnectionErrorPage } from './components/ConnectionErrorPage'
-import { apiClient } from './lib/api'
+import { RateLimitPage } from './components/RateLimitPage'
+import { apiClient, onRateLimited } from './lib/api'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,18 @@ const queryClient = new QueryClient({
 
 function AppWithConnectionCheck() {
   const [hasConnectionError, setHasConnectionError] = useState(false)
+  const [isRateLimited, setIsRateLimited] = useState(false)
+  const [retryAfter, setRetryAfter] = useState<string>('00:01:00')
   const [isChecking, setIsChecking] = useState(true)
+
+  // Global rate limit listener — any 429 from anywhere triggers the full page
+  useEffect(() => {
+    const unsubscribe = onRateLimited((retry) => {
+      setRetryAfter(retry)
+      setIsRateLimited(true)
+    })
+    return unsubscribe
+  }, [])
 
   useEffect(() => {
     // Check connection on mount
@@ -76,6 +88,18 @@ function AppWithConnectionCheck() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
+    )
+  }
+
+  if (isRateLimited) {
+    return (
+      <RateLimitPage
+        retryAfter={retryAfter}
+        onRetry={() => {
+          setIsRateLimited(false)
+          window.location.reload()
+        }}
+      />
     )
   }
 
