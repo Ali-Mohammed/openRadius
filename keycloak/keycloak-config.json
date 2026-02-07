@@ -539,13 +539,10 @@
       "authorizationServicesEnabled": false,
       "redirectUris": [
         "http://localhost:5173/*",
-        "http://localhost:5173",
-        "https://open-radius.org/*",
-        "https://open-radius.org"
+        "http://localhost:5173"
       ],
       "webOrigins": [
-        "http://localhost:5173",
-        "https://open-radius.org"
+        "http://localhost:5173"
       ],
       "baseUrl": "http://localhost:5173",
       "rootUrl": "http://localhost:5173",
