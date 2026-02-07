@@ -769,7 +769,7 @@ configure_keycloak() {
         
         # Now import everything else (client scopes, clients, etc) using partial import
         print_info "Importing client scopes, clients, and configurations..."
-        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partialImport \
+        docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh create partials/import \
             -r openradius \
             -s ifResourceExists=OVERWRITE \
             -f /tmp/keycloak-config.json 2>&1 || print_warning "Some resources may already exist"
