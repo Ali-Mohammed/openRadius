@@ -656,6 +656,13 @@ pull_docker_images() {
 start_services() {
     print_step "Starting OpenRadius services..."
     
+    # Stop system nginx if it's running (Docker nginx will take over)
+    if systemctl is-active --quiet nginx 2>/dev/null; then
+        print_info "Stopping system nginx to free port 80/443 for Docker..."
+        sudo systemctl stop nginx
+        sudo systemctl disable nginx 2>/dev/null || true
+    fi
+    
     docker compose -f docker-compose.prod.yml up -d
     
     print_success "Services started"
