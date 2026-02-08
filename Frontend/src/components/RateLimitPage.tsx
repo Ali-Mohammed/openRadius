@@ -68,33 +68,33 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
   const progress = totalSeconds > 0 ? ((totalSeconds - countdown) / totalSeconds) * 100 : 100
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <div className="max-w-lg w-full text-center space-y-5">
         {/* Icon with animated glow */}
         <div className="flex justify-center">
           <div className="relative">
-            <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full animate-pulse" />
-            <div className="relative bg-white dark:bg-gray-800 rounded-full p-6 shadow-xl border border-amber-200 dark:border-amber-800">
-              <ShieldAlert className="w-16 h-16 text-amber-500" />
+            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+            <div className="relative bg-card rounded-full p-6 shadow-xl border">
+              <ShieldAlert className="w-16 h-16 text-primary" />
             </div>
           </div>
         </div>
 
         {/* Title & description */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Rate Limit Exceeded
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             Too many requests have been made in a short period
           </p>
         </div>
 
         {/* Countdown timer card */}
-        <div className="bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 rounded-xl p-5 shadow-lg space-y-3">
+        <div className="bg-card border rounded-xl p-5 shadow-lg space-y-3">
           <div className="flex items-center justify-center gap-3">
-            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-medium text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+            <Clock className="w-5 h-5 text-primary" />
+            <span className="text-sm font-medium text-foreground uppercase tracking-wider">
               {canRetry ? 'Ready to retry' : 'Please wait'}
             </span>
           </div>
@@ -111,7 +111,7 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
                   stroke="currentColor"
                   strokeWidth="8"
                   fill="none"
-                  className="text-gray-200 dark:text-gray-700"
+                  className="text-muted"
                 />
                 {/* Progress circle */}
                 <circle
@@ -122,13 +122,13 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
                   strokeWidth="8"
                   fill="none"
                   strokeLinecap="round"
-                  className="text-amber-500 transition-all duration-1000 ease-linear"
+                  className="text-primary transition-all duration-1000 ease-linear"
                   strokeDasharray={`${2 * Math.PI * 56}`}
                   strokeDashoffset={`${2 * Math.PI * 56 * (1 - progress / 100)}`}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xl font-bold text-gray-900 dark:text-white font-mono">
+                <span className="text-xl font-bold text-foreground font-mono">
                   {canRetry ? '✓' : formatCountdown(countdown)}
                 </span>
               </div>
@@ -137,14 +137,14 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
         </div>
 
         {/* Info box */}
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+        <div className="bg-muted border rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Activity className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <Activity className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div className="text-left">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              <p className="text-sm font-medium text-foreground">
                 Why am I seeing this?
               </p>
-              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              <p className="mt-1 text-sm text-muted-foreground">
                 To ensure fair usage and system stability, request rates are
                 limited. This protection helps maintain optimal performance
                 for all users.
@@ -157,25 +157,22 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
         <div className="space-y-2">
           <Button
             onClick={handleRetry}
-            className={`w-full transition-all duration-300 ${
-              canRetry
-                ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/25'
-                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-            }`}
+            className="w-full"
+            variant={canRetry ? 'default' : 'secondary'}
             disabled={!canRetry}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${canRetry ? 'animate-none' : ''}`} />
             {canRetry ? 'Try Again' : `Wait ${formatCountdown(countdown)}...`}
           </Button>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground">
             The button will become available once the cooldown period ends
           </p>
         </div>
 
         {/* Enterprise footer */}
-        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+        <div className="pt-3 border-t">
+          <p className="text-xs text-muted-foreground">
             If you believe this is an error, please contact your system administrator
           </p>
         </div>
