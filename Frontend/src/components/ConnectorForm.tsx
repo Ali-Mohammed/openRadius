@@ -258,11 +258,11 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
         </CardHeader>
         <CardContent>
           {/* Workspace Database Info */}
-          <Alert className="mb-4 bg-purple-50 border-purple-200">
-            <Database className="h-4 w-4 text-purple-600" />
-            <AlertTitle className="text-purple-900 font-semibold">Current Workspace Database</AlertTitle>
-            <AlertDescription className="text-purple-800 text-sm mt-2">
-              <p>You are configuring a connector for: <code className="bg-purple-100 px-1 rounded font-mono font-semibold">openradius_workspace_1</code></p>
+          <Alert className="mb-4 bg-muted border">
+            <Database className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-foreground font-semibold">Current Workspace Database</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-sm mt-2">
+              <p>You are configuring a connector for: <code className="bg-primary/10 px-1 rounded font-mono font-semibold">openradius_workspace_1</code></p>
               <p className="mt-1 text-xs">
                 ✓ Connector configuration is stored per workspace<br />
                 ✓ Default database name pre-filled with current workspace<br />
@@ -283,7 +283,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Unique identifier for this connector. Cannot be changed after creation. Use lowercase with hyphens (e.g., cloud-users-source)</p>
@@ -310,7 +310,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">The type of database you want to capture changes from. Each connector is optimized for its specific database.</p>
@@ -357,13 +357,13 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Source Database Connection</h3>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
                   Reading FROM this database →
                 </Badge>
               </div>
-              <Alert className="bg-blue-50 border-blue-200">
-                <Database className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800 text-sm">
+              <Alert className="bg-primary/5 border-primary/30">
+                <Database className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-muted-foreground text-sm">
                   <strong>Configure the database you want to capture changes FROM.</strong> This connector will monitor this database and stream changes to Kafka/Redpanda.
                 </AlertDescription>
               </Alert>
@@ -516,19 +516,19 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                   {testing ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : connectionStatus === 'connected' ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : connectionStatus === 'failed' ? (
-                    <XCircle className="h-4 w-4 text-red-600" />
+                    <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                   ) : (
                     <Database className="h-4 w-4" />
                   )}
                   {testing ? 'Testing Connection...' : 'Test Database Connection'}
                 </Button>
                 {connectionStatus === 'connected' && (
-                  <span className="text-sm text-green-600 font-medium">✓ Connection successful</span>
+                  <span className="text-sm text-green-600 dark:text-green-400 font-medium">✓ Connection successful</span>
                 )}
                 {connectionStatus === 'failed' && (
-                  <span className="text-sm text-red-600 font-medium">✗ Connection failed</span>
+                  <span className="text-sm text-red-600 dark:text-red-400 font-medium">✗ Connection failed</span>
                 )}
               </div>
             </div>
@@ -544,7 +544,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">The logical decoding output plugin installed in PostgreSQL. pgoutput is built-in and recommended for most use cases.</p>
@@ -562,7 +562,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <SelectContent>
                       <SelectItem value="pgoutput">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Shield className="h-4 w-4 text-blue-600" />
+                          <Shield className="h-4 w-4 text-primary" />
                           <div>
                             <div className="font-medium">pgoutput</div>
                             <div className="text-xs text-muted-foreground">Built-in, no extra installation</div>
@@ -571,7 +571,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="decoderbufs">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <FileJson className="h-4 w-4 text-purple-600" />
+                          <FileJson className="h-4 w-4 text-primary" />
                           <div>
                             <div className="font-medium">decoderbufs</div>
                             <div className="text-xs text-muted-foreground">Protocol buffers format</div>
@@ -600,7 +600,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">A unique name for the PostgreSQL replication slot. Must contain only lowercase letters, digits, and underscores (max 63 chars). Auto-generated if left empty.</p>
@@ -608,9 +608,9 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <Alert className="bg-red-50 border-red-300 mb-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <AlertDescription className="text-red-800 text-xs">
+                  <Alert className="bg-destructive/10 border-destructive/30 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <AlertDescription className="text-destructive text-xs">
                       <strong>CRITICAL:</strong> Each connector MUST have a UNIQUE slot name. Reusing a slot name will cause "slot already exists" errors and connector failure.
                     </AlertDescription>
                   </Alert>
@@ -655,7 +655,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <SelectContent>
                       <SelectItem value="filtered">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Zap className="h-4 w-4 text-green-600" />
+                          <Zap className="h-4 w-4 text-green-600 dark:text-green-400" />
                           <div>
                             <div className="font-medium">Filtered</div>
                             <div className="text-xs text-muted-foreground">Only specified tables (Recommended)</div>
@@ -664,7 +664,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="all_tables">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Database className="h-4 w-4 text-blue-600" />
+                          <Database className="h-4 w-4 text-primary" />
                           <div>
                             <div className="font-medium">All Tables</div>
                             <div className="text-xs text-muted-foreground">Track all tables in the database</div>
@@ -673,7 +673,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="disabled">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Shield className="h-4 w-4 text-gray-600" />
+                          <Shield className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <div className="font-medium">Disabled</div>
                             <div className="text-xs text-muted-foreground">Use existing publication</div>
@@ -693,7 +693,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Controls when to take a snapshot of existing data. Initial mode snapshots once, then only tracks changes.</p>
@@ -711,7 +711,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <SelectContent>
                       <SelectItem value="initial">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Camera className="h-4 w-4 text-blue-600" />
+                          <Camera className="h-4 w-4 text-primary" />
                           <div>
                             <div className="font-medium">Initial</div>
                             <div className="text-xs text-muted-foreground">Snapshot on first run only (Recommended)</div>
@@ -729,7 +729,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="never">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Zap className="h-4 w-4 text-purple-600" />
+                          <Zap className="h-4 w-4 text-primary" />
                           <div>
                             <div className="font-medium">Never</div>
                             <div className="text-xs text-muted-foreground">Only track changes, no snapshot</div>
@@ -738,7 +738,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="exported">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Shield className="h-4 w-4 text-green-600" />
+                          <Shield className="h-4 w-4 text-green-600 dark:text-green-400" />
                           <div>
                             <div className="font-medium">Exported</div>
                             <div className="text-xs text-muted-foreground">Use existing snapshot transaction</div>
@@ -758,7 +758,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Select tables to track changes from. Test database connection first to load available tables.</p>
@@ -958,13 +958,13 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Configuration Preview</h3>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
                   SOURCE Connector Config
                 </Badge>
               </div>
-              <Alert className="bg-blue-50 border-blue-200">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800 text-xs">
+              <Alert className="bg-primary/5 border-primary/30">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-muted-foreground text-xs">
                   This shows the configuration for the SOURCE connector that will READ data from the database you configured above. 
                   This is NOT the target/destination database - to write data to a target, you'll need a separate SINK connector.
                 </AlertDescription>
@@ -1020,16 +1020,16 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Target (Sink) Connector Setup</h3>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30">
                   Writing TO target database ←
                 </Badge>
               </div>
-              <Alert className="bg-green-50 border-green-200">
-                <Database className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-900 font-semibold mb-2">Complete the Data Flow</AlertTitle>
-                <AlertDescription className="text-green-800 text-sm space-y-2">
+              <Alert className="bg-green-500/10 border-green-500/30">
+                <Database className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertTitle className="text-foreground font-semibold mb-2">Complete the Data Flow</AlertTitle>
+                <AlertDescription className="text-muted-foreground text-sm space-y-2">
                   <p>After creating this SOURCE connector, you need a SINK connector on the target system to write the Kafka data to a database.</p>
-                  <div className="bg-green-100 p-2 rounded font-mono text-xs mt-2">
+                  <div className="bg-green-500/10 p-2 rounded font-mono text-xs mt-2">
                     {formData.databaseHostname}/{formData.databaseName} → Kafka → SINK Connector → Target DB
                   </div>
                 </AlertDescription>
@@ -1044,9 +1044,9 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-3">
                   <div className="space-y-3">
-                    <Alert className="bg-yellow-50 border-yellow-200">
-                      <Info className="h-4 w-4 text-yellow-600" />
-                      <AlertDescription className="text-yellow-800 text-xs">
+                    <Alert className="bg-yellow-500/10 border-yellow-500/30">
+                      <Info className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                      <AlertDescription className="text-muted-foreground text-xs">
                         <strong>Note:</strong> This sink connector must be created on your target system (not in OpenRadius). 
                         It connects to Kafka and writes data to your target database.
                       </AlertDescription>
@@ -1076,9 +1076,9 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </pre>
                     </div>
                     
-                    <div className="bg-blue-50 p-3 rounded text-xs space-y-2">
-                      <p className="font-semibold text-blue-900">Key Configuration Points:</p>
-                      <ul className="list-disc list-inside space-y-1 text-blue-800 ml-2">
+                    <div className="bg-primary/5 p-3 rounded text-xs space-y-2">
+                      <p className="font-semibold text-foreground">Key Configuration Points:</p>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
                         <li><strong>connection.url:</strong> JDBC URL to your TARGET database (where you want to write data)</li>
                         <li><strong>topics:</strong> Kafka topics created by this source connector ({selectedTables.length > 0 ? selectedTables.map(t => `${formData.databaseServerName}.${t}`).join(', ') : `${formData.databaseServerName}.public.*`})</li>
                         <li><strong>auto.create:</strong> Automatically creates tables in target database</li>
@@ -1086,11 +1086,11 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </ul>
                     </div>
                     
-                    <div className="bg-purple-50 p-3 rounded text-xs space-y-2">
-                      <p className="font-semibold text-purple-900">Alternative: Custom Application</p>
-                      <p className="text-purple-800">Instead of a JDBC Sink Connector, you can build a custom application that:</p>
-                      <ul className="list-disc list-inside space-y-1 text-purple-800 ml-2">
-                        <li>Consumes from Kafka topics: <code className="bg-purple-100 px-1 rounded">{formData.databaseServerName}.public.*</code></li>
+                    <div className="bg-muted p-3 rounded text-xs space-y-2">
+                      <p className="font-semibold text-foreground">Alternative: Custom Application</p>
+                      <p className="text-muted-foreground">Instead of a JDBC Sink Connector, you can build a custom application that:</p>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
+                        <li>Consumes from Kafka topics: <code className="bg-primary/10 px-1 rounded">{formData.databaseServerName}.public.*</code></li>
                         <li>Processes/transforms the data as needed</li>
                         <li>Writes to your target database or API</li>
                         <li>Useful when you need custom business logic during sync</li>
