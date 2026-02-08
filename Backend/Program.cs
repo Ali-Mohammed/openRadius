@@ -224,6 +224,9 @@ try
     // Add SAS Activation Service
     builder.Services.AddScoped<ISasActivationService, SasActivationService>();
 
+    // Add System Update Service for Docker-based updates
+    builder.Services.AddScoped<ISystemUpdateService, SystemUpdateService>();
+
     // Add Kafka Consumer Service for CDC monitoring
     builder.Services.AddHostedService<KafkaConsumerService>();
 

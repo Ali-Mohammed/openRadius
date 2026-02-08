@@ -510,6 +510,9 @@ public static class SeedData
             new Permission { Name = "settings.integrations.create", Description = "Create integrations", Category = "Settings" },
             new Permission { Name = "settings.integrations.update", Description = "Update integrations", Category = "Settings" },
             new Permission { Name = "settings.integrations.delete", Description = "Delete integrations", Category = "Settings" },
+            // System Update
+            new Permission { Name = "settings.system-update.view", Description = "View system update status", Category = "Settings" },
+            new Permission { Name = "settings.system-update.update", Description = "Apply system updates", Category = "Settings" },
             // User Management
             new Permission { Name = "users.view", Description = "View users", Category = "UserManagement" },
             new Permission { Name = "users.create", Description = "Create users", Category = "UserManagement" },

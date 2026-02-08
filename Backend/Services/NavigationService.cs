@@ -298,6 +298,7 @@ public class NavigationService : INavigationService
                     new() { TitleKey = "navigation.paymentInformation", Url = "/settings/payment-history", Icon = "CreditCard", RequiredPermission = "settings.payment-history.view" },
                     new() { TitleKey = "navigation.oidc", Url = "/settings/oidc", Icon = "Key", RequiredPermission = "settings.oidc.view" },
                     new() { TitleKey = "navigation.databaseBackup", Url = "/settings/database-backup", Icon = "HardDrive", RequiredPermission = "settings.database-backup.view" },
+                    new() { TitleKey = "navigation.systemUpdate", Url = "/settings/system-update", Icon = "RefreshCcw", RequiredPermission = "settings.system-update.view" },
                     new() { TitleKey = "navigation.integrations", Url = "/integrations", Icon = "Radio", RequiredPermission = "settings.integrations.view" },
                 }
             },

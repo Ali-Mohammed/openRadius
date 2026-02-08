@@ -65,6 +65,7 @@ import PaymentInformation from './pages/settings/PaymentInformation'
 import OidcSettings from './pages/settings/OidcSettings'
 import DatabaseBackup from './pages/settings/DatabaseBackup'
 import WorkspaceSettings from './pages/settings/WorkspaceSettings'
+import SystemUpdatePage from './pages/settings/SystemUpdatePage'
 // User Management
 import UserManagement from './pages/user-management/UserManagement'
 import RolesPage from './pages/user-management/RolesPage'
@@ -135,6 +136,7 @@ function App() {
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/settings/oidc" element={<OidcSettings />} />
                           <Route path="/settings/database-backup" element={<DatabaseBackup />} />
+                          <Route path="/settings/system-update" element={<SystemUpdatePage />} />
                           <Route path="/users" element={<UserManagement />} />
                           <Route path="/roles" element={<RolesPage />} />
                           <Route path="/permissions" element={<PermissionsPage />} />
