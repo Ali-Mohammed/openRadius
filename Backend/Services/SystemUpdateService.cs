@@ -129,7 +129,12 @@ public class SystemUpdateService : ISystemUpdateService
         var allConfigs = GetServiceConfigs();
         var results = new List<ServiceUpdateResult>();
 
-        foreach (var name in serviceNames)
+        // Sort so backend is always updated LAST (it restarts itself)
+        var orderedNames = serviceNames
+            .OrderBy(n => n.Equals("backend", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+            .ToList();
+
+        foreach (var name in orderedNames)
         {
             var svc = allConfigs.FirstOrDefault(s =>
                 s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -398,23 +403,45 @@ public class SystemUpdateService : ISystemUpdateService
             result.NewDigest = ExtractDigest(newDigestOutput);
 
             // Step 4: Restart the container
-            // Try docker compose first, then fallback to docker stop/start
-            var restarted = await TryRestartWithCompose(svc);
-            if (!restarted)
-                restarted = await TryRestartWithDocker(svc);
+            // For backend (self-update): schedule a delayed restart so the API can respond first
+            var isSelfUpdate = svc.Name.Equals("backend", StringComparison.OrdinalIgnoreCase);
 
-            if (restarted)
+            if (isSelfUpdate)
             {
-                result.Success = true;
-                result.Message = $"Successfully updated {svc.Name}. New image pulled and container restarted.";
-                _logger.LogInformation("Service {Service} updated successfully", svc.Name);
+                var scheduled = await ScheduleDelayedRestart(svc);
+                if (scheduled)
+                {
+                    result.Success = true;
+                    result.Message = $"Successfully pulled new image for {svc.Name}. Container will restart in a few seconds.";
+                    _logger.LogInformation("Backend self-update: delayed restart scheduled for {Service}", svc.Name);
+                }
+                else
+                {
+                    result.Success = true;
+                    result.Message = $"New image pulled for {svc.Name}. Please restart the backend container manually.";
+                    _logger.LogWarning("Backend self-update: could not schedule restart for {Service}", svc.Name);
+                }
             }
             else
             {
-                // Image pulled but container not restarted — still partially successful
-                result.Success = true;
-                result.Message = $"New image pulled for {svc.Name}. Container restart may require manual intervention.";
-                _logger.LogWarning("Image pulled for {Service} but automatic restart not available", svc.Name);
+                // For other services: restart immediately
+                var restarted = await TryRestartWithCompose(svc);
+                if (!restarted)
+                    restarted = await TryRestartWithDocker(svc);
+
+                if (restarted)
+                {
+                    result.Success = true;
+                    result.Message = $"Successfully updated {svc.Name}. New image pulled and container restarted.";
+                    _logger.LogInformation("Service {Service} updated successfully", svc.Name);
+                }
+                else
+                {
+                    // Image pulled but container not restarted — still partially successful
+                    result.Success = true;
+                    result.Message = $"New image pulled for {svc.Name}. Container restart may require manual intervention.";
+                    _logger.LogWarning("Image pulled for {Service} but automatic restart not available", svc.Name);
+                }
             }
         }
         catch (Exception ex)
@@ -428,14 +455,45 @@ public class SystemUpdateService : ISystemUpdateService
         return result;
     }
 
-    private async Task<bool> TryRestartWithCompose(ServiceConfig svc)
+    /// <summary>
+    /// Schedules a delayed restart for the backend container (self-update).
+    /// Uses nohup + sleep so the compose restart runs AFTER the API response is sent,
+    /// preventing the container from dying mid-request.
+    /// </summary>
+    private async Task<bool> ScheduleDelayedRestart(ServiceConfig svc)
     {
-        // Check if docker compose is available and a compose file exists
+        var composePath = FindComposePath();
+        if (composePath == null)
+        {
+            _logger.LogWarning("No compose file found for delayed restart");
+            return false;
+        }
+
+        var composeDir = Path.GetDirectoryName(composePath)!;
+        var composeFile = Path.GetFileName(composePath);
+
+        // Launch a detached background process that waits 3 seconds then restarts the backend
+        // nohup ensures the process survives the container stopping
+        var command = $"nohup sh -c 'sleep 3 && cd \"{composeDir}\" && docker compose -f \"{composeFile}\" up -d --no-deps --pull never {svc.ComposeService}' > /tmp/backend-restart.log 2>&1 &";
+
+        var (exitCode, output) = await RunShellCommand(command, timeoutSeconds: 5);
+
+        if (exitCode == 0)
+        {
+            _logger.LogInformation("Delayed restart scheduled for {Service} (3s delay)", svc.Name);
+            return true;
+        }
+
+        _logger.LogWarning("Failed to schedule delayed restart: exit={ExitCode}, output={Output}", exitCode, output);
+        return false;
+    }
+
+    private string? FindComposePath()
+    {
         var composePath = _configuration["SystemUpdate:DockerComposePath"];
 
         if (string.IsNullOrEmpty(composePath))
         {
-            // Try common locations
             var commonPaths = new[]
             {
                 "/opt/openradius/docker-compose.prod.yml",
@@ -447,7 +505,14 @@ public class SystemUpdateService : ISystemUpdateService
             composePath = commonPaths.FirstOrDefault(File.Exists);
         }
 
-        if (string.IsNullOrEmpty(composePath) || !File.Exists(composePath))
+        return !string.IsNullOrEmpty(composePath) && File.Exists(composePath) ? composePath : null;
+    }
+
+    private async Task<bool> TryRestartWithCompose(ServiceConfig svc)
+    {
+        var composePath = FindComposePath();
+
+        if (composePath == null)
         {
             _logger.LogDebug("No docker-compose file found, skipping compose restart");
             return false;
