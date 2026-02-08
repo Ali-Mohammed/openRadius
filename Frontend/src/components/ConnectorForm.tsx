@@ -375,7 +375,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">The hostname or IP address of your PostgreSQL database server. Use container name if running in Docker.</p>
@@ -401,7 +401,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">PostgreSQL default port is 5432. MySQL uses 3306, MongoDB uses 27017.</p>
@@ -424,7 +424,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Database user must have REPLICATION and SELECT privileges on the tables you want to track.</p>
@@ -457,7 +457,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">The name of the PostgreSQL database containing the tables you want to track.</p>
@@ -483,7 +483,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Logical name used as a prefix for Kafka topics. Should be unique across all connectors.</p>
@@ -637,7 +637,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Controls how PostgreSQL publications are created for tracking changes. Filtered mode only tracks specified tables.</p>
@@ -834,7 +834,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-md">
                       <p>Transforms modify data as it flows through the connector. Common uses: adding fields, filtering, routing, format conversion.</p>
@@ -927,7 +927,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-md">
                         <p>Add transforms and other advanced configuration in JSON format. Copy one of the examples above and customize it for your needs.</p>
