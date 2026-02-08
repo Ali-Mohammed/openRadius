@@ -77,3 +77,12 @@
 - IsDeleted 
 - Soft delete pattern preferred
 - Versioning for concurrency (RowVersion / ETag)
+
+## Permissions & Roles
+- Check when new page/feature is added have permissions added to the database and assigned to the appropriate roles
+- Permissions should be granular and follow the pattern: `resource.action` (e.g., `users.view`, `users.create`, `settings.oidc.update`)
+- Roles should be assigned permissions based on the principle of least privilege
+- Admin role should have all permissions
+- Regular users should only have permissions necessary for their tasks
+- Implement role-based access control (RBAC) in the backend to enforce permissions
+- Frontend should also check permissions to show/hide UI elements accordingly
