@@ -488,6 +488,8 @@ public static class SeedData
             // RADIUS Activations
             new Permission { Name = "radius.activations.view", Description = "View RADIUS activations", Category = "RADIUS" },
             new Permission { Name = "radius.activations.create", Description = "Create RADIUS activations", Category = "RADIUS" },
+            new Permission { Name = "radius.activations.update", Description = "Update RADIUS activations", Category = "RADIUS" },
+            new Permission { Name = "radius.activations.delete", Description = "Delete RADIUS activations", Category = "RADIUS" },
             // Workspace
             new Permission { Name = "workspace.view", Description = "View workspace details", Category = "Workspace" },
             new Permission { Name = "workspace.create", Description = "Create workspaces", Category = "Workspace" },
@@ -524,6 +526,7 @@ public static class SeedData
             new Permission { Name = "users.delete", Description = "Delete users", Category = "UserManagement" },
             new Permission { Name = "users.assign_roles", Description = "Assign roles to users", Category = "UserManagement" },
             new Permission { Name = "users.assign_groups", Description = "Assign groups to users", Category = "UserManagement" },
+            new Permission { Name = "users.impersonate", Description = "Impersonate other users", Category = "UserManagement" },
             // Roles Management
             new Permission { Name = "roles.view", Description = "View roles", Category = "UserManagement" },
             new Permission { Name = "roles.create", Description = "Create roles", Category = "UserManagement" },
@@ -558,6 +561,19 @@ public static class SeedData
             new Permission { Name = "billing.profiles.delete", Description = "Delete billing profiles", Category = "Billing" },
             new Permission { Name = "billing.activations.view", Description = "View billing activations", Category = "Billing" },
             new Permission { Name = "billing.activations.create", Description = "Create billing activations", Category = "Billing" },
+            // Payment Methods
+            new Permission { Name = "settings.payment-methods.view", Description = "View payment methods", Category = "Settings" },
+            new Permission { Name = "settings.payment-methods.create", Description = "Create payment methods", Category = "Settings" },
+            new Permission { Name = "settings.payment-methods.update", Description = "Update payment methods", Category = "Settings" },
+            new Permission { Name = "settings.payment-methods.delete", Description = "Delete payment methods", Category = "Settings" },
+            // Payments
+            new Permission { Name = "payments.view", Description = "View payment status and history", Category = "Billing" },
+            new Permission { Name = "payments.create", Description = "Initiate payments", Category = "Billing" },
+            // Jobs
+            new Permission { Name = "jobs.view", Description = "View background jobs", Category = "Settings" },
+            new Permission { Name = "jobs.manage", Description = "Manage background jobs", Category = "Settings" },
+            // FreeRadius Logs
+            new Permission { Name = "freeradius.logs.view", Description = "View FreeRADIUS logs", Category = "General" },
             // Billing Addons
             new Permission { Name = "billing.addons.view", Description = "View billing addons", Category = "Billing" },
             new Permission { Name = "billing.addons.create", Description = "Create billing addons", Category = "Billing" },
