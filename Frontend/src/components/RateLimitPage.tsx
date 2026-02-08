@@ -69,29 +69,29 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-lg w-full text-center space-y-8">
+      <div className="max-w-lg w-full text-center space-y-5">
         {/* Icon with animated glow */}
         <div className="flex justify-center">
           <div className="relative">
             <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full animate-pulse" />
-            <div className="relative bg-white dark:bg-gray-800 rounded-full p-8 shadow-xl border border-amber-200 dark:border-amber-800">
-              <ShieldAlert className="w-20 h-20 text-amber-500" />
+            <div className="relative bg-white dark:bg-gray-800 rounded-full p-6 shadow-xl border border-amber-200 dark:border-amber-800">
+              <ShieldAlert className="w-16 h-16 text-amber-500" />
             </div>
           </div>
         </div>
 
         {/* Title & description */}
-        <div className="space-y-3">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
             Rate Limit Exceeded
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">
+          <p className="text-gray-600 dark:text-gray-400">
             Too many requests have been made in a short period
           </p>
         </div>
 
         {/* Countdown timer card */}
-        <div className="bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 rounded-xl p-6 shadow-lg space-y-4">
+        <div className="bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 rounded-xl p-5 shadow-lg space-y-3">
           <div className="flex items-center justify-center gap-3">
             <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             <span className="text-sm font-medium text-amber-800 dark:text-amber-300 uppercase tracking-wider">
@@ -101,8 +101,8 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
 
           {/* Circular progress indicator */}
           <div className="flex justify-center">
-            <div className="relative w-32 h-32">
-              <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 128 128">
+            <div className="relative w-24 h-24">
+              <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 128 128">
                 {/* Background circle */}
                 <circle
                   cx="64"
@@ -128,7 +128,7 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900 dark:text-white font-mono">
+                <span className="text-xl font-bold text-gray-900 dark:text-white font-mono">
                   {canRetry ? '✓' : formatCountdown(countdown)}
                 </span>
               </div>
@@ -154,7 +154,7 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
         </div>
 
         {/* Retry button */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Button
             onClick={handleRetry}
             className={`w-full transition-all duration-300 ${
@@ -162,7 +162,6 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
                 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/25'
                 : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
             }`}
-            size="lg"
             disabled={!canRetry}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${canRetry ? 'animate-none' : ''}`} />
@@ -175,7 +174,7 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
         </div>
 
         {/* Enterprise footer */}
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-400 dark:text-gray-500">
             If you believe this is an error, please contact your system administrator
           </p>
