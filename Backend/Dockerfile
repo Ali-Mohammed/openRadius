@@ -33,21 +33,22 @@ RUN dotnet publish "Backend.csproj" -c Release -o /app/publish \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 # Install required runtime dependencies + Docker CLI for system update feature
+# Note: aspnet:10.0 is Ubuntu-based (noble), so we use the Ubuntu Docker repo
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
     && install -m 0755 -d /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
     && chmod a+r /etc/apt/keyrings/docker.asc \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
     $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
     && apt-get install -y docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-# Add to docker group (created by docker-ce-cli package) for Docker socket access
-RUN groupadd -r openradius && useradd -r -g openradius -G docker openradius
+# Docker socket access is granted at runtime via group_add in docker-compose
+RUN groupadd -r openradius && useradd -r -g openradius openradius
 
 # Set working directory
 WORKDIR /app
