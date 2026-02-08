@@ -41,6 +41,13 @@
 
 ### Production Installation (Ubuntu)
 
+> **System Requirements:**
+> - **Operating System:** Ubuntu 24.04 LTS (tested and recommended)
+> - **Platform:** Linux required
+> - **Architecture:** x86_64 / amd64
+> - **Memory:** 4GB RAM minimum (8GB recommended)
+> - **Storage:** 20GB available space
+
 **Quick Install:**
 ```bash
 # Download and run installation script
