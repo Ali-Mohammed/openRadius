@@ -22,6 +22,17 @@ public interface ISystemUpdateService
     /// Pulls and restarts both backend and frontend services.
     /// </summary>
     Task<List<ServiceUpdateResult>> UpdateAllAsync();
+
+    /// <summary>
+    /// Pulls and restarts only the selected services.
+    /// </summary>
+    /// <param name="serviceNames">List of service names to update ("backend", "frontend")</param>
+    Task<List<ServiceUpdateResult>> UpdateSelectedAsync(List<string> serviceNames);
+
+    /// <summary>
+    /// Runs pre-update health checks to ensure the system is ready for an update.
+    /// </summary>
+    Task<PreUpdateCheckResult> RunPreUpdateChecksAsync(List<string> serviceNames);
 }
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
@@ -63,4 +74,24 @@ public class ServiceUpdateResult
     public string? OldDigest { get; set; }
     public string? NewDigest { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class PreUpdateCheckResult
+{
+    public bool Ready { get; set; }
+    public List<PreUpdateCheckItem> Checks { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+}
+
+public class PreUpdateCheckItem
+{
+    public string Name { get; set; } = string.Empty;
+    public bool Passed { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+public class UpdateSelectedRequest
+{
+    public List<string> Services { get; set; } = new();
+    public bool BackupConfirmed { get; set; }
 }

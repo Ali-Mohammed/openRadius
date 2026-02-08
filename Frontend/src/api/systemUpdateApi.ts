@@ -32,6 +32,23 @@ export interface ServiceUpdateResult {
   updatedAt: string
 }
 
+export interface PreUpdateCheckItem {
+  name: string
+  passed: boolean
+  message: string
+}
+
+export interface PreUpdateCheckResult {
+  ready: boolean
+  checks: PreUpdateCheckItem[]
+  warnings: string[]
+}
+
+export interface UpdateSelectedRequest {
+  services: string[]
+  backupConfirmed: boolean
+}
+
 // ── API ─────────────────────────────────────────────────────────────────────
 
 export const systemUpdateApi = {
@@ -50,6 +67,18 @@ export const systemUpdateApi = {
   /** Pull and restart both backend and frontend */
   updateAll: async (): Promise<ServiceUpdateResult[]> => {
     const { data } = await apiClient.post('/api/system-update/update-all')
+    return data
+  },
+
+  /** Pull and restart only the selected services */
+  updateSelected: async (request: UpdateSelectedRequest): Promise<ServiceUpdateResult[]> => {
+    const { data } = await apiClient.post('/api/system-update/update-selected', request)
+    return data
+  },
+
+  /** Run pre-update health checks for the selected services */
+  preCheck: async (services: string[]): Promise<PreUpdateCheckResult> => {
+    const { data } = await apiClient.post('/api/system-update/pre-check', { services })
     return data
   },
 }

@@ -90,4 +90,60 @@ public class SystemUpdateController : ControllerBase
             return StatusCode(500, new { error = "Failed to update services", message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// POST /api/system-update/update-selected
+    /// Pulls and restarts only the selected services.
+    /// </summary>
+    [HttpPost("update-selected")]
+    public async Task<ActionResult<List<ServiceUpdateResult>>> UpdateSelected([FromBody] UpdateSelectedRequest request)
+    {
+        if (request.Services == null || request.Services.Count == 0)
+            return BadRequest(new { error = "At least one service must be selected" });
+
+        if (!request.BackupConfirmed)
+            return BadRequest(new { error = "Backup confirmation is required before proceeding with updates" });
+
+        var validServices = new[] { "backend", "frontend" };
+        var invalid = request.Services.Where(s => !validServices.Contains(s.ToLower())).ToList();
+        if (invalid.Count > 0)
+            return BadRequest(new { error = $"Invalid services: {string.Join(", ", invalid)}. Must be 'backend' or 'frontend'" });
+
+        try
+        {
+            _logger.LogInformation(
+                "Update selected services requested: {Services} (backup confirmed: {BackupConfirmed})",
+                string.Join(", ", request.Services), request.BackupConfirmed);
+            var results = await _updateService.UpdateSelectedAsync(request.Services);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating selected services");
+            return StatusCode(500, new { error = "Failed to update services", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// POST /api/system-update/pre-check
+    /// Runs pre-update health checks to ensure the system is ready for an update.
+    /// </summary>
+    [HttpPost("pre-check")]
+    public async Task<ActionResult<PreUpdateCheckResult>> RunPreUpdateChecks([FromBody] UpdateSelectedRequest request)
+    {
+        if (request.Services == null || request.Services.Count == 0)
+            return BadRequest(new { error = "At least one service must be selected" });
+
+        try
+        {
+            _logger.LogInformation("Pre-update checks requested for: {Services}", string.Join(", ", request.Services));
+            var result = await _updateService.RunPreUpdateChecksAsync(request.Services);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error running pre-update checks");
+            return StatusCode(500, new { error = "Failed to run pre-update checks", message = ex.Message });
+        }
+    }
 }

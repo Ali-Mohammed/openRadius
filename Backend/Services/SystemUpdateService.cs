@@ -124,6 +124,142 @@ public class SystemUpdateService : ISystemUpdateService
         return results;
     }
 
+    public async Task<List<ServiceUpdateResult>> UpdateSelectedAsync(List<string> serviceNames)
+    {
+        var allConfigs = GetServiceConfigs();
+        var results = new List<ServiceUpdateResult>();
+
+        foreach (var name in serviceNames)
+        {
+            var svc = allConfigs.FirstOrDefault(s =>
+                s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (svc == null)
+            {
+                results.Add(new ServiceUpdateResult
+                {
+                    Success = false,
+                    ServiceName = name,
+                    Message = $"Unknown service: {name}. Valid services: backend, frontend"
+                });
+                continue;
+            }
+
+            _logger.LogInformation("Updating selected service: {Service}", name);
+            var result = await PullAndRestartService(svc);
+            results.Add(result);
+        }
+
+        return results;
+    }
+
+    public async Task<PreUpdateCheckResult> RunPreUpdateChecksAsync(List<string> serviceNames)
+    {
+        var result = new PreUpdateCheckResult { Ready = true };
+
+        // Check 1: Docker socket available
+        var (dockerExit, dockerOutput) = await RunDockerCommand("info --format \"{{.ServerVersion}}\"");
+        result.Checks.Add(new PreUpdateCheckItem
+        {
+            Name = "Docker Socket",
+            Passed = dockerExit == 0,
+            Message = dockerExit == 0
+                ? $"Docker daemon reachable (v{dockerOutput.Trim().Trim('"')})"
+                : "Cannot connect to Docker daemon. Is the socket mounted?"
+        });
+        if (dockerExit != 0) result.Ready = false;
+
+        // Check 2: Docker Compose available
+        var (composeExit, composeOutput) = await RunShellCommand("docker compose version --short");
+        result.Checks.Add(new PreUpdateCheckItem
+        {
+            Name = "Docker Compose",
+            Passed = composeExit == 0,
+            Message = composeExit == 0
+                ? $"Docker Compose available (v{composeOutput.Trim()})"
+                : "Docker Compose not available. Container restart may require manual intervention."
+        });
+
+        // Check 3: Compose file accessible
+        var composePath = _configuration["SystemUpdate:DockerComposePath"];
+        if (string.IsNullOrEmpty(composePath))
+        {
+            var commonPaths = new[]
+            {
+                "/opt/openradius/docker-compose.prod.yml",
+                "/app/docker-compose.prod.yml",
+                "/app/docker-compose.yml",
+                "/opt/openradius/docker-compose.yml"
+            };
+            composePath = commonPaths.FirstOrDefault(File.Exists);
+        }
+        var composeFileExists = !string.IsNullOrEmpty(composePath) && File.Exists(composePath);
+        result.Checks.Add(new PreUpdateCheckItem
+        {
+            Name = "Compose File",
+            Passed = composeFileExists,
+            Message = composeFileExists
+                ? $"Compose file found: {composePath}"
+                : "No compose file found. Services will be stopped but may not auto-restart."
+        });
+        if (!composeFileExists) result.Warnings.Add("Without a compose file, containers cannot be automatically recreated after update.");
+
+        // Check 4: Docker Hub reachable
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
+            var hubResponse = await client.GetAsync("https://hub.docker.com/v2/");
+            result.Checks.Add(new PreUpdateCheckItem
+            {
+                Name = "Docker Hub",
+                Passed = hubResponse.IsSuccessStatusCode,
+                Message = hubResponse.IsSuccessStatusCode
+                    ? "Docker Hub is reachable"
+                    : $"Docker Hub returned {hubResponse.StatusCode}"
+            });
+            if (!hubResponse.IsSuccessStatusCode) result.Ready = false;
+        }
+        catch (Exception ex)
+        {
+            result.Checks.Add(new PreUpdateCheckItem
+            {
+                Name = "Docker Hub",
+                Passed = false,
+                Message = $"Cannot reach Docker Hub: {ex.Message}"
+            });
+            result.Ready = false;
+        }
+
+        // Check 5: Containers running for selected services
+        var allConfigs = GetServiceConfigs();
+        foreach (var name in serviceNames)
+        {
+            var svc = allConfigs.FirstOrDefault(s =>
+                s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (svc == null) continue;
+
+            var (inspExit, _) = await RunDockerCommand($"inspect {svc.Container}");
+            result.Checks.Add(new PreUpdateCheckItem
+            {
+                Name = $"Container: {svc.Name}",
+                Passed = inspExit == 0,
+                Message = inspExit == 0
+                    ? $"Container '{svc.Container}' is accessible"
+                    : $"Container '{svc.Container}' not found"
+            });
+            if (inspExit != 0) result.Warnings.Add($"Container '{svc.Container}' was not found. A fresh deployment may be needed.");
+        }
+
+        // Warnings
+        if (serviceNames.Any(s => s.Equals("backend", StringComparison.OrdinalIgnoreCase)))
+        {
+            result.Warnings.Add("Updating the backend will cause a brief API outage. Active user sessions may be interrupted.");
+        }
+
+        return result;
+    }
+
     // ── Docker Hub API ──────────────────────────────────────────────────────
 
     private async Task PopulateLatestHubInfo(ServiceUpdateInfo info)
