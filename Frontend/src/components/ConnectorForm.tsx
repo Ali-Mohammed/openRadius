@@ -580,7 +580,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="wal2json">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <FileJson className="h-4 w-4 text-orange-600" />
+                          <FileJson className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                           <div>
                             <div className="font-medium">wal2json</div>
                             <div className="text-xs text-muted-foreground">JSON format output</div>
@@ -720,7 +720,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                       </SelectItem>
                       <SelectItem value="always">
                         <div className="flex items-center gap-2 w-full text-left">
-                          <Clock className="h-4 w-4 text-orange-600" />
+                          <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                           <div>
                             <div className="font-medium">Always</div>
                             <div className="text-xs text-muted-foreground">Snapshot every time connector starts</div>
