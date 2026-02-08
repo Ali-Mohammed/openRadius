@@ -424,10 +424,12 @@ public class SystemUpdateService : ISystemUpdateService
             }
             else
             {
-                // For other services: restart immediately
+                // For other services: restart via compose, then helper container, then safe docker restart
                 var restarted = await TryRestartWithCompose(svc);
                 if (!restarted)
-                    restarted = await TryRestartWithDocker(svc);
+                    restarted = await TryRestartWithHelperContainer(svc);
+                if (!restarted)
+                    restarted = await TrySafeDockerRestart(svc);
 
                 if (restarted)
                 {
@@ -439,7 +441,8 @@ public class SystemUpdateService : ISystemUpdateService
                 {
                     // Image pulled but container not restarted — still partially successful
                     result.Success = true;
-                    result.Message = $"New image pulled for {svc.Name}. Container restart may require manual intervention.";
+                    result.Message = $"New image pulled for {svc.Name}. Container restart may require manual intervention. " +
+                        "Run: cd /opt/openradius && docker compose -f docker-compose.prod.yml up -d " + svc.ComposeService;
                     _logger.LogWarning("Image pulled for {Service} but automatic restart not available", svc.Name);
                 }
             }
@@ -557,43 +560,79 @@ public class SystemUpdateService : ISystemUpdateService
         return false;
     }
 
-    private async Task<bool> TryRestartWithDocker(ServiceConfig svc)
+    /// <summary>
+    /// Restarts a non-backend service via a short-lived helper container that runs
+    /// docker compose on the host. This is more reliable than running compose inside
+    /// the backend container because the helper mounts the full compose directory.
+    /// </summary>
+    private async Task<bool> TryRestartWithHelperContainer(ServiceConfig svc)
     {
-        // Stop and remove the old container, then start a new one
-        // First, get the current container's full config to recreate it
-        var (inspectExit, inspectOutput) = await RunDockerCommand(
-            $"inspect {svc.Container}");
-
-        if (inspectExit != 0)
+        var composePath = FindComposePath();
+        if (composePath == null)
         {
-            _logger.LogWarning("Cannot inspect container {Container} for restart", svc.Container);
+            _logger.LogDebug("No compose file found, skipping helper container restart");
             return false;
         }
 
-        // Simple restart: stop, remove, and let the orchestrator recreate
-        // Or use docker restart if the image is already updated
-        var (stopExit, _) = await RunDockerCommand($"stop {svc.Container}", timeoutSeconds: 30);
-        if (stopExit != 0)
-        {
-            _logger.LogWarning("Failed to stop container {Container}", svc.Container);
-            return false;
-        }
+        var composeDir = Path.GetDirectoryName(composePath)!;
+        var composeFile = Path.GetFileName(composePath);
 
-        var (rmExit, _) = await RunDockerCommand($"rm {svc.Container}", timeoutSeconds: 10);
-        if (rmExit != 0)
+        var envFileArg = File.Exists(Path.Combine(composeDir, ".env"))
+            ? "--env-file .env "
+            : "";
+
+        // Use the same helper container pattern as ScheduleDelayedRestart but without delay
+        var command = $"docker run --rm " +
+            $"--name openradius-{svc.ComposeService}-updater " +
+            $"-v /var/run/docker.sock:/var/run/docker.sock " +
+            $"-v \"{composeDir}\":\"{composeDir}\":ro " +
+            $"-w \"{composeDir}\" " +
+            $"docker:cli sh -c '" +
+            $"docker compose -f \"{composeFile}\" {envFileArg}up -d --no-deps --pull never {svc.ComposeService}" +
+            $"'";
+
+        _logger.LogInformation("Restarting {Service} via helper container", svc.Name);
+        var (exitCode, output) = await RunShellCommand(command, timeoutSeconds: 120);
+
+        if (exitCode == 0)
         {
-            _logger.LogWarning("Failed to remove container {Container}, trying restart", svc.Container);
-            await RunDockerCommand($"start {svc.Container}", timeoutSeconds: 30);
+            _logger.LogInformation("Helper container restart successful for {Service}", svc.Name);
             return true;
         }
 
-        // Try to recreate from inspect data (simplified — uses basic docker run)
-        // In production, this should be managed by compose or an orchestrator
-        _logger.LogInformation(
-            "Container {Container} stopped and removed. Image updated. Container needs to be recreated by orchestrator.",
-            svc.Container);
+        _logger.LogWarning("Helper container restart failed for {Service}: exit={ExitCode}, output={Output}",
+            svc.Name, exitCode, output);
+        return false;
+    }
 
-        return false; // Container removed but not recreated — needs orchestrator
+    /// <summary>
+    /// Safe fallback: restarts the existing container WITHOUT deleting it.
+    /// The container keeps running the old image but remains available.
+    /// This is a last resort — the service stays up but won't have the new code.
+    /// </summary>
+    private async Task<bool> TrySafeDockerRestart(ServiceConfig svc)
+    {
+        _logger.LogInformation("Attempting safe docker restart for {Service} (container keeps old image)", svc.Name);
+
+        var (inspectExit, _) = await RunDockerCommand($"inspect {svc.Container}");
+        if (inspectExit != 0)
+        {
+            _logger.LogWarning("Container {Container} not found, cannot restart", svc.Container);
+            return false;
+        }
+
+        // Just restart the container — it keeps the old image but stays running
+        var (exitCode, output) = await RunDockerCommand($"restart {svc.Container}", timeoutSeconds: 60);
+
+        if (exitCode == 0)
+        {
+            _logger.LogInformation("Container {Container} restarted (still running old image). " +
+                "Manual compose up needed for new image.", svc.Container);
+            return true;
+        }
+
+        _logger.LogWarning("Failed to restart container {Container}: {Output}", svc.Container, output);
+        return false;
     }
 
     // ── Shell execution helpers ─────────────────────────────────────────────
