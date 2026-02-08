@@ -1,3 +1,4 @@
+using Backend.Configuration;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,7 @@ public class ServerMonitoringController : ControllerBase
     /// Returns host-level CPU, memory, disk usage and system info.
     /// </summary>
     [HttpGet("resources")]
+    [RequirePermission("server-monitoring.view")]
     public async Task<ActionResult<ServerResourcesResponse>> GetServerResources()
     {
         try
@@ -52,6 +54,7 @@ public class ServerMonitoringController : ControllerBase
     /// Returns Docker daemon version, storage, container counts, etc.
     /// </summary>
     [HttpGet("docker/info")]
+    [RequirePermission("server-monitoring.view")]
     public async Task<ActionResult<DockerSystemInfoResponse>> GetDockerInfo()
     {
         try
@@ -73,6 +76,7 @@ public class ServerMonitoringController : ControllerBase
     /// Returns all containers with their status and live resource usage.
     /// </summary>
     [HttpGet("containers")]
+    [RequirePermission("server-monitoring.view")]
     public async Task<ActionResult<List<ContainerInfoResponse>>> GetContainers(
         [FromQuery] bool includeAll = true)
     {
@@ -95,6 +99,7 @@ public class ServerMonitoringController : ControllerBase
     /// Returns detailed live stats for a specific container.
     /// </summary>
     [HttpGet("containers/{containerId}/stats")]
+    [RequirePermission("server-monitoring.view")]
     public async Task<ActionResult<ContainerStatsResponse>> GetContainerStats(string containerId)
     {
         try
@@ -119,6 +124,7 @@ public class ServerMonitoringController : ControllerBase
     /// Starts a stopped container.
     /// </summary>
     [HttpPost("containers/{containerId}/start")]
+    [RequirePermission("server-monitoring.containers.manage")]
     public async Task<ActionResult<ContainerActionResult>> StartContainer(string containerId)
     {
         try
@@ -141,6 +147,7 @@ public class ServerMonitoringController : ControllerBase
     /// Stops a running container.
     /// </summary>
     [HttpPost("containers/{containerId}/stop")]
+    [RequirePermission("server-monitoring.containers.manage")]
     public async Task<ActionResult<ContainerActionResult>> StopContainer(string containerId)
     {
         try
@@ -163,6 +170,7 @@ public class ServerMonitoringController : ControllerBase
     /// Restarts a container.
     /// </summary>
     [HttpPost("containers/{containerId}/restart")]
+    [RequirePermission("server-monitoring.containers.manage")]
     public async Task<ActionResult<ContainerActionResult>> RestartContainer(string containerId)
     {
         try
@@ -187,6 +195,7 @@ public class ServerMonitoringController : ControllerBase
     /// Returns the last N lines of container logs.
     /// </summary>
     [HttpGet("containers/{containerId}/logs")]
+    [RequirePermission("server-monitoring.logs.view")]
     public async Task<ActionResult<ContainerLogsResponse>> GetContainerLogs(
         string containerId,
         [FromQuery] int tail = 200,

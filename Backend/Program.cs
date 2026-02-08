@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Backend.Configuration;
 using Backend.Data;
 using Backend.Models;
 using Backend.Services;
@@ -186,6 +188,10 @@ try
         });
 
     builder.Services.AddAuthorization();
+
+    // Permission-based authorization (enforces granular permissions at the API level)
+    builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+    builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
     // Add Claims Transformation for automatic impersonation support
     builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, ImpersonationClaimsTransformation>();
