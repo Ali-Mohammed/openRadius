@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, ShieldAlert, ShieldCheck, Clock, Trash2, ChevronRight, Home } from 'lucide-react';
+import { appConfig } from '@/config/app.config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = appConfig.api.baseUrl;
 
 interface MicroserviceApproval {
   id: number;

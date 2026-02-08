@@ -1,17 +1,23 @@
+// Runtime config injected by Docker entrypoint (env-config.js sets window.__RUNTIME_CONFIG__)
+const rc = (window as any).__RUNTIME_CONFIG__ || {}
+
 export const appConfig = {
   appName: 'OpenRadius',
   version: '1.0.0',
   api: {
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+    baseUrl: rc.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000',
     timeout: 30000,
   },
   frontend: {
-    baseUrl: import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173',
+    baseUrl: rc.VITE_FRONTEND_URL || import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173',
+  },
+  seq: {
+    url: rc.VITE_SEQ_URL || import.meta.env.VITE_SEQ_URL || 'http://localhost:5341',
   },
   keycloak: {
-    url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
-    realm: import.meta.env.VITE_KEYCLOAK_REALM || 'openradius',
-    clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'openradius-frontend',
+    url: rc.VITE_KEYCLOAK_URL || import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
+    realm: rc.VITE_KEYCLOAK_REALM || import.meta.env.VITE_KEYCLOAK_REALM || 'openradius',
+    clientId: rc.VITE_KEYCLOAK_CLIENT_ID || import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'openradius-frontend',
   },
   theme: {
     defaultMode: 'light' as 'light' | 'dark',

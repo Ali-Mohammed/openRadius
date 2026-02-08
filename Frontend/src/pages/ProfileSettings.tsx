@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useKeycloak } from '../contexts/KeycloakContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useQuery } from '@tanstack/react-query'
+import { appConfig } from '@/config/app.config'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Skeleton } from '../components/ui/skeleton'
@@ -67,7 +68,7 @@ export default function ProfileSettings() {
   }
 
   const handleManageAccount = () => {
-    const accountUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}/account`
+    const accountUrl = `${appConfig.keycloak.url}/realms/${appConfig.keycloak.realm}/account`
     window.open(accountUrl, '_blank', 'noopener,noreferrer')
   }
 

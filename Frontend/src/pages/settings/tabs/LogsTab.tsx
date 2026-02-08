@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { ExternalLink, Activity, Briefcase } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { appConfig } from '@/config/app.config'
 
 export default function LogsTab() {
   const { currentWorkspaceId } = useWorkspace()
@@ -19,7 +20,7 @@ export default function LogsTab() {
           <Button
             variant="outline"
             className="justify-start"
-            onClick={() => window.open('http://localhost:5341', '_blank')}
+            onClick={() => window.open(appConfig.seq.url, '_blank')}
           >
             <Activity className="mr-2 h-4 w-4" />
             Seq Logs
@@ -32,7 +33,7 @@ export default function LogsTab() {
           <Button
             variant="outline"
             className="justify-start"
-            onClick={() => window.open(`http://localhost:5000/hangfire/workspace/${currentWorkspaceId}`, '_blank')}
+            onClick={() => window.open(`${appConfig.api.baseUrl}/hangfire/workspace/${currentWorkspaceId}`, '_blank')}
           >
             <Briefcase className="mr-2 h-4 w-4" />
             Hangfire Dashboard

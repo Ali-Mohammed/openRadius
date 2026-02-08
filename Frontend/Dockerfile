@@ -45,6 +45,10 @@ COPY nginx.conf /etc/nginx/conf.d/
 # Copy built application from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy runtime config entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Create non-root user for nginx
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
@@ -63,5 +67,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start with entrypoint that generates runtime config, then starts nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]

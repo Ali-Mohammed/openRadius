@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useKeycloak } from '../contexts/KeycloakContext';
+import { appConfig } from '@/config/app.config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -45,7 +46,7 @@ import type {
   FreeRadiusLogEntry,
 } from '../types/freeradiusLogs';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = appConfig.api.baseUrl;
 
 export default function FreeRadiusLogsViewer() {
   const { keycloak } = useKeycloak();

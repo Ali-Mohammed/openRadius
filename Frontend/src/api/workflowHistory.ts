@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { appConfig } from '@/config/app.config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = appConfig.api.baseUrl;
 
 export interface WorkflowHistory {
   id: number;

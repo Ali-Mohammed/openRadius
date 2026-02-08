@@ -14,6 +14,7 @@ import { Progress } from '@/components/ui/progress'
 import { getIconComponent } from '@/utils/iconColorHelper'
 import { apiClient } from '@/lib/api'
 import * as signalR from '@microsoft/signalr'
+import { appConfig } from '@/config/app.config'
 
 interface TagSyncProgress {
   phase: string
@@ -140,7 +141,7 @@ export default function TagSyncTab({ currentWorkspaceId, filterColumns }: TagSyn
     setSyncProgress(null)
 
     const hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_URL}/hubs/tag-sync`, {
+      .withUrl(`${appConfig.api.baseUrl}/hubs/tag-sync`, {
         accessTokenFactory: () => localStorage.getItem('auth_token') || '',
       })
       .withAutomaticReconnect()

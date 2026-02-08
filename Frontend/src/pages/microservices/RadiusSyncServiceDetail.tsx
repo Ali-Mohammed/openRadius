@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useTranslation } from 'react-i18next';
+import { appConfig } from '@/config/app.config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -183,7 +184,7 @@ interface DockerInstallGuide {
   downloadUrl?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = appConfig.api.baseUrl;
 
 export default function RadiusSyncServiceDetailPage() {
   const { serviceName } = useParams<{ serviceName: string }>();

@@ -303,6 +303,8 @@ services:
     container_name: openradius-frontend
     restart: unless-stopped
     pull_policy: always
+    environment:
+      DOMAIN: ${DOMAIN}
     expose:
       - "80"
     networks:

@@ -1,4 +1,5 @@
 import Keycloak from 'keycloak-js'
+import { appConfig } from '@/config/app.config'
 
 /**
  * OIDC Authentication Configuration
@@ -32,9 +33,9 @@ function getProviderConfig(): OidcProviderConfig {
   // Default to environment variables (Keycloak)
   return {
     providerName: 'keycloak',
-    authority: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
-    clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'openradius-web',
-    realm: import.meta.env.VITE_KEYCLOAK_REALM || 'openradius'
+    authority: appConfig.keycloak.url,
+    clientId: appConfig.keycloak.clientId,
+    realm: appConfig.keycloak.realm
   }
 }
 
