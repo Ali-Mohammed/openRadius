@@ -652,6 +652,31 @@ clone_repository() {
 }
 
 # =============================================================================
+# Configure Nginx Reverse Proxy
+# =============================================================================
+# Replaces the placeholder domain (open-radius.org) in the production nginx
+# config with the user's actual domain. Without this, the reverse proxy
+# will not route traffic to the correct virtual hosts.
+# =============================================================================
+
+configure_nginx() {
+    print_step "Configuring nginx reverse proxy for $DOMAIN..."
+
+    local nginx_conf="/opt/openradius/nginx/nginx.conf"
+
+    if [ ! -f "$nginx_conf" ]; then
+        print_warning "nginx.conf not found at $nginx_conf — skipping domain replacement"
+        return
+    fi
+
+    # Replace all occurrences of the placeholder domain with the user's domain
+    run_sudo sed -i "s|open-radius\.org|$DOMAIN|g" "$nginx_conf"
+
+    print_success "Nginx configured for domain: $DOMAIN"
+    print_info "  Subdomains: api.$DOMAIN, auth.$DOMAIN, logs.$DOMAIN, kafka.$DOMAIN, cdc.$DOMAIN"
+}
+
+# =============================================================================
 # Prepare Keycloak Import (before starting containers)
 # =============================================================================
 
@@ -1061,7 +1086,7 @@ configure_keycloak() {
             -s emailVerified=true \
             -s firstName="OpenRadius" \
             -s lastName="Manager" \
-            -s email="manager@open-radius.org" 2>/dev/null || true
+            -s email="manager@$DOMAIN" 2>/dev/null || true
         
         # Set password
         docker exec openradius-keycloak /opt/keycloak/bin/kcadm.sh set-password \
@@ -1471,6 +1496,7 @@ EOF
     
     # Clone repository and deploy
     clone_repository
+    configure_nginx
     prepare_keycloak_import
     pull_docker_images
     start_services
