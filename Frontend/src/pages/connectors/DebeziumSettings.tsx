@@ -157,14 +157,14 @@ export default function DebeziumSettings() {
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   The base URL of your Debezium Connect REST API
                 </p>
                 {connectionStatus === 'connected' && (
-                  <p className="text-xs text-green-600">✓ Connection successful</p>
+                  <p className="text-xs text-green-600 dark:text-green-400">✓ Connection successful</p>
                 )}
                 {connectionStatus === 'failed' && (
-                  <p className="text-xs text-red-600">✗ Connection failed</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">✗ Connection failed</p>
                 )}
               </div>
             </div>
@@ -195,15 +195,15 @@ export default function DebeziumSettings() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Leave empty if your Debezium Connect instance doesn't require authentication
               </p>
             </div>
 
             {/* Information */}
-            <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
-              <h4 className="font-semibold text-blue-900 mb-2">Default Configuration</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="rounded-lg bg-primary/5 p-4 border border-primary/30">
+              <h4 className="font-semibold text-foreground mb-2">Default Configuration</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Connect URL: http://localhost:8083</li>
                 <li>• Service: connect_cloud (from docker-compose.yml)</li>
                 <li>• Kafka Broker: redpanda:9092</li>
