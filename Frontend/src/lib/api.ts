@@ -23,12 +23,26 @@ export function onRateLimited(listener: RateLimitListener) {
   return () => { _rateLimitListener = null }
 }
 
+// --- Global 403 Forbidden Handler ---
+type ForbiddenListener = (message: string, permission?: string) => void
+let _forbiddenListener: ForbiddenListener | null = null
+
+/** Register a callback that fires when any 403 response is received */
+export function onForbidden(listener: ForbiddenListener) {
+  _forbiddenListener = listener
+  return () => { _forbiddenListener = null }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 429) {
       const retryAfter = error.response.data?.retryAfter || '60 seconds'
       _rateLimitListener?.(retryAfter)
+    }
+    if (error.response?.status === 403) {
+      const message = error.response.data?.message || 'You do not have permission to perform this action.'
+      _forbiddenListener?.(message)
     }
     return Promise.reject(error)
   }
