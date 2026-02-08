@@ -74,7 +74,7 @@ export default function RadiusUsers() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<RadiusUser | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [userToDelete, setUserToDelete] = useState<number | null>(null)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [userToRestore, setUserToRestore] = useState<string | null>(null)
   const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
@@ -488,7 +488,7 @@ export default function RadiusUsers() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => radiusUserApi.delete(id),
+    mutationFn: (uuid: string) => radiusUserApi.deleteByUuid(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['radius-users', currentWorkspaceId] })
       toast.success('User deleted successfully')
@@ -784,9 +784,9 @@ export default function RadiusUsers() {
     }
   }
 
-  const handleDelete = (id?: number) => {
-    if (id) {
-      setUserToDelete(id)
+  const handleDelete = (uuid?: string) => {
+    if (uuid) {
+      setUserToDelete(uuid)
       setDeleteDialogOpen(true)
     }
   }
@@ -1435,7 +1435,7 @@ export default function RadiusUsers() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
-                        onClick={() => handleDelete(user.id!)}
+                        onClick={() => handleDelete(user.uuid)}
                         className="text-red-600"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
