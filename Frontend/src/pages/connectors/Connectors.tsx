@@ -285,14 +285,14 @@ export default function Connectors() {
     <div className="p-6">
       {showInfoBanner && (
         <Collapsible className="mb-6">
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-primary/30 bg-primary/5">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <Info className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <AlertTitle className="text-blue-900 font-semibold">About Debezium Connectors & Change Data Capture (CDC)</AlertTitle>
-                    <AlertDescription className="text-blue-800 mt-1">
+                    <AlertTitle className="text-foreground font-semibold">About Debezium Connectors & Change Data Capture (CDC)</AlertTitle>
+                    <AlertDescription className="text-muted-foreground mt-1">
                       Connectors capture and stream real-time database changes to sync data between systems.
                     </AlertDescription>
                   </div>
@@ -301,7 +301,7 @@ export default function Connectors() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowInfoBanner(false)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-primary hover:text-primary/80"
                 >
                   Dismiss
                 </Button>
@@ -309,7 +309,7 @@ export default function Connectors() {
             </CardHeader>
             <CollapsibleTrigger asChild>
               <div className="px-6 pb-3">
-                <Button variant="link" className="text-blue-600 p-0 h-auto font-normal">
+                <Button variant="link" className="text-primary p-0 h-auto font-normal">
                   <ChevronDown className="h-4 w-4 mr-1" />
                   Learn more about creating connectors
                 </Button>
@@ -318,19 +318,19 @@ export default function Connectors() {
             <CollapsibleContent>
               <CardContent className="pt-0 space-y-4 text-sm">
                 <div>
-                  <h4 className="font-semibold text-blue-900 mb-2">🎯 What is a Connector?</h4>
-                  <p className="text-blue-800 mb-2">
+                  <h4 className="font-semibold text-foreground mb-2">🎯 What is a Connector?</h4>
+                  <p className="text-muted-foreground mb-2">
                     A Debezium connector monitors a PostgreSQL database for changes (inserts, updates, deletes) 
                     and streams them in real-time to Kafka/Redpanda. <strong>This is a SOURCE connector - it READS from the database you configure.</strong>
                   </p>
-                  <div className="bg-blue-100 p-2 rounded font-mono text-xs text-blue-900">
+                  <div className="bg-muted p-2 rounded font-mono text-xs text-foreground">
                     Source DB (configured below) → Debezium → Kafka → [Sink Connector] → Target System
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-blue-900 mb-2">📦 Common Use Cases:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-blue-800">
+                  <h4 className="font-semibold text-foreground mb-2">📦 Common Use Cases:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                     <li><strong>Export FROM OpenRadius:</strong> Configure connector to read from openradius_workspace_X, then use a sink connector to write to target DB</li>
                     <li><strong>Import TO OpenRadius:</strong> Configure connector to read from external database, process Kafka stream in OpenRadius</li>
                     <li><strong>Real-time Sync:</strong> Keep external dashboards or systems updated with live changes from your database</li>
@@ -339,8 +339,8 @@ export default function Connectors() {
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-blue-900 mb-2">🚀 Quick Start - Creating Your First Connector:</h4>
-                  <ol className="list-decimal list-inside space-y-2 text-blue-800">
+                  <h4 className="font-semibold text-foreground mb-2">🚀 Quick Start - Creating Your First Connector:</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                     <li>
                       <strong>Decide data flow direction:</strong>
                       <ul className="ml-6 mt-1 space-y-1 list-disc">
@@ -357,7 +357,7 @@ export default function Connectors() {
                     <li>
                       <strong>Configure SOURCE Database (where to READ from):</strong>
                       <ul className="ml-6 mt-1 space-y-1 list-disc">
-                        <li>For OpenRadius export: <code className="bg-blue-100 px-1 rounded">openradius-postgres</code>, DB: <code className="bg-blue-100 px-1 rounded">openradius_workspace_1</code></li>
+                        <li>For OpenRadius export: <code className="bg-muted px-1 rounded">openradius-postgres</code>, DB: <code className="bg-muted px-1 rounded">openradius_workspace_1</code></li>
                         <li>For external import: Use external hostname/IP and database name</li>
                       </ul>
                     </li>
@@ -370,8 +370,8 @@ export default function Connectors() {
                     <li>
                       <strong>Choose Snapshot Mode:</strong>
                       <ul className="ml-6 mt-1 space-y-1 list-disc">
-                        <li><code className="bg-blue-100 px-1 rounded">initial</code> - Captures existing data once, then streams changes</li>
-                        <li><code className="bg-blue-100 px-1 rounded">never</code> - Only captures future changes</li>
+                        <li><code className="bg-muted px-1 rounded">initial</code> - Captures existing data once, then streams changes</li>
+                        <li><code className="bg-muted px-1 rounded">never</code> - Only captures future changes</li>
                       </ul>
                     </li>
                     <li>
@@ -380,30 +380,30 @@ export default function Connectors() {
                   </ol>
                 </div>
 
-                <div className="border-t border-blue-200 pt-3 mt-3">
-                  <h4 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
+                <div className="border-t border-border pt-3 mt-3">
+                  <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
                     ⚠️ Common Error: "Replication slot already exists"
                   </h4>
-                  <div className="bg-red-50 border border-red-200 p-3 rounded">
-                    <p className="text-red-800 font-semibold mb-2">Error Message:</p>
-                    <code className="text-xs bg-red-100 p-2 block rounded text-red-900">
+                  <div className="bg-destructive/10 border border-destructive/30 p-3 rounded">
+                    <p className="text-destructive font-semibold mb-2">Error Message:</p>
+                    <code className="text-xs bg-destructive/15 p-2 block rounded text-destructive">
                       ERROR: replication slot "slot_name" already exists
                     </code>
-                    <p className="text-red-800 mt-3"><strong>Cause:</strong> Each connector requires a UNIQUE replication slot name. You cannot reuse slot names across connectors.</p>
-                    <p className="text-red-800 mt-2"><strong>Solutions:</strong></p>
-                    <ul className="list-disc list-inside ml-4 mt-1 space-y-1 text-red-800">
+                    <p className="text-muted-foreground mt-3"><strong>Cause:</strong> Each connector requires a UNIQUE replication slot name. You cannot reuse slot names across connectors.</p>
+                    <p className="text-muted-foreground mt-2"><strong>Solutions:</strong></p>
+                    <ul className="list-disc list-inside ml-4 mt-1 space-y-1 text-muted-foreground">
                       <li><strong>Leave slot name empty</strong> when creating connector - it will auto-generate a unique slot name</li>
                       <li><strong>Use a different slot name</strong> - example: connector1_slot, connector2_slot, users_export_slot</li>
                       <li><strong>Delete the old connector first</strong> if replacing an existing one (deleting removes its replication slot)</li>
-                      <li><strong>Manual cleanup (advanced):</strong> Connect to PostgreSQL and run <code className="bg-red-100 px-1 rounded">SELECT pg_drop_replication_slot('slot_name');</code></li>
+                      <li><strong>Manual cleanup (advanced):</strong> Connect to PostgreSQL and run <code className="bg-muted px-1 rounded">SELECT pg_drop_replication_slot('slot_name');</code></li>
                     </ul>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-blue-200">
-                  <h4 className="font-semibold text-blue-900 mb-2">💡 Pro Tips:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-blue-800">
+                <div className="pt-2 border-t border-border">
+                  <h4 className="font-semibold text-foreground mb-2">💡 Pro Tips:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                     <li>Start with one workspace database to test your configuration</li>
                     <li>Use meaningful server names (database.server.name) as they become Kafka topic prefixes</li>
                     <li>Monitor connector status - it should show "RUNNING" when active</li>
@@ -428,12 +428,12 @@ export default function Connectors() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-3">
-              <Alert className="bg-purple-50 border-purple-200 py-2 px-3">
-                <Info className="h-4 w-4 text-purple-600" />
-                <AlertDescription className="text-purple-800 text-xs ml-2">
-                  <strong>Current Workspace Database:</strong> <code className="bg-purple-100 px-1 rounded font-mono">openradius_workspace_1</code>
+              <Alert className="bg-muted border py-2 px-3">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-muted-foreground text-xs ml-2">
+                  <strong>Current Workspace Database:</strong> <code className="bg-primary/10 px-1 rounded font-mono">openradius_workspace_1</code>
                   <br />
-                  <span className="text-purple-600">Connectors are stored per workspace</span>
+                  <span className="text-muted-foreground">Connectors are stored per workspace</span>
                 </AlertDescription>
               </Alert>
               <Button onClick={() => setShowForm(true)}>
@@ -446,32 +446,32 @@ export default function Connectors() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : connectors.length === 0 ? (
             <div className="text-center py-12">
-              <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No connectors configured</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
+              <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No connectors configured</h3>
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                 Create your first CDC connector to start streaming database changes in real-time.
               </p>
-              <div className="bg-gray-50 rounded-lg p-4 max-w-2xl mx-auto text-left mb-6">
-                <h4 className="font-semibold text-gray-900 mb-3">Getting Started Checklist:</h4>
-                <ul className="space-y-2 text-sm text-gray-700">
+              <div className="bg-muted rounded-lg p-4 max-w-2xl mx-auto text-left mb-6">
+                <h4 className="font-semibold text-foreground mb-3">Getting Started Checklist:</h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">1.</span>
-                    <span><strong>Ensure your database is accessible:</strong> The PostgreSQL database must have logical replication enabled (<code className="bg-gray-200 px-1 rounded">wal_level=logical</code>)</span>
+                    <span className="text-primary font-bold mt-0.5">1.</span>
+                    <span><strong>Ensure your database is accessible:</strong> The PostgreSQL database must have logical replication enabled (<code className="bg-muted px-1 rounded">wal_level=logical</code>)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">2.</span>
-                    <span><strong>Know your workspace database name:</strong> OpenRadius uses <code className="bg-gray-200 px-1 rounded">openradius_workspace_1</code>, <code className="bg-gray-200 px-1 rounded">openradius_workspace_2</code>, etc.</span>
+                    <span className="text-primary font-bold mt-0.5">2.</span>
+                    <span><strong>Know your workspace database name:</strong> OpenRadius uses <code className="bg-muted px-1 rounded">openradius_workspace_1</code>, <code className="bg-muted px-1 rounded">openradius_workspace_2</code>, etc.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">3.</span>
+                    <span className="text-primary font-bold mt-0.5">3.</span>
                     <span><strong>Verify Debezium Connect is running:</strong> Check Settings → Debezium Settings to configure the Connect server URL</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">4.</span>
+                    <span className="text-primary font-bold mt-0.5">4.</span>
                     <span><strong>Click "Add Connector" above</strong> and follow the guided form to create your first connector</span>
                   </li>
                 </ul>
@@ -666,16 +666,16 @@ export default function Connectors() {
 
                                       {/* Activity Information */}
                                       {task.state === 'RUNNING' && (
-                                        <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <div className="mb-3 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
                                           <div className="flex items-center gap-2 mb-2">
-                                            <CheckCircle className="h-4 w-4 text-green-600" />
-                                            <span className="text-sm font-semibold text-green-900">✅ Task is ACTIVELY capturing database changes</span>
+                                            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                            <span className="text-sm font-semibold text-green-900 dark:text-green-300">✅ Task is ACTIVELY capturing database changes</span>
                                           </div>
-                                          <p className="text-xs text-green-800 mb-2">
+                                          <p className="text-xs text-green-800 dark:text-green-300/80 mb-2">
                                             <strong>Your updates ARE being captured!</strong> Any INSERT, UPDATE, or DELETE operations 
                                             on these tables are being streamed to Kafka in real-time.
                                           </p>
-                                          <p className="text-xs text-green-800">
+                                          <p className="text-xs text-green-800 dark:text-green-300/80">
                                             Monitored tables: <span className="font-mono font-semibold">
                                               {connector.config['table.include.list'] || 
                                                connector.database?.tableIncludeList || 
@@ -683,8 +683,8 @@ export default function Connectors() {
                                             </span>
                                           </p>
                                           <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                                            <div className="flex items-start gap-1 text-green-700">
-                                              <Activity className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                            <div className="flex items-start gap-1 text-green-700 dark:text-green-400">
+                                              <Activity className="h-3 w-3 mt-0.5 shrink-0" />
                                               <span>Streaming from: <strong className="font-semibold">
                                                 {connector.config['database.dbname'] || 
                                                  connector.database?.databaseName || 
@@ -692,8 +692,8 @@ export default function Connectors() {
                                                  'N/A'}
                                               </strong></span>
                                             </div>
-                                            <div className="flex items-start gap-1 text-green-700">
-                                              <Activity className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                            <div className="flex items-start gap-1 text-green-700 dark:text-green-400">
+                                              <Activity className="h-3 w-3 mt-0.5 shrink-0" />
                                               <span>Topic prefix: <strong className="font-semibold">
                                                 {connector.config['database.server.name'] || 
                                                  connector.database?.databaseServerName || 
@@ -706,16 +706,16 @@ export default function Connectors() {
 
                                       {/* Instructions for testing */}
                                       {task.state === 'RUNNING' && idx === 0 && (
-                                        <Alert className="mt-2 bg-blue-50 border-blue-200">
-                                          <Info className="h-4 w-4 text-blue-600" />
-                                          <AlertTitle className="text-blue-900 text-sm">Testing Change Capture</AlertTitle>
-                                          <AlertDescription className="text-blue-800 text-xs space-y-2">
+                                        <Alert className="mt-2 bg-primary/5 border-primary/30">
+                                          <Info className="h-4 w-4 text-primary" />
+                                          <AlertTitle className="text-foreground text-sm">Testing Change Capture</AlertTitle>
+                                          <AlertDescription className="text-muted-foreground text-xs space-y-2">
                                             <p>To verify this connector is working:</p>
                                             <ol className="list-decimal list-inside space-y-1 ml-2">
-                                              <li>Make a change to the <code className="bg-blue-100 px-1 rounded font-semibold">
+                                              <li>Make a change to the <code className="bg-muted px-1 rounded font-semibold">
                                                 {connector.config['database.dbname'] || connector.database?.databaseName || 'database'}
                                               </code> database (INSERT/UPDATE/DELETE)</li>
-                                              <li>Check Kafka/Redpanda topics for new messages: <code className="bg-blue-100 px-1 rounded font-semibold">
+                                              <li>Check Kafka/Redpanda topics for new messages: <code className="bg-muted px-1 rounded font-semibold">
                                                 {connector.config['database.server.name'] || connector.database?.databaseServerName || 'topic'}.public.*
                                               </code></li>
                                               <li>Or monitor connector logs for activity</li>
@@ -727,7 +727,7 @@ export default function Connectors() {
                                                   .split(',')
                                                   .filter((t: string) => t.trim())
                                                   .map((table: string) => (
-                                                    <code key={table} className="bg-blue-100 px-1 rounded ml-1 inline-block mb-1">
+                                                    <code key={table} className="bg-muted px-1 rounded ml-1 inline-block mb-1">
                                                       {connector.config['database.server.name'] || connector.database?.databaseServerName}.{table.trim()}
                                                     </code>
                                                   ))
@@ -739,10 +739,10 @@ export default function Connectors() {
                                       )}
                                       
                                       {task.trace && (
-                                        <Alert className="mt-2 bg-red-50 border-red-200">
-                                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                                          <AlertTitle className="text-red-900 text-sm">Error Details</AlertTitle>
-                                          <AlertDescription className="text-red-800 text-xs font-mono mt-1 max-h-32 overflow-auto">
+                                        <Alert className="mt-2 bg-destructive/10 border-destructive/30">
+                                          <AlertTriangle className="h-4 w-4 text-destructive" />
+                                          <AlertTitle className="text-destructive text-sm">Error Details</AlertTitle>
+                                          <AlertDescription className="text-destructive/80 text-xs font-mono mt-1 max-h-32 overflow-auto">
                                             {task.trace}
                                           </AlertDescription>
                                         </Alert>
@@ -779,11 +779,11 @@ export default function Connectors() {
                                     </div>
                                   )}
                                   
-                                  <Alert className="bg-blue-50 border-blue-200">
-                                    <Info className="h-4 w-4 text-blue-600" />
-                                    <AlertDescription className="text-blue-800 text-xs">
+                                  <Alert className="bg-primary/5 border-primary/30">
+                                    <Info className="h-4 w-4 text-primary" />
+                                    <AlertDescription className="text-muted-foreground text-xs">
                                       <strong>Troubleshooting:</strong> If configuration shows empty values, the connector may not be properly registered in Debezium Connect. 
-                                      Try restarting the connector or checking Debezium Connect logs at <code className="bg-blue-100 px-1 rounded">http://localhost:8083</code>
+                                      Try restarting the connector or checking Debezium Connect logs at <code className="bg-muted px-1 rounded">http://localhost:8083</code>
                                     </AlertDescription>
                                   </Alert>
                                 </div>
@@ -814,9 +814,9 @@ export default function Connectors() {
               <p>
                 Are you sure you want to delete the connector <strong className="text-foreground">"{deleteDialog.connectorName}"</strong>?
               </p>
-              <div className="bg-red-50 border border-red-200 rounded p-3 space-y-2">
-                <p className="font-semibold text-red-900 text-sm">This action will:</p>
-                <ul className="list-disc list-inside text-red-800 text-sm space-y-1">
+              <div className="bg-destructive/10 border border-destructive/30 rounded p-3 space-y-2">
+                <p className="font-semibold text-destructive text-sm">This action will:</p>
+                <ul className="list-disc list-inside text-destructive/80 text-sm space-y-1">
                   <li>Stop the connector immediately</li>
                   <li>Remove the replication slot from PostgreSQL</li>
                   <li>Delete the connector configuration</li>
@@ -832,7 +832,7 @@ export default function Connectors() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="bg-destructive hover:bg-destructive/90 focus:ring-destructive"
             >
               Delete Connector
             </AlertDialogAction>
