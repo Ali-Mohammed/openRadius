@@ -521,8 +521,8 @@ export default function RadiusTags() {
                           onMouseEnter={() => console.log('Hovering:', iconData.name)}
                           className={`p-2 rounded flex items-center justify-center ${
                             isSelected
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-gray-100 hover:bg-gray-200'
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-muted hover:bg-accent hover:text-accent-foreground'
                           }`}
                           style={{
                             cursor: 'pointer',
@@ -674,8 +674,8 @@ export default function RadiusTags() {
                           onMouseEnter={() => console.log('Hovering:', iconData.name)}
                           className={`p-2 rounded flex items-center justify-center ${
                             isSelected
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-gray-100 hover:bg-gray-200'
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-muted hover:bg-accent hover:text-accent-foreground'
                           }`}
                           style={{
                             cursor: 'pointer',

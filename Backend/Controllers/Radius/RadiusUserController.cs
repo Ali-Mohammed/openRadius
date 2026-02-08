@@ -1424,6 +1424,7 @@ public class RadiusUserController : ControllerBase
         var response = users.Select(u => new RadiusUserResponse
         {
             Id = u.Id,
+            Uuid = u.Uuid,
             ExternalId = u.ExternalId,
             Username = u.Username,
             Firstname = u.Firstname,

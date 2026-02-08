@@ -227,6 +227,9 @@ try
     // Add System Update Service for Docker-based updates
     builder.Services.AddScoped<ISystemUpdateService, SystemUpdateService>();
 
+    // Add Docker Monitoring Service for server & container monitoring
+    builder.Services.AddScoped<IDockerMonitoringService, DockerMonitoringService>();
+
     // Add Kafka Consumer Service for CDC monitoring
     builder.Services.AddHostedService<KafkaConsumerService>();
 

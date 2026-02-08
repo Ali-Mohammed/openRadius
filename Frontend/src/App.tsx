@@ -66,6 +66,7 @@ import OidcSettings from './pages/settings/OidcSettings'
 import DatabaseBackup from './pages/settings/DatabaseBackup'
 import WorkspaceSettings from './pages/settings/WorkspaceSettings'
 import SystemUpdatePage from './pages/settings/SystemUpdatePage'
+import ServerMonitoring from './pages/settings/ServerMonitoring'
 // User Management
 import UserManagement from './pages/user-management/UserManagement'
 import RolesPage from './pages/user-management/RolesPage'
@@ -110,6 +111,7 @@ function App() {
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/profile" element={<ProfileSettings />} />
                           <Route path="/workspace/view" element={<WorkspaceView />} />
+                          <Route path="/workspace/server-monitoring" element={<ServerMonitoring />} />
                           <Route path="/integrations" element={<Integrations />} />
                           <Route path="/integrations/sas-radius" element={<WorkspaceSettings />} />
                           <Route path="/integrations/activation-logs/:integrationId" element={<ActivationLogs />} />

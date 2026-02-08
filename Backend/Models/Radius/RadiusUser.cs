@@ -308,7 +308,7 @@ namespace Backend.Models
     public class RadiusUserResponse
     {
         public int Id { get; set; }
-    public Guid Uuid { get; set; } = Guid.NewGuid();
+    public Guid Uuid { get; set; }
         public int ExternalId { get; set; }
         public string? Username { get; set; }
         public string? Firstname { get; set; }

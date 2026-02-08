@@ -496,6 +496,10 @@ public static class SeedData
             new Permission { Name = "workspace.switch", Description = "Switch between workspaces", Category = "Workspace" },
             new Permission { Name = "workspace.settings.view", Description = "View workspace settings", Category = "Workspace" },
             new Permission { Name = "workspace.settings.update", Description = "Update workspace settings", Category = "Workspace" },
+            // Server Monitoring
+            new Permission { Name = "server-monitoring.view", Description = "View server resources and Docker containers", Category = "Workspace" },
+            new Permission { Name = "server-monitoring.containers.manage", Description = "Start, stop, and restart Docker containers", Category = "Workspace" },
+            new Permission { Name = "server-monitoring.logs.view", Description = "View Docker container logs", Category = "Workspace" },
             // App Settings
             new Permission { Name = "settings.general.view", Description = "View general settings", Category = "Settings" },
             new Permission { Name = "settings.general.update", Description = "Update general settings", Category = "Settings" },

@@ -263,6 +263,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5000"
       
+      # Host proc path for server monitoring (mounted at /host/proc)
+      HOST_PROC_PATH: "/host/proc"
+      
       # Seq Logging
       Seq__ServerUrl: "http://seq:80"
       Seq__ApiKey: "${SEQ_API_KEY:-}"
@@ -285,6 +288,7 @@ services:
     volumes:
       - backend_logs:/app/Logs
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
       - /opt/openradius/docker-compose.prod.yml:/opt/openradius/docker-compose.prod.yml:ro
       - /opt/openradius/.env:/opt/openradius/.env:ro
     group_add:
