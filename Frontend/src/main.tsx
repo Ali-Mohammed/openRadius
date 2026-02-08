@@ -1,12 +1,13 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { ConnectionErrorPage } from './components/ConnectionErrorPage'
 import { RateLimitPage } from './components/RateLimitPage'
-import { apiClient, onRateLimited } from './lib/api'
+import { apiClient, onRateLimited, onForbidden } from './lib/api'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,17 @@ function AppWithConnectionCheck() {
     const unsubscribe = onRateLimited((retry) => {
       setRetryAfter(retry)
       setIsRateLimited(true)
+    })
+    return unsubscribe
+  }, [])
+
+  // Global 403 forbidden listener — shows a toast for permission denied
+  useEffect(() => {
+    const unsubscribe = onForbidden((message) => {
+      toast.error('Permission Denied', {
+        description: message,
+        duration: 5000,
+      })
     })
     return unsubscribe
   }, [])

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { usePermissions } from "@/contexts/PermissionContext"
 import {
   CommandDialog,
   CommandEmpty,
@@ -65,6 +66,7 @@ interface NavItem {
   url: string
   icon: React.ComponentType<{ className?: string }>
   keywords?: string[]
+  permission?: string
 }
 
 interface NavGroup {
@@ -75,88 +77,101 @@ interface NavGroup {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { hasPermission, isSuperAdmin } = usePermissions()
 
   const navGroups: NavGroup[] = [
     {
       title: t("navigation.dashboards"),
       items: [
-        { title: t("navigation.dashboards"), url: "/dashboards", icon: LayoutDashboard, keywords: ["home", "overview", "analytics"] },
+        { title: t("navigation.dashboards"), url: "/dashboards", icon: LayoutDashboard, keywords: ["home", "overview", "analytics"], permission: "dashboard.view" },
       ],
     },
     {
       title: t("navigation.radius"),
       items: [
-        { title: t("navigation.users"), url: "/radius/users", icon: Users, keywords: ["radius users", "subscribers", "customers"] },
-        { title: t("navigation.profiles"), url: "/radius/profiles", icon: CircleUser, keywords: ["radius profiles", "plans"] },
-        { title: t("navigation.groups"), url: "/radius/groups", icon: UsersRound, keywords: ["radius groups"] },
-        { title: t("navigation.tags"), url: "/radius/tags", icon: Tag, keywords: ["labels", "markers"] },
-        { title: t("navigation.nas"), url: "/radius/nas", icon: Server, keywords: ["network access server", "router"] },
-        { title: t("navigation.ipPools"), url: "/radius/ip-pools", icon: Network, keywords: ["ip address", "dhcp"] },
-        { title: t("navigation.ipReservations"), url: "/radius/ip-reservations", icon: Layers, keywords: ["static ip", "reserved"] },
-        { title: t("navigation.customAttributes"), url: "/radius/custom-attributes", icon: Settings, keywords: ["attributes", "fields"] },
-        { title: t("navigation.zones"), url: "/radius/zones", icon: MapPin, keywords: ["areas", "regions", "locations"] },
-        { title: t("navigation.activations"), url: "/radius/activations", icon: Activity, keywords: ["activate", "enable"] },
+        { title: t("navigation.users"), url: "/radius/users", icon: Users, keywords: ["radius users", "subscribers", "customers"], permission: "radius.users.view" },
+        { title: t("navigation.profiles"), url: "/radius/profiles", icon: CircleUser, keywords: ["radius profiles", "plans"], permission: "radius.profiles.view" },
+        { title: t("navigation.groups"), url: "/radius/groups", icon: UsersRound, keywords: ["radius groups"], permission: "radius.groups.view" },
+        { title: t("navigation.tags"), url: "/radius/tags", icon: Tag, keywords: ["labels", "markers"], permission: "radius.tags.view" },
+        { title: t("navigation.nas"), url: "/radius/nas", icon: Server, keywords: ["network access server", "router"], permission: "radius.nas.view" },
+        { title: t("navigation.ipPools"), url: "/radius/ip-pools", icon: Network, keywords: ["ip address", "dhcp"], permission: "radius.ip-pools.view" },
+        { title: t("navigation.ipReservations"), url: "/radius/ip-reservations", icon: Layers, keywords: ["static ip", "reserved"], permission: "radius.ip-reservations.view" },
+        { title: t("navigation.customAttributes"), url: "/radius/custom-attributes", icon: Settings, keywords: ["attributes", "fields"], permission: "radius.custom-attributes.view" },
+        { title: t("navigation.zones"), url: "/radius/zones", icon: MapPin, keywords: ["areas", "regions", "locations"], permission: "radius.zones.view" },
+        { title: t("navigation.activations"), url: "/radius/activations", icon: Activity, keywords: ["activate", "enable"], permission: "radius.activations.view" },
       ],
     },
     {
       title: t("navigation.billing"),
       items: [
-        { title: t("navigation.billingProfiles"), url: "/billing/profiles", icon: FileText, keywords: ["billing plans", "pricing"] },
-        { title: t("navigation.activationHistory"), url: "/billing/activation-history", icon: History, keywords: ["activations", "history", "audit"] },
-        { title: t("navigation.addons"), url: "/billing/addons", icon: Package, keywords: ["extras", "add-ons"] },
-        { title: t("navigation.groups"), url: "/billing/groups", icon: TrendingUp, keywords: ["billing groups"] },
-        { title: t("navigation.cashbacks"), url: "/billing/cashbacks", icon: Gift, keywords: ["rewards", "refunds"] },
-        { title: t("navigation.cashbackGroups"), url: "/billing/cashback-groups", icon: PiggyBank, keywords: ["cashback groups"] },
-        { title: t("navigation.customWallets"), url: "/billing/wallets", icon: Wallet, keywords: ["wallets", "accounts"] },
-        { title: t("navigation.userWallets"), url: "/billing/user-wallets", icon: WalletCards, keywords: ["user wallets", "balances"] },
-        { title: t("navigation.topUp"), url: "/billing/topup", icon: ArrowUpCircle, keywords: ["recharge", "add funds"] },
-        { title: t("navigation.walletHistory"), url: "/billing/history", icon: History, keywords: ["transactions", "logs"] },
-        { title: t("navigation.transactions"), url: "/billing/transactions", icon: Receipt, keywords: ["payments", "invoices"] },
-        { title: t("navigation.balances"), url: "/billing/balances", icon: Coins, keywords: ["credit", "balance"] },
-        { title: t("navigation.automations"), url: "/billing/automations", icon: Zap, keywords: ["workflows", "automation"] },
+        { title: t("navigation.billingProfiles"), url: "/billing/profiles", icon: FileText, keywords: ["billing plans", "pricing"], permission: "billing.profiles.view" },
+        { title: t("navigation.activationHistory"), url: "/billing/activations", icon: History, keywords: ["activations", "history", "audit"], permission: "billing.activations.view" },
+        { title: t("navigation.addons"), url: "/billing/addons", icon: Package, keywords: ["extras", "add-ons"], permission: "billing.addons.view" },
+        { title: t("navigation.groups"), url: "/billing/groups", icon: TrendingUp, keywords: ["billing groups"], permission: "billing.groups.view" },
+        { title: t("navigation.cashbacks"), url: "/billing/cashbacks", icon: Gift, keywords: ["rewards", "refunds"], permission: "billing.cashbacks.view" },
+        { title: t("navigation.cashbackGroups"), url: "/billing/cashback-groups", icon: PiggyBank, keywords: ["cashback groups"], permission: "billing.cashback-groups.view" },
+        { title: t("navigation.customWallets"), url: "/billing/wallets", icon: Wallet, keywords: ["wallets", "accounts"], permission: "billing.wallets.view" },
+        { title: t("navigation.userWallets"), url: "/billing/user-wallets", icon: WalletCards, keywords: ["user wallets", "balances"], permission: "billing.user-wallets.view" },
+        { title: t("navigation.topUp"), url: "/billing/topup", icon: ArrowUpCircle, keywords: ["recharge", "add funds"], permission: "billing.topup.create" },
+        { title: t("navigation.walletHistory"), url: "/billing/history", icon: History, keywords: ["transactions", "logs"], permission: "billing.history.view" },
+        { title: t("navigation.transactions"), url: "/billing/transactions", icon: Receipt, keywords: ["payments", "invoices"], permission: "billing.transactions.view" },
+        { title: t("navigation.balances"), url: "/billing/balances", icon: Coins, keywords: ["credit", "balance"], permission: "billing.balances.view" },
+        { title: t("navigation.automations"), url: "/billing/automations", icon: Zap, keywords: ["workflows", "automation"], permission: "billing.automations.view" },
       ],
     },
     {
       title: t("navigation.network"),
       items: [
-        { title: t("navigation.olts"), url: "/network/olts", icon: Cable, keywords: ["optical", "fiber"] },
-        { title: t("navigation.fdts"), url: "/network/fdts", icon: Box, keywords: ["distribution"] },
-        { title: t("navigation.fats"), url: "/network/fats", icon: SquareStack, keywords: ["access terminal"] },
-        { title: t("navigation.provisioning"), url: "/network/provisioning", icon: Globe, keywords: ["setup", "configure"] },
-        { title: t("navigation.monitoring"), url: "/network/monitoring", icon: Monitor, keywords: ["status", "health"] },
-        { title: t("navigation.networkReports"), url: "/network/reports", icon: BarChart3, keywords: ["analytics", "statistics"] },
-        { title: t("navigation.networkSettings"), url: "/network/settings", icon: Cog, keywords: ["configuration"] },
+        { title: t("navigation.olts"), url: "/network/olts", icon: Cable, keywords: ["optical", "fiber"], permission: "network.olts.view" },
+        { title: t("navigation.fdts"), url: "/network/fdts", icon: Box, keywords: ["distribution"], permission: "network.fdts.view" },
+        { title: t("navigation.fats"), url: "/network/fats", icon: SquareStack, keywords: ["access terminal"], permission: "network.fats.view" },
+        { title: t("navigation.provisioning"), url: "/network/provisioning", icon: Globe, keywords: ["setup", "configure"], permission: "network.provisioning.view" },
+        { title: t("navigation.monitoring"), url: "/network/monitoring", icon: Monitor, keywords: ["status", "health"], permission: "network.monitoring.view" },
+        { title: t("navigation.networkReports"), url: "/network/reports", icon: BarChart3, keywords: ["analytics", "statistics"], permission: "network.reports.view" },
+        { title: t("navigation.networkSettings"), url: "/network/settings", icon: Cog, keywords: ["configuration"], permission: "network.settings.view" },
       ],
     },
     {
       title: t("navigation.connectors"),
       items: [
-        { title: t("navigation.connectorList"), url: "/connectors", icon: FileStack, keywords: ["integrations", "connections"] },
-        { title: t("navigation.cdcMonitor"), url: "/cdc-monitor", icon: Activity, keywords: ["change data capture", "sync"] },
-        { title: t("navigation.connectorSettings"), url: "/connectors/settings", icon: Wrench, keywords: ["connector configuration"] },
+        { title: t("navigation.connectorList"), url: "/connectors", icon: FileStack, keywords: ["integrations", "connections"], permission: "connectors.list.view" },
+        { title: t("navigation.cdcMonitor"), url: "/cdc-monitor", icon: Activity, keywords: ["change data capture", "sync"], permission: "connectors.cdc-monitor.view" },
+        { title: t("navigation.connectorSettings"), url: "/connectors/settings", icon: Wrench, keywords: ["connector configuration"], permission: "connectors.settings.view" },
       ],
     },
     {
       title: t("navigation.appSetting"),
       items: [
-        { title: t("navigation.workspace"), url: "/workspace/view", icon: Eye, keywords: ["workspace", "tenant"] },
-        { title: t("navigation.general"), url: "/settings/general", icon: DollarSign, keywords: ["general settings", "preferences"] },
-        { title: t("navigation.paymentInformation"), url: "/settings/payment-history", icon: CreditCard, keywords: ["payment", "history", "transactions", "zaincash", "qicard", "switch"] },
-        { title: t("navigation.oidc"), url: "/settings/oidc", icon: Key, keywords: ["authentication", "sso", "login"] },
-        { title: t("navigation.databaseBackup"), url: "/settings/database-backup", icon: HardDrive, keywords: ["backup", "restore", "export"] },
-        { title: t("navigation.integrations"), url: "/integrations", icon: Radio, keywords: ["third party", "api"] },
+        { title: t("navigation.workspace"), url: "/workspace/view", icon: Eye, keywords: ["workspace", "tenant"], permission: "workspace.view" },
+        { title: t("navigation.general"), url: "/settings/general", icon: DollarSign, keywords: ["general settings", "preferences"], permission: "settings.general.view" },
+        { title: t("navigation.paymentInformation"), url: "/settings/payment-history", icon: CreditCard, keywords: ["payment", "history", "transactions", "zaincash", "qicard", "switch"], permission: "settings.payment-history.view" },
+        { title: t("navigation.oidc"), url: "/settings/oidc", icon: Key, keywords: ["authentication", "sso", "login"], permission: "settings.oidc.view" },
+        { title: t("navigation.databaseBackup"), url: "/settings/database-backup", icon: HardDrive, keywords: ["backup", "restore", "export"], permission: "settings.database-backup.view" },
+        { title: t("navigation.integrations"), url: "/integrations", icon: Radio, keywords: ["third party", "api"], permission: "settings.integrations.view" },
       ],
     },
     {
       title: t("navigation.userManagement"),
       items: [
-        { title: t("navigation.users"), url: "/users", icon: UserCheck, keywords: ["admin users", "staff"] },
-        { title: t("navigation.roles"), url: "/roles", icon: Shield, keywords: ["permissions", "access"] },
-        { title: t("navigation.permissions"), url: "/permissions", icon: Lock, keywords: ["authorization", "rights"] },
-        { title: t("navigation.userGroups"), url: "/groups", icon: UserRound, keywords: ["teams", "departments"] },
+        { title: t("navigation.users"), url: "/users", icon: UserCheck, keywords: ["admin users", "staff"], permission: "users.view" },
+        { title: t("navigation.roles"), url: "/roles", icon: Shield, keywords: ["permissions", "access"], permission: "roles.view" },
+        { title: t("navigation.permissions"), url: "/permissions", icon: Lock, keywords: ["authorization", "rights"], permission: "permissions.view" },
+        { title: t("navigation.userGroups"), url: "/groups", icon: UserRound, keywords: ["teams", "departments"], permission: "groups.view" },
       ],
     },
   ]
+
+  // Filter groups and items by user permissions
+  const filteredGroups = React.useMemo(() => {
+    return navGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item =>
+          !item.permission || isSuperAdmin || hasPermission(item.permission)
+        ),
+      }))
+      .filter(group => group.items.length > 0)
+  }, [navGroups, hasPermission, isSuperAdmin])
 
   const handleSelect = (url: string) => {
     navigate(url)
@@ -168,7 +183,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       <CommandInput placeholder={t("search.placeholder", "Type to search...")} />
       <CommandList>
         <CommandEmpty>{t("search.noResults", "No results found.")}</CommandEmpty>
-        {navGroups.map((group, groupIndex) => (
+        {filteredGroups.map((group, groupIndex) => (
           <React.Fragment key={group.title}>
             <CommandGroup heading={group.title}>
               {group.items.map((item) => (
@@ -183,7 +198,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 </CommandItem>
               ))}
             </CommandGroup>
-            {groupIndex < navGroups.length - 1 && <CommandSeparator />}
+            {groupIndex < filteredGroups.length - 1 && <CommandSeparator />}
           </React.Fragment>
         ))}
       </CommandList>

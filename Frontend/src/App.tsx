@@ -107,74 +107,76 @@ function App() {
                 path="/*"
                 element={
                   <ProtectedRoute>
+                    <PermissionProvider>
                     <WorkspaceGuard>
                       <AppLayout>
                         <Routes>
-                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/dashboard" element={<PermissionRoute permission="dashboard.view"><Dashboard /></PermissionRoute>} />
                           <Route path="/profile" element={<ProfileSettings />} />
-                          <Route path="/workspace/view" element={<WorkspaceView />} />
-                          <Route path="/workspace/server-monitoring" element={<ServerMonitoring />} />
-                          <Route path="/integrations" element={<Integrations />} />
-                          <Route path="/integrations/sas-radius" element={<WorkspaceSettings />} />
-                          <Route path="/integrations/activation-logs/:integrationId" element={<ActivationLogs />} />
-                          <Route path="/integrations/sessions-sync/:integrationId" element={<SessionsSync />} />
-                          <Route path="/radius/profiles" element={<RadiusProfiles />} />
-                          <Route path="/radius/users" element={<RadiusUsers />} />
-                          <Route path="/radius/users/:id" element={<RadiusUserDetail />} />
-                          <Route path="/radius/users/:id/:tab" element={<RadiusUserDetail />} />
-                          <Route path="/radius/groups" element={<RadiusGroups />} />
-                          <Route path="/radius/tags" element={<RadiusTags />} />
-                          <Route path="/radius/nas" element={<RadiusNas />} />
-                          <Route path="/radius/ip-pools" element={<RadiusIpPools />} />
-                          <Route path="/radius/ip-reservations" element={<RadiusIpReservations />} />
-                          <Route path="/radius/custom-attributes" element={<RadiusCustomAttributes />} />
-                          <Route path="/radius/zones" element={<Zones />} />
-                          <Route path="/radius/logs" element={<FreeRadiusLogsViewer />} />
-                          <Route path="/radius/activations" element={<RadiusActivations />} />
-                          <Route path="/network/settings" element={<NetworkSettings />} />
-                          <Route path="/network/olts" element={<Olts />} />
-                          <Route path="/network/fdts" element={<Fdts />} />
-                          <Route path="/network/fats" element={<Fats />} />
-                          <Route path="/settings/general" element={<GeneralSettings />} />
-                          <Route path="/settings/payment-history" element={<PaymentInformation />} />
+                          <Route path="/workspace/view" element={<PermissionRoute permission="workspace.view"><WorkspaceView /></PermissionRoute>} />
+                          <Route path="/workspace/server-monitoring" element={<PermissionRoute permission="server-monitoring.view"><ServerMonitoring /></PermissionRoute>} />
+                          <Route path="/integrations" element={<PermissionRoute permission="settings.integrations.view"><Integrations /></PermissionRoute>} />
+                          <Route path="/integrations/sas-radius" element={<PermissionRoute permission="settings.integrations.view"><WorkspaceSettings /></PermissionRoute>} />
+                          <Route path="/integrations/activation-logs/:integrationId" element={<PermissionRoute permission="settings.integrations.view"><ActivationLogs /></PermissionRoute>} />
+                          <Route path="/integrations/sessions-sync/:integrationId" element={<PermissionRoute permission="settings.integrations.view"><SessionsSync /></PermissionRoute>} />
+                          <Route path="/radius/profiles" element={<PermissionRoute permission="radius.profiles.view"><RadiusProfiles /></PermissionRoute>} />
+                          <Route path="/radius/users" element={<PermissionRoute permission="radius.users.view"><RadiusUsers /></PermissionRoute>} />
+                          <Route path="/radius/users/:id" element={<PermissionRoute permission="radius.users.view"><RadiusUserDetail /></PermissionRoute>} />
+                          <Route path="/radius/users/:id/:tab" element={<PermissionRoute permission="radius.users.view"><RadiusUserDetail /></PermissionRoute>} />
+                          <Route path="/radius/groups" element={<PermissionRoute permission="radius.groups.view"><RadiusGroups /></PermissionRoute>} />
+                          <Route path="/radius/tags" element={<PermissionRoute permission="radius.tags.view"><RadiusTags /></PermissionRoute>} />
+                          <Route path="/radius/nas" element={<PermissionRoute permission="radius.nas.view"><RadiusNas /></PermissionRoute>} />
+                          <Route path="/radius/ip-pools" element={<PermissionRoute permission="radius.ip-pools.view"><RadiusIpPools /></PermissionRoute>} />
+                          <Route path="/radius/ip-reservations" element={<PermissionRoute permission="radius.ip-reservations.view"><RadiusIpReservations /></PermissionRoute>} />
+                          <Route path="/radius/custom-attributes" element={<PermissionRoute permission="radius.custom-attributes.view"><RadiusCustomAttributes /></PermissionRoute>} />
+                          <Route path="/radius/zones" element={<PermissionRoute permission="radius.zones.view"><Zones /></PermissionRoute>} />
+                          <Route path="/radius/logs" element={<PermissionRoute permission="freeradius.logs.view"><FreeRadiusLogsViewer /></PermissionRoute>} />
+                          <Route path="/radius/activations" element={<PermissionRoute permission="radius.activations.view"><RadiusActivations /></PermissionRoute>} />
+                          <Route path="/network/settings" element={<PermissionRoute permission="network.settings.view"><NetworkSettings /></PermissionRoute>} />
+                          <Route path="/network/olts" element={<PermissionRoute permission="network.olts.view"><Olts /></PermissionRoute>} />
+                          <Route path="/network/fdts" element={<PermissionRoute permission="network.fdts.view"><Fdts /></PermissionRoute>} />
+                          <Route path="/network/fats" element={<PermissionRoute permission="network.fats.view"><Fats /></PermissionRoute>} />
+                          <Route path="/settings/general" element={<PermissionRoute permission="settings.general.view"><GeneralSettings /></PermissionRoute>} />
+                          <Route path="/settings/payment-history" element={<PermissionRoute permission="settings.payment-history.view"><PaymentInformation /></PermissionRoute>} />
                           <Route path="/settings" element={<Settings />} />
-                          <Route path="/settings/oidc" element={<OidcSettings />} />
-                          <Route path="/settings/database-backup" element={<DatabaseBackup />} />
-                          <Route path="/settings/system-update" element={<SystemUpdatePage />} />
-                          <Route path="/users" element={<UserManagement />} />
-                          <Route path="/roles" element={<RolesPage />} />
-                          <Route path="/permissions" element={<PermissionsPage />} />
-                          <Route path="/groups" element={<GroupsPage />} />
-                          <Route path="/connectors" element={<Connectors />} />
-                          <Route path="/connectors/settings" element={<DebeziumSettings />} />
-                          <Route path="/cdc-monitor" element={<CdcMonitor />} />
-                          <Route path="/billing/wallets" element={<CustomWallets />} />
-                          <Route path="/billing/user-wallets" element={<UserWallets />} />
-                          <Route path="/billing/balances" element={<Balances />} />
-                          <Route path="/billing/addons" element={<Addons />} />
-                          <Route path="/billing/automations" element={<Automations />} />
-                          <Route path="/billing/automations/:automationId/designer" element={<WorkflowDesigner />} />
-                          <Route path="/billing/groups" element={<BillingGroups />} />
-                          <Route path="/billing/cashback-groups" element={<CashbackGroups />} />
-                          <Route path="/billing/cashbacks" element={<CashbackProfiles />} />
-                          <Route path="/billing/sub-agent-cashbacks" element={<SubAgentCashbacks />} />
-                          <Route path="/billing/profiles" element={<BillingProfiles />} />
-                          <Route path="/billing/profiles/new" element={<BillingProfileForm />} />
-                          <Route path="/billing/profiles/edit" element={<BillingProfileForm />} />
-                          <Route path="/billing/activations" element={<BillingActivations />} />
-                          <Route path="/billing/topup" element={<TopUp />} />
-                          <Route path="/billing/history" element={<WalletHistory />} />
-                          <Route path="/billing/transactions" element={<Transactions />} />
-                          <Route path="/dashboards" element={<Dashboards />} />
-                          <Route path="/dashboards/:id" element={<DashboardView />} />
-                          <Route path="/dashboards/:id/edit" element={<DashboardView />} />
-                          <Route path="/microservices/radius-sync" element={<RadiusSyncService />} />
-                          <Route path="/microservices/radius-sync/:serviceName" element={<RadiusSyncServiceDetail />} />
-                          <Route path="/microservices/approvals" element={<MicroserviceApprovals />} />
+                          <Route path="/settings/oidc" element={<PermissionRoute permission="settings.oidc.view"><OidcSettings /></PermissionRoute>} />
+                          <Route path="/settings/database-backup" element={<PermissionRoute permission="settings.database-backup.view"><DatabaseBackup /></PermissionRoute>} />
+                          <Route path="/settings/system-update" element={<PermissionRoute permission="settings.system-update.view"><SystemUpdatePage /></PermissionRoute>} />
+                          <Route path="/users" element={<PermissionRoute permission="users.view"><UserManagement /></PermissionRoute>} />
+                          <Route path="/roles" element={<PermissionRoute permission="roles.view"><RolesPage /></PermissionRoute>} />
+                          <Route path="/permissions" element={<PermissionRoute permission="permissions.view"><PermissionsPage /></PermissionRoute>} />
+                          <Route path="/groups" element={<PermissionRoute permission="groups.view"><GroupsPage /></PermissionRoute>} />
+                          <Route path="/connectors" element={<PermissionRoute permission="connectors.list.view"><Connectors /></PermissionRoute>} />
+                          <Route path="/connectors/settings" element={<PermissionRoute permission="connectors.settings.view"><DebeziumSettings /></PermissionRoute>} />
+                          <Route path="/cdc-monitor" element={<PermissionRoute permission="connectors.cdc-monitor.view"><CdcMonitor /></PermissionRoute>} />
+                          <Route path="/billing/wallets" element={<PermissionRoute permission="billing.wallets.view"><CustomWallets /></PermissionRoute>} />
+                          <Route path="/billing/user-wallets" element={<PermissionRoute permission="billing.user-wallets.view"><UserWallets /></PermissionRoute>} />
+                          <Route path="/billing/balances" element={<PermissionRoute permission="billing.balances.view"><Balances /></PermissionRoute>} />
+                          <Route path="/billing/addons" element={<PermissionRoute permission="billing.addons.view"><Addons /></PermissionRoute>} />
+                          <Route path="/billing/automations" element={<PermissionRoute permission="billing.automations.view"><Automations /></PermissionRoute>} />
+                          <Route path="/billing/automations/:automationId/designer" element={<PermissionRoute permission="billing.automations.update"><WorkflowDesigner /></PermissionRoute>} />
+                          <Route path="/billing/groups" element={<PermissionRoute permission="billing.groups.view"><BillingGroups /></PermissionRoute>} />
+                          <Route path="/billing/cashback-groups" element={<PermissionRoute permission="billing.cashback-groups.view"><CashbackGroups /></PermissionRoute>} />
+                          <Route path="/billing/cashbacks" element={<PermissionRoute permission="billing.cashbacks.view"><CashbackProfiles /></PermissionRoute>} />
+                          <Route path="/billing/sub-agent-cashbacks" element={<PermissionRoute permission="billing.sub-agent-cashbacks.view"><SubAgentCashbacks /></PermissionRoute>} />
+                          <Route path="/billing/profiles" element={<PermissionRoute permission="billing.profiles.view"><BillingProfiles /></PermissionRoute>} />
+                          <Route path="/billing/profiles/new" element={<PermissionRoute permission="billing.profiles.create"><BillingProfileForm /></PermissionRoute>} />
+                          <Route path="/billing/profiles/edit" element={<PermissionRoute permission="billing.profiles.update"><BillingProfileForm /></PermissionRoute>} />
+                          <Route path="/billing/activations" element={<PermissionRoute permission="billing.activations.view"><BillingActivations /></PermissionRoute>} />
+                          <Route path="/billing/topup" element={<PermissionRoute permission="billing.topup.create"><TopUp /></PermissionRoute>} />
+                          <Route path="/billing/history" element={<PermissionRoute permission="billing.history.view"><WalletHistory /></PermissionRoute>} />
+                          <Route path="/billing/transactions" element={<PermissionRoute permission="billing.transactions.view"><Transactions /></PermissionRoute>} />
+                          <Route path="/dashboards" element={<PermissionRoute permission="dashboard.view"><Dashboards /></PermissionRoute>} />
+                          <Route path="/dashboards/:id" element={<PermissionRoute permission="dashboard.view"><DashboardView /></PermissionRoute>} />
+                          <Route path="/dashboards/:id/edit" element={<PermissionRoute permission="dashboard.update"><DashboardView /></PermissionRoute>} />
+                          <Route path="/microservices/radius-sync" element={<PermissionRoute permission="microservices.radius-sync.view"><RadiusSyncService /></PermissionRoute>} />
+                          <Route path="/microservices/radius-sync/:serviceName" element={<PermissionRoute permission="microservices.radius-sync.view"><RadiusSyncServiceDetail /></PermissionRoute>} />
+                          <Route path="/microservices/approvals" element={<PermissionRoute permission="microservices.radius-sync.manage"><MicroserviceApprovals /></PermissionRoute>} />
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </AppLayout>
                     </WorkspaceGuard>
+                    </PermissionProvider>
                   </ProtectedRoute>
                 }
               />
