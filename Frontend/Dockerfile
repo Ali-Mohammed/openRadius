@@ -1,37 +1,39 @@
 # =============================================================================
-# OpenRadius Frontend - Production Docker Image
+# OpenRadius Frontend — Production Docker Image
 # =============================================================================
-# Enterprise-grade multi-stage build for React + Vite application
-# Uses nginx for high-performance static file serving
+# Enterprise-grade multi-stage build for React + Vite application.
+# Uses nginx for high-performance static file serving.
+#
+# Runtime domain injection:
+#   docker run -e DOMAIN=example.com openradius-frontend
+#   → generates /env-config.js with https://api.example.com etc.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Stage 1: Build Stage
+# Stage 1: Build
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files (cached layer for dependencies)
+# Install dependencies (cached layer)
 COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source and build
 COPY . .
-
-# Build application for production (skip type checking for faster builds)
 RUN pnpm run build --mode production || pnpm run build:skip-checks
 
 # -----------------------------------------------------------------------------
-# Stage 2: Production Stage with Nginx
+# Stage 2: Production — nginx
 # -----------------------------------------------------------------------------
 FROM nginx:alpine AS final
+
+LABEL org.opencontainers.image.title="OpenRadius Frontend" \
+      org.opencontainers.image.description="Enterprise RADIUS management frontend" \
+      org.opencontainers.image.vendor="OpenRadius"
 
 # Install curl for health checks
 RUN apk add --no-cache curl
@@ -39,17 +41,13 @@ RUN apk add --no-cache curl
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy custom nginx configuration
+# Copy nginx config, built assets, and entrypoint
 COPY nginx.conf /etc/nginx/conf.d/
-
-# Copy built application from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy runtime config entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Create non-root user for nginx
+# Permissions for non-root nginx user
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
@@ -57,15 +55,11 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
     touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid
 
-# Switch to non-root user
 USER nginx
 
-# Expose port 80
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Start with entrypoint that generates runtime config, then starts nginx
 ENTRYPOINT ["/docker-entrypoint.sh"]
