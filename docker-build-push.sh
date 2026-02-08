@@ -233,8 +233,8 @@ main() {
     # Credits
     echo ""
     echo -e "${BLUE}========================================${NC}"
-    echo -e "${GREEN}Powered by Ali Al-Estarbadee${NC}"
-    echo -e "${BLUE}Email: ali87mohammed@hotmail.com${NC}"
+    echo -e "${GREEN}Powered by OpenRadius${NC}"
+    echo -e "${BLUE}Ali Al-Estarbadee${NC}"
     echo -e "${BLUE}========================================${NC}"
 }
 
