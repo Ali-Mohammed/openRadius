@@ -538,8 +538,13 @@ public class SystemUpdateService : ISystemUpdateService
         var composeDir = Path.GetDirectoryName(composePath)!;
         var composeFile = Path.GetFileName(composePath);
 
+        // Explicitly pass --env-file so ${DOMAIN} and other variables are resolved
+        var envFileArg = File.Exists(Path.Combine(composeDir, ".env"))
+            ? "--env-file .env "
+            : "";
+
         var (exitCode, output) = await RunShellCommand(
-            $"cd \"{composeDir}\" && docker compose -f \"{composeFile}\" up -d --no-deps {svc.ComposeService}",
+            $"cd \"{composeDir}\" && docker compose -f \"{composeFile}\" {envFileArg}up -d --no-deps {svc.ComposeService}",
             timeoutSeconds: 120);
 
         if (exitCode == 0)
