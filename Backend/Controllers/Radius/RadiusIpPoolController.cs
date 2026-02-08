@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
@@ -8,6 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/radius/ip-pools")]
+[Authorize]
 public class RadiusIpPoolController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

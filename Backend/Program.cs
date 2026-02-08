@@ -557,6 +557,9 @@ try
 
     app.UseAuthorization();
 
+    // Centralized route-based permission enforcement for all API endpoints
+    app.UsePermissionAuthorization();
+
     // Configure Hangfire Dashboard with authentication
     // Create a dashboard for each workspace so you can view workspace-specific jobs
     using (var scope = app.Services.CreateScope())

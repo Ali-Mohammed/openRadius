@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
@@ -8,6 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/billing/cashback-groups")]
+[Authorize]
 public class CashbackGroupController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

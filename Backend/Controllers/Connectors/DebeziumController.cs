@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
@@ -19,6 +20,7 @@ public class DatabaseConnectionTest
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class DebeziumController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

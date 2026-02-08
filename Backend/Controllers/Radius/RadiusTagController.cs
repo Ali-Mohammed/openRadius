@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
@@ -9,6 +10,7 @@ namespace Backend.Controllers
 {
     [ApiController]
     [Route("api/radius/tags")]
+    [Authorize]
     public class RadiusTagController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

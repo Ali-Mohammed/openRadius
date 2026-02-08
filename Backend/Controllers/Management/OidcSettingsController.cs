@@ -8,6 +8,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class OidcSettingsController : ControllerBase
 {
     private readonly MasterDbContext _context;

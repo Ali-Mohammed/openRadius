@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
@@ -10,6 +11,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/radius/profiles")]
+[Authorize]
 public class RadiusProfileController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
