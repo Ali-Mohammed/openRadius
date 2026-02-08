@@ -674,6 +674,9 @@ prepare_keycloak_import() {
         sed -i "s|http://localhost:5173|https://$DOMAIN|g" /tmp/keycloak-import.json
         sed -i "s|http://localhost:8080|https://auth.$DOMAIN|g" /tmp/keycloak-import.json
         
+        # Update openradius user password with generated one
+        sed -i "s|CHANGE_ME_ON_FIRST_LOGIN|$OPENRADIUS_USER_PASSWORD|g" /tmp/keycloak-import.json
+        
         print_success "Keycloak realm config prepared with production URLs"
     else
         print_warning "keycloak-config.json not found at $install_dir/keycloak/"
