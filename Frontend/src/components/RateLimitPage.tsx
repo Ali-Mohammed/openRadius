@@ -134,14 +134,6 @@ export function RateLimitPage({ retryAfter, onRetry }: RateLimitPageProps) {
               </div>
             </div>
           </div>
-
-          {/* Progress bar (alternative linear indicator) */}
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all duration-1000 ease-linear"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
         </div>
 
         {/* Info box */}
