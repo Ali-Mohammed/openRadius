@@ -209,16 +209,19 @@ public class SystemUpdateService : ISystemUpdateService
         {
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            var hubResponse = await client.GetAsync("https://hub.docker.com/v2/");
+            var hubResponse = await client.GetAsync("https://registry-1.docker.io/v2/");
+            // Docker Registry returns 200 or 401 (auth required) — both mean it's reachable
+            var isReachable = hubResponse.IsSuccessStatusCode
+                || hubResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized;
             result.Checks.Add(new PreUpdateCheckItem
             {
                 Name = "Docker Hub",
-                Passed = hubResponse.IsSuccessStatusCode,
-                Message = hubResponse.IsSuccessStatusCode
+                Passed = isReachable,
+                Message = isReachable
                     ? "Docker Hub is reachable"
                     : $"Docker Hub returned {hubResponse.StatusCode}"
             });
-            if (!hubResponse.IsSuccessStatusCode) result.Ready = false;
+            if (!isReachable) result.Ready = false;
         }
         catch (Exception ex)
         {
