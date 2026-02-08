@@ -457,8 +457,9 @@ public class SystemUpdateService : ISystemUpdateService
 
     /// <summary>
     /// Schedules a delayed restart for the backend container (self-update).
-    /// Uses nohup + sleep so the compose restart runs AFTER the API response is sent,
-    /// preventing the container from dying mid-request.
+    /// Spawns a separate short-lived Docker container with socket access that waits
+    /// a few seconds then runs docker compose to recreate the backend.
+    /// This container is independent of the backend being restarted.
     /// </summary>
     private async Task<bool> ScheduleDelayedRestart(ServiceConfig svc)
     {
@@ -472,19 +473,35 @@ public class SystemUpdateService : ISystemUpdateService
         var composeDir = Path.GetDirectoryName(composePath)!;
         var composeFile = Path.GetFileName(composePath);
 
-        // Launch a detached background process that waits 3 seconds then restarts the backend
-        // nohup ensures the process survives the container stopping
-        var command = $"nohup sh -c 'sleep 3 && cd \"{composeDir}\" && docker compose -f \"{composeFile}\" up -d --no-deps --pull never {svc.ComposeService}' > /tmp/backend-restart.log 2>&1 &";
+        // Spawn a separate helper container that:
+        // 1. Has access to the Docker socket (to run docker compose)
+        // 2. Has access to the compose file directory (including .env)
+        // 3. Sleeps 5 seconds (so the API can respond first)
+        // 4. Runs docker compose up to recreate the backend with the new image
+        // 5. Removes itself when done (--rm)
+        var envFileArg = File.Exists(Path.Combine(composeDir, ".env"))
+            ? $"--env-file .env "
+            : "";
+        var command = $"docker run -d --rm " +
+            $"--name openradius-backend-updater " +
+            $"-v /var/run/docker.sock:/var/run/docker.sock " +
+            $"-v \"{composeDir}\":\"{composeDir}\":ro " +
+            $"-w \"{composeDir}\" " +
+            $"docker:cli sh -c '" +
+            $"sleep 5 && docker compose -f \"{composeFile}\" {envFileArg}up -d --no-deps --pull never {svc.ComposeService}" +
+            $"'";
 
-        var (exitCode, output) = await RunShellCommand(command, timeoutSeconds: 5);
+        _logger.LogInformation("Scheduling backend restart via helper container");
+        var (exitCode, output) = await RunShellCommand(command, timeoutSeconds: 15);
 
         if (exitCode == 0)
         {
-            _logger.LogInformation("Delayed restart scheduled for {Service} (3s delay)", svc.Name);
+            _logger.LogInformation("Helper container launched for {Service} restart (5s delay). Container ID: {Id}",
+                svc.Name, output.Trim());
             return true;
         }
 
-        _logger.LogWarning("Failed to schedule delayed restart: exit={ExitCode}, output={Output}", exitCode, output);
+        _logger.LogWarning("Failed to launch helper container: exit={ExitCode}, output={Output}", exitCode, output);
         return false;
     }
 
