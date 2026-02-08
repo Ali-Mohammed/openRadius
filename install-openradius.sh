@@ -393,6 +393,11 @@ SEQ_API_KEY=$SEQ_API_KEY
 # Switch Decryption Configuration
 # =============================================================================
 SWITCH_DECRYPTION_KEY=$SWITCH_DECRYPTION_KEY
+
+# =============================================================================
+# Docker Configuration (for system update feature)
+# =============================================================================
+DOCKER_GID=$(getent group docker | cut -d: -f3)
 EOF
     
     # Move the env file to /opt/openradius with secure permissions

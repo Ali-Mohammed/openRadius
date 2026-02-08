@@ -284,6 +284,10 @@ services:
         condition: service_healthy
     volumes:
       - backend_logs:/app/Logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/openradius/docker-compose.prod.yml:/opt/openradius/docker-compose.prod.yml:ro
+    group_add:
+      - "${DOCKER_GID:-999}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
       interval: 30s

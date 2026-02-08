@@ -299,10 +299,10 @@ public class SystemUpdateService : ISystemUpdateService
             // Try common locations
             var commonPaths = new[]
             {
-                "/app/docker-compose.yml",
+                "/opt/openradius/docker-compose.prod.yml",
                 "/app/docker-compose.prod.yml",
-                "/opt/openradius/docker-compose.yml",
-                "/opt/openradius/docker-compose.prod.yml"
+                "/app/docker-compose.yml",
+                "/opt/openradius/docker-compose.yml"
             };
 
             composePath = commonPaths.FirstOrDefault(File.Exists);

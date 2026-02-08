@@ -41,6 +41,7 @@
     "setting": "الإعدادات",
     "appSetting": "إعدادات التطبيق",
     "general": "عام",
+    "systemUpdate": "تحديث النظام",
     "oidc": "OIDC",
     "userManagement": "إدارة المستخدمين",
     "roles": "الأدوار",

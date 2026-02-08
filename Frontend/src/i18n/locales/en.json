@@ -48,6 +48,7 @@
     "paymentInformation": "Payment History",
     "oidc": "OIDC",
     "databaseBackup": "Database Backup",
+    "systemUpdate": "System Update",
     "userManagement": "User Management",
     "roles": "Roles",
     "permissions": "Permissions",
