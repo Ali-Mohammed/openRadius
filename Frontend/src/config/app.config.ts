@@ -59,7 +59,7 @@ export const appConfig = Object.freeze({
       { name: 'Red', value: 'red', class: 'oklch(0.637 0.237 27.325)' },
       { name: 'Orange', value: 'orange', class: 'oklch(0.705 0.186 56.049)' },
     ],
-  }),
+  },
   i18n: Object.freeze({
     defaultLanguage: 'en',
     supportedLanguages: ['en', 'ar'] as readonly string[],
