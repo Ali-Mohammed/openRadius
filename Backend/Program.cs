@@ -108,7 +108,29 @@ try
     });
 
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+        {
+            Title = "OpenRadius API",
+            Version = "v1",
+            Description = "Enterprise RADIUS Management Platform"
+        });
+
+        // Add JWT Bearer authentication to Swagger UI
+        options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
+        {
+            Type = Microsoft.OpenApi.SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "Paste your Keycloak JWT token below.\n\nExample: eyJhbGciOiJSUzI1NiIs..."
+        });
+
+        options.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
+        {
+            [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+        });
+    });
 
     // Configure Master PostgreSQL Database (for tenant/workspace management)
     builder.Services.AddDbContext<MasterDbContext>(options =>
