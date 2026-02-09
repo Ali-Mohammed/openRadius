@@ -1986,7 +1986,7 @@ namespace Backend.Controllers.Payments
                     return;
                 }
 
-                // Get the payment method's custom wallet
+                // Get the payment method's custom wallet (collection wallet)
                 var customWallet = await _context.CustomWallets
                     .FirstOrDefaultAsync(w => w.Id == paymentMethod.WalletId);
 
@@ -2003,31 +2003,119 @@ namespace Backend.Controllers.Payments
                     return;
                 }
 
-                // Create wallet transaction for the payment method's custom wallet
-                var walletTransaction = new Transaction
+                // ── 1. Credit the Custom Wallet (collection/system wallet) ──
+                var customBalanceBefore = customWallet.CurrentBalance;
+                customWallet.CurrentBalance += paymentLog.Amount;
+                customWallet.UpdatedAt = DateTime.UtcNow;
+
+                // Transaction record for custom wallet
+                var customWalletTx = new Transaction
                 {
                     UserId = paymentLog.UserId,
                     TransactionType = TransactionType.TopUp,
+                    AmountType = "credit",
                     Amount = paymentLog.Amount,
                     Status = TransactionStatus.Completed,
+                    BalanceBefore = customBalanceBefore,
+                    BalanceAfter = customWallet.CurrentBalance,
                     Description = $"Payment received via {paymentLog.Gateway} from user {paymentLog.UserId}",
                     PaymentMethod = paymentLog.Gateway,
-                    Reference = paymentLog.ReferenceId,
+                    Reference = paymentLog.TransactionId,
                     WalletType = "custom",
                     CustomWalletId = customWallet.Id,
                     CreatedAt = DateTime.UtcNow
                 };
+                _context.Transactions.Add(customWalletTx);
 
-                _context.Transactions.Add(walletTransaction);
+                // Wallet history for custom wallet
+                var customWalletHistory = new WalletHistory
+                {
+                    WalletType = "custom",
+                    CustomWalletId = customWallet.Id,
+                    TransactionType = TransactionType.TopUp,
+                    AmountType = "credit",
+                    Amount = paymentLog.Amount,
+                    BalanceBefore = customBalanceBefore,
+                    BalanceAfter = customWallet.CurrentBalance,
+                    Description = $"Payment received via {paymentLog.Gateway} from user {paymentLog.UserId}",
+                    Reference = paymentLog.TransactionId,
+                    UserId = paymentLog.UserId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.WalletHistories.Add(customWalletHistory);
+
                 await _context.SaveChangesAsync();
 
-                // Update custom wallet balance
-                var balanceBefore = customWallet.CurrentBalance;
-                customWallet.CurrentBalance += paymentLog.Amount;
-                customWallet.UpdatedAt = DateTime.UtcNow;
+                // ── 2. Credit the User's Wallet ──
+                // Find the user's wallet linked to the same custom wallet
+                var userWallet = await _context.UserWallets
+                    .FirstOrDefaultAsync(uw => uw.UserId == paymentLog.UserId
+                                            && uw.CustomWalletId == customWallet.Id
+                                            && !uw.IsDeleted);
 
-                // Link payment log to wallet transaction
-                paymentLog.WalletTransactionId = walletTransaction.Id;
+                // If user has no wallet for this custom wallet, auto-create one
+                if (userWallet == null)
+                {
+                    userWallet = new UserWallet
+                    {
+                        UserId = paymentLog.UserId,
+                        CustomWalletId = customWallet.Id,
+                        CurrentBalance = 0,
+                        Status = "active",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.UserWallets.Add(userWallet);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "Auto-created user wallet for UserId={UserId}, CustomWalletId={CustomWalletId}",
+                        paymentLog.UserId, customWallet.Id);
+                }
+
+                var userBalanceBefore = userWallet.CurrentBalance;
+                userWallet.CurrentBalance += paymentLog.Amount;
+                userWallet.UpdatedAt = DateTime.UtcNow;
+
+                // Transaction record for user wallet
+                var userWalletTx = new Transaction
+                {
+                    UserId = paymentLog.UserId,
+                    TransactionType = TransactionType.TopUp,
+                    AmountType = "credit",
+                    Amount = paymentLog.Amount,
+                    Status = TransactionStatus.Completed,
+                    BalanceBefore = userBalanceBefore,
+                    BalanceAfter = userWallet.CurrentBalance,
+                    Description = $"Top-up via {paymentLog.Gateway} payment",
+                    PaymentMethod = paymentLog.Gateway,
+                    Reference = paymentLog.TransactionId,
+                    WalletType = "user",
+                    UserWalletId = userWallet.Id,
+                    CustomWalletId = customWallet.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Transactions.Add(userWalletTx);
+
+                // Wallet history for user wallet
+                var userWalletHistory = new WalletHistory
+                {
+                    WalletType = "user",
+                    UserWalletId = userWallet.Id,
+                    CustomWalletId = customWallet.Id,
+                    TransactionType = TransactionType.TopUp,
+                    AmountType = "credit",
+                    Amount = paymentLog.Amount,
+                    BalanceBefore = userBalanceBefore,
+                    BalanceAfter = userWallet.CurrentBalance,
+                    Description = $"Top-up via {paymentLog.Gateway} payment",
+                    Reference = paymentLog.TransactionId,
+                    UserId = paymentLog.UserId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.WalletHistories.Add(userWalletHistory);
+
+                // ── 3. Finalize payment log ──
+                paymentLog.WalletTransactionId = customWalletTx.Id;
                 paymentLog.Status = "completed";
                 paymentLog.CompletedAt = DateTime.UtcNow;
 
@@ -2035,8 +2123,13 @@ namespace Backend.Controllers.Payments
                 await transaction.CommitAsync();
 
                 _logger.LogInformation(
-                    "Payment processed successfully. Transaction: {TransactionId}, Gateway: {Gateway}, Custom Wallet: {WalletName}, Amount: {Amount}, Balance: {BalanceBefore} -> {BalanceAfter}",
-                    paymentLog.TransactionId, paymentLog.Gateway, customWallet.Name, paymentLog.Amount, balanceBefore, customWallet.CurrentBalance);
+                    "Payment processed successfully. Transaction: {TransactionId}, Gateway: {Gateway}, " +
+                    "Custom Wallet: {WalletName} ({CustomBalanceBefore} -> {CustomBalanceAfter}), " +
+                    "User Wallet: UserId={UserId} ({UserBalanceBefore} -> {UserBalanceAfter}), Amount: {Amount}",
+                    paymentLog.TransactionId, paymentLog.Gateway,
+                    customWallet.Name, customBalanceBefore, customWallet.CurrentBalance,
+                    paymentLog.UserId, userBalanceBefore, userWallet.CurrentBalance,
+                    paymentLog.Amount);
             }
             catch (Exception ex)
             {
