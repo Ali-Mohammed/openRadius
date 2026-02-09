@@ -1970,7 +1970,7 @@ namespace Backend.Controllers.Payments
 
                 // Get the payment method to find its linked wallet
                 var paymentMethod = await _context.PaymentMethods
-                    .FirstOrDefaultAsync(pm => pm.Type == paymentLog.Gateway);
+                    .FirstOrDefaultAsync(pm => pm.Type == paymentLog.Gateway && pm.IsActive);
 
                 if (paymentMethod?.WalletId == null)
                 {
@@ -2045,14 +2045,15 @@ namespace Backend.Controllers.Payments
         }
 
         // GET: api/payments/status/{transactionId}
+        [AllowAnonymous]
         [HttpGet("status/{transactionId}")]
         public async Task<ActionResult<PaymentStatusResponse>> GetPaymentStatus(string transactionId)
         {
             try
             {
-                var userId = User.GetSystemUserId();
+                // Allow anonymous access — transactionId (UUID) acts as the security token
                 var paymentLog = await _context.PaymentLogs
-                    .FirstOrDefaultAsync(p => p.TransactionId == transactionId && p.UserId == userId);
+                    .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
 
                 if (paymentLog == null)
                 {
