@@ -1235,7 +1235,13 @@ namespace Backend.Controllers.Payments
                 var confirmedStatus = currentStatus;
                 if (isSuccess && currentStatus == "SUCCESS")
                 {
-                    confirmedStatus = await VerifyZainCashV2TransactionAsync(paymentMethod, zcTransactionId);
+                    var verifiedStatus = await VerifyZainCashV2TransactionAsync(paymentMethod, zcTransactionId);
+                    if (!string.IsNullOrEmpty(verifiedStatus))
+                    {
+                        confirmedStatus = verifiedStatus;
+                    }
+                    // If verification fails (returns null), trust the callback JWT status
+                    _logger.LogInformation("[ZainCashV2] Verification result: {VerifiedStatus}, using confirmedStatus: {ConfirmedStatus}", verifiedStatus ?? "null", confirmedStatus);
                 }
 
                 if (confirmedStatus == "SUCCESS")

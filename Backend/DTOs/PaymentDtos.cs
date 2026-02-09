@@ -79,7 +79,7 @@ namespace Backend.DTOs
         public string? OrderId { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("operationId")]
-        public string? OperationId { get; set; }
+        public long? OperationId { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("amount")]
         public ZainCashV2Amount? Amount { get; set; }
