@@ -1060,7 +1060,7 @@ namespace Backend.Controllers.Payments
                     // Process successful payment
                     await ProcessSuccessfulPayment(paymentLog);
 
-                    return Redirect($"{GetFrontendUrl()}/payment/success?transactionId={orderId}");
+                    return Redirect($"{GetFrontendUrl()}/payment/success?transactionId={orderId}&workspaceId={workspaceId}");
                 }
                 else if (status == "failed")
                 {
@@ -1068,10 +1068,10 @@ namespace Backend.Controllers.Payments
                     paymentLog.ErrorMessage = result.GetValueOrDefault("msg")?.ToString();
                     await _context.SaveChangesAsync();
 
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={orderId}");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={orderId}&workspaceId={workspaceId}");
                 }
 
-                return Redirect($"{GetFrontendUrl()}/payment/cancelled?transactionId={orderId}");
+                return Redirect($"{GetFrontendUrl()}/payment/cancelled?transactionId={orderId}&workspaceId={workspaceId}");
             }
             catch (Exception ex)
             {
@@ -1106,12 +1106,13 @@ namespace Backend.Controllers.Payments
         /// </summary>
         private async Task<IActionResult> HandleZainCashV2Callback(string token, bool isSuccess)
         {
+            var wsId = HttpContext.Request.RouteValues["workspaceId"]?.ToString() ?? "";
             try
             {
                 if (string.IsNullOrEmpty(token))
                 {
                     _logger.LogWarning("[ZainCashV2] Callback received without token");
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=missing_token");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=missing_token&workspaceId={wsId}");
                 }
 
                 // Find active ZainCashV2 payment method to get API key for JWT verification
@@ -1121,7 +1122,7 @@ namespace Backend.Controllers.Payments
                 if (paymentMethod == null)
                 {
                     _logger.LogError("[ZainCashV2] No active ZainCashV2 payment method found");
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=not_configured");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=not_configured&workspaceId={wsId}");
                 }
 
                 var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
@@ -1146,7 +1147,7 @@ namespace Backend.Controllers.Payments
                     var parts = token.Split('.');
                     if (parts.Length < 2)
                     {
-                        return Redirect($"{GetFrontendUrl()}/payment/failed?error=invalid_token");
+                        return Redirect($"{GetFrontendUrl()}/payment/failed?error=invalid_token&workspaceId={wsId}");
                     }
                     var payloadBase64 = parts[1].Replace('-', '+').Replace('_', '/');
                     switch (payloadBase64.Length % 4)
@@ -1160,7 +1161,7 @@ namespace Backend.Controllers.Payments
 
                 if (callbackData == null)
                 {
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=invalid_payload");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=invalid_payload&workspaceId={wsId}");
                 }
 
                 _logger.LogInformation("[ZainCashV2] Callback data: {Data}", JsonSerializer.Serialize(callbackData));
@@ -1185,7 +1186,7 @@ namespace Backend.Controllers.Payments
                 if (string.IsNullOrEmpty(orderId))
                 {
                     _logger.LogWarning("[ZainCashV2] Could not extract orderId from callback token");
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=missing_order_id");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?error=missing_order_id&workspaceId={wsId}");
                 }
 
                 // Find and update payment log
@@ -1195,7 +1196,7 @@ namespace Backend.Controllers.Payments
                 if (paymentLog == null)
                 {
                     _logger.LogWarning("[ZainCashV2] Payment not found for orderId: {OrderId}", orderId);
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={orderId}&error=not_found");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={orderId}&error=not_found&workspaceId={wsId}");
                 }
 
                 paymentLog.CallbackData = JsonSerializer.Serialize(callbackData);
@@ -1227,7 +1228,7 @@ namespace Backend.Controllers.Payments
                     await ProcessSuccessfulPayment(paymentLog);
 
                     _logger.LogInformation("[ZainCashV2] Payment completed: TransactionId={TransactionId}", orderId);
-                    return Redirect($"{GetFrontendUrl()}/payment/success?transactionId={orderId}");
+                    return Redirect($"{GetFrontendUrl()}/payment/success?transactionId={orderId}&workspaceId={wsId}");
                 }
                 else
                 {
@@ -1236,13 +1237,13 @@ namespace Backend.Controllers.Payments
                     await _context.SaveChangesAsync();
 
                     _logger.LogWarning("[ZainCashV2] Payment failed/cancelled: TransactionId={TransactionId}, Status={Status}", orderId, confirmedStatus);
-                    return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={orderId}");
+                    return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={orderId}&workspaceId={wsId}");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ZainCashV2] Error processing callback");
-                return Redirect($"{GetFrontendUrl()}/payment/failed?error=processing_error");
+                return Redirect($"{GetFrontendUrl()}/payment/failed?error=processing_error&workspaceId={wsId}");
             }
         }
 
@@ -1672,7 +1673,7 @@ namespace Backend.Controllers.Payments
 
                         await ProcessSuccessfulPayment(paymentLog);
 
-                        return Redirect($"{GetFrontendUrl()}/payment/success?transactionId={paymentLog.TransactionId}");
+                        return Redirect($"{GetFrontendUrl()}/payment/success?transactionId={paymentLog.TransactionId}&workspaceId={workspaceId}");
                     }
                     else
                     {
@@ -1680,7 +1681,7 @@ namespace Backend.Controllers.Payments
                         paymentLog.ErrorMessage = description ?? "Transaction failed";
                         await _context.SaveChangesAsync();
 
-                        return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={paymentLog.TransactionId}");
+                        return Redirect($"{GetFrontendUrl()}/payment/failed?transactionId={paymentLog.TransactionId}&workspaceId={workspaceId}");
                     }
                 }
 

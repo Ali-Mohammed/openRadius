@@ -9,6 +9,7 @@ import { paymentApi } from '@/api/paymentApi';
 export default function PaymentResultPage() {
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId');
+  const workspaceId = searchParams.get('workspaceId');
   const [status, setStatus] = useState<'success' | 'failed' | 'cancelled'>('success');
 
   // Determine status from URL
@@ -26,7 +27,7 @@ export default function PaymentResultPage() {
   // Fetch payment status
   const { data: paymentStatus, isLoading } = useQuery({
     queryKey: ['paymentStatus', transactionId],
-    queryFn: () => paymentApi.getPaymentStatus(transactionId!),
+    queryFn: () => paymentApi.getPaymentStatus(transactionId!, workspaceId ?? undefined),
     enabled: !!transactionId,
     refetchInterval: status === 'success' ? false : 3000, // Refetch every 3s if not success
   });

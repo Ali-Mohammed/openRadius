@@ -84,8 +84,9 @@ export const paymentApi = {
     return response.data;
   },
 
-  getPaymentStatus: async (transactionId: string): Promise<PaymentStatus> => {
-    const response = await apiClient.get(`/api/payments/status/${transactionId}`);
+  getPaymentStatus: async (transactionId: string, workspaceId?: string): Promise<PaymentStatus> => {
+    const params = workspaceId ? { workspaceId } : {};
+    const response = await apiClient.get(`/api/payments/status/${transactionId}`, { params });
     return response.data;
   },
 
