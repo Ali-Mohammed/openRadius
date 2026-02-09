@@ -2047,19 +2047,18 @@ namespace Backend.Controllers.Payments
                 await _context.SaveChangesAsync();
 
                 // ── 2. Credit the User's Wallet ──
-                // Find the user's wallet linked to the same custom wallet
+                // Find the user's existing wallet (each user should have exactly one wallet)
                 var userWallet = await _context.UserWallets
                     .FirstOrDefaultAsync(uw => uw.UserId == paymentLog.UserId
-                                            && uw.CustomWalletId == customWallet.Id
                                             && !uw.IsDeleted);
 
-                // If user has no wallet for this custom wallet, auto-create one
+                // If user has no wallet at all, auto-create one
                 if (userWallet == null)
                 {
                     userWallet = new UserWallet
                     {
                         UserId = paymentLog.UserId,
-                        CustomWalletId = customWallet.Id,
+                        CustomWalletId = null, // Default wallet — matches manual creation pattern
                         CurrentBalance = 0,
                         Status = "active",
                         CreatedAt = DateTime.UtcNow
@@ -2068,8 +2067,8 @@ namespace Backend.Controllers.Payments
                     await _context.SaveChangesAsync();
 
                     _logger.LogInformation(
-                        "Auto-created user wallet for UserId={UserId}, CustomWalletId={CustomWalletId}",
-                        paymentLog.UserId, customWallet.Id);
+                        "Auto-created user wallet for UserId={UserId}",
+                        paymentLog.UserId);
                 }
 
                 var userBalanceBefore = userWallet.CurrentBalance;
