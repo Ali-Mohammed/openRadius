@@ -872,10 +872,10 @@ namespace Backend.Controllers.Payments
                         await _context.SaveChangesAsync();
                     }
 
-                    // Get current workspace ID from context
-                    var workspaceId = HttpContext.Items["WorkspaceId"]?.ToString() ?? "1";
-                    _logger.LogInformation("Creating Switch checkout URL with WorkspaceId={WorkspaceId}", workspaceId);
-                    var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/checkout/{transactionId}?checkoutId={switchResponse.Id}&workspaceId={workspaceId}";
+                    // Get current workspace ID for multi-tenant callback routing
+                    var wsId = GetCurrentWorkspaceId();
+                    _logger.LogInformation("Creating Switch checkout URL with WorkspaceId={WorkspaceId}", wsId);
+                    var checkoutUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/checkout/{wsId}/{transactionId}?checkoutId={switchResponse.Id}";
 
                     return new PaymentInitiationResponse
                     {
@@ -895,43 +895,18 @@ namespace Backend.Controllers.Payments
             }
         }
 
-        // GET: api/payments/switch/checkout/{transactionId}
+        // GET: api/payments/switch/checkout/{workspaceId}/{transactionId}
         [AllowAnonymous]
-        [HttpGet("switch/checkout/{transactionId}")]
-        public async Task<IActionResult> SwitchCheckout(string transactionId, [FromQuery] string checkoutId, [FromQuery] string? workspaceId)
+        [HttpGet("switch/checkout/{workspaceId}/{transactionId}")]
+        public async Task<IActionResult> SwitchCheckout(string workspaceId, string transactionId, [FromQuery] string checkoutId)
         {
             try
             {
-                // Default to workspace 1 if not provided
-                workspaceId = workspaceId ?? "1";
-                
                 _logger.LogInformation("Switch checkout page requested: TransactionId={TransactionId}, CheckoutId={CheckoutId}, WorkspaceId={WorkspaceId}", 
                     transactionId, checkoutId, workspaceId);
 
-                // Create ApplicationDbContext for the specific workspace (anonymous endpoint needs manual setup)
-                var baseConnectionString = _configuration.GetConnectionString("DefaultConnection");
-                _logger.LogInformation("Base connection string: {BaseConnectionString}", baseConnectionString);
-                
-                // Replace master database name with workspace database name
-                var connectionString = baseConnectionString?.Replace("Database=openradius;", $"Database=openradius_workspace_{workspaceId};");
-                
-                _logger.LogInformation("Workspace connection string: {ConnectionString}", connectionString);
-                
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    _logger.LogError("Failed to build connection string for workspace {WorkspaceId}", workspaceId);
-                    return StatusCode(500, "Database configuration error");
-                }
-                
-                var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-                optionsBuilder.UseNpgsql(connectionString);
-                
-                // Create context without multi-tenant accessor (anonymous endpoint)
-                using var workspaceContext = new ApplicationDbContext(optionsBuilder.Options, null);
-
-                // Find payment log in workspace database
-                _logger.LogInformation("Searching for payment in workspace database...");
-                var paymentLog = await workspaceContext.PaymentLogs
+                // Tenant middleware resolves workspace from {workspaceId} route parameter — use DI-resolved _context
+                var paymentLog = await _context.PaymentLogs
                     .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
 
                 if (paymentLog == null)
@@ -941,7 +916,7 @@ namespace Backend.Controllers.Payments
                 }
 
                 // Get payment method to determine environment
-                var paymentMethod = await workspaceContext.PaymentMethods
+                var paymentMethod = await _context.PaymentMethods
                     .FirstOrDefaultAsync(pm => pm.Type == "Switch" && pm.IsActive);
 
                 if (paymentMethod == null)
@@ -953,7 +928,7 @@ namespace Backend.Controllers.Payments
                 var isProduction = settings?.ContainsKey("isProduction") == true &&
                                  settings["isProduction"].ToString()?.ToLower() == "true";
 
-                var shopperResultUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/callback/{GetCurrentWorkspaceId()}";
+                var shopperResultUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/callback/{workspaceId}";
 
                 _logger.LogInformation("Rendering Switch checkout page: TransactionId={TransactionId}, CheckoutId={CheckoutId}, Amount={Amount}", 
                     transactionId, checkoutId, paymentLog.Amount);
@@ -1339,8 +1314,8 @@ namespace Backend.Controllers.Payments
         /// ZainCash V2 webhook endpoint — receives POST with webhook_token (JWT) for status change notifications
         /// </summary>
         [AllowAnonymous]
-        [HttpPost("zaincashv2/webhook")]
-        public async Task<IActionResult> ZainCashV2Webhook()
+        [HttpPost("zaincashv2/webhook/{workspaceId}")]
+        public async Task<IActionResult> ZainCashV2Webhook(string workspaceId)
         {
             try
             {
@@ -1725,9 +1700,10 @@ namespace Backend.Controllers.Payments
         {
             try
             {
-                _logger.LogInformation("QICard callback received");
-                // Simple redirect endpoint - user returns here
-                return Redirect("/payment/processing");
+                _logger.LogInformation("QICard callback received for workspace {WorkspaceId}", workspaceId);
+                // User returns here after QICard payment — redirect to frontend success page
+                // (actual payment status is updated via the server-to-server notification endpoint)
+                return Redirect($"{GetFrontendUrl()}/payment/success");
             }
             catch (Exception ex)
             {
@@ -1859,9 +1835,9 @@ namespace Backend.Controllers.Payments
         /// Webhook endpoint for encrypted Switch server callbacks
         /// Receives AES-256-GCM encrypted payment notifications
         /// </summary>
-        [HttpPost("switch/webhook")]
+        [HttpPost("switch/webhook/{workspaceId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> SwitchWebhook()
+        public async Task<IActionResult> SwitchWebhook(string workspaceId)
         {
             try
             {
