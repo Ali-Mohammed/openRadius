@@ -33,7 +33,6 @@ export interface WalletBalance {
 }
 
 export interface PaymentLog {
-  id: number;
   uuid: string;
   transactionId: string;
   gateway: string;
@@ -48,6 +47,35 @@ export interface PaymentLog {
   updatedAt?: string;
   userName?: string;
   userEmail?: string;
+}
+
+export interface PaymentInquiryLiveData {
+  success: boolean;
+  gatewayStatus?: string;
+  rawResponse?: any;
+  errorMessage?: string;
+  queriedAt: string;
+}
+
+export interface PaymentInquiryResponse {
+  uuid: string;
+  transactionId: string;
+  gateway: string;
+  amount: number;
+  currency: string;
+  status: string;
+  referenceId?: string;
+  gatewayTransactionId?: string;
+  environment?: string;
+  errorMessage?: string;
+  serviceType?: string;
+  createdAt: string;
+  updatedAt?: string;
+  completedAt?: string;
+  requestData?: any;
+  responseData?: any;
+  callbackData?: any;
+  liveData?: PaymentInquiryLiveData;
 }
 
 export const paymentApi = {
@@ -68,6 +96,11 @@ export const paymentApi = {
 
   getPaymentHistory: async (params?: { pageNumber?: number; pageSize?: number; status?: string }): Promise<PaymentLog[]> => {
     const response = await apiClient.get('/api/payments/history', { params });
+    return response.data;
+  },
+
+  inquirePayment: async (uuid: string): Promise<PaymentInquiryResponse> => {
+    const response = await apiClient.get(`/api/payments/${uuid}/inquiry`);
     return response.data;
   }
 };
