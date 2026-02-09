@@ -2284,6 +2284,7 @@ namespace Backend.Controllers.Payments
                 response.LiveData = paymentLog.Gateway switch
                 {
                     "ZainCashV2" => await InquireZainCashV2Async(paymentLog),
+                    "QICard" => await InquireQICardAsync(paymentLog),
                     "Switch" => await InquireSwitchAsync(paymentLog),
                     _ => new PaymentInquiryLiveData
                     {
@@ -2400,6 +2401,125 @@ namespace Backend.Controllers.Payments
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[Inquiry] Error querying ZainCash V2 for {TransactionId}", paymentLog.TransactionId);
+                return new PaymentInquiryLiveData
+                {
+                    Success = false,
+                    ErrorMessage = $"Error querying gateway: {ex.Message}",
+                    QueriedAt = DateTime.UtcNow
+                };
+            }
+        }
+
+        /// <summary>
+        /// Queries QICard API for live payment status using GET /api/v1/payment/{paymentId}/status
+        /// </summary>
+        private async Task<PaymentInquiryLiveData> InquireQICardAsync(PaymentLog paymentLog)
+        {
+            try
+            {
+                // The GatewayTransactionId for QICard is the QICard paymentId
+                var paymentId = paymentLog.GatewayTransactionId;
+                if (string.IsNullOrEmpty(paymentId))
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = "No gateway transaction ID (paymentId) stored — cannot query QICard",
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "QICard" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = "QICard payment method not configured or inactive",
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                if (settings == null)
+                {
+                    return new PaymentInquiryLiveData { Success = false, ErrorMessage = "Invalid payment method settings", QueriedAt = DateTime.UtcNow };
+                }
+
+                var isProduction = settings.ContainsKey("isProduction") &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var username = isProduction
+                    ? settings.GetValueOrDefault("usernameProd")?.ToString()
+                    : settings.GetValueOrDefault("usernameTest")?.ToString();
+
+                var password = isProduction
+                    ? settings.GetValueOrDefault("passwordProd")?.ToString()
+                    : settings.GetValueOrDefault("passwordTest")?.ToString();
+
+                var terminalId = isProduction
+                    ? settings.GetValueOrDefault("terminalIdProd")?.ToString()
+                    : settings.GetValueOrDefault("terminalIdTest")?.ToString();
+
+                var apiUrl = isProduction
+                    ? settings.GetValueOrDefault("urlProd")?.ToString()
+                    : settings.GetValueOrDefault("urlTest")?.ToString();
+
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) ||
+                    string.IsNullOrEmpty(terminalId) || string.IsNullOrEmpty(apiUrl))
+                {
+                    return new PaymentInquiryLiveData { Success = false, ErrorMessage = "Missing QICard credentials", QueriedAt = DateTime.UtcNow };
+                }
+
+                // Build status inquiry URL: GET /api/v1/payment/{paymentId}/status
+                var statusUrl = $"{apiUrl.TrimEnd('/')}/payment/{paymentId}/status";
+
+                var httpClient = _httpClientFactory.CreateClient("QICardPayment");
+                var request = new HttpRequestMessage(HttpMethod.Get, statusUrl);
+
+                // Add X-Terminal-Id header
+                request.Headers.Add("X-Terminal-Id", terminalId);
+
+                // Add Basic Authentication
+                var authBytes = Encoding.UTF8.GetBytes($"{username}:{password}");
+                var authBase64 = Convert.ToBase64String(authBytes);
+                request.Headers.Add("Authorization", $"Basic {authBase64}");
+
+                _logger.LogInformation("[Inquiry] QICard status check: {Url}, PaymentId={PaymentId}", statusUrl, paymentId);
+
+                var response = await httpClient.SendAsync(request);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("[Inquiry] QICard response: Status={StatusCode}", response.StatusCode);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = $"Gateway returned {response.StatusCode}",
+                        RawResponse = responseBody,
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var rawObj = JsonSerializer.Deserialize<object>(responseBody);
+                var statusResult = JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
+                var gatewayStatus = statusResult?.GetValueOrDefault("status")?.ToString();
+
+                return new PaymentInquiryLiveData
+                {
+                    Success = true,
+                    GatewayStatus = gatewayStatus,
+                    RawResponse = rawObj,
+                    QueriedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Inquiry] Error querying QICard for {TransactionId}", paymentLog.TransactionId);
                 return new PaymentInquiryLiveData
                 {
                     Success = false,
