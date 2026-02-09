@@ -102,5 +102,12 @@ export const paymentApi = {
   inquirePayment: async (uuid: string): Promise<PaymentInquiryResponse> => {
     const response = await apiClient.get(`/api/payments/${uuid}/inquiry`);
     return response.data;
+  },
+
+  forceCompletePayment: async (uuid: string, formData: FormData): Promise<{ message: string; paymentUuid: string; auditUuid: string; amountCredited: number; previousStatus: string; newStatus: string }> => {
+    const response = await apiClient.post(`/api/payments/${uuid}/force-complete`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   }
 };
