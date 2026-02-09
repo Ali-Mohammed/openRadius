@@ -383,6 +383,9 @@ public class SasActivationService : ISasActivationService
     /// </summary>
     private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log, ApplicationDbContext context)
     {
+        // TODO: Remove this block when SAS4 integration is ready
+        throw new InvalidOperationException("SAS4 activation is temporarily disabled");
+#pragma warning disable CS0162 // Unreachable code detected — keeping implementation for when SAS4 integration is enabled
         _logger.LogInformation($"[SAS_Activation_020] Sending activation to SAS4: {integration.Url} for user {log.Username}");
         
         var httpClient = _httpClientFactory.CreateClient();
@@ -547,6 +550,7 @@ public class SasActivationService : ISasActivationService
             _logger.LogError(ex, $"[SAS_Activation_032] Unexpected error during SAS4 activation for user {log.Username}");
             throw new HttpRequestException($"Activation failed: {ex.Message}", ex);
         }
+#pragma warning restore CS0162
     }
     
     /// <summary>
