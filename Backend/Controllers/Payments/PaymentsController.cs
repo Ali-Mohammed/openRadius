@@ -2304,6 +2304,161 @@ namespace Backend.Controllers.Payments
         }
 
         /// <summary>
+        /// Force-completes a stuck/failed payment that was actually paid.
+        /// Creates a full audit trail with justification and proof document upload.
+        /// Processes wallet balance credit identical to normal successful payment flow.
+        /// </summary>
+        /// <param name="uuid">The payment UUID</param>
+        /// <param name="justification">Admin's justification text (required, max 2000 chars)</param>
+        /// <param name="document">Proof document upload (receipt, screenshot, etc.)</param>
+        [HttpPost("{uuid:guid}/force-complete")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ForceCompletePayment(
+            Guid uuid,
+            [FromForm][Required][MaxLength(2000)] string justification,
+            [FromForm][Required] IFormFile document)
+        {
+            using var activity = ActivitySource.StartActivity("ForceCompletePayment");
+            activity?.SetTag("payment.uuid", uuid);
+
+            try
+            {
+                var adminUserId = User.GetSystemUserId();
+                if (adminUserId == null)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                // Validate justification
+                if (string.IsNullOrWhiteSpace(justification))
+                {
+                    return BadRequest(new { message = "Justification is required" });
+                }
+
+                if (justification.Length > 2000)
+                {
+                    return BadRequest(new { message = "Justification must be 2000 characters or less" });
+                }
+
+                // Validate document
+                if (document == null || document.Length == 0)
+                {
+                    return BadRequest(new { message = "Proof document is required" });
+                }
+
+                // Validate file type (images and PDFs only)
+                var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf" };
+                if (!allowedTypes.Contains(document.ContentType?.ToLower()))
+                {
+                    return BadRequest(new { message = "Only image files (JPEG, PNG, GIF, WebP) and PDF documents are allowed" });
+                }
+
+                // Max file size: 10MB
+                const long maxFileSize = 10 * 1024 * 1024;
+                if (document.Length > maxFileSize)
+                {
+                    return BadRequest(new { message = "File size must be 10MB or less" });
+                }
+
+                // Find the payment log
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.Uuid == uuid);
+
+                if (paymentLog == null)
+                {
+                    return NotFound(new { message = "Payment not found" });
+                }
+
+                // Prevent force-completing an already completed payment
+                if (paymentLog.Status == "completed")
+                {
+                    return Conflict(new { message = "Payment is already completed. Force completion is not allowed." });
+                }
+
+                // Check if this payment was already force-completed
+                var existingForceCompletion = await _context.PaymentForceCompletions
+                    .AnyAsync(fc => fc.PaymentLogId == paymentLog.Id);
+
+                if (existingForceCompletion)
+                {
+                    return Conflict(new { message = "This payment has already been force-completed." });
+                }
+
+                // Save the proof document to disk
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "PaymentReceipts");
+                Directory.CreateDirectory(uploadsDir);
+
+                var fileExtension = Path.GetExtension(document.FileName);
+                var safeFileName = $"{uuid}_{DateTime.UtcNow:yyyyMMddHHmmss}{fileExtension}";
+                var filePath = Path.Combine(uploadsDir, safeFileName);
+
+                await using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await document.CopyToAsync(stream);
+                }
+
+                // Store the previous status for audit
+                var previousStatus = paymentLog.Status;
+
+                // Get IP address
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                _logger.LogWarning(
+                    "[ForceComplete] Admin {AdminUserId} force-completing payment {Uuid} (TransactionId={TransactionId}, Gateway={Gateway}, Amount={Amount}, PreviousStatus={PreviousStatus}). Justification: {Justification}",
+                    adminUserId, uuid, paymentLog.TransactionId, paymentLog.Gateway, paymentLog.Amount, previousStatus, justification);
+
+                // Process the payment using the same wallet crediting logic
+                await ProcessSuccessfulPayment(paymentLog);
+
+                // Reload to get the updated status and wallet transaction ID
+                await _context.Entry(paymentLog).ReloadAsync();
+
+                // Create the audit record
+                var forceCompletion = new PaymentForceCompletion
+                {
+                    PaymentLogId = paymentLog.Id,
+                    PreviousStatus = previousStatus,
+                    Justification = justification,
+                    DocumentPath = filePath,
+                    DocumentFileName = document.FileName,
+                    DocumentContentType = document.ContentType,
+                    DocumentFileSize = document.Length,
+                    AmountCredited = paymentLog.Amount,
+                    Gateway = paymentLog.Gateway,
+                    TransactionId = paymentLog.TransactionId,
+                    IpAddress = ipAddress,
+                    CreatedBy = adminUserId.Value
+                };
+
+                _context.PaymentForceCompletions.Add(forceCompletion);
+                await _context.SaveChangesAsync();
+
+                _logger.LogWarning(
+                    "[ForceComplete] Payment {Uuid} force-completed successfully by admin {AdminUserId}. AuditId={AuditUuid}, Amount={Amount}, PreviousStatus={PreviousStatus}",
+                    uuid, adminUserId, forceCompletion.Uuid, paymentLog.Amount, previousStatus);
+
+                return Ok(new
+                {
+                    message = "Payment force-completed successfully",
+                    paymentUuid = paymentLog.Uuid,
+                    auditUuid = forceCompletion.Uuid,
+                    amountCredited = paymentLog.Amount,
+                    previousStatus,
+                    newStatus = paymentLog.Status
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ForceComplete] Error force-completing payment {Uuid}", uuid);
+                return StatusCode(500, new { message = "Error force-completing payment. Please try again." });
+            }
+        }
+
+        /// <summary>
         /// Queries ZainCash V2 inquiry API for live transaction status
         /// </summary>
         private async Task<PaymentInquiryLiveData> InquireZainCashV2Async(PaymentLog paymentLog)
