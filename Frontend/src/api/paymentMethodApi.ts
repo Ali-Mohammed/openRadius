@@ -2,7 +2,7 @@ import { apiClient } from '@/lib/api'
 
 export interface PaymentMethodSettings {
   isProduction?: boolean
-  // ZainCash
+  // ZainCash (v1)
   msisdnProd?: string
   msisdnTest?: string
   merchantProd?: string
@@ -12,6 +12,21 @@ export interface PaymentMethodSettings {
   langProd?: string
   langTest?: string
   token?: string
+  // ZainCash V2 (OAuth2 + REST API)
+  clientIdProd?: string
+  clientIdTest?: string
+  clientSecretProd?: string
+  clientSecretTest?: string
+  baseUrlProd?: string
+  baseUrlTest?: string
+  serviceTypeProd?: string
+  serviceTypeTest?: string
+  apiKeyProd?: string
+  apiKeyTest?: string
+  scope?: string
+  successUrl?: string
+  failureUrl?: string
+  webhookUrl?: string
   // QICard
   usernameProd?: string
   usernameTest?: string
@@ -23,6 +38,8 @@ export interface PaymentMethodSettings {
   currencyTest?: string
   urlProd?: string
   urlTest?: string
+  publicKeyProd?: string
+  publicKeyTest?: string
   // Switch
   entityIdProd?: string
   entityIdTest?: string
@@ -37,16 +54,18 @@ export interface PaymentMethodSettings {
   isActive?: boolean
 }
 
+export type PaymentMethodType = 'ZainCash' | 'ZainCashV2' | 'QICard' | 'Switch'
+
 export interface PaymentMethod {
   id?: number
-  type: 'ZainCash' | 'QICard' | 'Switch'
+  type: PaymentMethodType
   name: string
   isActive: boolean
   settings: PaymentMethodSettings
 }
 
 export interface CreatePaymentMethodDto {
-  type: 'ZainCash' | 'QICard' | 'Switch'
+  type: PaymentMethodType
   name: string
   isActive: boolean
   settings: PaymentMethodSettings

@@ -92,10 +92,10 @@ namespace Backend.Controllers.Management
             try
             {
                 // Validate payment type
-                var validTypes = new[] { "ZainCash", "QICard", "Switch" };
+                var validTypes = new[] { "ZainCash", "ZainCashV2", "QICard", "Switch" };
                 if (!validTypes.Contains(dto.Type))
                 {
-                    return BadRequest(new { message = "Invalid payment method type. Must be ZainCash, QICard, or Switch" });
+                    return BadRequest(new { message = "Invalid payment method type. Must be ZainCash, ZainCashV2, QICard, or Switch" });
                 }
 
                 var paymentMethod = new PaymentMethod

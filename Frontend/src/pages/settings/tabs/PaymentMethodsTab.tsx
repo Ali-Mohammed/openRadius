@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { paymentMethodApi, type PaymentMethod, type PaymentMethodSettings, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
+import { paymentMethodApi, type PaymentMethod, type PaymentMethodSettings, type PaymentMethodType, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { PaymentTestDialog } from '@/components/payments/PaymentTestDialog'
 
@@ -19,7 +19,7 @@ export default function PaymentMethodsTab() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [showPaymentTestDialog, setShowPaymentTestDialog] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
-  const [paymentType, setPaymentType] = useState<'ZainCash' | 'QICard' | 'Switch'>('ZainCash')
+  const [paymentType, setPaymentType] = useState<PaymentMethodType>('ZainCash')
   const [paymentSettings, setPaymentSettings] = useState<PaymentMethodSettings>({})
 
   // Fetch payment methods
@@ -174,6 +174,7 @@ export default function PaymentMethodsTab() {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {method.type === 'ZainCash' && `Merchant: ${method.settings.isProduction ? method.settings.merchantProd : method.settings.merchantTest || 'Not set'}`}
+                        {method.type === 'ZainCashV2' && `Client: ${method.settings.isProduction ? method.settings.clientIdProd : method.settings.clientIdTest || 'Not set'}`}
                         {method.type === 'QICard' && `Terminal: ${method.settings.isProduction ? method.settings.terminalIdProd : method.settings.terminalIdTest || 'Not set'}`}
                         {method.type === 'Switch' && `Entity: ${method.settings.isProduction ? method.settings.entityIdProd : method.settings.entityIdTest || 'Not set'}`}
                       </p>
@@ -221,7 +222,7 @@ export default function PaymentMethodsTab() {
               <Label>Payment Type</Label>
               <Select 
                 value={paymentType} 
-                onValueChange={(value: 'ZainCash' | 'QICard' | 'Switch') => {
+                onValueChange={(value: PaymentMethodType) => {
                   setPaymentType(value)
                   setPaymentSettings({})
                 }}
@@ -231,7 +232,8 @@ export default function PaymentMethodsTab() {
                   <SelectValue placeholder="Select payment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ZainCash">ZainCash</SelectItem>
+                  <SelectItem value="ZainCash">ZainCash (v1)</SelectItem>
+                  <SelectItem value="ZainCashV2">ZainCash V2 (OAuth2)</SelectItem>
                   <SelectItem value="QICard">QI Card</SelectItem>
                   <SelectItem value="Switch">Switch</SelectItem>
                 </SelectContent>
@@ -371,6 +373,173 @@ export default function PaymentMethodsTab() {
                         onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked === true })}
                       />
                       <Label htmlFor="zaincash-active" className="text-sm font-normal cursor-pointer">
+                        Enable this payment method
+                      </Label>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* ZainCash V2 Settings (OAuth2 + REST API) */}
+            {paymentType === 'ZainCashV2' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Environment</Label>
+                  <Select 
+                    value={paymentSettings.isProduction === undefined ? '' : (paymentSettings.isProduction ? 'production' : 'test')}
+                    onValueChange={(value) => {
+                      const isProduction = value === 'production'
+                      if (!isProduction && !paymentSettings.clientIdTest) {
+                        setPaymentSettings({ 
+                          ...paymentSettings, 
+                          isProduction,
+                          clientIdTest: '758055f4a8044779a35f6ceb69f858b3',
+                          clientSecretTest: 'bibLCGTxVAig5To3OLLKPJQMlRR7Pefp',
+                          baseUrlTest: 'https://pg-api-uat.zaincash.iq',
+                          serviceTypeTest: 'Delivery',
+                          langTest: 'en',
+                          scope: 'payment:read payment:write reverse:write'
+                        })
+                      } else {
+                        setPaymentSettings({ ...paymentSettings, isProduction })
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="border">
+                      <SelectValue placeholder="Select environment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="production">Production</SelectItem>
+                      <SelectItem value="test">Test/Sandbox</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {paymentSettings.isProduction !== undefined && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Client ID</Label>
+                      <Input
+                        value={paymentSettings.isProduction ? (paymentSettings.clientIdProd || '') : (paymentSettings.clientIdTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'clientIdProd' : 'clientIdTest']: e.target.value 
+                        })}
+                        placeholder={paymentSettings.isProduction ? "your_client_id" : "758055f4a8044779a35f6ceb69f858b3"}
+                      />
+                      <p className="text-xs text-muted-foreground">OAuth2 Client ID from ZainCash</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Client Secret</Label>
+                      <Input
+                        type="password"
+                        value={paymentSettings.isProduction ? (paymentSettings.clientSecretProd || '') : (paymentSettings.clientSecretTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'clientSecretProd' : 'clientSecretTest']: e.target.value 
+                        })}
+                        placeholder={paymentSettings.isProduction ? "Production Client Secret" : "Test Client Secret"}
+                      />
+                      <p className="text-xs text-muted-foreground">OAuth2 Client Secret from ZainCash</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Base URL</Label>
+                      <Input
+                        value={paymentSettings.isProduction ? (paymentSettings.baseUrlProd || '') : (paymentSettings.baseUrlTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'baseUrlProd' : 'baseUrlTest']: e.target.value 
+                        })}
+                        placeholder={paymentSettings.isProduction ? "https://pg-api.zaincash.iq" : "https://pg-api-uat.zaincash.iq"}
+                      />
+                      <p className="text-xs text-muted-foreground">ZainCash Payment Gateway API base URL</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Key (JWT Verification)</Label>
+                      <Input
+                        type="password"
+                        value={paymentSettings.isProduction ? (paymentSettings.apiKeyProd || '') : (paymentSettings.apiKeyTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'apiKeyProd' : 'apiKeyTest']: e.target.value 
+                        })}
+                        placeholder="API key for JWT callback/webhook verification (HS256)"
+                      />
+                      <p className="text-xs text-muted-foreground">Used to verify JWT tokens in redirect callbacks and webhooks (HS256)</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Service Type</Label>
+                      <Input
+                        value={paymentSettings.isProduction ? (paymentSettings.serviceTypeProd || '') : (paymentSettings.serviceTypeTest || '')}
+                        onChange={(e) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'serviceTypeProd' : 'serviceTypeTest']: e.target.value 
+                        })}
+                        placeholder="Delivery"
+                      />
+                      <p className="text-xs text-muted-foreground">Service identifier provided by ZainCash (e.g., Delivery, JAWS)</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Language</Label>
+                      <Select
+                        value={paymentSettings.isProduction ? (paymentSettings.langProd || 'en') : (paymentSettings.langTest || 'en')}
+                        onValueChange={(value) => setPaymentSettings({ 
+                          ...paymentSettings, 
+                          [paymentSettings.isProduction ? 'langProd' : 'langTest']: value 
+                        })}
+                      >
+                        <SelectTrigger className="border"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English (En)</SelectItem>
+                          <SelectItem value="ar">Arabic (Ar)</SelectItem>
+                          <SelectItem value="ku">Kurdish (Ku)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>OAuth2 Scopes</Label>
+                      <Input
+                        value={paymentSettings.scope || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, scope: e.target.value })}
+                        placeholder="payment:read payment:write reverse:write"
+                      />
+                      <p className="text-xs text-muted-foreground">Space-separated scopes for OAuth2 token request</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Success Redirect URL</Label>
+                      <Input
+                        value={paymentSettings.successUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, successUrl: e.target.value })}
+                        placeholder="Leave empty for auto-generated callback URL"
+                      />
+                      <p className="text-xs text-muted-foreground">Where users are redirected after successful payment. Leave empty to use the default backend callback.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Failure Redirect URL</Label>
+                      <Input
+                        value={paymentSettings.failureUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, failureUrl: e.target.value })}
+                        placeholder="Leave empty for auto-generated callback URL"
+                      />
+                      <p className="text-xs text-muted-foreground">Where users are redirected after failed/cancelled payment. Leave empty to use the default backend callback.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Webhook Notification URL</Label>
+                      <Input
+                        value={paymentSettings.webhookUrl || ''}
+                        onChange={(e) => setPaymentSettings({ ...paymentSettings, webhookUrl: e.target.value })}
+                        placeholder="https://your-api.com/api/payments/zaincashv2/webhook"
+                      />
+                      <p className="text-xs text-muted-foreground">Server-side URL that receives POST webhook notifications from ZainCash. Register this URL with ZainCash.</p>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox
+                        id="zaincashv2-active"
+                        checked={paymentSettings.isActive || false}
+                        onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, isActive: checked === true })}
+                      />
+                      <Label htmlFor="zaincashv2-active" className="text-sm font-normal cursor-pointer">
                         Enable this payment method
                       </Label>
                     </div>

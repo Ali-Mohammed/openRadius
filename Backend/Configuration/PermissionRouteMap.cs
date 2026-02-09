@@ -536,11 +536,13 @@ public static class PermissionRouteMap
             // ═══════════════════════════════════════════════════════════
             //  PAYMENTS
             // ═══════════════════════════════════════════════════════════
-            // Note: callback endpoints are [AllowAnonymous] — not mapped here
+            // Note: callback & webhook endpoints are [AllowAnonymous] — not mapped here
             new("POST",   "api/payments/initiate",                    "payments.create"),
             new("GET",    "api/payments/*/status",                    "payments.view"),
             new("GET",    "api/payments/wallet/balance",              "payments.view"),
             new("GET",    "api/payments/wallet/transactions",         "payments.view"),
+            new("GET",    "api/payments/zaincashv2/inquiry/*",        "payments.view"),
+            new("POST",   "api/payments/zaincashv2/reverse",          "payments.create"),
 
             // ═══════════════════════════════════════════════════════════
             //  SAS Activations

@@ -16,7 +16,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Backend.Controllers.Payments
 {
     /// <summary>
-    /// Payment gateway controller for processing ZainCash, QICard, and Switch payments
+    /// Payment gateway controller for processing ZainCash, ZainCashV2, QICard, and Switch payments
     /// </summary>
     [Authorize]
     [ApiController]
@@ -31,6 +31,10 @@ namespace Backend.Controllers.Payments
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private static readonly ActivitySource ActivitySource = new("OpenRadius.Payments");
+
+        // ZainCashV2 OAuth2 token cache (key: clientId, value: (token, expiresAt))
+        private static readonly Dictionary<string, (string token, DateTime expiresAt)> _zainCashV2TokenCache = new();
+        private static readonly SemaphoreSlim _zainCashV2TokenLock = new(1, 1);
 
         public PaymentsController(
             ApplicationDbContext context,
@@ -124,6 +128,7 @@ namespace Backend.Controllers.Payments
                 PaymentInitiationResponse? response = paymentMethod.Type switch
                 {
                     "ZainCash" => await InitiateZainCashPayment(paymentMethod, dto.Amount, transactionId, userId.Value),
+                    "ZainCashV2" => await InitiateZainCashV2Payment(paymentMethod, dto.Amount, transactionId, userId.Value),
                     "QICard" => await InitiateQICardPayment(paymentMethod, dto.Amount, transactionId, userId.Value),
                     "Switch" => await InitiateSwitchPayment(paymentMethod, dto.Amount, transactionId, userId.Value),
                     _ => new PaymentInitiationResponse
@@ -393,6 +398,230 @@ namespace Backend.Controllers.Payments
                 { 
                     Success = false, 
                     ErrorMessage = "Failed to initiate payment. Please try again." 
+                };
+            }
+        }
+
+        /// <summary>
+        /// Get or refresh ZainCashV2 OAuth2 access token using client_credentials grant
+        /// </summary>
+        private async Task<string> GetZainCashV2TokenAsync(string baseUrl, string clientId, string clientSecret, string scope)
+        {
+            await _zainCashV2TokenLock.WaitAsync();
+            try
+            {
+                // Check cache
+                if (_zainCashV2TokenCache.TryGetValue(clientId, out var cached) && cached.expiresAt > DateTime.UtcNow.AddMinutes(1))
+                {
+                    _logger.LogInformation("[ZainCashV2] Using cached OAuth2 token for client {ClientId}", clientId);
+                    return cached.token;
+                }
+
+                // Request new token
+                var httpClient = _httpClientFactory.CreateClient("ZainCashV2Payment");
+                var tokenUrl = $"{baseUrl.TrimEnd('/')}/oauth2/token";
+
+                var formData = new Dictionary<string, string>
+                {
+                    { "grant_type", "client_credentials" },
+                    { "client_id", clientId },
+                    { "client_secret", clientSecret },
+                    { "scope", scope }
+                };
+
+                var content = new FormUrlEncodedContent(formData);
+
+                _logger.LogInformation("[ZainCashV2] Requesting OAuth2 token from {Url}", tokenUrl);
+
+                var response = await httpClient.PostAsync(tokenUrl, content);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("[ZainCashV2] OAuth2 token request failed: {StatusCode} - {Body}", response.StatusCode, responseBody);
+                    throw new HttpRequestException($"ZainCashV2 OAuth2 token request failed: {response.StatusCode}");
+                }
+
+                var tokenResponse = JsonSerializer.Deserialize<ZainCashV2TokenResponse>(responseBody);
+                if (tokenResponse?.AccessToken == null)
+                {
+                    throw new InvalidOperationException("ZainCashV2 OAuth2 response did not contain an access_token");
+                }
+
+                // Cache with buffer (expire 1 minute early)
+                var expiresAt = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresIn - 60);
+                _zainCashV2TokenCache[clientId] = (tokenResponse.AccessToken, expiresAt);
+
+                _logger.LogInformation("[ZainCashV2] OAuth2 token obtained, expires in {ExpiresIn}s", tokenResponse.ExpiresIn);
+
+                return tokenResponse.AccessToken;
+            }
+            finally
+            {
+                _zainCashV2TokenLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Initiate a ZainCash V2 payment using the new OAuth2 + REST API
+        /// </summary>
+        private async Task<PaymentInitiationResponse> InitiateZainCashV2Payment(
+            Models.Management.PaymentMethod paymentMethod,
+            decimal amount,
+            string transactionId,
+            int userId)
+        {
+            try
+            {
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                if (settings == null)
+                {
+                    return new PaymentInitiationResponse { Success = false, ErrorMessage = "Invalid payment method settings" };
+                }
+
+                var isProduction = settings.ContainsKey("isProduction") &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var clientId = isProduction
+                    ? settings.GetValueOrDefault("clientIdProd")?.ToString()
+                    : settings.GetValueOrDefault("clientIdTest")?.ToString();
+
+                var clientSecret = isProduction
+                    ? settings.GetValueOrDefault("clientSecretProd")?.ToString()
+                    : settings.GetValueOrDefault("clientSecretTest")?.ToString();
+
+                var serviceType = isProduction
+                    ? settings.GetValueOrDefault("serviceTypeProd")?.ToString() ?? "Delivery"
+                    : settings.GetValueOrDefault("serviceTypeTest")?.ToString() ?? "Delivery";
+
+                var lang = isProduction
+                    ? settings.GetValueOrDefault("langProd")?.ToString() ?? "en"
+                    : settings.GetValueOrDefault("langTest")?.ToString() ?? "en";
+
+                var baseUrl = isProduction
+                    ? settings.GetValueOrDefault("baseUrlProd")?.ToString() ?? ""
+                    : settings.GetValueOrDefault("baseUrlTest")?.ToString() ?? "https://pg-api-uat.zaincash.iq";
+
+                var scope = settings.GetValueOrDefault("scope")?.ToString() ?? "payment:read payment:write";
+
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(baseUrl))
+                {
+                    return new PaymentInitiationResponse { Success = false, ErrorMessage = "Missing ZainCash V2 configuration (clientId, clientSecret, or baseUrl)" };
+                }
+
+                // Step 1: Get OAuth2 access token
+                var accessToken = await GetZainCashV2TokenAsync(baseUrl, clientId, clientSecret, scope);
+
+                // Step 2: Build callback URLs
+                var successUrl = settings.GetValueOrDefault("successUrl")?.ToString()
+                    ?? $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/success";
+                var failureUrl = settings.GetValueOrDefault("failureUrl")?.ToString()
+                    ?? $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/failure";
+
+                // Step 3: Create transaction via /api/v2/payment-gateway/transaction/init
+                var externalReferenceId = Guid.NewGuid().ToString();
+                var initUrl = $"{baseUrl.TrimEnd('/')}/api/v2/payment-gateway/transaction/init";
+
+                var payload = new
+                {
+                    language = lang,
+                    externalReferenceId = externalReferenceId,
+                    orderId = transactionId,
+                    serviceType = serviceType,
+                    amount = new
+                    {
+                        value = ((int)amount).ToString(),
+                        currency = "IQD"
+                    },
+                    redirectUrls = new
+                    {
+                        successUrl = successUrl,
+                        failureUrl = failureUrl
+                    }
+                };
+
+                var httpClient = _httpClientFactory.CreateClient("ZainCashV2Payment");
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                var jsonContent = JsonContent.Create(payload);
+
+                _logger.LogInformation("[ZainCashV2] Creating transaction: {Url}, OrderId={OrderId}, Amount={Amount}, ExternalRef={ExternalRef}",
+                    initUrl, transactionId, amount, externalReferenceId);
+
+                var response = await httpClient.PostAsync(initUrl, jsonContent);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("[ZainCashV2] Init response: Status={StatusCode}, Body={Body}",
+                    response.StatusCode, responseBody);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("[ZainCashV2] Transaction init failed: {StatusCode} - {Body}", response.StatusCode, responseBody);
+                    return new PaymentInitiationResponse
+                    {
+                        Success = false,
+                        ErrorMessage = $"ZainCash V2 API error: {response.StatusCode} - {responseBody}"
+                    };
+                }
+
+                var initResponse = JsonSerializer.Deserialize<ZainCashV2InitResponse>(responseBody);
+                if (initResponse == null || string.IsNullOrEmpty(initResponse.RedirectUrl))
+                {
+                    _logger.LogError("[ZainCashV2] Missing redirectUrl in response: {Body}", responseBody);
+                    return new PaymentInitiationResponse
+                    {
+                        Success = false,
+                        ErrorMessage = "Invalid response from ZainCash V2: missing redirectUrl"
+                    };
+                }
+
+                var zaincashV2TransactionId = initResponse.TransactionDetails?.TransactionId;
+
+                // Update payment log
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
+
+                if (paymentLog != null)
+                {
+                    paymentLog.GatewayTransactionId = zaincashV2TransactionId;
+                    paymentLog.ReferenceId = externalReferenceId;
+                    paymentLog.ResponseData = responseBody;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("[ZainCashV2] Payment created: OrderId={OrderId}, TransactionId={ZcTransactionId}, RedirectUrl={RedirectUrl}",
+                    transactionId, zaincashV2TransactionId, initResponse.RedirectUrl);
+
+                return new PaymentInitiationResponse
+                {
+                    Success = true,
+                    PaymentUrl = initResponse.RedirectUrl,
+                    TransactionId = transactionId,
+                    AdditionalData = new Dictionary<string, object?>
+                    {
+                        ["zaincashV2TransactionId"] = zaincashV2TransactionId,
+                        ["externalReferenceId"] = externalReferenceId,
+                        ["expiryTime"] = initResponse.ExpiryTime
+                    }
+                };
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "[ZainCashV2] HTTP error initiating payment: TransactionId={TransactionId}", transactionId);
+                return new PaymentInitiationResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Failed to communicate with ZainCash V2 gateway. Please try again."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ZainCashV2] Error initiating payment: TransactionId={TransactionId}", transactionId);
+                return new PaymentInitiationResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Failed to initiate ZainCash V2 payment. Please try again."
                 };
             }
         }
@@ -873,6 +1102,522 @@ namespace Backend.Controllers.Payments
             {
                 _logger.LogError(ex, "Error processing ZainCash callback");
                 return StatusCode(500, "Error processing payment callback");
+            }
+        }
+
+        /// <summary>
+        /// ZainCash V2 success callback — receives JWT token as query parameter after customer completes payment
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("zaincashv2/callback/success")]
+        public async Task<IActionResult> ZainCashV2SuccessCallback([FromQuery] string token)
+        {
+            return await HandleZainCashV2Callback(token, isSuccess: true);
+        }
+
+        /// <summary>
+        /// ZainCash V2 failure callback — receives JWT token as query parameter after payment failure/cancel
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("zaincashv2/callback/failure")]
+        public async Task<IActionResult> ZainCashV2FailureCallback([FromQuery] string token)
+        {
+            return await HandleZainCashV2Callback(token, isSuccess: false);
+        }
+
+        /// <summary>
+        /// Handle ZainCash V2 redirect callback (both success and failure)
+        /// Decodes JWT token using the API key (HS256), extracts transaction details, and updates payment status
+        /// </summary>
+        private async Task<IActionResult> HandleZainCashV2Callback(string token, bool isSuccess)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("[ZainCashV2] Callback received without token");
+                    return Redirect("/payment/failed?error=missing_token");
+                }
+
+                // Find active ZainCashV2 payment method to get API key for JWT verification
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "ZainCashV2" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    _logger.LogError("[ZainCashV2] No active ZainCashV2 payment method found");
+                    return Redirect("/payment/failed?error=not_configured");
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                var isProduction = settings?.ContainsKey("isProduction") == true &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var apiKey = isProduction
+                    ? settings?.GetValueOrDefault("apiKeyProd")?.ToString()
+                    : settings?.GetValueOrDefault("apiKeyTest")?.ToString();
+
+                // Decode JWT token (HS256 signed with API key)
+                Dictionary<string, object>? callbackData;
+                if (!string.IsNullOrEmpty(apiKey))
+                {
+                    var payload = DecodeJWT(token, apiKey);
+                    callbackData = JsonSerializer.Deserialize<Dictionary<string, object>>(payload);
+                }
+                else
+                {
+                    // If no API key configured, decode without verification (not recommended for production)
+                    _logger.LogWarning("[ZainCashV2] No API key configured — decoding JWT without verification");
+                    var parts = token.Split('.');
+                    if (parts.Length < 2)
+                    {
+                        return Redirect("/payment/failed?error=invalid_token");
+                    }
+                    var payloadBase64 = parts[1].Replace('-', '+').Replace('_', '/');
+                    switch (payloadBase64.Length % 4)
+                    {
+                        case 2: payloadBase64 += "=="; break;
+                        case 3: payloadBase64 += "="; break;
+                    }
+                    var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(payloadBase64));
+                    callbackData = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson);
+                }
+
+                if (callbackData == null)
+                {
+                    return Redirect("/payment/failed?error=invalid_payload");
+                }
+
+                _logger.LogInformation("[ZainCashV2] Callback data: {Data}", JsonSerializer.Serialize(callbackData));
+
+                // Extract transaction details from the JWT data
+                string? orderId = null;
+                string? currentStatus = null;
+                string? zcTransactionId = null;
+
+                if (callbackData.TryGetValue("data", out var dataObj))
+                {
+                    var data = JsonSerializer.Deserialize<Dictionary<string, object>>(dataObj.ToString() ?? "{}");
+                    orderId = data?.GetValueOrDefault("orderId")?.ToString();
+                    currentStatus = data?.GetValueOrDefault("currentStatus")?.ToString();
+                    zcTransactionId = data?.GetValueOrDefault("transactionId")?.ToString();
+                }
+
+                // Fallback: try top-level fields
+                orderId ??= callbackData.GetValueOrDefault("orderId")?.ToString();
+                currentStatus ??= callbackData.GetValueOrDefault("currentStatus")?.ToString();
+
+                if (string.IsNullOrEmpty(orderId))
+                {
+                    _logger.LogWarning("[ZainCashV2] Could not extract orderId from callback token");
+                    return Redirect("/payment/failed?error=missing_order_id");
+                }
+
+                // Find and update payment log
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.TransactionId == orderId);
+
+                if (paymentLog == null)
+                {
+                    _logger.LogWarning("[ZainCashV2] Payment not found for orderId: {OrderId}", orderId);
+                    return Redirect($"/payment/failed?transactionId={orderId}&error=not_found");
+                }
+
+                paymentLog.CallbackData = JsonSerializer.Serialize(callbackData);
+                paymentLog.UpdatedAt = DateTime.UtcNow;
+
+                if (!string.IsNullOrEmpty(zcTransactionId))
+                {
+                    paymentLog.GatewayTransactionId = zcTransactionId;
+                }
+
+                // Use inquiry API as fallback to confirm final status
+                var confirmedStatus = currentStatus;
+                if (isSuccess && currentStatus == "SUCCESS")
+                {
+                    confirmedStatus = await VerifyZainCashV2TransactionAsync(paymentMethod, zcTransactionId);
+                }
+
+                if (confirmedStatus == "SUCCESS")
+                {
+                    paymentLog.Status = "processing";
+                    await _context.SaveChangesAsync();
+
+                    await ProcessSuccessfulPayment(paymentLog);
+
+                    _logger.LogInformation("[ZainCashV2] Payment completed: TransactionId={TransactionId}", orderId);
+                    return Redirect($"/payment/success?transactionId={orderId}");
+                }
+                else
+                {
+                    paymentLog.Status = "failed";
+                    paymentLog.ErrorMessage = $"ZainCash V2 status: {confirmedStatus}";
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogWarning("[ZainCashV2] Payment failed/cancelled: TransactionId={TransactionId}, Status={Status}", orderId, confirmedStatus);
+                    return Redirect($"/payment/failed?transactionId={orderId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ZainCashV2] Error processing callback");
+                return Redirect("/payment/failed?error=processing_error");
+            }
+        }
+
+        /// <summary>
+        /// Verify a ZainCash V2 transaction status using the Inquiry API
+        /// </summary>
+        private async Task<string?> VerifyZainCashV2TransactionAsync(
+            Models.Management.PaymentMethod paymentMethod,
+            string? transactionId)
+        {
+            if (string.IsNullOrEmpty(transactionId))
+                return null;
+
+            try
+            {
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                if (settings == null) return null;
+
+                var isProduction = settings.ContainsKey("isProduction") &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var clientId = isProduction
+                    ? settings.GetValueOrDefault("clientIdProd")?.ToString()
+                    : settings.GetValueOrDefault("clientIdTest")?.ToString();
+
+                var clientSecret = isProduction
+                    ? settings.GetValueOrDefault("clientSecretProd")?.ToString()
+                    : settings.GetValueOrDefault("clientSecretTest")?.ToString();
+
+                var baseUrl = isProduction
+                    ? settings.GetValueOrDefault("baseUrlProd")?.ToString() ?? ""
+                    : settings.GetValueOrDefault("baseUrlTest")?.ToString() ?? "https://pg-api-uat.zaincash.iq";
+
+                var scope = settings.GetValueOrDefault("scope")?.ToString() ?? "payment:read payment:write";
+
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                    return null;
+
+                var accessToken = await GetZainCashV2TokenAsync(baseUrl, clientId, clientSecret, scope);
+
+                var inquiryUrl = $"{baseUrl.TrimEnd('/')}/api/v2/payment-gateway/transaction/inquiry/{transactionId}";
+
+                var httpClient = _httpClientFactory.CreateClient("ZainCashV2Payment");
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                _logger.LogInformation("[ZainCashV2] Inquiry: {Url}", inquiryUrl);
+
+                var response = await httpClient.GetAsync(inquiryUrl);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("[ZainCashV2] Inquiry response: Status={StatusCode}, Body={Body}",
+                    response.StatusCode, responseBody);
+
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+                var inquiry = JsonSerializer.Deserialize<ZainCashV2InquiryResponse>(responseBody);
+                return inquiry?.Status;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ZainCashV2] Error verifying transaction {TransactionId}", transactionId);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// ZainCash V2 webhook endpoint — receives POST with webhook_token (JWT) for status change notifications
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("zaincashv2/webhook")]
+        public async Task<IActionResult> ZainCashV2Webhook()
+        {
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var rawBody = await reader.ReadToEndAsync();
+
+                _logger.LogInformation("[ZainCashV2] Webhook received: {Body}", rawBody);
+
+                // Parse the webhook body to get the JWT token
+                var webhookBody = JsonSerializer.Deserialize<Dictionary<string, string>>(rawBody);
+                var webhookToken = webhookBody?.GetValueOrDefault("webhook_token");
+
+                if (string.IsNullOrEmpty(webhookToken))
+                {
+                    _logger.LogWarning("[ZainCashV2] Webhook missing webhook_token");
+                    return Ok("Missing webhook_token");
+                }
+
+                // Find active ZainCashV2 payment method
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "ZainCashV2" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    _logger.LogError("[ZainCashV2] No active ZainCashV2 payment method for webhook");
+                    return Ok("Not configured");
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                var isProduction = settings?.ContainsKey("isProduction") == true &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var apiKey = isProduction
+                    ? settings?.GetValueOrDefault("apiKeyProd")?.ToString()
+                    : settings?.GetValueOrDefault("apiKeyTest")?.ToString();
+
+                // Decode JWT (HS256 signed with API key)
+                Dictionary<string, object>? webhookData;
+                if (!string.IsNullOrEmpty(apiKey))
+                {
+                    var payload = DecodeJWT(webhookToken, apiKey);
+                    webhookData = JsonSerializer.Deserialize<Dictionary<string, object>>(payload);
+                }
+                else
+                {
+                    // Decode without verification
+                    _logger.LogWarning("[ZainCashV2] No API key — decoding webhook JWT without verification");
+                    var parts = webhookToken.Split('.');
+                    if (parts.Length < 2)
+                    {
+                        return Ok("Invalid token");
+                    }
+                    var payloadBase64 = parts[1].Replace('-', '+').Replace('_', '/');
+                    switch (payloadBase64.Length % 4)
+                    {
+                        case 2: payloadBase64 += "=="; break;
+                        case 3: payloadBase64 += "="; break;
+                    }
+                    var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(payloadBase64));
+                    webhookData = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson);
+                }
+
+                if (webhookData == null)
+                {
+                    return Ok("Invalid payload");
+                }
+
+                _logger.LogInformation("[ZainCashV2] Webhook decoded: {Data}", JsonSerializer.Serialize(webhookData));
+
+                // Extract event details
+                var eventType = webhookData.GetValueOrDefault("eventType")?.ToString();
+                var eventId = webhookData.GetValueOrDefault("eventId")?.ToString();
+
+                // Idempotency check using eventId
+                if (!string.IsNullOrEmpty(eventId))
+                {
+                    var existingLog = await _context.PaymentLogs
+                        .AnyAsync(p => p.Gateway == "ZainCashV2" && p.ReferenceId == eventId && p.Status == "webhook_processed");
+
+                    if (existingLog)
+                    {
+                        _logger.LogInformation("[ZainCashV2] Duplicate webhook event {EventId} — skipping", eventId);
+                        return Ok("Already processed");
+                    }
+                }
+
+                // Extract transaction data
+                string? orderId = null;
+                string? currentStatus = null;
+                string? zcTransactionId = null;
+
+                if (webhookData.TryGetValue("data", out var dataObj))
+                {
+                    var data = JsonSerializer.Deserialize<Dictionary<string, object>>(dataObj.ToString() ?? "{}");
+                    orderId = data?.GetValueOrDefault("orderId")?.ToString();
+                    currentStatus = data?.GetValueOrDefault("currentStatus")?.ToString();
+                    zcTransactionId = data?.GetValueOrDefault("transactionId")?.ToString();
+                }
+
+                // Log the webhook event
+                var webhookLog = new PaymentLog
+                {
+                    Gateway = "ZainCashV2",
+                    TransactionId = $"webhook_{eventId ?? Guid.NewGuid().ToString()}",
+                    UserId = 0,
+                    Amount = 0,
+                    Currency = "IQD",
+                    Status = "webhook",
+                    RequestData = rawBody,
+                    CallbackData = JsonSerializer.Serialize(webhookData),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.PaymentLogs.Add(webhookLog);
+                await _context.SaveChangesAsync();
+
+                // Process based on event type
+                if (eventType == "STATUS_CHANGED" && !string.IsNullOrEmpty(orderId))
+                {
+                    var paymentLog = await _context.PaymentLogs
+                        .FirstOrDefaultAsync(p => p.TransactionId == orderId &&
+                                                 p.Gateway == "ZainCashV2" &&
+                                                 (p.Status == "pending" || p.Status == "processing"));
+
+                    if (paymentLog != null)
+                    {
+                        paymentLog.CallbackData = JsonSerializer.Serialize(webhookData);
+                        paymentLog.UpdatedAt = DateTime.UtcNow;
+
+                        if (!string.IsNullOrEmpty(zcTransactionId))
+                        {
+                            paymentLog.GatewayTransactionId = zcTransactionId;
+                        }
+
+                        if (currentStatus == "SUCCESS")
+                        {
+                            paymentLog.Status = "processing";
+                            await _context.SaveChangesAsync();
+
+                            await ProcessSuccessfulPayment(paymentLog);
+
+                            _logger.LogInformation("[ZainCashV2] Webhook: Payment SUCCESS for OrderId={OrderId}", orderId);
+                        }
+                        else if (currentStatus == "FAILED" || currentStatus == "EXPIRED")
+                        {
+                            paymentLog.Status = "failed";
+                            paymentLog.ErrorMessage = $"ZainCash V2 webhook status: {currentStatus}";
+                            await _context.SaveChangesAsync();
+
+                            _logger.LogWarning("[ZainCashV2] Webhook: Payment {Status} for OrderId={OrderId}", currentStatus, orderId);
+                        }
+                    }
+                }
+                else if (eventType == "REFUND_COMPLETED" && !string.IsNullOrEmpty(orderId))
+                {
+                    _logger.LogInformation("[ZainCashV2] Webhook: Refund completed for OrderId={OrderId}", orderId);
+                    // TODO: Handle refund processing if needed
+                }
+                else if (eventType == "REFUND_FAILED" && !string.IsNullOrEmpty(orderId))
+                {
+                    _logger.LogWarning("[ZainCashV2] Webhook: Refund failed for OrderId={OrderId}", orderId);
+                }
+
+                return Ok("Webhook received");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ZainCashV2] Error processing webhook");
+                return Ok("Error processing webhook");
+            }
+        }
+
+        /// <summary>
+        /// Inquiry endpoint — check the status of a ZainCash V2 transaction
+        /// </summary>
+        [HttpGet("zaincashv2/inquiry/{transactionId}")]
+        public async Task<IActionResult> ZainCashV2Inquiry(string transactionId)
+        {
+            try
+            {
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "ZainCashV2" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    return BadRequest(new { message = "ZainCash V2 payment method not configured" });
+                }
+
+                var status = await VerifyZainCashV2TransactionAsync(paymentMethod, transactionId);
+
+                if (status == null)
+                {
+                    return NotFound(new { message = "Transaction not found or inquiry failed" });
+                }
+
+                return Ok(new { transactionId, status });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ZainCashV2] Error during inquiry for {TransactionId}", transactionId);
+                return StatusCode(500, new { message = "Error checking transaction status" });
+            }
+        }
+
+        /// <summary>
+        /// Reverse a ZainCash V2 transaction
+        /// </summary>
+        [HttpPost("zaincashv2/reverse")]
+        public async Task<IActionResult> ZainCashV2Reverse([FromBody] ZainCashV2ReverseRequest request)
+        {
+            try
+            {
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "ZainCashV2" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    return BadRequest(new { message = "ZainCash V2 payment method not configured" });
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                if (settings == null)
+                {
+                    return BadRequest(new { message = "Invalid payment method settings" });
+                }
+
+                var isProduction = settings.ContainsKey("isProduction") &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var clientId = isProduction
+                    ? settings.GetValueOrDefault("clientIdProd")?.ToString()
+                    : settings.GetValueOrDefault("clientIdTest")?.ToString();
+
+                var clientSecret = isProduction
+                    ? settings.GetValueOrDefault("clientSecretProd")?.ToString()
+                    : settings.GetValueOrDefault("clientSecretTest")?.ToString();
+
+                var baseUrl = isProduction
+                    ? settings.GetValueOrDefault("baseUrlProd")?.ToString() ?? ""
+                    : settings.GetValueOrDefault("baseUrlTest")?.ToString() ?? "https://pg-api-uat.zaincash.iq";
+
+                var scope = settings.GetValueOrDefault("scope")?.ToString() ?? "payment:read payment:write reverse:write";
+
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                {
+                    return BadRequest(new { message = "Missing ZainCash V2 credentials" });
+                }
+
+                var accessToken = await GetZainCashV2TokenAsync(baseUrl, clientId, clientSecret, scope);
+
+                var reverseUrl = $"{baseUrl.TrimEnd('/')}/api/v2/payment-gateway/transaction/reverse";
+
+                var httpClient = _httpClientFactory.CreateClient("ZainCashV2Payment");
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                var payload = new
+                {
+                    transactionId = request.TransactionId,
+                    reason = request.Reason
+                };
+
+                _logger.LogInformation("[ZainCashV2] Reversing transaction: {TransactionId}, Reason: {Reason}",
+                    request.TransactionId, request.Reason);
+
+                var response = await httpClient.PostAsJsonAsync(reverseUrl, payload);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("[ZainCashV2] Reverse response: Status={StatusCode}, Body={Body}",
+                    response.StatusCode, responseBody);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return StatusCode((int)response.StatusCode, new { message = $"Reverse failed: {responseBody}" });
+                }
+
+                var reverseResponse = JsonSerializer.Deserialize<ZainCashV2ReverseResponse>(responseBody);
+                return Ok(reverseResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ZainCashV2] Error reversing transaction");
+                return StatusCode(500, new { message = "Error reversing transaction" });
             }
         }
 
@@ -1456,10 +2201,10 @@ namespace Backend.Controllers.Payments
             // Create a dictionary for fast lookup
             var userDict = users.ToDictionary(u => u.Id);
 
-            // Join in memory and project to result
+            // Join in memory and project to result (Uuid only — never expose internal Id)
             var result = paymentLogs.Select(p => new
             {
-                p.Id,
+                p.Uuid,
                 p.TransactionId,
                 p.Gateway,
                 p.Amount,
