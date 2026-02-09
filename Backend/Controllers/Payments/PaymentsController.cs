@@ -248,8 +248,8 @@ namespace Backend.Controllers.Payments
                     ? "https://api.zaincash.iq/transaction/pay?id="
                     : "https://test.zaincash.iq/transaction/pay?id=";
 
-                // Build callback URL
-                var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincash/callback";
+                // Build callback URL with workspace ID in path for multi-tenant resolution
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincash/callback/{GetCurrentWorkspaceId()}";
 
                 // Build JWT payload (matching PHP implementation)
                 var jwtPayload = new Dictionary<string, object>
@@ -512,9 +512,10 @@ namespace Backend.Controllers.Payments
                 // Step 1: Get OAuth2 access token
                 var accessToken = await GetZainCashV2TokenAsync(baseUrl, clientId, clientSecret, scope);
 
-                // Step 2: Build callback URLs (auto-generated from server host)
-                var successUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/success";
-                var failureUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/failure";
+                // Step 2: Build callback URLs (auto-generated from server host with workspace ID in path for multi-tenant resolution)
+                var wsId = GetCurrentWorkspaceId();
+                var successUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/success/{wsId}";
+                var failureUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/failure/{wsId}";
 
                 // Step 3: Create transaction via /api/v2/payment-gateway/transaction/init
                 var externalReferenceId = Guid.NewGuid().ToString();
@@ -680,9 +681,10 @@ namespace Backend.Controllers.Payments
                 // Create request ID
                 var requestId = Guid.NewGuid().ToString();
 
-                // Prepare callback URLs
-                var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/callback";
-                var notificationUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/notification";
+                // Prepare callback URLs with workspace ID in path for multi-tenant resolution
+                var wsId = GetCurrentWorkspaceId();
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/callback/{wsId}";
+                var notificationUrl = $"{Request.Scheme}://{Request.Host}/api/payments/qicard/notification/{wsId}";
 
                 // Call QICard API to create payment
                 var httpClient = _httpClientFactory.CreateClient("QICardPayment");
@@ -951,7 +953,7 @@ namespace Backend.Controllers.Payments
                 var isProduction = settings?.ContainsKey("isProduction") == true &&
                                  settings["isProduction"].ToString()?.ToLower() == "true";
 
-                var shopperResultUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/callback";
+                var shopperResultUrl = $"{Request.Scheme}://{Request.Host}/api/payments/switch/callback/{GetCurrentWorkspaceId()}";
 
                 _logger.LogInformation("Rendering Switch checkout page: TransactionId={TransactionId}, CheckoutId={CheckoutId}, Amount={Amount}", 
                     transactionId, checkoutId, paymentLog.Amount);
@@ -1020,10 +1022,10 @@ namespace Backend.Controllers.Payments
             }
         }
 
-        // GET: api/payments/zaincash/callback
+        // GET: api/payments/zaincash/callback/{workspaceId}
         [AllowAnonymous]
-        [HttpGet("zaincash/callback")]
-        public async Task<IActionResult> ZainCashCallback([FromQuery] string token)
+        [HttpGet("zaincash/callback/{workspaceId}")]
+        public async Task<IActionResult> ZainCashCallback(string workspaceId, [FromQuery] string token)
         {
             try
             {
@@ -1107,8 +1109,8 @@ namespace Backend.Controllers.Payments
         /// ZainCash V2 success callback — receives JWT token as query parameter after customer completes payment
         /// </summary>
         [AllowAnonymous]
-        [HttpGet("zaincashv2/callback/success")]
-        public async Task<IActionResult> ZainCashV2SuccessCallback([FromQuery] string token)
+        [HttpGet("zaincashv2/callback/success/{workspaceId}")]
+        public async Task<IActionResult> ZainCashV2SuccessCallback(string workspaceId, [FromQuery] string token)
         {
             return await HandleZainCashV2Callback(token, isSuccess: true);
         }
@@ -1117,8 +1119,8 @@ namespace Backend.Controllers.Payments
         /// ZainCash V2 failure callback — receives JWT token as query parameter after payment failure/cancel
         /// </summary>
         [AllowAnonymous]
-        [HttpGet("zaincashv2/callback/failure")]
-        public async Task<IActionResult> ZainCashV2FailureCallback([FromQuery] string token)
+        [HttpGet("zaincashv2/callback/failure/{workspaceId}")]
+        public async Task<IActionResult> ZainCashV2FailureCallback(string workspaceId, [FromQuery] string token)
         {
             return await HandleZainCashV2Callback(token, isSuccess: false);
         }
@@ -1619,10 +1621,10 @@ namespace Backend.Controllers.Payments
             }
         }
 
-        // GET: api/payments/switch/callback
+        // GET: api/payments/switch/callback/{workspaceId}
         [AllowAnonymous]
-        [HttpGet("switch/callback")]
-        public async Task<IActionResult> SwitchCallback([FromQuery] string id, [FromQuery] string resourcePath)
+        [HttpGet("switch/callback/{workspaceId}")]
+        public async Task<IActionResult> SwitchCallback(string workspaceId, [FromQuery] string id, [FromQuery] string resourcePath)
         {
             try
             {
@@ -1710,10 +1712,10 @@ namespace Backend.Controllers.Payments
             }
         }
 
-        // GET: api/payments/qicard/callback
+        // GET: api/payments/qicard/callback/{workspaceId}
         [AllowAnonymous]
-        [HttpGet("qicard/callback")]
-        public async Task<IActionResult> QICardCallback()
+        [HttpGet("qicard/callback/{workspaceId}")]
+        public async Task<IActionResult> QICardCallback(string workspaceId)
         {
             try
             {
@@ -1728,10 +1730,10 @@ namespace Backend.Controllers.Payments
             }
         }
 
-        // POST: api/payments/qicard/notification
+        // POST: api/payments/qicard/notification/{workspaceId}
         [AllowAnonymous]
-        [HttpPost("qicard/notification")]
-        public async Task<IActionResult> QICardNotification()
+        [HttpPost("qicard/notification/{workspaceId}")]
+        public async Task<IActionResult> QICardNotification(string workspaceId)
         {
             try
             {
@@ -2827,6 +2829,45 @@ namespace Backend.Controllers.Payments
 
             return Convert.ToBase64String(hash)
                 .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        }
+
+        /// <summary>
+        /// Gets the current workspace ID from the multi-tenant context.
+        /// Used to embed in callback URLs so anonymous gateway redirects resolve to the correct tenant.
+        /// </summary>
+        private string GetCurrentWorkspaceId()
+        {
+            // Try route values first (set by tenant resolver)
+            if (HttpContext.Request.RouteValues.TryGetValue("WorkspaceId", out var routeWsId) ||
+                HttpContext.Request.RouteValues.TryGetValue("workspaceId", out routeWsId))
+            {
+                var wsStr = routeWsId?.ToString();
+                if (!string.IsNullOrEmpty(wsStr)) return wsStr;
+            }
+
+            // Try HttpContext.Items (set by some middleware)
+            var itemsWsId = HttpContext.Items["WorkspaceId"]?.ToString();
+            if (!string.IsNullOrEmpty(itemsWsId)) return itemsWsId;
+
+            // Try query parameter
+            if (HttpContext.Request.Query.TryGetValue("workspaceId", out var queryWsId))
+            {
+                var wsStr = queryWsId.FirstOrDefault();
+                if (!string.IsNullOrEmpty(wsStr)) return wsStr;
+            }
+
+            // Try multi-tenant context accessor via DI
+            var accessor = HttpContext.RequestServices.GetService<Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<Models.WorkspaceTenantInfo>>();
+            var tenantInfo = accessor?.MultiTenantContext?.TenantInfo;
+            if (tenantInfo != null && tenantInfo.WorkspaceId > 0)
+                return tenantInfo.WorkspaceId.ToString();
+
+            // Final fallback: try the identifier from tenant resolution
+            var identifier = tenantInfo?.Id;
+            if (!string.IsNullOrEmpty(identifier)) return identifier;
+
+            _logger.LogWarning("[Payments] Could not determine current workspace ID, defaulting to 1");
+            return "1";
         }
     }
 }

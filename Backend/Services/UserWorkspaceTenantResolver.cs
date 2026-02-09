@@ -38,7 +38,18 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
             }
         }
 
-        // Priority 2: Check for X-Workspace-Id header
+        // Priority 2: Check for workspaceId query parameter (used by anonymous payment callbacks)
+        if (httpContext.Request.Query.TryGetValue("workspaceId", out var queryWorkspaceId))
+        {
+            var workspaceIdStr = queryWorkspaceId.FirstOrDefault();
+            if (!string.IsNullOrEmpty(workspaceIdStr))
+            {
+                _logger.LogInformation("Using WorkspaceId from query parameter: {WorkspaceId}", workspaceIdStr);
+                return workspaceIdStr;
+            }
+        }
+
+        // Priority 3: Check for X-Workspace-Id header
         if (httpContext.Request.Headers.TryGetValue("X-Workspace-Id", out var headerWorkspaceId))
         {
             var workspaceIdStr = headerWorkspaceId.FirstOrDefault();
@@ -49,7 +60,7 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
             }
         }
 
-        // Priority 3: Check for impersonation (UI-only impersonation)
+        // Priority 4: Check for impersonation (UI-only impersonation)
         // If X-Impersonated-User-Id header is present, use that user's workspace
         if (httpContext.Request.Headers.TryGetValue("X-Impersonated-User-Id", out var impersonatedUserIdHeader))
         {
@@ -76,7 +87,7 @@ public class UserWorkspaceTenantResolver : IMultiTenantStrategy
             }
         }
 
-        // Priority 4: Fall back to user's current/default workspace from JWT claims
+        // Priority 5: Fall back to user's current/default workspace from JWT claims
         // Log all available claims for debugging (don't require IsAuthenticated)
         var claims = httpContext.User.Claims.ToList();
         if (claims.Any())
