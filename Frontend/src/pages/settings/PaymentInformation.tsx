@@ -2,8 +2,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, XCircle, Clock, AlertCircle, RefreshCw, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, CreditCard, Settings, RotateCcw } from 'lucide-react'
-import { paymentApi, type PaymentLog } from '@/api/paymentApi'
+import { CheckCircle2, XCircle, Clock, AlertCircle, RefreshCw, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, CreditCard, Settings, RotateCcw, Eye, Loader2, ExternalLink, Database, Wifi, WifiOff } from 'lucide-react'
+import { paymentApi, type PaymentLog, type PaymentInquiryResponse } from '@/api/paymentApi'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +26,9 @@ import {
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
 
 export default function PaymentInformation() {
@@ -40,6 +43,7 @@ export default function PaymentInformation() {
     gatewayReference: true,
     date: true,
     errorMessage: true,
+    actions: true,
   }
 
   const DEFAULT_COLUMN_WIDTHS = {
@@ -52,6 +56,7 @@ export default function PaymentInformation() {
     gatewayReference: 200,
     date: 180,
     errorMessage: 250,
+    actions: 90,
   }
 
   const DEFAULT_COLUMN_ORDER = [
@@ -64,6 +69,7 @@ export default function PaymentInformation() {
     'gatewayReference',
     'date',
     'errorMessage',
+    'actions',
   ]
 
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -81,6 +87,10 @@ export default function PaymentInformation() {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [resetColumnsDialogOpen, setResetColumnsDialogOpen] = useState(false)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  const [inquirySheetOpen, setInquirySheetOpen] = useState(false)
+  const [inquiryData, setInquiryData] = useState<PaymentInquiryResponse | null>(null)
+  const [inquiryLoading, setInquiryLoading] = useState(false)
+  const [inquiryError, setInquiryError] = useState<string | null>(null)
   
   // Load table preferences on mount
   useEffect(() => {
@@ -297,6 +307,21 @@ export default function PaymentInformation() {
 
   const formatNumber = (num: number) => num.toLocaleString()
 
+  const handleInquiry = async (log: PaymentLog) => {
+    setInquirySheetOpen(true)
+    setInquiryData(null)
+    setInquiryError(null)
+    setInquiryLoading(true)
+    try {
+      const data = await paymentApi.inquirePayment(log.uuid)
+      setInquiryData(data)
+    } catch (err: any) {
+      setInquiryError(err?.response?.data?.message || err?.message || 'Failed to fetch payment details')
+    } finally {
+      setInquiryLoading(false)
+    }
+  }
+
   // Mock pagination for now (backend doesn't return pagination info yet)
   const totalRecords = paymentHistory?.length || 0
   const totalPages = Math.ceil(totalRecords / pageSize)
@@ -324,6 +349,7 @@ export default function PaymentInformation() {
       gatewayReference: { label: 'Gateway Reference', sortKey: 'gatewayTransactionId', sortable: false },
       date: { label: 'Date', sortKey: 'createdAt', sortable: true },
       errorMessage: { label: 'Error Message', sortKey: 'errorMessage', sortable: false },
+      actions: { label: 'Actions', sortable: false },
     }
 
     const config = columnConfig[columnKey]
@@ -624,7 +650,7 @@ export default function PaymentInformation() {
                 </TableHeader>
                 <TableBody>
                   {paymentHistory.map((log: PaymentLog) => (
-                    <TableRow key={log.id} className="border-b">
+                    <TableRow key={log.uuid} className="border-b">
                       {columnOrder.map(column => renderTableCell(column, log))}
                     </TableRow>
                   ))}
