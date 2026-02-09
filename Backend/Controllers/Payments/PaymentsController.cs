@@ -2227,6 +2227,293 @@ namespace Backend.Controllers.Payments
             return Ok(result);
         }
 
+        /// <summary>
+        /// Unified inquiry endpoint — fetches payment details from stored data and optionally queries the live gateway
+        /// </summary>
+        /// <param name="uuid">The payment UUID</param>
+        /// <returns>Payment details including stored data and live gateway status</returns>
+        [HttpGet("{uuid:guid}/inquiry")]
+        [ProducesResponseType(typeof(PaymentInquiryResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PaymentInquiryResponse>> InquirePayment(Guid uuid)
+        {
+            using var activity = ActivitySource.StartActivity("InquirePayment");
+            activity?.SetTag("payment.uuid", uuid);
+
+            try
+            {
+                var paymentLog = await _context.PaymentLogs
+                    .FirstOrDefaultAsync(p => p.Uuid == uuid);
+
+                if (paymentLog == null)
+                {
+                    return NotFound(new { message = "Payment not found" });
+                }
+
+                // Parse stored JSONB fields into objects for the response
+                object? requestData = null;
+                object? responseData = null;
+                object? callbackData = null;
+
+                try { if (!string.IsNullOrEmpty(paymentLog.RequestData)) requestData = JsonSerializer.Deserialize<object>(paymentLog.RequestData); } catch { requestData = paymentLog.RequestData; }
+                try { if (!string.IsNullOrEmpty(paymentLog.ResponseData)) responseData = JsonSerializer.Deserialize<object>(paymentLog.ResponseData); } catch { responseData = paymentLog.ResponseData; }
+                try { if (!string.IsNullOrEmpty(paymentLog.CallbackData)) callbackData = JsonSerializer.Deserialize<object>(paymentLog.CallbackData); } catch { callbackData = paymentLog.CallbackData; }
+
+                var response = new PaymentInquiryResponse
+                {
+                    Uuid = paymentLog.Uuid,
+                    TransactionId = paymentLog.TransactionId,
+                    Gateway = paymentLog.Gateway,
+                    Amount = paymentLog.Amount,
+                    Currency = paymentLog.Currency,
+                    Status = paymentLog.Status,
+                    ReferenceId = paymentLog.ReferenceId,
+                    GatewayTransactionId = paymentLog.GatewayTransactionId,
+                    Environment = paymentLog.Environment,
+                    ErrorMessage = paymentLog.ErrorMessage,
+                    ServiceType = paymentLog.ServiceType,
+                    CreatedAt = paymentLog.CreatedAt,
+                    UpdatedAt = paymentLog.UpdatedAt,
+                    CompletedAt = paymentLog.CompletedAt,
+                    RequestData = requestData,
+                    ResponseData = responseData,
+                    CallbackData = callbackData,
+                };
+
+                // Attempt to fetch live status from the gateway
+                response.LiveData = paymentLog.Gateway switch
+                {
+                    "ZainCashV2" => await InquireZainCashV2Async(paymentLog),
+                    "Switch" => await InquireSwitchAsync(paymentLog),
+                    _ => new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = $"Live inquiry not supported for {paymentLog.Gateway}. Showing stored data only.",
+                        QueriedAt = DateTime.UtcNow
+                    }
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inquiring payment {Uuid}", uuid);
+                return StatusCode(500, new { message = "Error inquiring payment" });
+            }
+        }
+
+        /// <summary>
+        /// Queries ZainCash V2 inquiry API for live transaction status
+        /// </summary>
+        private async Task<PaymentInquiryLiveData> InquireZainCashV2Async(PaymentLog paymentLog)
+        {
+            try
+            {
+                // The gatewayTransactionId for ZainCashV2 is the ZainCash transaction ID
+                var gatewayTxId = paymentLog.GatewayTransactionId;
+                if (string.IsNullOrEmpty(gatewayTxId))
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = "No gateway transaction ID stored — cannot query ZainCash V2",
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "ZainCashV2" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = "ZainCash V2 payment method not configured or inactive",
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                if (settings == null)
+                {
+                    return new PaymentInquiryLiveData { Success = false, ErrorMessage = "Invalid payment method settings", QueriedAt = DateTime.UtcNow };
+                }
+
+                var isProduction = settings.ContainsKey("isProduction") &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var clientId = isProduction
+                    ? settings.GetValueOrDefault("clientIdProd")?.ToString()
+                    : settings.GetValueOrDefault("clientIdTest")?.ToString();
+
+                var clientSecret = isProduction
+                    ? settings.GetValueOrDefault("clientSecretProd")?.ToString()
+                    : settings.GetValueOrDefault("clientSecretTest")?.ToString();
+
+                var baseUrl = isProduction
+                    ? settings.GetValueOrDefault("baseUrlProd")?.ToString() ?? ""
+                    : settings.GetValueOrDefault("baseUrlTest")?.ToString() ?? "https://pg-api-uat.zaincash.iq";
+
+                var scope = settings.GetValueOrDefault("scope")?.ToString() ?? "payment:read payment:write";
+
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                {
+                    return new PaymentInquiryLiveData { Success = false, ErrorMessage = "Missing ZainCash V2 credentials", QueriedAt = DateTime.UtcNow };
+                }
+
+                var accessToken = await GetZainCashV2TokenAsync(baseUrl, clientId, clientSecret, scope);
+                var inquiryUrl = $"{baseUrl.TrimEnd('/')}/api/v2/payment-gateway/transaction/inquiry/{gatewayTxId}";
+
+                var httpClient = _httpClientFactory.CreateClient("ZainCashV2Payment");
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                _logger.LogInformation("[Inquiry] ZainCashV2 inquiry: {Url}", inquiryUrl);
+                var response = await httpClient.GetAsync(inquiryUrl);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("[Inquiry] ZainCashV2 response: Status={StatusCode}", response.StatusCode);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = $"Gateway returned {response.StatusCode}",
+                        RawResponse = responseBody,
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var inquiry = JsonSerializer.Deserialize<object>(responseBody);
+                var inquiryTyped = JsonSerializer.Deserialize<ZainCashV2InquiryResponse>(responseBody);
+
+                return new PaymentInquiryLiveData
+                {
+                    Success = true,
+                    GatewayStatus = inquiryTyped?.Status,
+                    RawResponse = inquiry,
+                    QueriedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Inquiry] Error querying ZainCash V2 for {TransactionId}", paymentLog.TransactionId);
+                return new PaymentInquiryLiveData
+                {
+                    Success = false,
+                    ErrorMessage = $"Error querying gateway: {ex.Message}",
+                    QueriedAt = DateTime.UtcNow
+                };
+            }
+        }
+
+        /// <summary>
+        /// Queries Switch (OPPWA) API for live transaction status
+        /// </summary>
+        private async Task<PaymentInquiryLiveData> InquireSwitchAsync(PaymentLog paymentLog)
+        {
+            try
+            {
+                var referenceId = paymentLog.ReferenceId;
+                if (string.IsNullOrEmpty(referenceId))
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = "No reference ID stored — cannot query Switch/OPPWA",
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == "Switch" && pm.IsActive);
+
+                if (paymentMethod == null)
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = "Switch payment method not configured or inactive",
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(paymentMethod.Settings);
+                var isProduction = settings?.ContainsKey("isProduction") == true &&
+                                 settings["isProduction"].ToString()?.ToLower() == "true";
+
+                var entityId = isProduction
+                    ? settings?.GetValueOrDefault("entityIdProd")?.ToString()
+                    : settings?.GetValueOrDefault("entityIdTest")?.ToString();
+
+                var entityAuth = isProduction
+                    ? settings?.GetValueOrDefault("entityAuthProd")?.ToString()
+                    : settings?.GetValueOrDefault("entityAuthTest")?.ToString();
+
+                var entityUrl = isProduction
+                    ? settings?.GetValueOrDefault("entityUrlProd")?.ToString()
+                    : settings?.GetValueOrDefault("entityUrlTest")?.ToString();
+
+                if (string.IsNullOrEmpty(entityAuth) || string.IsNullOrEmpty(entityUrl))
+                {
+                    return new PaymentInquiryLiveData { Success = false, ErrorMessage = "Missing Switch credentials", QueriedAt = DateTime.UtcNow };
+                }
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {entityAuth}");
+
+                var statusUrl = $"{entityUrl}/{referenceId}/payment?entityId={entityId}";
+                _logger.LogInformation("[Inquiry] Switch status check: {Url}", statusUrl);
+
+                var response = await httpClient.GetAsync(statusUrl);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("[Inquiry] Switch response: Status={StatusCode}", response.StatusCode);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new PaymentInquiryLiveData
+                    {
+                        Success = false,
+                        ErrorMessage = $"Gateway returned {response.StatusCode}",
+                        RawResponse = responseBody,
+                        QueriedAt = DateTime.UtcNow
+                    };
+                }
+
+                var rawObj = JsonSerializer.Deserialize<object>(responseBody);
+                var statusResult = JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
+                string? gatewayStatus = null;
+
+                if (statusResult != null && statusResult.ContainsKey("result"))
+                {
+                    var result = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                        statusResult["result"].ToString() ?? "{}");
+                    gatewayStatus = result?.GetValueOrDefault("description")?.ToString();
+                }
+
+                return new PaymentInquiryLiveData
+                {
+                    Success = true,
+                    GatewayStatus = gatewayStatus,
+                    RawResponse = rawObj,
+                    QueriedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Inquiry] Error querying Switch for {TransactionId}", paymentLog.TransactionId);
+                return new PaymentInquiryLiveData
+                {
+                    Success = false,
+                    ErrorMessage = $"Error querying gateway: {ex.Message}",
+                    QueriedAt = DateTime.UtcNow
+                };
+            }
+        }
+
         private string ComputeHMACSHA256(string data, string secret)
         {
             var keyBytes = Encoding.UTF8.GetBytes(secret);

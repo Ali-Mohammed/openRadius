@@ -543,6 +543,7 @@ public static class PermissionRouteMap
             new("GET",    "api/payments/wallet/transactions",         "payments.view"),
             new("GET",    "api/payments/zaincashv2/inquiry/*",        "payments.view"),
             new("POST",   "api/payments/zaincashv2/reverse",          "payments.create"),
+            new("GET",    "api/payments/*/inquiry",                    "payments.view"),
 
             // ═══════════════════════════════════════════════════════════
             //  SAS Activations
