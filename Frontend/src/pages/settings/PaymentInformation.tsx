@@ -1,13 +1,15 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, XCircle, Clock, AlertCircle, RefreshCw, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, CreditCard, Settings, RotateCcw, Eye, Loader2, ExternalLink, Database, Wifi, WifiOff } from 'lucide-react'
+import { CheckCircle2, XCircle, Clock, AlertCircle, RefreshCw, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, CreditCard, Settings, RotateCcw, Eye, Loader2, ExternalLink, Database, Wifi, WifiOff, ShieldAlert, Upload, FileText } from 'lucide-react'
 import { paymentApi, type PaymentLog, type PaymentInquiryResponse } from '@/api/paymentApi'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -91,6 +93,13 @@ export default function PaymentInformation() {
   const [inquiryData, setInquiryData] = useState<PaymentInquiryResponse | null>(null)
   const [inquiryLoading, setInquiryLoading] = useState(false)
   const [inquiryError, setInquiryError] = useState<string | null>(null)
+  const [forceCompleteOpen, setForceCompleteOpen] = useState(false)
+  const [forceCompleteJustification, setForceCompleteJustification] = useState('')
+  const [forceCompleteFile, setForceCompleteFile] = useState<File | null>(null)
+  const [forceCompleteLoading, setForceCompleteLoading] = useState(false)
+  const [forceCompleteError, setForceCompleteError] = useState<string | null>(null)
+  const [forceCompleteSuccess, setForceCompleteSuccess] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Load table preferences on mount
   useEffect(() => {
