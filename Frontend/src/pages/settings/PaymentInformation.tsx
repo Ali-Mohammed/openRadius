@@ -789,6 +789,197 @@ export default function PaymentInformation() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Payment Inquiry Sheet */}
+      <Sheet open={inquirySheetOpen} onOpenChange={setInquirySheetOpen}>
+        <SheetContent className="sm:max-w-2xl w-full overflow-hidden flex flex-col">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5" />
+              Payment Inquiry
+            </SheetTitle>
+            <SheetDescription>
+              Detailed payment information from stored data and live gateway query
+            </SheetDescription>
+          </SheetHeader>
+
+          {inquiryLoading && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Querying payment gateway...</p>
+            </div>
+          )}
+
+          {inquiryError && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <XCircle className="h-8 w-8 text-destructive" />
+              <p className="text-sm text-destructive">{inquiryError}</p>
+              <Button variant="outline" size="sm" onClick={() => setInquirySheetOpen(false)}>
+                Close
+              </Button>
+            </div>
+          )}
+
+          {inquiryData && !inquiryLoading && (
+            <ScrollArea className="flex-1 -mx-6 px-6">
+              <div className="space-y-6 pb-6">
+                {/* Status Overview */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Status</p>
+                    <div className="mt-1">{getStatusBadge(inquiryData.status)}</div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Amount</p>
+                    <p className="text-lg font-bold mt-1">{inquiryData.amount.toLocaleString()} {inquiryData.currency}</p>
+                  </div>
+                </div>
+
+                {/* Transaction Details */}
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                    <Database className="h-4 w-4" />
+                    Transaction Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Transaction ID</p>
+                      <p className="font-mono text-xs break-all">{inquiryData.transactionId}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Gateway</p>
+                      <Badge variant="outline">{inquiryData.gateway}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Environment</p>
+                      <Badge variant={inquiryData.environment === 'Production' ? 'destructive' : 'secondary'}>
+                        {inquiryData.environment || 'Unknown'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Service Type</p>
+                      <p>{inquiryData.serviceType || '-'}</p>
+                    </div>
+                    {inquiryData.referenceId && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Reference ID</p>
+                        <p className="font-mono text-xs break-all">{inquiryData.referenceId}</p>
+                      </div>
+                    )}
+                    {inquiryData.gatewayTransactionId && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Gateway Transaction ID</p>
+                        <p className="font-mono text-xs break-all">{inquiryData.gatewayTransactionId}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-muted-foreground text-xs">Created</p>
+                      <p>{format(new Date(inquiryData.createdAt), 'MMM dd, yyyy HH:mm:ss')}</p>
+                    </div>
+                    {inquiryData.completedAt && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Completed</p>
+                        <p>{format(new Date(inquiryData.completedAt), 'MMM dd, yyyy HH:mm:ss')}</p>
+                      </div>
+                    )}
+                    {inquiryData.errorMessage && (
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground text-xs">Error</p>
+                        <p className="text-destructive text-xs">{inquiryData.errorMessage}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Live Gateway Data */}
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                    {inquiryData.liveData?.success ? (
+                      <Wifi className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <WifiOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    Live Gateway Response
+                  </h4>
+                  {inquiryData.liveData ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        {inquiryData.liveData.success ? (
+                          <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" />Connected</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1"><WifiOff className="h-3 w-3" />Not Available</Badge>
+                        )}
+                        {inquiryData.liveData.gatewayStatus && (
+                          <Badge variant="outline">Gateway: {inquiryData.liveData.gatewayStatus}</Badge>
+                        )}
+                      </div>
+                      {inquiryData.liveData.errorMessage && (
+                        <p className="text-xs text-muted-foreground">{inquiryData.liveData.errorMessage}</p>
+                      )}
+                      {inquiryData.liveData.queriedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Queried at: {format(new Date(inquiryData.liveData.queriedAt), 'MMM dd, yyyy HH:mm:ss')}
+                        </p>
+                      )}
+                      {inquiryData.liveData.rawResponse && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Raw Response</p>
+                          <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48 whitespace-pre-wrap break-all">
+                            {JSON.stringify(inquiryData.liveData.rawResponse, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No live data available</p>
+                  )}
+                </div>
+
+                {/* Stored Gateway Data */}
+                {(inquiryData.requestData || inquiryData.responseData || inquiryData.callbackData) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                        <Database className="h-4 w-4" />
+                        Stored Gateway Data
+                      </h4>
+                      <div className="space-y-3">
+                        {inquiryData.requestData && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Request Data</p>
+                            <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                              {JSON.stringify(inquiryData.requestData, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        {inquiryData.responseData && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Response Data</p>
+                            <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                              {JSON.stringify(inquiryData.responseData, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        {inquiryData.callbackData && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Callback Data</p>
+                            <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                              {JSON.stringify(inquiryData.callbackData, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
