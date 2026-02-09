@@ -458,6 +458,20 @@ export default function PaymentInformation() {
             </div>
           </TableCell>
         )
+      case 'actions':
+        return (
+          <TableCell key={columnKey} className="h-12 px-4" style={baseStyle}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Inquire from gateway"
+              onClick={() => handleInquiry(log)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </TableCell>
+        )
       default:
         return null
     }
