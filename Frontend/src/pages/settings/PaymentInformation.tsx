@@ -588,6 +588,13 @@ export default function PaymentInformation() {
               >
                 Error Message
               </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.actions}
+                onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, actions: checked }))}
+                onSelect={(e) => e.preventDefault()}
+              >
+                Actions
+              </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Popover>
