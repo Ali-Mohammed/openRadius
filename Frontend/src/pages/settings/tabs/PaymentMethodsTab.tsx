@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Coins, Plus, Trash2, Edit2, TestTube } from 'lucide-react'
+import { Coins, Plus, Trash2, Edit2, TestTube, Wallet } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { paymentMethodApi, type PaymentMethod, type PaymentMethodSettings, type PaymentMethodType, type CreatePaymentMethodDto, type UpdatePaymentMethodDto } from '@/api/paymentMethodApi'
+import { customWalletApi } from '@/api/customWallets'
 import { formatApiError } from '@/utils/errorHandler'
 import { PaymentTestDialog } from '@/components/payments/PaymentTestDialog'
 
@@ -21,12 +22,20 @@ export default function PaymentMethodsTab() {
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
   const [paymentType, setPaymentType] = useState<PaymentMethodType>('ZainCash')
   const [paymentSettings, setPaymentSettings] = useState<PaymentMethodSettings>({})
+  const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null)
 
   // Fetch payment methods
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
     queryFn: () => paymentMethodApi.getAll(),
   })
+
+  // Fetch custom wallets for linking
+  const { data: walletsResponse } = useQuery({
+    queryKey: ['custom-wallets-for-payment'],
+    queryFn: () => customWalletApi.getAll({ status: 'active', pageSize: 100 }),
+  })
+  const customWallets = walletsResponse?.data ?? []
 
   // Create mutation
   const createMutation = useMutation({
@@ -37,6 +46,7 @@ export default function PaymentMethodsTab() {
       setShowPaymentDialog(false)
       setEditingPayment(null)
       setPaymentSettings({})
+      setSelectedWalletId(null)
     },
     onError: (error) => {
       toast.error(formatApiError(error))
@@ -53,6 +63,7 @@ export default function PaymentMethodsTab() {
       setShowPaymentDialog(false)
       setEditingPayment(null)
       setPaymentSettings({})
+      setSelectedWalletId(null)
     },
     onError: (error) => {
       toast.error(formatApiError(error))
@@ -72,12 +83,18 @@ export default function PaymentMethodsTab() {
   })
 
   const handleSavePayment = () => {
+    if (selectedWalletId === null) {
+      toast.error('Please select a linked wallet. A wallet is required for payments to be processed.')
+      return
+    }
     if (editingPayment && editingPayment.id) {
       // Update existing payment method
       const dto: UpdatePaymentMethodDto = {
         name: paymentType,
         isActive: paymentSettings.isActive !== undefined ? paymentSettings.isActive : true,
-        settings: paymentSettings
+        settings: paymentSettings,
+        walletId: selectedWalletId,
+        clearWalletId: selectedWalletId === null && editingPayment.walletId != null,
       }
       updateMutation.mutate({ id: editingPayment.id, dto })
     } else {
@@ -86,7 +103,8 @@ export default function PaymentMethodsTab() {
         type: paymentType,
         name: paymentType,
         isActive: paymentSettings.isActive !== undefined ? paymentSettings.isActive : true,
-        settings: paymentSettings
+        settings: paymentSettings,
+        walletId: selectedWalletId,
       }
       createMutation.mutate(dto)
     }
@@ -121,6 +139,7 @@ export default function PaymentMethodsTab() {
                 setEditingPayment(null)
                 setPaymentType('ZainCash')
                 setPaymentSettings({})
+                setSelectedWalletId(null)
                 setShowPaymentDialog(true)
               }}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -143,6 +162,7 @@ export default function PaymentMethodsTab() {
                 setEditingPayment(null)
                 setPaymentType('ZainCash')
                 setPaymentSettings({})
+                setSelectedWalletId(null)
                 setShowPaymentDialog(true)
               }}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -178,6 +198,14 @@ export default function PaymentMethodsTab() {
                         {method.type === 'QICard' && `Terminal: ${method.settings.isProduction ? method.settings.terminalIdProd : method.settings.terminalIdTest || 'Not set'}`}
                         {method.type === 'Switch' && `Entity: ${method.settings.isProduction ? method.settings.entityIdProd : method.settings.entityIdTest || 'Not set'}`}
                       </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Wallet className="h-3 w-3" />
+                        {method.walletName ? (
+                          <span className="text-foreground font-medium">{method.walletName}</span>
+                        ) : (
+                          <span className="text-destructive">No wallet linked</span>
+                        )}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -188,6 +216,7 @@ export default function PaymentMethodsTab() {
                         setEditingPayment(method)
                         setPaymentType(method.type)
                         setPaymentSettings(method.settings)
+                        setSelectedWalletId(method.walletId ?? null)
                         setShowPaymentDialog(true)
                       }}
                     >
@@ -723,6 +752,32 @@ export default function PaymentMethodsTab() {
                 )}
               </>
             )}
+
+            {/* Linked Wallet — required for all payment types */}
+            <div className="space-y-2 border-t pt-4">
+              <Label className="flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Linked Wallet <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={selectedWalletId != null ? String(selectedWalletId) : ''}
+                onValueChange={(value) => setSelectedWalletId(value ? Number(value) : null)}
+              >
+                <SelectTrigger className={`border ${selectedWalletId === null ? 'border-destructive' : ''}`}>
+                  <SelectValue placeholder="Select a custom wallet (required)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customWallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={String(wallet.id)}>
+                      {wallet.name} — {wallet.type} ({wallet.status})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Select the custom wallet where received payments will be credited. A linked wallet is required for payments to be processed successfully.
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
@@ -730,6 +785,7 @@ export default function PaymentMethodsTab() {
               setShowPaymentDialog(false)
               setEditingPayment(null)
               setPaymentSettings({})
+              setSelectedWalletId(null)
             }}>
               Cancel
             </Button>

@@ -7,6 +7,8 @@ namespace Backend.DTOs
         public string Name { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public object Settings { get; set; } = new { };
+        public int? WalletId { get; set; }
+        public string? WalletName { get; set; }
     }
 
     public class CreatePaymentMethodDto
@@ -15,6 +17,7 @@ namespace Backend.DTOs
         public string Name { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public object Settings { get; set; } = new { };
+        public int? WalletId { get; set; }
     }
 
     public class UpdatePaymentMethodDto
@@ -22,5 +25,7 @@ namespace Backend.DTOs
         public string? Name { get; set; }
         public bool? IsActive { get; set; }
         public object? Settings { get; set; }
+        public int? WalletId { get; set; }
+        public bool ClearWalletId { get; set; } = false;
     }
 }

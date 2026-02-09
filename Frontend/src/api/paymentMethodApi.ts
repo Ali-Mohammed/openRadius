@@ -57,6 +57,8 @@ export interface PaymentMethod {
   name: string
   isActive: boolean
   settings: PaymentMethodSettings
+  walletId?: number | null
+  walletName?: string | null
 }
 
 export interface CreatePaymentMethodDto {
@@ -64,12 +66,15 @@ export interface CreatePaymentMethodDto {
   name: string
   isActive: boolean
   settings: PaymentMethodSettings
+  walletId?: number | null
 }
 
 export interface UpdatePaymentMethodDto {
   name?: string
   isActive?: boolean
   settings?: PaymentMethodSettings
+  walletId?: number | null
+  clearWalletId?: boolean
 }
 
 class PaymentMethodApi {
