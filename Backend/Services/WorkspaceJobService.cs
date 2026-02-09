@@ -78,12 +78,13 @@ public class WorkspaceJobService : IWorkspaceJobService
         }
         
         // Configure Hangfire storage for this workspace
+        var storageOptions = new PostgreSqlStorageOptions
+        {
+            SchemaName = "hangfire"
+        };
         var storage = new PostgreSqlStorage(
-            tenantInfo.ConnectionString,
-            new PostgreSqlStorageOptions
-            {
-                SchemaName = "hangfire"
-            });
+            new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(tenantInfo.ConnectionString!, storageOptions),
+            storageOptions);
         
         return new BackgroundJobClient(storage);
     }
@@ -158,12 +159,13 @@ public class WorkspaceJobService : IWorkspaceJobService
         _logger.LogInformation($"Adding/updating recurring job '{workspaceJobId}' for workspace queue: {queue}");
         
         // Configure storage for this workspace
+        var recurringStorageOptions = new PostgreSqlStorageOptions
+        {
+            SchemaName = "hangfire"
+        };
         var storage = new PostgreSqlStorage(
-            tenantInfo.ConnectionString,
-            new PostgreSqlStorageOptions
-            {
-                SchemaName = "hangfire"
-            });
+            new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(tenantInfo.ConnectionString!, recurringStorageOptions),
+            recurringStorageOptions);
         
         using var connection = storage.GetConnection();
         var recurringJobManager = new RecurringJobManager(storage);

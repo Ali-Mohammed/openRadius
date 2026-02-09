@@ -451,10 +451,13 @@ try
                 );
 
                 // Create workspace-specific storage
-                var storage = new PostgreSqlStorage(tenantConnectionString, new PostgreSqlStorageOptions
+                var hangfireOptions = new PostgreSqlStorageOptions
                 {
                     SchemaName = "hangfire"
-                });
+                };
+                var storage = new PostgreSqlStorage(
+                    new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(tenantConnectionString, hangfireOptions),
+                    hangfireOptions);
 
                 // Get queues for this workspace
                 var workspaceQueues = queues
@@ -505,10 +508,13 @@ try
 
                 if (integrationsWithSync.Any())
                 {
-                    var storage = new PostgreSqlStorage(tenantConnectionString, new PostgreSqlStorageOptions
+                    var syncHangfireOptions = new PostgreSqlStorageOptions
                     {
                         SchemaName = "hangfire"
-                    });
+                    };
+                    var storage = new PostgreSqlStorage(
+                        new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(tenantConnectionString, syncHangfireOptions),
+                        syncHangfireOptions);
 
                     var recurringJobManager = new RecurringJobManager(storage);
 
@@ -595,10 +601,13 @@ try
                 builder.Configuration.GetConnectionString("DefaultConnection")!,
                 workspace.Id
             );
-            var workspaceStorage = new PostgreSqlStorage(workspaceConnection, new PostgreSqlStorageOptions
+            var dashboardHangfireOptions = new PostgreSqlStorageOptions
             {
                 SchemaName = "hangfire"
-            });
+            };
+            var workspaceStorage = new PostgreSqlStorage(
+                new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(workspaceConnection, dashboardHangfireOptions),
+                dashboardHangfireOptions);
 
             // Create a route for each workspace: /hangfire/workspace/1, /hangfire/workspace/2, etc.
             app.UseHangfireDashboard($"/hangfire/workspace/{workspace.Id}", new DashboardOptions
@@ -618,10 +627,13 @@ try
         builder.Configuration.GetConnectionString("DefaultConnection")!,
         1
     );
-    var dashboardStorage = new PostgreSqlStorage(workspace1Connection, new PostgreSqlStorageOptions
+    var defaultHangfireOptions = new PostgreSqlStorageOptions
     {
         SchemaName = "hangfire"
-    });
+    };
+    var dashboardStorage = new PostgreSqlStorage(
+        new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(workspace1Connection, defaultHangfireOptions),
+        defaultHangfireOptions);
     JobStorage.Current = dashboardStorage;
 
     app.UseHangfireDashboard("/hangfire", new DashboardOptions

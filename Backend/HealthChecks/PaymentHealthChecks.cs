@@ -93,7 +93,6 @@ namespace Backend.HealthChecks
             CancellationToken cancellationToken = default)
         {
             var gatewayStatuses = new Dictionary<string, object>();
-            var allHealthy = true;
 
             // You can add actual gateway health checks here
             // For now, we'll just return a placeholder

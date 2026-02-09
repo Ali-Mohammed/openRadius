@@ -191,7 +191,7 @@ public class SasActivationsController : ControllerBase
     {
         try
         {
-            var activations = request.Activations.Select(a => (a.UserId, a.Username, (object)a.Data)).ToList();
+            var activations = request.Activations.Select(a => (a.UserId, a.Username, (object)(a.Data ?? new object()))).ToList();
             
             var jobIds = await _activationService.EnqueueBatchActivationsAsync(
                 integrationId,

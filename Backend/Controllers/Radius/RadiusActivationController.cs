@@ -963,7 +963,7 @@ public class RadiusActivationController : ControllerBase
                             .Where(t => t.CustomWalletId == profileWallet.CustomWalletId && 
                                       t.RadiusUserId == radiusUser.Id &&
                                       t.Reference == $"ACTIVATION-{radiusUser.Id}" &&
-                                      t.Description.Contains("RADIUS profile wallet deposit"))
+                                      t.Description != null && t.Description.Contains("RADIUS profile wallet deposit"))
                             .OrderByDescending(t => t.Id)
                             .FirstOrDefaultAsync();
                         
@@ -1214,6 +1214,7 @@ public class RadiusActivationController : ControllerBase
                             .Where(t => t.RadiusUserId == radiusUser.Id &&
                                       t.Reference == $"ACTIVATION-{radiusUser.Id}" &&
                                       t.BillingProfileId == billingProfileId &&
+                                      t.Description != null &&
                                       (t.Description.Contains("Billing profile deduction") ||
                                        t.Description.Contains("Billing profile distribution") ||
                                        t.Description.Contains("Remaining balance")))
@@ -1410,7 +1411,7 @@ public class RadiusActivationController : ControllerBase
                                 activeIntegration.Id,
                                 activeIntegration.Name,
                                 radiusUser.Id,
-                                radiusUser.Username,
+                                radiusUser.Username ?? string.Empty,
                                 activationData
                             );
                             _logger.LogInformation($"Successfully enqueued activation {activation.Id} to SAS4");

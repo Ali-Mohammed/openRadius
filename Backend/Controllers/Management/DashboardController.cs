@@ -483,7 +483,7 @@ public class DashboardController : ControllerBase
                         if (!string.IsNullOrEmpty(value))
                         {
                             if (condition.Operator == "contains")
-                                query = query.Where(r => r.Username.Contains(value));
+                                query = query.Where(r => r.Username != null && r.Username.Contains(value));
                             else if (condition.Operator == "equals")
                                 query = query.Where(r => r.Username == value);
                         }

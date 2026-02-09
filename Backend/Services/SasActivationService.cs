@@ -170,15 +170,16 @@ public class SasActivationService : ISasActivationService
         
         // Get workspace info for job execution
         var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
-        if (tenantInfo == null)
+        if (tenantInfo?.ConnectionString == null)
         {
-            throw new InvalidOperationException("No tenant context available");
+            throw new InvalidOperationException("No tenant context or connection string available");
         }
         
         // Enqueue Hangfire job with integration-specific queue for concurrency control
+        var connectionString = tenantInfo.ConnectionString;
         var queueName = _jobService.GetIntegrationQueue(integrationId, integration.ActivationMaxConcurrency);
         var jobId = _jobService.Enqueue<ISasActivationService>(
-            service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, tenantInfo.ConnectionString),
+            service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, connectionString),
             queueName);
         
         log.JobId = jobId;
@@ -259,16 +260,17 @@ public class SasActivationService : ISasActivationService
         
         // Get workspace info for job execution
         var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
-        if (tenantInfo == null)
+        if (tenantInfo?.ConnectionString == null)
         {
-            throw new InvalidOperationException("No tenant context available");
+            throw new InvalidOperationException("No tenant context or connection string available");
         }
         
         // Enqueue jobs
+        var batchConnectionString = tenantInfo.ConnectionString;
         foreach (var log in logs)
         {
             var jobId = _jobService.Enqueue<ISasActivationService>(
-                service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, tenantInfo.ConnectionString));
+                service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, batchConnectionString));
             
             log.JobId = jobId;
             jobIds.Add(jobId);
@@ -381,12 +383,7 @@ public class SasActivationService : ISasActivationService
     /// </summary>
     private async Task<SasActivationResponse> SendActivationToSas4Async(SasRadiusIntegration integration, SasActivationLog log, ApplicationDbContext context)
     {
-
-        throw new InvalidOperationException("SAS4 integration URL is not configured");
-
-
         _logger.LogInformation($"[SAS_Activation_020] Sending activation to SAS4: {integration.Url} for user {log.Username}");
-        
         
         var httpClient = _httpClientFactory.CreateClient();
         httpClient.Timeout = TimeSpan.FromSeconds(integration.ActivationTimeoutSeconds);
@@ -571,11 +568,12 @@ public class SasActivationService : ISasActivationService
         
         // Get workspace info for job execution
         var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
-        if (tenantInfo == null)
+        if (tenantInfo?.ConnectionString == null)
         {
-            throw new InvalidOperationException("No tenant context available");
+            throw new InvalidOperationException("No tenant context or connection string available");
         }
         
+        var retryConnectionString = tenantInfo.ConnectionString;
         foreach (var log in failedLogs)
         {
             // Reset retry count and status
@@ -586,7 +584,7 @@ public class SasActivationService : ISasActivationService
             
             // Enqueue job
             var jobId = _jobService.Enqueue<ISasActivationService>(
-                service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, tenantInfo.ConnectionString));
+                service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, retryConnectionString));
             
             log.JobId = jobId;
         }
@@ -621,9 +619,9 @@ public class SasActivationService : ISasActivationService
         
         // Get workspace info for job execution
         var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
-        if (tenantInfo == null)
+        if (tenantInfo?.ConnectionString == null)
         {
-            throw new InvalidOperationException("No tenant context available");
+            throw new InvalidOperationException("No tenant context or connection string available");
         }
         
         // Increment retry count and reset status
@@ -633,8 +631,9 @@ public class SasActivationService : ISasActivationService
         log.ErrorMessage = null;
         
         // Re-enqueue the activation job
+        var singleRetryConnectionString = tenantInfo.ConnectionString;
         var jobId = _jobService.Enqueue<ISasActivationService>(
-            service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, tenantInfo.ConnectionString));
+            service => service.ProcessActivationAsync(log.Id, tenantInfo.WorkspaceId, singleRetryConnectionString));
         
         log.JobId = jobId;
         
@@ -816,7 +815,8 @@ public class SasActivationService : ISasActivationService
         response.EnsureSuccessStatusCode();
         
         var result = await response.Content.ReadFromJsonAsync<JsonElement>();
-        var token = result.GetProperty("token").GetString();
+        var token = result.GetProperty("token").GetString()
+            ?? throw new InvalidOperationException("Authentication response did not contain a valid token");
         
         // Log full response to check for expiration info
         _logger.LogInformation($"[SAS_Activation_036] ✅ Authentication successful, got token. Full response: {result}");
