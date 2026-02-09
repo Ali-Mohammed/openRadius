@@ -792,8 +792,8 @@ export default function PaymentInformation() {
 
       {/* Payment Inquiry Sheet */}
       <Sheet open={inquirySheetOpen} onOpenChange={setInquirySheetOpen}>
-        <SheetContent className="sm:max-w-2xl w-full overflow-hidden flex flex-col">
-          <SheetHeader>
+        <SheetContent className="sm:max-w-2xl w-full overflow-hidden flex flex-col p-6">
+          <SheetHeader className="mb-4">
             <SheetTitle className="flex items-center gap-2">
               <ExternalLink className="h-5 w-5" />
               Payment Inquiry
