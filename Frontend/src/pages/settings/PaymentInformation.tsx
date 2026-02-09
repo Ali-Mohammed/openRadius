@@ -321,6 +321,9 @@ export default function PaymentInformation() {
     setInquiryData(null)
     setInquiryError(null)
     setInquiryLoading(true)
+    setForceCompleteOpen(false)
+    setForceCompleteSuccess(null)
+    setForceCompleteError(null)
     try {
       const data = await paymentApi.inquirePayment(log.uuid)
       setInquiryData(data)
@@ -329,6 +332,45 @@ export default function PaymentInformation() {
     } finally {
       setInquiryLoading(false)
     }
+  }
+
+  const handleForceComplete = async () => {
+    if (!inquiryData || !forceCompleteJustification.trim() || !forceCompleteFile) return
+
+    setForceCompleteLoading(true)
+    setForceCompleteError(null)
+    setForceCompleteSuccess(null)
+    try {
+      const formData = new FormData()
+      formData.append('justification', forceCompleteJustification.trim())
+      formData.append('document', forceCompleteFile)
+
+      const result = await paymentApi.forceCompletePayment(inquiryData.uuid, formData)
+      setForceCompleteSuccess(`Payment force-completed successfully. ${result.amountCredited.toLocaleString()} ${inquiryData.currency} credited to wallet.`)
+      setForceCompleteOpen(false)
+      setForceCompleteJustification('')
+      setForceCompleteFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+
+      // Refresh the inquiry data to show updated status
+      const updatedData = await paymentApi.inquirePayment(inquiryData.uuid)
+      setInquiryData(updatedData)
+
+      // Refresh the payment history
+      refetch()
+    } catch (err: any) {
+      setForceCompleteError(err?.response?.data?.message || err?.message || 'Failed to force-complete payment')
+    } finally {
+      setForceCompleteLoading(false)
+    }
+  }
+
+  const resetForceCompleteForm = () => {
+    setForceCompleteOpen(false)
+    setForceCompleteJustification('')
+    setForceCompleteFile(null)
+    setForceCompleteError(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   // Mock pagination for now (backend doesn't return pagination info yet)
