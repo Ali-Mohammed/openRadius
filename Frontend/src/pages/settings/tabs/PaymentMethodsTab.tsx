@@ -348,24 +348,6 @@ export default function PaymentMethodsTab() {
                       />
                       <p className="text-xs text-muted-foreground">This token is used for both production and test environments</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Frontend Callback URL</Label>
-                      <Input
-                        value={paymentSettings.frontendCallbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, frontendCallbackUrl: e.target.value })}
-                        placeholder="https://your-domain.com/payment/success"
-                      />
-                      <p className="text-xs text-muted-foreground">URL to redirect users after payment completion</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Backend Callback URL</Label>
-                      <Input
-                        value={paymentSettings.backendCallbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, backendCallbackUrl: e.target.value })}
-                        placeholder="https://your-api.com/webhooks/payment"
-                      />
-                      <p className="text-xs text-muted-foreground">URL to receive payment notifications on your backend</p>
-                    </div>
                     <div className="flex items-center space-x-2 pt-2">
                       <Checkbox
                         id="zaincash-active"
@@ -506,33 +488,6 @@ export default function PaymentMethodsTab() {
                       />
                       <p className="text-xs text-muted-foreground">Space-separated scopes for OAuth2 token request</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Success Redirect URL</Label>
-                      <Input
-                        value={paymentSettings.successUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, successUrl: e.target.value })}
-                        placeholder="Leave empty for auto-generated callback URL"
-                      />
-                      <p className="text-xs text-muted-foreground">Where users are redirected after successful payment. Leave empty to use the default backend callback.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Failure Redirect URL</Label>
-                      <Input
-                        value={paymentSettings.failureUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, failureUrl: e.target.value })}
-                        placeholder="Leave empty for auto-generated callback URL"
-                      />
-                      <p className="text-xs text-muted-foreground">Where users are redirected after failed/cancelled payment. Leave empty to use the default backend callback.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Webhook Notification URL</Label>
-                      <Input
-                        value={paymentSettings.webhookUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, webhookUrl: e.target.value })}
-                        placeholder="https://your-api.com/api/payments/zaincashv2/webhook"
-                      />
-                      <p className="text-xs text-muted-foreground">Server-side URL that receives POST webhook notifications from ZainCash. Register this URL with ZainCash.</p>
-                    </div>
                     <div className="flex items-center space-x-2 pt-2">
                       <Checkbox
                         id="zaincashv2-active"
@@ -651,24 +606,6 @@ export default function PaymentMethodsTab() {
                       />
                       <p className="text-xs text-muted-foreground">RSA public key in PEM format for signature verification</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Frontend Callback URL</Label>
-                      <Input
-                        value={paymentSettings.frontendCallbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, frontendCallbackUrl: e.target.value })}
-                        placeholder="https://your-domain.com/payment/success"
-                      />
-                      <p className="text-xs text-muted-foreground">URL to redirect users after payment completion</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Backend Callback URL</Label>
-                      <Input
-                        value={paymentSettings.backendCallbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, backendCallbackUrl: e.target.value })}
-                        placeholder="https://your-api.com/webhooks/payment"
-                      />
-                      <p className="text-xs text-muted-foreground">URL to receive payment notifications on your backend</p>
-                    </div>
                     <div className="flex items-center space-x-2 pt-2">
                       <Checkbox
                         id="qicard-active"
@@ -771,24 +708,6 @@ export default function PaymentMethodsTab() {
                         placeholder="Enter Decode Key"
                       />
                       <p className="text-xs text-muted-foreground">This key is used for both production and test environments</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Frontend Callback URL</Label>
-                      <Input
-                        value={paymentSettings.frontendCallbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, frontendCallbackUrl: e.target.value })}
-                        placeholder="https://your-domain.com/payment/success"
-                      />
-                      <p className="text-xs text-muted-foreground">URL to redirect users after payment completion</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Backend Callback URL</Label>
-                      <Input
-                        value={paymentSettings.backendCallbackUrl || ''}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, backendCallbackUrl: e.target.value })}
-                        placeholder="https://your-api.com/webhooks/payment"
-                      />
-                      <p className="text-xs text-muted-foreground">URL to receive payment notifications on your backend</p>
                     </div>
                     <div className="flex items-center space-x-2 pt-2">
                       <Checkbox

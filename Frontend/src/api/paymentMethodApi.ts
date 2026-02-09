@@ -24,9 +24,6 @@ export interface PaymentMethodSettings {
   apiKeyProd?: string
   apiKeyTest?: string
   scope?: string
-  successUrl?: string
-  failureUrl?: string
-  webhookUrl?: string
   // QICard
   usernameProd?: string
   usernameTest?: string
@@ -49,8 +46,6 @@ export interface PaymentMethodSettings {
   entityUrlTest?: string
   decodeKey?: string
   // Common
-  frontendCallbackUrl?: string
-  backendCallbackUrl?: string
   isActive?: boolean
 }
 
