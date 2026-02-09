@@ -1026,6 +1026,145 @@ export default function PaymentInformation() {
                     </div>
                   </>
                 )}
+
+                {/* Force Complete Section — only for non-completed payments */}
+                {inquiryData.status !== 'completed' && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                        <ShieldAlert className="h-4 w-4 text-amber-500" />
+                        Administrative Action
+                      </h4>
+
+                      {forceCompleteSuccess && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 mb-3">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                          <p className="text-sm text-green-700 dark:text-green-300">{forceCompleteSuccess}</p>
+                        </div>
+                      )}
+
+                      {!forceCompleteOpen && !forceCompleteSuccess && (
+                        <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                          <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                            If this payment was actually completed but the status wasn't updated, you can force-complete it. 
+                            This will credit the wallet balance and create a full audit trail.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                            onClick={() => setForceCompleteOpen(true)}
+                          >
+                            <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+                            Force Complete Payment
+                          </Button>
+                        </div>
+                      )}
+
+                      {forceCompleteOpen && (
+                        <div className="space-y-4 p-4 rounded-lg border-2 border-destructive/50 bg-destructive/5">
+                          <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10">
+                            <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">Irreversible Action</p>
+                              <p className="text-xs text-destructive/80 mt-0.5">
+                                This will mark the payment as completed and credit <strong>{inquiryData.amount.toLocaleString()} {inquiryData.currency}</strong> to the user's wallet. 
+                                This action cannot be undone and will be permanently recorded in the audit log.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="justification" className="text-sm font-medium">
+                              Justification <span className="text-destructive">*</span>
+                            </Label>
+                            <Textarea
+                              id="justification"
+                              placeholder="Explain why this payment should be force-completed (e.g., confirmed with gateway support, receipt verified, etc.)"
+                              value={forceCompleteJustification}
+                              onChange={(e) => setForceCompleteJustification(e.target.value)}
+                              maxLength={2000}
+                              rows={3}
+                              className="resize-none"
+                            />
+                            <p className="text-xs text-muted-foreground text-right">
+                              {forceCompleteJustification.length}/2000
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="document" className="text-sm font-medium">
+                              Proof Document <span className="text-destructive">*</span>
+                            </Label>
+                            <div
+                              className="relative flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              <input
+                                ref={fileInputRef}
+                                id="document"
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                                className="hidden"
+                                onChange={(e) => setForceCompleteFile(e.target.files?.[0] || null)}
+                              />
+                              {forceCompleteFile ? (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                  <span className="font-medium">{forceCompleteFile.name}</span>
+                                  <span className="text-muted-foreground">({(forceCompleteFile.size / 1024).toFixed(1)} KB)</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Upload className="h-6 w-6 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Click to upload receipt, screenshot, or approval document</p>
+                                  <p className="text-xs text-muted-foreground/60">JPEG, PNG, GIF, WebP, PDF — Max 10MB</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {forceCompleteError && (
+                            <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10">
+                              <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                              <p className="text-xs text-destructive">{forceCompleteError}</p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={!forceCompleteJustification.trim() || !forceCompleteFile || forceCompleteLoading}
+                              onClick={handleForceComplete}
+                            >
+                              {forceCompleteLoading ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+                                  Confirm Force Complete
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={resetForceCompleteForm}
+                              disabled={forceCompleteLoading}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </ScrollArea>
           )}
