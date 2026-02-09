@@ -2839,12 +2839,17 @@ namespace Backend.Controllers.Payments
 
         /// <summary>
         /// Gets the frontend base URL for payment result redirects.
-        /// In dev: http://localhost:5173, in prod: configured PUBLIC_FRONTEND_URL.
+        /// In dev: http://localhost:5173 (from appsettings.Development.json), in prod: PUBLIC_FRONTEND_URL env var.
         /// </summary>
         private string GetFrontendUrl()
         {
-            // Try environment variable first (set in .env or docker-compose)
-            var frontendUrl = Environment.GetEnvironmentVariable("PUBLIC_FRONTEND_URL");
+            // Try appsettings configuration first
+            var frontendUrl = _configuration["FrontendUrl"];
+            if (!string.IsNullOrEmpty(frontendUrl))
+                return frontendUrl.TrimEnd('/');
+
+            // Try environment variable (set in .env or docker-compose)
+            frontendUrl = Environment.GetEnvironmentVariable("PUBLIC_FRONTEND_URL");
             if (!string.IsNullOrEmpty(frontendUrl))
                 return frontendUrl.TrimEnd('/');
 
