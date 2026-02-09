@@ -569,6 +569,7 @@ public static class SeedData
             // Payments
             new Permission { Name = "payments.view", Description = "View payment status and history", Category = "Billing" },
             new Permission { Name = "payments.create", Description = "Initiate payments", Category = "Billing" },
+            new Permission { Name = "payments.force-complete", Description = "Force complete stuck/failed payments with audit trail", Category = "Billing" },
             // Jobs
             new Permission { Name = "jobs.view", Description = "View background jobs", Category = "Settings" },
             new Permission { Name = "jobs.manage", Description = "Manage background jobs", Category = "Settings" },

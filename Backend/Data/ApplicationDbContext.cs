@@ -80,6 +80,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RadiusAccounting> RadiusAccounting { get; set; }
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
     public DbSet<Models.Payments.PaymentLog> PaymentLogs { get; set; }
+    public DbSet<Models.Payments.PaymentForceCompletion> PaymentForceCompletions { get; set; }
     public DbSet<SasActivationLog> SasActivationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -102,7 +103,8 @@ public class ApplicationDbContext : DbContext
             typeof(RadiusIpReservation), typeof(RadiusNas), typeof(Transaction),
             typeof(TransactionComment), typeof(UserCashback), typeof(UserWallet),
             typeof(UserZone), typeof(WalletHistory), typeof(WorkflowHistory), typeof(Zone),
-            typeof(BillingGroupUser), typeof(SubAgentCashback), typeof(BillingProfileUser)
+            typeof(BillingGroupUser), typeof(SubAgentCashback), typeof(BillingProfileUser),
+            typeof(Models.Payments.PaymentForceCompletion)
         };
 
         foreach (var entityType in entityTypes)
