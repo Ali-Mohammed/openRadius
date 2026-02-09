@@ -512,11 +512,9 @@ namespace Backend.Controllers.Payments
                 // Step 1: Get OAuth2 access token
                 var accessToken = await GetZainCashV2TokenAsync(baseUrl, clientId, clientSecret, scope);
 
-                // Step 2: Build callback URLs
-                var successUrl = settings.GetValueOrDefault("successUrl")?.ToString()
-                    ?? $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/success";
-                var failureUrl = settings.GetValueOrDefault("failureUrl")?.ToString()
-                    ?? $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/failure";
+                // Step 2: Build callback URLs (auto-generated from server host)
+                var successUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/success";
+                var failureUrl = $"{Request.Scheme}://{Request.Host}/api/payments/zaincashv2/callback/failure";
 
                 // Step 3: Create transaction via /api/v2/payment-gateway/transaction/init
                 var externalReferenceId = Guid.NewGuid().ToString();
