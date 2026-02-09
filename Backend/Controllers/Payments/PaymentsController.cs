@@ -2407,15 +2407,45 @@ namespace Backend.Controllers.Payments
                 // Get IP address
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+                // Pre-validate: ensure the payment method exists and has a linked wallet
+                var paymentMethod = await _context.PaymentMethods
+                    .FirstOrDefaultAsync(pm => pm.Type == paymentLog.Gateway);
+
+                if (paymentMethod == null)
+                {
+                    return BadRequest(new { message = $"Payment method '{paymentLog.Gateway}' not found. Please ensure the payment method is configured before force-completing." });
+                }
+
+                if (paymentMethod.WalletId == null)
+                {
+                    return BadRequest(new { message = $"Payment method '{paymentLog.Gateway}' has no linked wallet. Please link a wallet to this payment method in Settings → Payment Methods before force-completing." });
+                }
+
+                var targetWallet = await _context.CustomWallets
+                    .FirstOrDefaultAsync(w => w.Id == paymentMethod.WalletId);
+
+                if (targetWallet == null)
+                {
+                    return BadRequest(new { message = $"The wallet linked to payment method '{paymentLog.Gateway}' was not found. Please verify the wallet configuration." });
+                }
+
                 _logger.LogWarning(
-                    "[ForceComplete] Admin {AdminUserId} force-completing payment {Uuid} (TransactionId={TransactionId}, Gateway={Gateway}, Amount={Amount}, PreviousStatus={PreviousStatus}). Justification: {Justification}",
-                    adminUserId, uuid, paymentLog.TransactionId, paymentLog.Gateway, paymentLog.Amount, previousStatus, justification);
+                    "[ForceComplete] Admin {AdminUserId} force-completing payment {Uuid} (TransactionId={TransactionId}, Gateway={Gateway}, Amount={Amount}, PreviousStatus={PreviousStatus}, TargetWallet={WalletName}). Justification: {Justification}",
+                    adminUserId, uuid, paymentLog.TransactionId, paymentLog.Gateway, paymentLog.Amount, previousStatus, targetWallet.Name, justification);
 
                 // Process the payment using the same wallet crediting logic
                 await ProcessSuccessfulPayment(paymentLog);
 
                 // Reload to get the updated status and wallet transaction ID
                 await _context.Entry(paymentLog).ReloadAsync();
+
+                // Verify the payment was actually processed successfully
+                if (paymentLog.Status != "completed")
+                {
+                    _logger.LogError("[ForceComplete] ProcessSuccessfulPayment did not complete payment {Uuid}. Status={Status}, Error={Error}",
+                        uuid, paymentLog.Status, paymentLog.ErrorMessage);
+                    return StatusCode(500, new { message = $"Payment processing failed: {paymentLog.ErrorMessage ?? "Unknown error"}. The wallet was not credited." });
+                }
 
                 // Create the audit record
                 var forceCompletion = new PaymentForceCompletion
