@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
+using Backend.Helpers;
 using System.Text.Json;
 
 namespace Backend.Controllers;
@@ -9,6 +10,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/cdc")]
 [Authorize]
+[NoAudit]
 public class CdcMonitorController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;

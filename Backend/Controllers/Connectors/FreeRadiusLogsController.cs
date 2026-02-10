@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Backend.Helpers;
 using Backend.Models;
 using Backend.Services;
 
@@ -8,6 +9,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[NoAudit]
 public class FreeRadiusLogsController : ControllerBase
 {
     private readonly IFreeRadiusLogService _logService;

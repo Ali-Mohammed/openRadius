@@ -1,4 +1,5 @@
 using Backend.DTOs;
+using Backend.Helpers;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/navigation")]
 [Authorize]
+[NoAudit]
 public class NavigationController : ControllerBase
 {
     private readonly INavigationService _navigationService;

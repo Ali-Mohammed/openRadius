@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
+using Backend.Helpers;
 using Backend.Models;
 using System.Text.Json;
 
@@ -10,6 +11,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/table-preferences")]
 [Authorize]
+[NoAudit]
 public class TablePreferenceController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
