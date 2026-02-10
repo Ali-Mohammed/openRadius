@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Backend.DTOs;
+using Backend.Helpers;
 using Backend.Services;
 
 namespace Backend.Controllers.Management;
@@ -12,6 +13,7 @@ namespace Backend.Controllers.Management;
 [ApiController]
 [Route("api/audit-logs")]
 [Authorize]
+[NoAudit] // Prevent auditing the audit log reads/queries
 public class AuditLogController : ControllerBase
 {
     private readonly IAuditService _auditService;

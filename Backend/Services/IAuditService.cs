@@ -18,7 +18,7 @@ public interface IAuditService
     /// <summary>
     /// Records a new audit log entry with explicit user ID (for background jobs).
     /// </summary>
-    Task<AuditLog> LogAsync(CreateAuditLogDto dto, int performedByUserId, string? ipAddress = null, string? userAgent = null);
+    Task<AuditLog> LogAsync(CreateAuditLogDto dto, int performedByUserId, string? ipAddress = null, string? userAgent = null, string? requestPath = null);
 
     /// <summary>
     /// Gets a paginated, filtered, sorted list of audit log entries.
