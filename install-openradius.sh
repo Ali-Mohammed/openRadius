@@ -716,9 +716,34 @@ prepare_keycloak_import() {
 pull_docker_images() {
     print_step "Pulling Docker images..."
     
-    docker compose -f docker-compose.prod.yml pull
+    # Restart Docker daemon to ensure containerd content store is clean
+    # (prevents "no such file or directory" errors in containerd ingest dir)
+    print_info "Restarting Docker daemon to ensure clean state..."
+    systemctl restart docker
+    sleep 3
     
-    print_success "Docker images pulled successfully"
+    # Retry pull up to 3 times (network/storage transient failures)
+    local max_retries=3
+    local attempt=1
+    while [ $attempt -le $max_retries ]; do
+        if docker compose -f docker-compose.prod.yml pull 2>&1; then
+            print_success "Docker images pulled successfully"
+            return 0
+        fi
+        
+        if [ $attempt -lt $max_retries ]; then
+            print_warning "Image pull failed (attempt $attempt/$max_retries). Retrying in 10 seconds..."
+            # Clean up any partial downloads
+            docker system prune -f 2>/dev/null || true
+            sleep 10
+        fi
+        attempt=$((attempt + 1))
+    done
+    
+    print_error "Failed to pull Docker images after $max_retries attempts."
+    print_info "Please check your internet connection and Docker daemon status."
+    print_info "You can retry manually with: docker compose -f docker-compose.prod.yml pull"
+    exit 1
 }
 
 # =============================================================================
