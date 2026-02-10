@@ -553,6 +553,8 @@ public static class SeedData
             new Permission { Name = "reports.create", Description = "Create reports", Category = "General" },
             // Audit & Logs
             new Permission { Name = "audit.view", Description = "View audit logs", Category = "General" },
+            new Permission { Name = "audit.export", Description = "Export audit logs", Category = "General" },
+            new Permission { Name = "audit.delete", Description = "Delete audit log entries", Category = "General" },
             new Permission { Name = "logs.view", Description = "View system logs", Category = "General" },
             // Billing
             new Permission { Name = "billing.profiles.view", Description = "View billing profiles", Category = "Billing" },

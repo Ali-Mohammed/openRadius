@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin, Layers, WalletCards, TrendingUp, PiggyBank, Globe, FileStack, HardDrive, Cog, SquareStack, RefreshCcw, Container, Loader2, type LucideIcon } from "lucide-react"
+import { ChevronRight, Plug, Users, CircleUser, Building2, Settings, LayoutDashboard, Radio, Eye, Wrench, SlidersHorizontal, Key, DollarSign, UserCog, Shield, Lock, Tag, UsersRound, UserRound, Server, Network, CreditCard, Package, Gift, Wallet, History, Coins, FileText, UserCheck, Database, Activity, ArrowUpCircle, Receipt, Antenna, Cable, Box, Zap, Monitor, BarChart3, MapPin, Layers, WalletCards, TrendingUp, PiggyBank, Globe, FileStack, HardDrive, Cog, SquareStack, RefreshCcw, Container, Loader2, ScrollText, type LucideIcon } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useTranslation } from "react-i18next"
@@ -87,6 +87,7 @@ const iconMap: Record<string, LucideIcon> = {
   RefreshCcw,
   Container,
   Plug,
+  ScrollText,
 }
 
 /** Resolves an icon name string to a Lucide component. Falls back to Settings. */

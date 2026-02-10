@@ -295,6 +295,7 @@ public class NavigationService : INavigationService
                 {
                     new() { TitleKey = "navigation.workspace", Url = "/workspace/view", Icon = "Eye", RequiredPermission = "workspace.view" },
                     new() { TitleKey = "navigation.serverMonitoring", Url = "/workspace/server-monitoring", Icon = "Container", RequiredPermission = "server-monitoring.view" },
+                    new() { TitleKey = "navigation.auditLogs", Url = "/audit-logs", Icon = "ScrollText", RequiredPermission = "audit.view" },
                     new() { TitleKey = "navigation.general", Url = "/settings/general", Icon = "DollarSign", RequiredPermission = "settings.general.view" },
                     new() { TitleKey = "navigation.paymentInformation", Url = "/settings/payment-history", Icon = "CreditCard", RequiredPermission = "settings.payment-history.view" },
                     new() { TitleKey = "navigation.oidc", Url = "/settings/oidc", Icon = "Key", RequiredPermission = "settings.oidc.view" },

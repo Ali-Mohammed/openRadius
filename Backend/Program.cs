@@ -252,6 +252,9 @@ try
     // Add Payment Services
     builder.Services.AddScoped<PaymentAuditService>();
 
+    // Add Audit Service for system-wide activity logging
+    builder.Services.AddScoped<IAuditService, AuditService>();
+
     // Add Workspace Job Service for per-workspace background jobs
     builder.Services.AddScoped<IWorkspaceJobService, WorkspaceJobService>();
     builder.Services.AddScoped<IExampleJobService, ExampleJobService>();
