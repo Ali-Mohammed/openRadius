@@ -12,6 +12,9 @@
 
 set -e  # Exit on any error
 
+# Version
+OPENRADIUS_VERSION="1.7"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -717,11 +720,16 @@ pull_docker_images() {
     print_step "Pulling Docker images..."
     
     # Fix containerd content store corruption that can occur after volume removal.
-    # The ingest directory may contain stale entries that block all image pulls.
+    # The ingest directory may contain stale/broken entries that block all image pulls.
+    # We must fully stop Docker+containerd, remove AND recreate the ingest dir, then restart.
     print_info "Cleaning containerd content store and restarting Docker..."
     systemctl stop docker docker.socket containerd 2>/dev/null || true
-    rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest/* 2>/dev/null || true
-    systemctl start containerd docker
+    sleep 2
+    rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest 2>/dev/null || true
+    mkdir -p /var/lib/containerd/io.containerd.content.v1.content/ingest
+    systemctl start containerd
+    sleep 2
+    systemctl start docker
     sleep 5
     
     # Retry pull up to 3 times (network/storage transient failures)
@@ -735,11 +743,14 @@ pull_docker_images() {
         
         if [ $attempt -lt $max_retries ]; then
             print_warning "Image pull failed (attempt $attempt/$max_retries). Retrying in 10 seconds..."
-            # Deep clean: stop Docker, purge containerd ingest, restart
+            # Deep clean: stop everything, nuke containerd ingest dir, restart
             systemctl stop docker docker.socket containerd 2>/dev/null || true
-            rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest/* 2>/dev/null || true
-            docker system prune -f 2>/dev/null || true
-            systemctl start containerd docker
+            sleep 2
+            rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest 2>/dev/null || true
+            mkdir -p /var/lib/containerd/io.containerd.content.v1.content/ingest
+            systemctl start containerd
+            sleep 2
+            systemctl start docker
             sleep 10
         fi
         attempt=$((attempt + 1))
@@ -1248,7 +1259,7 @@ EOF
 show_summary() {
     print_header "INSTALLATION COMPLETE!"
     
-    echo -e "${GREEN}OpenRadius has been successfully installed!${NC}\n"
+    echo -e "${GREEN}OpenRadius v${OPENRADIUS_VERSION} has been successfully installed!${NC}\n"
     
     echo -e "${CYAN}Service URLs:${NC}"
     echo -e "  Main App:        ${GREEN}https://$DOMAIN${NC}"
@@ -1348,7 +1359,7 @@ show_summary() {
     
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}                    ✨ Installation Successful! ✨${NC}"
+    echo -e "${GREEN}                ✨ OpenRadius v${OPENRADIUS_VERSION} — Installation Successful! ✨${NC}"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     echo -e "${PURPLE}                         Powered By${NC}"
@@ -1477,8 +1488,10 @@ main() {
         |_|                                              
 EOF
     echo -e "${NC}"
+    echo -e "${CYAN}                         Version ${GREEN}${OPENRADIUS_VERSION}${NC}"
+    echo ""
     
-    print_header "OpenRadius Enterprise Installation"
+    print_header "OpenRadius Enterprise Installation v${OPENRADIUS_VERSION}"
     
     echo -e "${CYAN}This script will install and configure:${NC}"
     echo "  • Docker & Docker Compose"
