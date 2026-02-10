@@ -993,6 +993,89 @@ rpk topic consume ${topics[0]} --brokers ${kafkaBootstrap}
 # Or with kcat (kafkacat)
 kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                         </div>
+
+                                        {/* JDBC Sink Connector */}
+                                        <div className="bg-background rounded border overflow-hidden">
+                                          <div className="flex items-center justify-between px-3 py-2 bg-muted border-b">
+                                            <span className="text-xs font-semibold">JDBC Sink Connector — Auto-sync to another PostgreSQL database</span>
+                                            <Button variant="ghost" size="sm" className="h-5 px-2 text-xs"
+                                              onClick={() => copyToClipboard(JSON.stringify({
+                                                name: `jdbc-sink-${serverName}`,
+                                                config: {
+                                                  "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+                                                  "tasks.max": "1",
+                                                  "topics": topics.join(','),
+                                                  "connection.url": "jdbc:postgresql://YOUR_HOST:5432/YOUR_DATABASE",
+                                                  "connection.username": "postgres",
+                                                  "connection.password": "YOUR_PASSWORD",
+                                                  "insert.mode": "upsert",
+                                                  "delete.enabled": "true",
+                                                  "primary.key.mode": "record_key",
+                                                  "primary.key.fields": "Id",
+                                                  "auto.create": "false",
+                                                  "auto.evolve": "true",
+                                                  "schema.evolution": "basic",
+                                                  "quote.identifiers": "true",
+                                                  "table.name.format": "${topic}".replace(`${serverName}.public.`, 'public.'),
+                                                  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+                                                  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+                                                  "key.converter.schemas.enable": "true",
+                                                  "value.converter.schemas.enable": "true",
+                                                  "errors.tolerance": "all",
+                                                  "errors.log.enable": "true",
+                                                  "errors.log.include.messages": "true",
+                                                  "errors.deadletterqueue.topic.name": `dlq-jdbc-sink-${serverName}`,
+                                                  "errors.deadletterqueue.topic.replication.factor": "1",
+                                                  "errors.deadletterqueue.context.headers.enable": "true"
+                                                }
+                                              }, null, 2))}>
+                                              <Copy className="h-3 w-3 mr-1" /> Copy
+                                            </Button>
+                                          </div>
+                                          <pre className="text-xs p-3 overflow-x-auto"><code>{JSON.stringify({
+                                            name: `jdbc-sink-${serverName}`,
+                                            config: {
+                                              "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+                                              "tasks.max": "1",
+                                              "topics": topics.join(','),
+                                              "connection.url": "jdbc:postgresql://YOUR_HOST:5432/YOUR_DATABASE",
+                                              "connection.username": "postgres",
+                                              "connection.password": "YOUR_PASSWORD",
+                                              "insert.mode": "upsert",
+                                              "delete.enabled": "true",
+                                              "primary.key.mode": "record_key",
+                                              "primary.key.fields": "Id",
+                                              "auto.create": "false",
+                                              "auto.evolve": "true",
+                                              "schema.evolution": "basic",
+                                              "quote.identifiers": "true",
+                                              "table.name.format": "public.${topic}",
+                                              "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+                                              "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+                                              "key.converter.schemas.enable": "true",
+                                              "value.converter.schemas.enable": "true",
+                                              "errors.tolerance": "all",
+                                              "errors.log.enable": "true",
+                                              "errors.log.include.messages": "true",
+                                              "errors.deadletterqueue.topic.name": `dlq-jdbc-sink-${serverName}`,
+                                              "errors.deadletterqueue.topic.replication.factor": "1",
+                                              "errors.deadletterqueue.context.headers.enable": "true"
+                                            }
+                                          }, null, 2)}</code></pre>
+                                          <div className="px-3 py-2 bg-muted/50 border-t text-xs text-muted-foreground space-y-1">
+                                            <p className="font-semibold text-foreground">📌 How to deploy this sink connector:</p>
+                                            <p>1. Replace <code className="bg-muted px-1 rounded">YOUR_HOST</code>, <code className="bg-muted px-1 rounded">YOUR_DATABASE</code>, and <code className="bg-muted px-1 rounded">YOUR_PASSWORD</code> with your target database details.</p>
+                                            <p>2. POST the JSON to the Debezium Connect REST API:</p>
+                                            <div className="bg-background rounded border p-2 mt-1 flex items-center justify-between group">
+                                              <code className="text-xs">curl -X POST {cdcApiUrl}/connectors -H "Content-Type: application/json" -d @sink-connector.json</code>
+                                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => copyToClipboard(`curl -X POST ${cdcApiUrl}/connectors -H "Content-Type: application/json" -d @sink-connector.json`)}>
+                                                <Copy className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                            <p>3. The sink connector will automatically replicate changes from Kafka topics to your target PostgreSQL database in real-time.</p>
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
 
