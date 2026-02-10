@@ -27,6 +27,7 @@ public class MasterDbContext : DbContext
     public DbSet<UserWorkspace> UserWorkspaces { get; set; }
     public DbSet<BackupHistory> BackupHistories { get; set; }
     public DbSet<ApprovedMicroservice> ApprovedMicroservices { get; set; }
+    public DbSet<EdgeRuntimeScript> EdgeRuntimeScripts { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -150,6 +151,13 @@ public class MasterDbContext : DbContext
                   .WithMany(p => p.RolePermissions)
                   .HasForeignKey(rp => rp.PermissionId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EdgeRuntimeScript>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.Property(e => e.ScriptContent).IsRequired();
         });
 
         modelBuilder.Entity<UserWorkspace>(entity =>

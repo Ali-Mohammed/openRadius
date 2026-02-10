@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Backend.Migrations
+namespace Backend.Migrations.MasterDb
 {
     /// <inheritdoc />
     public partial class AddEdgeRuntimeScripts : Migration
@@ -54,10 +54,6 @@ namespace Backend.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_EdgeRuntimeScripts_Uuid",
-                table: "EdgeRuntimeScripts");
-
             migrationBuilder.DropTable(
                 name: "EdgeRuntimeScripts");
         }

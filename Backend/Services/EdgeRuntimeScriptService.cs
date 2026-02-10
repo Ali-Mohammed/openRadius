@@ -19,11 +19,11 @@ public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
     private const string PostgresVersion = "18.1";
     private const string ScriptRoutePrefix = "api/debezium/edge-runtime/scripts";
 
-    private readonly ApplicationDbContext _context;
+    private readonly MasterDbContext _context;
     private readonly ILogger<EdgeRuntimeScriptService> _logger;
 
     public EdgeRuntimeScriptService(
-        ApplicationDbContext context,
+        MasterDbContext context,
         ILogger<EdgeRuntimeScriptService> logger)
     {
         _context = context;
