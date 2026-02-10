@@ -34,11 +34,12 @@ public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
     public async Task<EdgeRuntimeInstallScriptResponse> GenerateInstallScriptAsync(
         EdgeRuntimeInstallScriptRequest request,
         string baseUrl,
+        int workspaceId,
         string? createdBy = null)
     {
         _logger.LogInformation(
-            "Generating Edge Runtime install script for instance {InstanceName} with topics {Topics} (SaveToServer={Save})",
-            request.InstanceName, request.Topics, request.SaveToServer);
+            "Generating Edge Runtime install script for instance {InstanceName} with topics {Topics} (SaveToServer={Save}, WorkspaceId={WorkspaceId})",
+            request.InstanceName, request.Topics, request.SaveToServer, workspaceId);
 
         var sanitizedName = SanitizeName(request.InstanceName);
         var script = BuildScript(request, sanitizedName);
@@ -58,6 +59,7 @@ public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
             var entity = new EdgeRuntimeScript
             {
                 Uuid = Guid.NewGuid(),
+                WorkspaceId = workspaceId,
                 InstanceName = sanitizedName,
                 Description = description,
                 Version = InstallerVersion,
@@ -107,14 +109,15 @@ public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
     }
 
     /// <inheritdoc />
-    public async Task<List<EdgeRuntimeScriptSummaryDto>> ListScriptsAsync(string baseUrl)
+    public async Task<List<EdgeRuntimeScriptSummaryDto>> ListScriptsAsync(string baseUrl, int workspaceId)
     {
         return await _context.EdgeRuntimeScripts
-            .Where(s => !s.IsDeleted)
+            .Where(s => !s.IsDeleted && s.WorkspaceId == workspaceId)
             .OrderByDescending(s => s.CreatedAt)
             .Select(s => new EdgeRuntimeScriptSummaryDto
             {
                 Uuid = s.Uuid,
+                WorkspaceId = s.WorkspaceId,
                 InstanceName = s.InstanceName,
                 Description = s.Description,
                 Version = s.Version,
@@ -134,10 +137,10 @@ public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
     }
 
     /// <inheritdoc />
-    public async Task<bool> DeleteScriptAsync(Guid uuid, string? deletedBy = null)
+    public async Task<bool> DeleteScriptAsync(Guid uuid, int workspaceId, string? deletedBy = null)
     {
         var script = await _context.EdgeRuntimeScripts
-            .FirstOrDefaultAsync(s => s.Uuid == uuid && !s.IsDeleted);
+            .FirstOrDefaultAsync(s => s.Uuid == uuid && !s.IsDeleted && s.WorkspaceId == workspaceId);
 
         if (script == null)
             return false;

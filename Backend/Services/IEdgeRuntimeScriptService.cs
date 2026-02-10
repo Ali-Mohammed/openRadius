@@ -17,11 +17,13 @@ public interface IEdgeRuntimeScriptService
     /// </summary>
     /// <param name="request">The script configuration parameters.</param>
     /// <param name="baseUrl">The base URL of the API for building public download links.</param>
+    /// <param name="workspaceId">The workspace (tenant) ID that owns this script.</param>
     /// <param name="createdBy">The user who generated the script (for audit trail).</param>
     /// <returns>The install script response with the generated script, metadata, and optional public URL.</returns>
     Task<EdgeRuntimeInstallScriptResponse> GenerateInstallScriptAsync(
         EdgeRuntimeInstallScriptRequest request,
         string baseUrl,
+        int workspaceId,
         string? createdBy = null);
 
     /// <summary>
@@ -31,12 +33,12 @@ public interface IEdgeRuntimeScriptService
     Task<EdgeRuntimeScript?> GetScriptByUuidAsync(Guid uuid);
 
     /// <summary>
-    /// Lists all saved (non-deleted) scripts as summary DTOs.
+    /// Lists all saved (non-deleted) scripts for a specific workspace as summary DTOs.
     /// </summary>
-    Task<List<EdgeRuntimeScriptSummaryDto>> ListScriptsAsync(string baseUrl);
+    Task<List<EdgeRuntimeScriptSummaryDto>> ListScriptsAsync(string baseUrl, int workspaceId);
 
     /// <summary>
-    /// Soft-deletes a persisted script by UUID.
+    /// Soft-deletes a persisted script by UUID, scoped to the specified workspace.
     /// </summary>
-    Task<bool> DeleteScriptAsync(Guid uuid, string? deletedBy = null);
+    Task<bool> DeleteScriptAsync(Guid uuid, int workspaceId, string? deletedBy = null);
 }

@@ -8,6 +8,7 @@ using Backend.Services;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers;
 
@@ -31,19 +32,22 @@ public class DebeziumController : ControllerBase
     private readonly ILogger<DebeziumController> _logger;
     private readonly IConfiguration _configuration;
     private readonly IEdgeRuntimeScriptService _edgeRuntimeScriptService;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
 
     public DebeziumController(
         ApplicationDbContext context,
         IHttpClientFactory httpClientFactory,
         ILogger<DebeziumController> logger,
         IConfiguration configuration,
-        IEdgeRuntimeScriptService edgeRuntimeScriptService)
+        IEdgeRuntimeScriptService edgeRuntimeScriptService,
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _configuration = configuration;
         _edgeRuntimeScriptService = edgeRuntimeScriptService;
+        _tenantAccessor = tenantAccessor;
     }
 
     // Settings endpoints
@@ -761,8 +765,9 @@ public class DebeziumController : ControllerBase
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
             var createdBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value;
+            var workspaceId = _tenantAccessor.MultiTenantContext?.TenantInfo?.WorkspaceId ?? 0;
 
-            var result = await _edgeRuntimeScriptService.GenerateInstallScriptAsync(request, baseUrl, createdBy);
+            var result = await _edgeRuntimeScriptService.GenerateInstallScriptAsync(request, baseUrl, workspaceId, createdBy);
             return Ok(result);
         }
         catch (Exception ex)
@@ -782,7 +787,8 @@ public class DebeziumController : ControllerBase
         try
         {
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var scripts = await _edgeRuntimeScriptService.ListScriptsAsync(baseUrl);
+            var workspaceId = _tenantAccessor.MultiTenantContext?.TenantInfo?.WorkspaceId ?? 0;
+            var scripts = await _edgeRuntimeScriptService.ListScriptsAsync(baseUrl, workspaceId);
             return Ok(scripts);
         }
         catch (Exception ex)
@@ -825,7 +831,8 @@ public class DebeziumController : ControllerBase
         try
         {
             var deletedBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value;
-            var deleted = await _edgeRuntimeScriptService.DeleteScriptAsync(uuid, deletedBy);
+            var workspaceId = _tenantAccessor.MultiTenantContext?.TenantInfo?.WorkspaceId ?? 0;
+            var deleted = await _edgeRuntimeScriptService.DeleteScriptAsync(uuid, workspaceId, deletedBy);
 
             if (!deleted)
                 return NotFound(new { error = "Script not found." });

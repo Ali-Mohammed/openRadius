@@ -157,7 +157,13 @@ public class MasterDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => new { e.WorkspaceId, e.IsDeleted });
             entity.Property(e => e.ScriptContent).IsRequired();
+
+            entity.HasOne(e => e.Workspace)
+                  .WithMany()
+                  .HasForeignKey(e => e.WorkspaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<UserWorkspace>(entity =>

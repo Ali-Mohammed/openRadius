@@ -101,6 +101,7 @@ public class EdgeRuntimeInstallScriptResponse
 public class EdgeRuntimeScriptSummaryDto
 {
     public Guid Uuid { get; set; }
+    public int WorkspaceId { get; set; }
     public string InstanceName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;

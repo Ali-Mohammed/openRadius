@@ -18,6 +18,13 @@ public class EdgeRuntimeScript
     /// <summary>Public identifier — used in the download URL. Never expose internal Id.</summary>
     public Guid Uuid { get; set; } = Guid.NewGuid();
 
+    /// <summary>The workspace (tenant) that owns this script.</summary>
+    public int WorkspaceId { get; set; }
+
+    /// <summary>Navigation property to the owning workspace.</summary>
+    [ForeignKey(nameof(WorkspaceId))]
+    public Workspace? Workspace { get; set; }
+
     /// <summary>Human-friendly instance name (e.g., branch-office-1).</summary>
     [Required]
     [MaxLength(128)]
