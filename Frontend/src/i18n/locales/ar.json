@@ -61,7 +61,8 @@
     "cdcMonitor": "مراقبة الأحداث",
     "connectorSettings": "الإعدادات",
     "microservices": "الخدمات المصغرة",
-    "radiusSyncService": "خدمة مزامنة Radius"
+    "radiusSyncService": "خدمة مزامنة Radius",
+    "auditLogs": "سجلات التدقيق"
   },
   "dashboard": {
     "title": "لوحة التحكم",

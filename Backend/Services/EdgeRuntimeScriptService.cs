@@ -194,7 +194,7 @@ public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
 #    • Linux (Ubuntu 20.04+, Debian 11+, RHEL 8+, or similar)
 #    • Root or sudo access
 #    • Internet connectivity
-#    • Outbound access to Kafka on port 9092
+#    • Outbound access to Kafka on port 9094
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 

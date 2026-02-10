@@ -67,7 +67,8 @@
     "cdcMonitor": "Event Monitor",
     "connectorSettings": "Settings",
     "microservices": "Microservices",
-    "radiusSyncService": "Radius Sync Service"
+    "radiusSyncService": "Radius Sync Service",
+    "auditLogs": "Audit Logs"
   },
   "dashboard": {
     "title": "Dashboard",

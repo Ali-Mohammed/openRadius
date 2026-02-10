@@ -106,7 +106,7 @@ services:
       - redpanda
       - start
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://redpanda:9092,external://redpanda:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://kafka.${DOMAIN:-localhost}:9094
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
       - --advertise-pandaproxy-addr internal://redpanda:8082,external://redpanda:18082
       - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
@@ -115,10 +115,11 @@ services:
       - --mode dev-container
       - --smp 1
       - --default-log-level=info
+    ports:
+      - "9094:19092"  # Kafka external — clients connect to kafka.<domain>:9094
     expose:
       - "18081"  # Schema Registry
       - "18082"  # Pandaproxy
-      - "19092"  # Kafka (external)
       - "9644"   # Admin API
     volumes:
       - redpanda_data:/var/lib/redpanda/data

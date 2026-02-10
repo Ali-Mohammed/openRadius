@@ -236,7 +236,10 @@ configure_firewall() {
     sudo ufw allow 80/tcp comment 'HTTP'
     sudo ufw allow 443/tcp comment 'HTTPS'
     
-    print_success "Firewall configured (ports 22, 80, 443 open)"
+    # Allow Kafka broker for Edge Runtime and external CDC consumers
+    sudo ufw allow 9094/tcp comment 'Kafka Broker'
+    
+    print_success "Firewall configured (ports 22, 80, 443, 9094 open)"
 }
 
 # =============================================================================
@@ -462,6 +465,7 @@ API: https://api.$DOMAIN
 Keycloak: https://auth.$DOMAIN
 Seq Logs: https://logs.$DOMAIN
 Kafka Console: https://kafka.$DOMAIN
+Kafka Broker: kafka.$DOMAIN:9094
 Debezium API: https://cdc.$DOMAIN
 
 # =============================================================================
@@ -677,6 +681,7 @@ configure_nginx() {
 
     print_success "Nginx configured for domain: $DOMAIN"
     print_info "  Subdomains: api.$DOMAIN, auth.$DOMAIN, logs.$DOMAIN, kafka.$DOMAIN, cdc.$DOMAIN"
+    print_info "  Kafka Broker: kafka.$DOMAIN:9094"
 }
 
 # =============================================================================
@@ -1267,6 +1272,7 @@ show_summary() {
     echo -e "  Keycloak:        ${GREEN}https://auth.$DOMAIN${NC}"
     echo -e "  Seq Logs:        ${GREEN}https://logs.$DOMAIN${NC}"
     echo -e "  Kafka Console:   ${GREEN}https://kafka.$DOMAIN${NC}"
+    echo -e "  Kafka Broker:    ${GREEN}kafka.$DOMAIN:9094${NC}"
     echo -e "  Debezium:        ${GREEN}https://cdc.$DOMAIN${NC}"
     echo ""
     

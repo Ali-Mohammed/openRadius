@@ -797,7 +797,7 @@ export default function Connectors() {
                               const topics = tableList
                                 ? tableList.split(',').map((t: string) => `${serverName}.${t.trim()}`)
                                 : [`${serverName}.public.*`];
-                              const kafkaBootstrap = `kafka.${domain}:9092`;
+                              const kafkaBootstrap = `kafka.${domain}:9094`;
                               const cdcApiUrl = `https://cdc.${domain}`;
                               const kafkaConsoleUrl = `https://kafka.${domain}`;
 
@@ -1117,9 +1117,9 @@ kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                                       <AlertTitle className="text-amber-800 dark:text-amber-300 text-sm">Network Requirements</AlertTitle>
                                       <AlertDescription className="text-amber-700 dark:text-amber-400 text-xs space-y-1">
-                                        <p>Ensure the external server can reach Kafka on port <strong>9092</strong>. If the Kafka broker is behind a firewall, you may need to:</p>
+                                        <p>Ensure the external server can reach the Kafka broker on port <strong>9094</strong>. If the broker is behind a firewall, you may need to:</p>
                                         <ul className="list-disc list-inside ml-2 space-y-0.5">
-                                          <li>Open port <strong>9092</strong> (Kafka) on your server firewall</li>
+                                          <li>Open port <strong>9094</strong> (Kafka) on your server firewall</li>
                                           <li>Configure DNS for <code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">kafka.{domain}</code> to resolve to the server IP</li>
                                           <li>If using SSL/TLS, configure your Kafka client with the appropriate certificates</li>
                                         </ul>
