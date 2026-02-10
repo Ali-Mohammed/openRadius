@@ -716,11 +716,13 @@ prepare_keycloak_import() {
 pull_docker_images() {
     print_step "Pulling Docker images..."
     
-    # Restart Docker daemon to ensure containerd content store is clean
-    # (prevents "no such file or directory" errors in containerd ingest dir)
-    print_info "Restarting Docker daemon to ensure clean state..."
-    systemctl restart docker
-    sleep 3
+    # Fix containerd content store corruption that can occur after volume removal.
+    # The ingest directory may contain stale entries that block all image pulls.
+    print_info "Cleaning containerd content store and restarting Docker..."
+    systemctl stop docker docker.socket containerd 2>/dev/null || true
+    rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest/* 2>/dev/null || true
+    systemctl start containerd docker
+    sleep 5
     
     # Retry pull up to 3 times (network/storage transient failures)
     local max_retries=3
@@ -733,8 +735,11 @@ pull_docker_images() {
         
         if [ $attempt -lt $max_retries ]; then
             print_warning "Image pull failed (attempt $attempt/$max_retries). Retrying in 10 seconds..."
-            # Clean up any partial downloads
+            # Deep clean: stop Docker, purge containerd ingest, restart
+            systemctl stop docker docker.socket containerd 2>/dev/null || true
+            rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest/* 2>/dev/null || true
             docker system prune -f 2>/dev/null || true
+            systemctl start containerd docker
             sleep 10
         fi
         attempt=$((attempt + 1))
