@@ -69,6 +69,7 @@ import DatabaseBackup from './pages/settings/DatabaseBackup'
 import WorkspaceSettings from './pages/settings/WorkspaceSettings'
 import SystemUpdatePage from './pages/settings/SystemUpdatePage'
 import ServerMonitoring from './pages/settings/ServerMonitoring'
+import AuditLogs from './pages/settings/AuditLogs'
 // User Management
 import UserManagement from './pages/user-management/UserManagement'
 import RolesPage from './pages/user-management/RolesPage'
@@ -142,6 +143,7 @@ function App() {
                           <Route path="/settings/oidc" element={<PermissionRoute permission="settings.oidc.view"><OidcSettings /></PermissionRoute>} />
                           <Route path="/settings/database-backup" element={<PermissionRoute permission="settings.database-backup.view"><DatabaseBackup /></PermissionRoute>} />
                           <Route path="/settings/system-update" element={<PermissionRoute permission="settings.system-update.view"><SystemUpdatePage /></PermissionRoute>} />
+                          <Route path="/audit-logs" element={<PermissionRoute permission="audit.view"><AuditLogs /></PermissionRoute>} />
                           <Route path="/users" element={<PermissionRoute permission="users.view"><UserManagement /></PermissionRoute>} />
                           <Route path="/roles" element={<PermissionRoute permission="roles.view"><RolesPage /></PermissionRoute>} />
                           <Route path="/permissions" element={<PermissionRoute permission="permissions.view"><PermissionsPage /></PermissionRoute>} />
