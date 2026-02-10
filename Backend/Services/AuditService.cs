@@ -35,11 +35,14 @@ public class AuditService : IAuditService
         var userId = user?.GetSystemUserId() ?? 0;
         var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString();
         var userAgent = httpContext?.Request?.Headers["User-Agent"].FirstOrDefault();
+        var requestPath = httpContext != null
+            ? $"{httpContext.Request.Method} {httpContext.Request.Path}{httpContext.Request.QueryString}"
+            : null;
 
-        return await LogAsync(dto, userId, ipAddress, userAgent);
+        return await LogAsync(dto, userId, ipAddress, userAgent, requestPath);
     }
 
-    public async Task<AuditLog> LogAsync(CreateAuditLogDto dto, int performedByUserId, string? ipAddress = null, string? userAgent = null)
+    public async Task<AuditLog> LogAsync(CreateAuditLogDto dto, int performedByUserId, string? ipAddress = null, string? userAgent = null, string? requestPath = null)
     {
         // Resolve target user ID from UUID if provided
         int? targetUserId = null;
@@ -73,6 +76,7 @@ public class AuditService : IAuditService
             Reason = dto.Reason,
             IpAddress = ipAddress,
             UserAgent = userAgent,
+            RequestPath = requestPath,
             Metadata = dto.Metadata,
             Status = dto.Status ?? "Success",
             ErrorMessage = dto.ErrorMessage,

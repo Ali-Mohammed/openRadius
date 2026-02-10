@@ -85,7 +85,11 @@ try
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddHttpClient(); // Add HTTP client for Keycloak API calls
     builder.Services.AddMemoryCache(); // Add in-memory caching for tenant info
-    builder.Services.AddControllers();
+    builder.Services.AddScoped<Backend.Helpers.AuditActionFilter>();
+    builder.Services.AddControllers(options =>
+    {
+        options.Filters.AddService<Backend.Helpers.AuditActionFilter>();
+    });
 
     // Add Health Checks
     builder.Services.AddHealthChecks()
