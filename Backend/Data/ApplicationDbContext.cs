@@ -84,6 +84,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<SystemNotification> SystemNotifications { get; set; }
     public DbSet<SasActivationLog> SasActivationLogs { get; set; }
+    public DbSet<EdgeRuntimeScript> EdgeRuntimeScripts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Play, Pause, RefreshCw, Trash2, Edit, AlertCircle, Info, ChevronDown, ChevronRight, Activity, Clock, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Server, Globe, Terminal, Database, Download, HardDrive, Loader2 } from 'lucide-react';
+import { Plus, Play, Pause, RefreshCw, Trash2, Edit, AlertCircle, Info, ChevronDown, ChevronRight, Activity, Clock, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Server, Globe, Terminal, Database, Download, HardDrive, Loader2, Link, List } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -70,10 +70,13 @@ export default function Connectors() {
   const [showInfoBanner, setShowInfoBanner] = useState(true);
   const [expandedConnector, setExpandedConnector] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; connectorName: string | null }>({ open: false, connectorName: null });
-  const [edgeRuntimeScript, setEdgeRuntimeScript] = useState<{ script: string; instanceName: string; description: string } | null>(null);
+  const [edgeRuntimeScript, setEdgeRuntimeScript] = useState<{ script: string; instanceName: string; description: string; scriptId?: string; publicUrl?: string; installCommand?: string; createdAt?: string } | null>(null);
   const [edgeRuntimeLoading, setEdgeRuntimeLoading] = useState(false);
   const [edgeRuntimeInstanceName, setEdgeRuntimeInstanceName] = useState('edge-runtime');
   const [edgeRuntimeExpanded, setEdgeRuntimeExpanded] = useState(false);
+  const [edgeRuntimeSaveToServer, setEdgeRuntimeSaveToServer] = useState(true);
+  const [savedScripts, setSavedScripts] = useState<any[]>([]);
+  const [savedScriptsLoading, setSavedScriptsLoading] = useState(false);
 
   // Derive domain from API URL for connection instructions
   const domain = useMemo(() => {
@@ -1171,6 +1174,24 @@ kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                           />
                                         </div>
 
+                                        {/* Save to server toggle */}
+                                        <div className="bg-background p-3 rounded border">
+                                          <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={edgeRuntimeSaveToServer}
+                                              onChange={(e) => setEdgeRuntimeSaveToServer(e.target.checked)}
+                                              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/50"
+                                            />
+                                            <div>
+                                              <p className="text-xs font-semibold">Save & Create Public Install Link</p>
+                                              <p className="text-[10px] text-muted-foreground">
+                                                Persist the script on the server and generate a unique public URL. Users can install with a single <code className="bg-muted px-1 rounded">curl | bash</code> command — no authentication required.
+                                              </p>
+                                            </div>
+                                          </label>
+                                        </div>
+
                                         {/* Generate button */}
                                         <Button
                                           className="w-full"
@@ -1188,6 +1209,7 @@ kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                                 postgresPort: 5434,
                                                 connectPort: 8084,
                                                 connectorGroupId: 2,
+                                                saveToServer: edgeRuntimeSaveToServer,
                                               });
                                               setEdgeRuntimeScript(data);
                                               setEdgeRuntimeExpanded(true);
@@ -1220,35 +1242,78 @@ kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                               <CheckCircle className="h-4 w-4 text-emerald-600" />
                                               <AlertTitle className="text-emerald-800 dark:text-emerald-300 text-sm">
                                                 Script Generated — {edgeRuntimeScript.instanceName}
+                                                {edgeRuntimeScript.publicUrl && <Badge variant="outline" className="ml-2 text-[10px] border-emerald-500/50">Saved to Server</Badge>}
                                               </AlertTitle>
                                               <AlertDescription className="text-emerald-700 dark:text-emerald-400 text-xs">
                                                 {edgeRuntimeScript.description}
                                               </AlertDescription>
                                             </Alert>
 
-                                            {/* One-liner install command */}
-                                            <div className="bg-background rounded border overflow-hidden">
-                                              <div className="flex items-center justify-between px-3 py-2 bg-muted border-b">
-                                                <span className="text-xs font-semibold flex items-center gap-1.5">
-                                                  <Terminal className="h-3.5 w-3.5" />
-                                                  Quick Install — Run on Target Server
-                                                </span>
-                                              </div>
-                                              <div className="p-3 space-y-2">
-                                                <p className="text-xs text-muted-foreground">
-                                                  Copy the script below to a file on the target server and run it:
-                                                </p>
-                                                <div className="bg-muted rounded p-2 flex items-center justify-between group">
-                                                  <code className="text-xs font-mono break-all">
-                                                    sudo bash install-edge-runtime.sh
-                                                  </code>
-                                                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs shrink-0 ml-2"
-                                                    onClick={() => copyToClipboard('sudo bash install-edge-runtime.sh')}>
-                                                    <Copy className="h-3 w-3 mr-1" /> Copy
-                                                  </Button>
+                                            {/* Public URL — One-liner install (only when saved to server) */}
+                                            {edgeRuntimeScript.publicUrl && (
+                                              <div className="bg-background rounded-lg border-2 border-primary/30 overflow-hidden">
+                                                <div className="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-primary/30">
+                                                  <span className="text-xs font-bold flex items-center gap-1.5 text-primary">
+                                                    <Link className="h-3.5 w-3.5" />
+                                                    Public Install URL — One Command Setup
+                                                  </span>
+                                                  <Badge variant="secondary" className="text-[9px]">No Auth Required</Badge>
+                                                </div>
+                                                <div className="p-3 space-y-3">
+                                                  <p className="text-xs text-muted-foreground">
+                                                    Share this command with anyone who needs to set up the edge runtime. Run on the target server:
+                                                  </p>
+                                                  <div className="bg-gray-950 text-emerald-400 rounded-lg p-3 font-mono text-sm flex items-center justify-between group">
+                                                    <code className="break-all">{edgeRuntimeScript.installCommand}</code>
+                                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950 shrink-0 ml-3"
+                                                      onClick={() => copyToClipboard(edgeRuntimeScript.installCommand || '')}>
+                                                      <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                                                    </Button>
+                                                  </div>
+                                                  <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                                                    <span className="flex items-center gap-1">
+                                                      <Link className="h-3 w-3" />
+                                                      <code className="bg-muted px-1 rounded break-all">{edgeRuntimeScript.publicUrl}</code>
+                                                      <Button variant="ghost" size="sm" className="h-4 w-4 p-0" onClick={() => copyToClipboard(edgeRuntimeScript.publicUrl || '')}>
+                                                        <Copy className="h-2.5 w-2.5" />
+                                                      </Button>
+                                                    </span>
+                                                    {edgeRuntimeScript.createdAt && (
+                                                      <span className="flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {new Date(edgeRuntimeScript.createdAt).toLocaleString()}
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
+                                            )}
+
+                                            {/* Fallback manual install (when NOT saved to server) */}
+                                            {!edgeRuntimeScript.publicUrl && (
+                                              <div className="bg-background rounded border overflow-hidden">
+                                                <div className="flex items-center justify-between px-3 py-2 bg-muted border-b">
+                                                  <span className="text-xs font-semibold flex items-center gap-1.5">
+                                                    <Terminal className="h-3.5 w-3.5" />
+                                                    Quick Install — Run on Target Server
+                                                  </span>
+                                                </div>
+                                                <div className="p-3 space-y-2">
+                                                  <p className="text-xs text-muted-foreground">
+                                                    Copy the script below to a file on the target server and run it:
+                                                  </p>
+                                                  <div className="bg-muted rounded p-2 flex items-center justify-between group">
+                                                    <code className="text-xs font-mono break-all">
+                                                      sudo bash install-edge-runtime.sh
+                                                    </code>
+                                                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs shrink-0 ml-2"
+                                                      onClick={() => copyToClipboard('sudo bash install-edge-runtime.sh')}>
+                                                      <Copy className="h-3 w-3 mr-1" /> Copy
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
 
                                             {/* Collapsible full script */}
                                             <Collapsible open={edgeRuntimeExpanded} onOpenChange={setEdgeRuntimeExpanded}>
@@ -1310,6 +1375,77 @@ kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                                 <li>All files are installed to <code className="bg-muted px-1 rounded">/opt/openradius-edge/{edgeRuntimeScript.instanceName}</code></li>
                                               </ul>
                                             </div>
+
+                                            {/* Saved Scripts List */}
+                                            <Collapsible>
+                                              <CollapsibleTrigger asChild>
+                                                <Button
+                                                  variant="outline"
+                                                  className="w-full text-xs"
+                                                  onClick={async () => {
+                                                    if (savedScripts.length === 0) {
+                                                      try {
+                                                        setSavedScriptsLoading(true);
+                                                        const { data } = await apiClient.get('/api/debezium/edge-runtime/scripts');
+                                                        setSavedScripts(data);
+                                                      } catch { /* ignore */ } finally {
+                                                        setSavedScriptsLoading(false);
+                                                      }
+                                                    }
+                                                  }}
+                                                >
+                                                  <List className="h-3.5 w-3.5 mr-1.5" />
+                                                  {savedScriptsLoading ? 'Loading...' : 'View All Saved Scripts'}
+                                                </Button>
+                                              </CollapsibleTrigger>
+                                              <CollapsibleContent className="mt-3">
+                                                {savedScripts.length === 0 ? (
+                                                  <p className="text-xs text-muted-foreground text-center py-4">No saved scripts found. Generate one with "Save & Create Public Install Link" enabled.</p>
+                                                ) : (
+                                                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {savedScripts.map((s: any) => (
+                                                      <div key={s.uuid} className="bg-background rounded border p-3 space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                          <div className="flex items-center gap-2">
+                                                            <HardDrive className="h-3.5 w-3.5 text-primary" />
+                                                            <span className="text-xs font-semibold">{s.instanceName}</span>
+                                                            <Badge variant="secondary" className="text-[9px]">{s.version}</Badge>
+                                                          </div>
+                                                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                                            <span>{s.downloadCount} downloads</span>
+                                                            <span>{new Date(s.createdAt).toLocaleDateString()}</span>
+                                                            <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                              className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                                              onClick={async () => {
+                                                                try {
+                                                                  await apiClient.delete(`/api/debezium/edge-runtime/scripts/${s.uuid}`);
+                                                                  setSavedScripts(prev => prev.filter((x: any) => x.uuid !== s.uuid));
+                                                                  toast.success('Script revoked');
+                                                                } catch {
+                                                                  toast.error('Failed to revoke script');
+                                                                }
+                                                              }}
+                                                            >
+                                                              <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                          </div>
+                                                        </div>
+                                                        <div className="bg-gray-950 text-emerald-400 rounded p-2 font-mono text-[11px] flex items-center justify-between group">
+                                                          <code className="break-all">{s.installCommand}</code>
+                                                          <Button variant="ghost" size="sm" className="h-5 px-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950 shrink-0 ml-2"
+                                                            onClick={() => copyToClipboard(s.installCommand)}>
+                                                            <Copy className="h-3 w-3" />
+                                                          </Button>
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground">{s.topics}</p>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                )}
+                                              </CollapsibleContent>
+                                            </Collapsible>
                                           </div>
                                         )}
                                       </div>

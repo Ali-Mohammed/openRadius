@@ -5,6 +5,7 @@ using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
 using Backend.Services;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text;
 
@@ -743,11 +744,11 @@ public class DebeziumController : ControllerBase
     // ── Edge Runtime Install Script ──────────────────────────────────────────
 
     /// <summary>
-    /// Generates a customized Edge Runtime installation script for the specified connector.
-    /// Returns JSON with the script content and metadata.
+    /// Generates a customized Edge Runtime installation script.
+    /// When SaveToServer is true, persists the script and returns a public download URL.
     /// </summary>
     [HttpPost("edge-runtime/install-script")]
-    public ActionResult<EdgeRuntimeInstallScriptResponse> GenerateEdgeRuntimeScript(
+    public async Task<ActionResult<EdgeRuntimeInstallScriptResponse>> GenerateEdgeRuntimeScript(
         [FromBody] EdgeRuntimeInstallScriptRequest request)
     {
         try
@@ -758,7 +759,10 @@ public class DebeziumController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.Topics))
                 return BadRequest(new { error = "Topics is required." });
 
-            var result = _edgeRuntimeScriptService.GenerateInstallScript(request);
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var createdBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value;
+
+            var result = await _edgeRuntimeScriptService.GenerateInstallScriptAsync(request, baseUrl, createdBy);
             return Ok(result);
         }
         catch (Exception ex)
@@ -769,29 +773,69 @@ public class DebeziumController : ControllerBase
     }
 
     /// <summary>
-    /// Returns the Edge Runtime install script as a downloadable plain-text bash file.
-    /// This endpoint can be used with curl | bash for one-line installation.
+    /// Lists all saved (non-deleted) Edge Runtime scripts.
+    /// Returns summaries without full script content.
     /// </summary>
-    [HttpPost("edge-runtime/install-script/download")]
-    [Produces("text/plain")]
-    public ActionResult DownloadEdgeRuntimeScript(
-        [FromBody] EdgeRuntimeInstallScriptRequest request)
+    [HttpGet("edge-runtime/scripts")]
+    public async Task<ActionResult<List<EdgeRuntimeScriptSummaryDto>>> ListEdgeRuntimeScripts()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.KafkaBootstrapServer))
-                return BadRequest("# Error: KafkaBootstrapServer is required.\nexit 1\n");
-
-            if (string.IsNullOrWhiteSpace(request.Topics))
-                return BadRequest("# Error: Topics is required.\nexit 1\n");
-
-            var result = _edgeRuntimeScriptService.GenerateInstallScript(request);
-            return Content(result.Script, "text/plain; charset=utf-8");
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var scripts = await _edgeRuntimeScriptService.ListScriptsAsync(baseUrl);
+            return Ok(scripts);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating Edge Runtime install script for download");
-            return StatusCode(500, $"# Error generating install script: {ex.Message}\nexit 1\n");
+            _logger.LogError(ex, "Error listing Edge Runtime scripts");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Public endpoint — serves a persisted Edge Runtime install script as plain text.
+    /// No authentication required so it can be used with: curl -sSL {url} | sudo bash
+    /// </summary>
+    [HttpGet("edge-runtime/scripts/{uuid:guid}")]
+    [AllowAnonymous]
+    [Produces("text/plain")]
+    public async Task<ActionResult> GetEdgeRuntimeScriptByUuid(Guid uuid)
+    {
+        try
+        {
+            var script = await _edgeRuntimeScriptService.GetScriptByUuidAsync(uuid);
+            if (script == null)
+                return NotFound("#!/usr/bin/env bash\necho \"Error: Install script not found or has been revoked.\"\nexit 1\n");
+
+            return Content(script.ScriptContent, "text/plain; charset=utf-8");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Edge Runtime script {Uuid}", uuid);
+            return StatusCode(500, $"#!/usr/bin/env bash\necho \"Error: {ex.Message}\"\nexit 1\n");
+        }
+    }
+
+    /// <summary>
+    /// Soft-deletes (revokes) a persisted Edge Runtime script by UUID.
+    /// </summary>
+    [HttpDelete("edge-runtime/scripts/{uuid:guid}")]
+    public async Task<IActionResult> DeleteEdgeRuntimeScript(Guid uuid)
+    {
+        try
+        {
+            var deletedBy = User.Identity?.Name ?? User.FindFirst("preferred_username")?.Value;
+            var deleted = await _edgeRuntimeScriptService.DeleteScriptAsync(uuid, deletedBy);
+
+            if (!deleted)
+                return NotFound(new { error = "Script not found." });
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting Edge Runtime script {Uuid}", uuid);
+            return StatusCode(500, new { error = ex.Message });
         }
     }
 }

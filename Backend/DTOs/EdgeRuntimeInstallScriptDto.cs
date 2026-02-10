@@ -39,6 +39,12 @@ public class EdgeRuntimeInstallScriptRequest
     /// The connector group ID (must be unique per edge instance).
     /// </summary>
     public int ConnectorGroupId { get; set; } = 2;
+
+    /// <summary>
+    /// When true, persist the script on the server and return a public download URL.
+    /// When false (default), only return the script in-memory without saving.
+    /// </summary>
+    public bool SaveToServer { get; set; } = false;
 }
 
 /// <summary>
@@ -65,4 +71,48 @@ public class EdgeRuntimeInstallScriptResponse
     /// The version of the Edge Runtime installer.
     /// </summary>
     public string Version { get; set; } = "1.0.0";
+
+    /// <summary>
+    /// The UUID of the persisted script (only set when SaveToServer = true).
+    /// </summary>
+    public Guid? ScriptId { get; set; }
+
+    /// <summary>
+    /// The public download URL (only set when SaveToServer = true).
+    /// e.g., https://api.example.com/api/debezium/edge-runtime/scripts/{uuid}
+    /// </summary>
+    public string? PublicUrl { get; set; }
+
+    /// <summary>
+    /// The one-liner install command (only set when SaveToServer = true).
+    /// e.g., curl -sSL https://api.example.com/api/debezium/edge-runtime/scripts/{uuid} | sudo bash
+    /// </summary>
+    public string? InstallCommand { get; set; }
+
+    /// <summary>
+    /// When the script was persisted on the server.
+    /// </summary>
+    public DateTime? CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Summary DTO for listing saved Edge Runtime scripts (no full script content).
+/// </summary>
+public class EdgeRuntimeScriptSummaryDto
+{
+    public Guid Uuid { get; set; }
+    public string InstanceName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public string KafkaBootstrapServer { get; set; } = string.Empty;
+    public string Topics { get; set; } = string.Empty;
+    public string ServerName { get; set; } = string.Empty;
+    public int PostgresPort { get; set; }
+    public int ConnectPort { get; set; }
+    public int DownloadCount { get; set; }
+    public DateTime? LastDownloadedAt { get; set; }
+    public string? PublicUrl { get; set; }
+    public string? InstallCommand { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? CreatedBy { get; set; }
 }

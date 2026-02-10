@@ -1,4 +1,7 @@
+using Backend.Data;
 using Backend.DTOs;
+using Backend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services;
 
@@ -7,37 +10,150 @@ namespace Backend.Services;
 /// The generated script deploys a self-contained PostgreSQL + Debezium JDBC Sink
 /// environment on an edge server that automatically syncs data from the central
 /// Kafka/Redpanda cluster.
+/// Optionally persists scripts to the database for public URL access.
 /// </summary>
 public class EdgeRuntimeScriptService : IEdgeRuntimeScriptService
 {
     private const string InstallerVersion = "1.0.0";
     private const string DebeziumConnectVersion = "3.0.0.Final";
     private const string PostgresVersion = "18.1";
+    private const string ScriptRoutePrefix = "api/debezium/edge-runtime/scripts";
 
+    private readonly ApplicationDbContext _context;
     private readonly ILogger<EdgeRuntimeScriptService> _logger;
 
-    public EdgeRuntimeScriptService(ILogger<EdgeRuntimeScriptService> logger)
+    public EdgeRuntimeScriptService(
+        ApplicationDbContext context,
+        ILogger<EdgeRuntimeScriptService> logger)
     {
+        _context = context;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public EdgeRuntimeInstallScriptResponse GenerateInstallScript(EdgeRuntimeInstallScriptRequest request)
+    public async Task<EdgeRuntimeInstallScriptResponse> GenerateInstallScriptAsync(
+        EdgeRuntimeInstallScriptRequest request,
+        string baseUrl,
+        string? createdBy = null)
     {
         _logger.LogInformation(
-            "Generating Edge Runtime install script for instance {InstanceName} with topics {Topics}",
-            request.InstanceName, request.Topics);
+            "Generating Edge Runtime install script for instance {InstanceName} with topics {Topics} (SaveToServer={Save})",
+            request.InstanceName, request.Topics, request.SaveToServer);
 
         var sanitizedName = SanitizeName(request.InstanceName);
         var script = BuildScript(request, sanitizedName);
+        var description = $"Edge Runtime installer for '{sanitizedName}' — deploys PostgreSQL {PostgresVersion} + Debezium Connect {DebeziumConnectVersion} with JDBC Sink Connector, pre-configured to sync topics [{request.Topics}] from {request.KafkaBootstrapServer}.";
 
-        return new EdgeRuntimeInstallScriptResponse
+        var response = new EdgeRuntimeInstallScriptResponse
         {
             Script = script,
             InstanceName = sanitizedName,
-            Description = $"Edge Runtime installer for '{sanitizedName}' — deploys PostgreSQL {PostgresVersion} + Debezium Connect {DebeziumConnectVersion} with JDBC Sink Connector, pre-configured to sync topics [{request.Topics}] from {request.KafkaBootstrapServer}.",
+            Description = description,
             Version = InstallerVersion
         };
+
+        // Persist to database if requested
+        if (request.SaveToServer)
+        {
+            var entity = new EdgeRuntimeScript
+            {
+                Uuid = Guid.NewGuid(),
+                InstanceName = sanitizedName,
+                Description = description,
+                Version = InstallerVersion,
+                ScriptContent = script,
+                KafkaBootstrapServer = request.KafkaBootstrapServer,
+                Topics = request.Topics,
+                ServerName = request.ServerName,
+                PostgresPort = request.PostgresPort,
+                ConnectPort = request.ConnectPort,
+                ConnectorGroupId = request.ConnectorGroupId,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = createdBy
+            };
+
+            _context.EdgeRuntimeScripts.Add(entity);
+            await _context.SaveChangesAsync();
+
+            var publicUrl = BuildPublicUrl(baseUrl, entity.Uuid);
+            response.ScriptId = entity.Uuid;
+            response.PublicUrl = publicUrl;
+            response.InstallCommand = $"curl -sSL {publicUrl} | sudo bash";
+            response.CreatedAt = entity.CreatedAt;
+
+            _logger.LogInformation(
+                "Persisted Edge Runtime script {Uuid} for instance {InstanceName} by {CreatedBy}",
+                entity.Uuid, sanitizedName, createdBy);
+        }
+
+        return response;
+    }
+
+    /// <inheritdoc />
+    public async Task<EdgeRuntimeScript?> GetScriptByUuidAsync(Guid uuid)
+    {
+        var script = await _context.EdgeRuntimeScripts
+            .FirstOrDefaultAsync(s => s.Uuid == uuid && !s.IsDeleted);
+
+        if (script != null)
+        {
+            // Increment download counter
+            script.DownloadCount++;
+            script.LastDownloadedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        return script;
+    }
+
+    /// <inheritdoc />
+    public async Task<List<EdgeRuntimeScriptSummaryDto>> ListScriptsAsync(string baseUrl)
+    {
+        return await _context.EdgeRuntimeScripts
+            .Where(s => !s.IsDeleted)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new EdgeRuntimeScriptSummaryDto
+            {
+                Uuid = s.Uuid,
+                InstanceName = s.InstanceName,
+                Description = s.Description,
+                Version = s.Version,
+                KafkaBootstrapServer = s.KafkaBootstrapServer,
+                Topics = s.Topics,
+                ServerName = s.ServerName,
+                PostgresPort = s.PostgresPort,
+                ConnectPort = s.ConnectPort,
+                DownloadCount = s.DownloadCount,
+                LastDownloadedAt = s.LastDownloadedAt,
+                PublicUrl = $"{baseUrl.TrimEnd('/')}/{ScriptRoutePrefix}/{s.Uuid}",
+                InstallCommand = $"curl -sSL {baseUrl.TrimEnd('/')}/{ScriptRoutePrefix}/{s.Uuid} | sudo bash",
+                CreatedAt = s.CreatedAt,
+                CreatedBy = s.CreatedBy
+            })
+            .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteScriptAsync(Guid uuid, string? deletedBy = null)
+    {
+        var script = await _context.EdgeRuntimeScripts
+            .FirstOrDefaultAsync(s => s.Uuid == uuid && !s.IsDeleted);
+
+        if (script == null)
+            return false;
+
+        script.IsDeleted = true;
+        script.DeletedAt = DateTime.UtcNow;
+        script.DeletedBy = deletedBy;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Soft-deleted Edge Runtime script {Uuid} by {DeletedBy}", uuid, deletedBy);
+        return true;
+    }
+
+    private static string BuildPublicUrl(string baseUrl, Guid uuid)
+    {
+        return $"{baseUrl.TrimEnd('/')}/{ScriptRoutePrefix}/{uuid}";
     }
 
     private static string SanitizeName(string name)
