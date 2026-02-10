@@ -272,6 +272,9 @@ try
     // Add Docker Monitoring Service for server & container monitoring
     builder.Services.AddScoped<IDockerMonitoringService, DockerMonitoringService>();
 
+    // Add Edge Runtime Script Service for generating install scripts
+    builder.Services.AddScoped<IEdgeRuntimeScriptService, EdgeRuntimeScriptService>();
+
     // Add Kafka Consumer Service for CDC monitoring
     builder.Services.AddHostedService<KafkaConsumerService>();
 

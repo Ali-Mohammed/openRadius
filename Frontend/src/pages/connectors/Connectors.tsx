@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Play, Pause, RefreshCw, Trash2, Edit, AlertCircle, Info, ChevronDown, ChevronRight, Activity, Clock, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Server, Globe, Terminal, Database } from 'lucide-react';
+import { Plus, Play, Pause, RefreshCw, Trash2, Edit, AlertCircle, Info, ChevronDown, ChevronRight, Activity, Clock, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Server, Globe, Terminal, Database, Download, HardDrive, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,10 @@ export default function Connectors() {
   const [showInfoBanner, setShowInfoBanner] = useState(true);
   const [expandedConnector, setExpandedConnector] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; connectorName: string | null }>({ open: false, connectorName: null });
+  const [edgeRuntimeScript, setEdgeRuntimeScript] = useState<{ script: string; instanceName: string; description: string } | null>(null);
+  const [edgeRuntimeLoading, setEdgeRuntimeLoading] = useState(false);
+  const [edgeRuntimeInstanceName, setEdgeRuntimeInstanceName] = useState('edge-runtime');
+  const [edgeRuntimeExpanded, setEdgeRuntimeExpanded] = useState(false);
 
   // Derive domain from API URL for connection instructions
   const domain = useMemo(() => {
@@ -1118,6 +1122,198 @@ kcat -b ${kafkaBootstrap} -t ${topics[0]} -C -o beginning`}</code></pre>
                                         </ul>
                                       </AlertDescription>
                                     </Alert>
+
+                                    {/* ── Edge Runtime — One-Click Install ── */}
+                                    <div className="border-2 border-primary/40 rounded-lg overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+                                      <div className="px-4 py-3 border-b border-primary/30 bg-primary/10">
+                                        <h4 className="font-semibold flex items-center gap-2 text-base">
+                                          <HardDrive className="h-5 w-5 text-primary" />
+                                          Edge Runtime — One-Click Install
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          Deploy a self-contained PostgreSQL + Debezium JDBC Sink stack on a remote server.
+                                          Data from this connector's topics will be automatically replicated to a local PostgreSQL database on the edge server.
+                                        </p>
+                                      </div>
+
+                                      <div className="p-4 space-y-4">
+                                        {/* What gets installed */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                          <div className="bg-background p-3 rounded border text-center">
+                                            <Database className="h-5 w-5 text-blue-600 mx-auto mb-1.5" />
+                                            <p className="text-xs font-semibold">PostgreSQL 18.1</p>
+                                            <p className="text-[10px] text-muted-foreground">Local database with WAL</p>
+                                          </div>
+                                          <div className="bg-background p-3 rounded border text-center">
+                                            <Activity className="h-5 w-5 text-emerald-600 mx-auto mb-1.5" />
+                                            <p className="text-xs font-semibold">Debezium Connect</p>
+                                            <p className="text-[10px] text-muted-foreground">JDBC Sink Connector 3.0</p>
+                                          </div>
+                                          <div className="bg-background p-3 rounded border text-center">
+                                            <RefreshCw className="h-5 w-5 text-purple-600 mx-auto mb-1.5" />
+                                            <p className="text-xs font-semibold">Auto-Sync</p>
+                                            <p className="text-[10px] text-muted-foreground">Real-time CDC replication</p>
+                                          </div>
+                                        </div>
+
+                                        {/* Instance name input */}
+                                        <div className="bg-background p-3 rounded border space-y-2">
+                                          <label className="text-xs font-semibold block">Instance Name</label>
+                                          <p className="text-[10px] text-muted-foreground">
+                                            A unique identifier for this edge deployment (e.g., branch-office-1, datacenter-2).
+                                          </p>
+                                          <input
+                                            type="text"
+                                            value={edgeRuntimeInstanceName}
+                                            onChange={(e) => setEdgeRuntimeInstanceName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase())}
+                                            className="w-full md:w-1/2 bg-muted border rounded px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            placeholder="edge-runtime"
+                                          />
+                                        </div>
+
+                                        {/* Generate button */}
+                                        <Button
+                                          className="w-full"
+                                          size="lg"
+                                          disabled={edgeRuntimeLoading || !edgeRuntimeInstanceName.trim()}
+                                          onClick={async () => {
+                                            try {
+                                              setEdgeRuntimeLoading(true);
+                                              setEdgeRuntimeScript(null);
+                                              const { data } = await apiClient.post('/api/debezium/edge-runtime/install-script', {
+                                                kafkaBootstrapServer: kafkaBootstrap,
+                                                topics: topics.join(','),
+                                                serverName: serverName,
+                                                instanceName: edgeRuntimeInstanceName.trim() || 'edge-runtime',
+                                                postgresPort: 5434,
+                                                connectPort: 8084,
+                                                connectorGroupId: 2,
+                                              });
+                                              setEdgeRuntimeScript(data);
+                                              setEdgeRuntimeExpanded(true);
+                                              toast.success('Install script generated successfully');
+                                            } catch (err: any) {
+                                              toast.error(err?.response?.data?.error || 'Failed to generate install script');
+                                            } finally {
+                                              setEdgeRuntimeLoading(false);
+                                            }
+                                          }}
+                                        >
+                                          {edgeRuntimeLoading ? (
+                                            <>
+                                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                              Generating Install Script...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Download className="h-4 w-4 mr-2" />
+                                              Generate Install Script
+                                            </>
+                                          )}
+                                        </Button>
+
+                                        {/* Generated Script Output */}
+                                        {edgeRuntimeScript && (
+                                          <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {/* Success banner */}
+                                            <Alert className="border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20">
+                                              <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                              <AlertTitle className="text-emerald-800 dark:text-emerald-300 text-sm">
+                                                Script Generated — {edgeRuntimeScript.instanceName}
+                                              </AlertTitle>
+                                              <AlertDescription className="text-emerald-700 dark:text-emerald-400 text-xs">
+                                                {edgeRuntimeScript.description}
+                                              </AlertDescription>
+                                            </Alert>
+
+                                            {/* One-liner install command */}
+                                            <div className="bg-background rounded border overflow-hidden">
+                                              <div className="flex items-center justify-between px-3 py-2 bg-muted border-b">
+                                                <span className="text-xs font-semibold flex items-center gap-1.5">
+                                                  <Terminal className="h-3.5 w-3.5" />
+                                                  Quick Install — Run on Target Server
+                                                </span>
+                                              </div>
+                                              <div className="p-3 space-y-2">
+                                                <p className="text-xs text-muted-foreground">
+                                                  Copy the script below to a file on the target server and run it:
+                                                </p>
+                                                <div className="bg-muted rounded p-2 flex items-center justify-between group">
+                                                  <code className="text-xs font-mono break-all">
+                                                    sudo bash install-edge-runtime.sh
+                                                  </code>
+                                                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs shrink-0 ml-2"
+                                                    onClick={() => copyToClipboard('sudo bash install-edge-runtime.sh')}>
+                                                    <Copy className="h-3 w-3 mr-1" /> Copy
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            {/* Collapsible full script */}
+                                            <Collapsible open={edgeRuntimeExpanded} onOpenChange={setEdgeRuntimeExpanded}>
+                                              <div className="bg-background rounded border overflow-hidden">
+                                                <CollapsibleTrigger asChild>
+                                                  <button className="flex items-center justify-between w-full px-3 py-2 bg-muted border-b hover:bg-muted/80 transition-colors text-left">
+                                                    <span className="text-xs font-semibold flex items-center gap-1.5">
+                                                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${edgeRuntimeExpanded ? '' : '-rotate-90'}`} />
+                                                      Full Install Script ({edgeRuntimeScript.script.split('\n').length} lines)
+                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                      <Button
+                                                        variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          copyToClipboard(edgeRuntimeScript.script);
+                                                        }}
+                                                      >
+                                                        <Copy className="h-3 w-3 mr-1" /> Copy Script
+                                                      </Button>
+                                                      <Button
+                                                        variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          const blob = new Blob([edgeRuntimeScript.script], { type: 'text/x-shellscript' });
+                                                          const url = URL.createObjectURL(blob);
+                                                          const a = document.createElement('a');
+                                                          a.href = url;
+                                                          a.download = `install-${edgeRuntimeScript.instanceName}.sh`;
+                                                          a.click();
+                                                          URL.revokeObjectURL(url);
+                                                          toast.success('Script downloaded');
+                                                        }}
+                                                      >
+                                                        <Download className="h-3 w-3 mr-1" /> Download .sh
+                                                      </Button>
+                                                    </div>
+                                                  </button>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <pre className="text-xs p-3 overflow-auto max-h-[500px] bg-gray-950 text-gray-200 font-mono leading-relaxed">
+                                                    <code>{edgeRuntimeScript.script}</code>
+                                                  </pre>
+                                                </CollapsibleContent>
+                                              </div>
+                                            </Collapsible>
+
+                                            {/* Post-install info */}
+                                            <div className="bg-muted/50 border rounded p-3 space-y-2">
+                                              <h5 className="text-xs font-semibold flex items-center gap-1.5">
+                                                <Info className="h-3.5 w-3.5 text-primary" />
+                                                After Installation
+                                              </h5>
+                                              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside ml-1">
+                                                <li>The script generates a <strong>random database password</strong> saved to <code className="bg-muted px-1 rounded">.edge-runtime.env</code></li>
+                                                <li>PostgreSQL is available at <code className="bg-muted px-1 rounded">localhost:5434</code> on the edge server</li>
+                                                <li>Management scripts: <code className="bg-muted px-1 rounded">start.sh</code>, <code className="bg-muted px-1 rounded">stop.sh</code>, <code className="bg-muted px-1 rounded">status.sh</code>, <code className="bg-muted px-1 rounded">uninstall.sh</code></li>
+                                                <li>Data sync begins automatically once the JDBC Sink Connector registers</li>
+                                                <li>All files are installed to <code className="bg-muted px-1 rounded">/opt/openradius-edge/{edgeRuntimeScript.instanceName}</code></li>
+                                              </ul>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               );

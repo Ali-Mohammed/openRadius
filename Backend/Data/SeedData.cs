@@ -658,6 +658,8 @@ public static class SeedData
             new Permission { Name = "connectors.cdc-monitor.view", Description = "View CDC monitor", Category = "Connectors" },
             new Permission { Name = "connectors.settings.view", Description = "View connector settings", Category = "Connectors" },
             new Permission { Name = "connectors.settings.update", Description = "Update connector settings", Category = "Connectors" },
+            new Permission { Name = "connectors.edge-runtime.view", Description = "View Edge Runtime install scripts", Category = "Connectors" },
+            new Permission { Name = "connectors.edge-runtime.generate", Description = "Generate Edge Runtime install scripts", Category = "Connectors" },
             // Microservices
             new Permission { Name = "microservices.radius-sync.view", Description = "View RADIUS sync service", Category = "Microservices" },
             new Permission { Name = "microservices.radius-sync.manage", Description = "Manage RADIUS sync service", Category = "Microservices" },

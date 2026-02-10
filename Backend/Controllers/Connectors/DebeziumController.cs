@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
+using Backend.DTOs;
 using Backend.Models;
+using Backend.Services;
 using System.Text.Json;
 using System.Text;
 
@@ -27,17 +29,20 @@ public class DebeziumController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<DebeziumController> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IEdgeRuntimeScriptService _edgeRuntimeScriptService;
 
     public DebeziumController(
         ApplicationDbContext context,
         IHttpClientFactory httpClientFactory,
         ILogger<DebeziumController> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IEdgeRuntimeScriptService edgeRuntimeScriptService)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _configuration = configuration;
+        _edgeRuntimeScriptService = edgeRuntimeScriptService;
     }
 
     // Settings endpoints
@@ -732,6 +737,61 @@ public class DebeziumController : ControllerBase
         {
             _logger.LogError(ex, "Error restarting connector {Name}", name);
             return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    // ── Edge Runtime Install Script ──────────────────────────────────────────
+
+    /// <summary>
+    /// Generates a customized Edge Runtime installation script for the specified connector.
+    /// Returns JSON with the script content and metadata.
+    /// </summary>
+    [HttpPost("edge-runtime/install-script")]
+    public ActionResult<EdgeRuntimeInstallScriptResponse> GenerateEdgeRuntimeScript(
+        [FromBody] EdgeRuntimeInstallScriptRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.KafkaBootstrapServer))
+                return BadRequest(new { error = "KafkaBootstrapServer is required." });
+
+            if (string.IsNullOrWhiteSpace(request.Topics))
+                return BadRequest(new { error = "Topics is required." });
+
+            var result = _edgeRuntimeScriptService.GenerateInstallScript(request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Edge Runtime install script");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Returns the Edge Runtime install script as a downloadable plain-text bash file.
+    /// This endpoint can be used with curl | bash for one-line installation.
+    /// </summary>
+    [HttpPost("edge-runtime/install-script/download")]
+    [Produces("text/plain")]
+    public ActionResult DownloadEdgeRuntimeScript(
+        [FromBody] EdgeRuntimeInstallScriptRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.KafkaBootstrapServer))
+                return BadRequest("# Error: KafkaBootstrapServer is required.\nexit 1\n");
+
+            if (string.IsNullOrWhiteSpace(request.Topics))
+                return BadRequest("# Error: Topics is required.\nexit 1\n");
+
+            var result = _edgeRuntimeScriptService.GenerateInstallScript(request);
+            return Content(result.Script, "text/plain; charset=utf-8");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Edge Runtime install script for download");
+            return StatusCode(500, $"# Error generating install script: {ex.Message}\nexit 1\n");
         }
     }
 }
