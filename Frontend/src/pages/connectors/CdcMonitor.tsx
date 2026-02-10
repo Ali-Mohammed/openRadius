@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Activity, Pause, Play, Trash2, RefreshCw, Database, AlertCircle, Info, Clock, User, Edit3, X } from 'lucide-react';
 import { appConfig } from '@/config/app.config';
+import { apiClient } from '@/lib/api';
 import * as signalR from '@microsoft/signalr';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -49,11 +50,7 @@ interface CdcEvent {
 
 // Fetch topics function
 const fetchTopics = async (): Promise<string[]> => {
-  const response = await fetch(`${appConfig.api.baseUrl}/api/cdc/topics`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch topics');
-  }
-  const data = await response.json();
+  const { data } = await apiClient.get('/api/cdc/topics');
   
   // Handle both {topics: []} and direct array responses
   return Array.isArray(data) ? data : (Array.isArray(data.topics) ? data.topics : []);

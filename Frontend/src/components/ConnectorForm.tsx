@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield, CheckCircle2, XCircle, RefreshCw, Info, BookOpen, ChevronDown, AlertCircle, AlertTriangle } from 'lucide-react';
-import { appConfig } from '@/config/app.config';
+import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -104,23 +104,16 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
 
   const fetchTables = async () => {
     try {
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/get-tables`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          connectorClass: formData.connectorClass,
-          databaseHostname: formData.databaseHostname,
-          databasePort: formData.databasePort,
-          databaseUser: formData.databaseUser,
-          databasePassword: formData.databasePassword,
-          databaseName: formData.databaseName,
-        }),
+      const { data } = await apiClient.post('/api/debezium/get-tables', {
+        connectorClass: formData.connectorClass,
+        databaseHostname: formData.databaseHostname,
+        databasePort: formData.databasePort,
+        databaseUser: formData.databaseUser,
+        databasePassword: formData.databasePassword,
+        databaseName: formData.databaseName,
       });
 
-      const data = await response.json();
-      if (response.ok && data.tables) {
+      if (data.tables) {
         setAvailableTables(data.tables);
       } else {
         toast.error('Failed to fetch tables: ' + (data.error || 'Unknown error'));
@@ -136,22 +129,14 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
       setTesting(true);
       setConnectionStatus('unknown');
 
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/test-connection`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          connectorClass: formData.connectorClass,
-          databaseHostname: formData.databaseHostname,
-          databasePort: formData.databasePort,
-          databaseUser: formData.databaseUser,
-          databasePassword: formData.databasePassword,
-          databaseName: formData.databaseName,
-        }),
+      const { data: result } = await apiClient.post('/api/debezium/test-connection', {
+        connectorClass: formData.connectorClass,
+        databaseHostname: formData.databaseHostname,
+        databasePort: formData.databasePort,
+        databaseUser: formData.databaseUser,
+        databasePassword: formData.databasePassword,
+        databaseName: formData.databaseName,
       });
-
-      const result = await response.json();
 
       if (result.connected) {
         setConnectionStatus('connected');
@@ -205,21 +190,10 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
         updatedFormData.slotName = slotName;
       }
 
-      const url = connector?.id
-        ? `${appConfig.api.baseUrl}/api/debezium/connectors/${connector.name}`
-        : `${appConfig.api.baseUrl}/api/debezium/connectors`;
-
-      const response = await fetch(url, {
-        method: connector?.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedFormData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save connector');
+      if (connector?.id) {
+        await apiClient.put(`/api/debezium/connectors/${connector.name}`, updatedFormData);
+      } else {
+        await apiClient.post('/api/debezium/connectors', updatedFormData);
       }
 
       toast.success(`Connector ${connector?.id ? 'updated' : 'created'} successfully`);

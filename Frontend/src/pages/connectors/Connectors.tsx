@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Play, Pause, RefreshCw, Trash2, Edit, AlertCircle, Info, ChevronDown, ChevronRight, Activity, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { appConfig } from '@/config/app.config';
+import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -76,21 +76,13 @@ export default function Connectors() {
       
       // First, sync connectors from Debezium to database
       try {
-        await fetch(`${appConfig.api.baseUrl}/api/debezium/connectors/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        await apiClient.post('/api/debezium/connectors/sync');
       } catch (syncError) {
         console.warn('Failed to sync connectors:', syncError);
         // Continue even if sync fails
       }
       
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/connectors`);
-      if (!response.ok) throw new Error('Failed to fetch connectors');
-      
-      const data = await response.json();
+      const { data } = await apiClient.get('/api/debezium/connectors');
       
       // Merge Debezium and database connectors
       const mergedConnectors: any[] = [];
@@ -166,11 +158,7 @@ export default function Connectors() {
     if (!deleteDialog.connectorName) return;
 
     try {
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/connectors/${deleteDialog.connectorName}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete connector');
+      await apiClient.delete(`/api/debezium/connectors/${deleteDialog.connectorName}`);
 
       toast.success('Connector deleted successfully');
       setDeleteDialog({ open: false, connectorName: null });
@@ -184,11 +172,7 @@ export default function Connectors() {
 
   const handlePause = async (name: string) => {
     try {
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/connectors/${name}/pause`, {
-        method: 'PUT',
-      });
-
-      if (!response.ok) throw new Error('Failed to pause connector');
+      await apiClient.put(`/api/debezium/connectors/${name}/pause`);
 
       toast.success('Connector paused successfully');
 
@@ -200,11 +184,7 @@ export default function Connectors() {
 
   const handleResume = async (name: string) => {
     try {
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/connectors/${name}/resume`, {
-        method: 'PUT',
-      });
-
-      if (!response.ok) throw new Error('Failed to resume connector');
+      await apiClient.put(`/api/debezium/connectors/${name}/resume`);
 
       toast.success('Connector resumed successfully');
 
@@ -216,11 +196,7 @@ export default function Connectors() {
 
   const handleRestart = async (name: string) => {
     try {
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/connectors/${name}/restart`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) throw new Error('Failed to restart connector');
+      await apiClient.post(`/api/debezium/connectors/${name}/restart`);
 
       toast.success('Connector restarted successfully');
 

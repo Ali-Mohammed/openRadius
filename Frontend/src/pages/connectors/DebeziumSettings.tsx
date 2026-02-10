@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, RefreshCw } from 'lucide-react';
-import { appConfig } from '@/config/app.config';
+import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,10 +39,7 @@ export default function DebeziumSettings() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/settings`);
-      if (!response.ok) throw new Error('Failed to fetch settings');
-      
-      const data = await response.json();
+      const { data } = await apiClient.get('/api/debezium/settings');
       setFormData(data);
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch settings');
@@ -64,15 +61,7 @@ export default function DebeziumSettings() {
       setTesting(true);
       setConnectionStatus('unknown');
       
-      const response = await fetch(`${appConfig.api.baseUrl}/api/debezium/settings/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
+      const { data: result } = await apiClient.post('/api/debezium/settings/test', formData);
 
       if (result.connected) {
         setConnectionStatus('connected');
@@ -94,20 +83,10 @@ export default function DebeziumSettings() {
     setSaving(true);
 
     try {
-      const url = formData.id
-        ? `${appConfig.api.baseUrl}/api/debezium/settings/${formData.id}`
-        : `${appConfig.api.baseUrl}/api/debezium/settings`;
-
-      const response = await fetch(url, {
-        method: formData.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save settings');
+      if (formData.id) {
+        await apiClient.put(`/api/debezium/settings/${formData.id}`, formData);
+      } else {
+        await apiClient.post('/api/debezium/settings', formData);
       }
 
       toast.success('Settings saved successfully');
