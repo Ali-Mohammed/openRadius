@@ -892,27 +892,6 @@ public class RadiusUserController : ControllerBase
         _context.RadiusUsers.Add(user);
         await _context.SaveChangesAsync();
 
-        // Add password to radcheck table if provided
-        if (!string.IsNullOrWhiteSpace(request.Password))
-        {
-            // Remove existing password entries for this user
-            var existingPasswords = _context.Set<Dictionary<string, object>>("radcheck")
-                .FromSqlRaw("SELECT * FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'", user.Username)
-                .ToList();
-            
-            if (existingPasswords.Any())
-            {
-                await _context.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                    new object[] { user.Username });
-            }
-
-            // Insert new password
-            await _context.Database.ExecuteSqlRawAsync(
-                "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
-                new object[] { user.Username, request.Password });
-        }
-
         // Get IP reservation for this user
         var ipReservation = await _context.RadiusIpReservations
             .Where(r => r.RadiusUserId == user.Id && r.DeletedAt == null)
@@ -1104,27 +1083,6 @@ public class RadiusUserController : ControllerBase
             _context.RadiusUserHistories.Add(history);
         }
 
-        // Update password in radcheck table if provided
-        if (!string.IsNullOrWhiteSpace(request.Password))
-        {
-            try
-            {
-                // Remove existing password entries for this user
-                await _context.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM radcheck WHERE username = {0} AND attribute = 'Cleartext-Password'",
-                    user.Username!);
-
-                // Insert new password
-                await _context.Database.ExecuteSqlRawAsync(
-                    "INSERT INTO radcheck (username, attribute, op, value) VALUES ({0}, 'Cleartext-Password', ':=', {1})",
-                    user.Username!, request.Password);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not update radcheck table for user {Username}", user.Username);
-            }
-        }
-
         await _context.SaveChangesAsync();
 
         // Get IP reservation for this user
@@ -1211,22 +1169,6 @@ public class RadiusUserController : ControllerBase
             UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
         };
         _context.RadiusUserHistories.Add(history);
-
-        // Update username in radcheck table (if it exists)
-        if (!string.IsNullOrEmpty(oldUsername))
-        {
-            try
-            {
-                await _context.Database.ExecuteSqlRawAsync(
-                    "UPDATE radcheck SET username = {0} WHERE username = {1}",
-                    request.NewUsername, oldUsername);
-            }
-            catch (Exception ex)
-            {
-                // Log the error but continue - radcheck table may not exist in all environments
-                _logger.LogWarning(ex, "Could not update radcheck table for username change from {OldUsername} to {NewUsername}", oldUsername, request.NewUsername);
-            }
-        }
 
         await _context.SaveChangesAsync();
 
