@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.MasterDb
 {
     /// <inheritdoc />
-    public partial class InitialMasterWithUuid : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -195,6 +195,39 @@ namespace Backend.Migrations.MasterDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "EdgeRuntimeScripts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<Guid>(type: "uuid", nullable: false),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
+                    InstanceName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: false),
+                    Version = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    ScriptContent = table.Column<string>(type: "text", nullable: false),
+                    KafkaBootstrapServer = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Topics = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: false),
+                    ServerName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    PostgresPort = table.Column<int>(type: "integer", nullable: false),
+                    ConnectPort = table.Column<int>(type: "integer", nullable: false),
+                    ConnectorGroupId = table.Column<int>(type: "integer", nullable: false),
+                    DownloadCount = table.Column<int>(type: "integer", nullable: false),
+                    LastDownloadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EdgeRuntimeScripts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserGroups",
                 columns: table => new
                 {
@@ -345,6 +378,17 @@ namespace Backend.Migrations.MasterDb
                 column: "CreatedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_EdgeRuntimeScripts_Uuid",
+                table: "EdgeRuntimeScripts",
+                column: "Uuid",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EdgeRuntimeScripts_WorkspaceId_IsDeleted",
+                table: "EdgeRuntimeScripts",
+                columns: new[] { "WorkspaceId", "IsDeleted" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Groups_Name",
                 table: "Groups",
                 column: "Name",
@@ -432,6 +476,14 @@ namespace Backend.Migrations.MasterDb
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_EdgeRuntimeScripts_Workspaces_WorkspaceId",
+                table: "EdgeRuntimeScripts",
+                column: "WorkspaceId",
+                principalTable: "Workspaces",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_UserGroups_Users_UserId",
                 table: "UserGroups",
                 column: "UserId",
@@ -487,6 +539,9 @@ namespace Backend.Migrations.MasterDb
 
             migrationBuilder.DropTable(
                 name: "CashbackSettings");
+
+            migrationBuilder.DropTable(
+                name: "EdgeRuntimeScripts");
 
             migrationBuilder.DropTable(
                 name: "OidcSettings");
