@@ -19,6 +19,7 @@ namespace Backend.Migrations.MasterDb
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Uuid = table.Column<Guid>(type: "uuid", nullable: false),
+                    WorkspaceId = table.Column<int>(type: "integer", nullable: false),
                     InstanceName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     Description = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: false),
                     Version = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
@@ -42,6 +43,12 @@ namespace Backend.Migrations.MasterDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_EdgeRuntimeScripts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EdgeRuntimeScripts_Workspaces_WorkspaceId",
+                        column: x => x.WorkspaceId,
+                        principalTable: "Workspaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -49,6 +56,11 @@ namespace Backend.Migrations.MasterDb
                 table: "EdgeRuntimeScripts",
                 column: "Uuid",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EdgeRuntimeScripts_WorkspaceId_IsDeleted",
+                table: "EdgeRuntimeScripts",
+                columns: new[] { "WorkspaceId", "IsDeleted" });
         }
 
         /// <inheritdoc />

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations.MasterDb
 {
     [DbContext(typeof(MasterDbContext))]
-    [Migration("20260210163337_AddEdgeRuntimeScripts")]
+    [Migration("20260210163733_AddEdgeRuntimeScripts")]
     partial class AddEdgeRuntimeScripts
     {
         /// <inheritdoc />
@@ -251,10 +251,15 @@ namespace Backend.Migrations.MasterDb
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Uuid")
                         .IsUnique();
+
+                    b.HasIndex("WorkspaceId", "IsDeleted");
 
                     b.ToTable("EdgeRuntimeScripts");
                 });
@@ -716,6 +721,17 @@ namespace Backend.Migrations.MasterDb
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.EdgeRuntimeScript", b =>
+                {
+                    b.HasOne("Backend.Models.Workspace", "Workspace")
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>

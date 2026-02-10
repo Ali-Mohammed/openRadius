@@ -248,10 +248,15 @@ namespace Backend.Migrations.MasterDb
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Uuid")
                         .IsUnique();
+
+                    b.HasIndex("WorkspaceId", "IsDeleted");
 
                     b.ToTable("EdgeRuntimeScripts");
                 });
@@ -713,6 +718,17 @@ namespace Backend.Migrations.MasterDb
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.EdgeRuntimeScript", b =>
+                {
+                    b.HasOne("Backend.Models.Workspace", "Workspace")
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>
