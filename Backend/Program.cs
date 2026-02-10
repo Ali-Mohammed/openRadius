@@ -177,15 +177,22 @@ try
             // Map inbound claims to expected .NET claim types
             options.MapInboundClaims = false; // Disable default claim mapping to keep original claim names
 
+            // Build list of valid issuers: external (Issuer) + internal (Authority) to handle
+            // both Docker-internal and external-facing Keycloak URLs in the token's 'iss' claim
+            var validIssuers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var issuer = oidcSettings["Issuer"];
+            var authority = oidcSettings["Authority"];
+            if (!string.IsNullOrEmpty(issuer)) validIssuers.Add(issuer);
+            if (!string.IsNullOrEmpty(authority)) validIssuers.Add(authority);
+            if (validIssuers.Count == 0) validIssuers.Add(string.Empty);
+
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = oidcSettings.GetValue<bool>("ValidateAudience", false),
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuers = new[] {
-                oidcSettings["Issuer"] ?? oidcSettings["Authority"] ?? string.Empty
-                },
+                ValidIssuers = validIssuers.ToArray(),
                 ClockSkew = TimeSpan.FromMinutes(5),
                 NameClaimType = "preferred_username", // Map name claim
                 RoleClaimType = "realm_access.roles" // Map role claim

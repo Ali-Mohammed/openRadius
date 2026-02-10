@@ -249,9 +249,11 @@ services:
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=openradius;Username=admin;Password=${POSTGRES_PASSWORD:-admin123}"
       
       # OIDC/Keycloak
+      # Authority & MetadataAddress use internal Docker URL (backend → keycloak within Docker network)
       Oidc__Authority: "${OIDC_AUTHORITY:-http://keycloak:8080/realms/openradius}"
       Oidc__MetadataAddress: "${OIDC_METADATA_ADDRESS:-http://keycloak:8080/realms/openradius/.well-known/openid-configuration}"
-      Oidc__Issuer: "${OIDC_ISSUER:-http://keycloak:8080/realms/openradius}"
+      # Issuer MUST match the 'iss' claim in tokens (the external URL Keycloak stamps on JWTs)
+      Oidc__Issuer: "${OIDC_ISSUER:-https://auth.${DOMAIN:-localhost}/realms/openradius}"
       
       # Kafka
       Kafka__BootstrapServers: "redpanda:9092"
