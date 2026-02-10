@@ -81,6 +81,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
     public DbSet<Models.Payments.PaymentLog> PaymentLogs { get; set; }
     public DbSet<Models.Payments.PaymentForceCompletion> PaymentForceCompletions { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<SystemNotification> SystemNotifications { get; set; }
     public DbSet<SasActivationLog> SasActivationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,7 +106,8 @@ public class ApplicationDbContext : DbContext
             typeof(TransactionComment), typeof(UserCashback), typeof(UserWallet),
             typeof(UserZone), typeof(WalletHistory), typeof(WorkflowHistory), typeof(Zone),
             typeof(BillingGroupUser), typeof(SubAgentCashback), typeof(BillingProfileUser),
-            typeof(Models.Payments.PaymentForceCompletion)
+            typeof(Models.Payments.PaymentForceCompletion),
+            typeof(AuditLog), typeof(SystemNotification)
         };
 
         foreach (var entityType in entityTypes)
@@ -610,6 +613,46 @@ public class ApplicationDbContext : DbContext
                   .OnDelete(DeleteBehavior.SetNull);
 
             // Add query filter to exclude soft-deleted billing activations
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // === AuditLog Configuration ===
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => e.Action);
+            entity.HasIndex(e => e.EntityType);
+            entity.HasIndex(e => e.EntityUuid);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.CreatedBy);
+            entity.HasIndex(e => e.TargetUserId);
+            entity.HasIndex(e => e.CorrelationId);
+            entity.HasIndex(e => new { e.EntityType, e.EntityUuid });
+            entity.HasIndex(e => new { e.Category, e.Action, e.CreatedAt });
+            entity.HasIndex(e => new { e.CreatedBy, e.CreatedAt });
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // === SystemNotification Configuration ===
+        modelBuilder.Entity<SystemNotification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => e.RecipientUserId);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.Severity);
+            entity.HasIndex(e => e.IsRead);
+            entity.HasIndex(e => e.IsDismissed);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.ExpiresAt);
+            entity.HasIndex(e => new { e.RecipientUserId, e.IsRead, e.CreatedAt });
+            entity.HasIndex(e => new { e.RecipientUserId, e.IsDismissed });
+            entity.HasIndex(e => e.ReferenceEntityUuid);
+
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
     }
