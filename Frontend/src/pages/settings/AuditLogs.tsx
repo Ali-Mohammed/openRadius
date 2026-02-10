@@ -24,7 +24,6 @@ import {
   Clock,
   User,
   FileText,
-  Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -334,6 +333,15 @@ function AuditLogDetail({ entry, open, onClose }: { entry: AuditLogEntry | null;
   )
 }
 
+// ── Sort Icon (defined outside component to avoid React compiler error) ─────
+
+function SortIcon({ field, currentSortField, currentSortDirection }: { field: string; currentSortField: string; currentSortDirection: 'asc' | 'desc' }) {
+  if (currentSortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+  return currentSortDirection === 'asc'
+    ? <ArrowUp className="h-3.5 w-3.5" />
+    : <ArrowDown className="h-3.5 w-3.5" />
+}
+
 // ── Main Page ───────────────────────────────────────────────────────────────
 
 export default function AuditLogs() {
@@ -442,13 +450,6 @@ export default function AuditLogs() {
     setCurrentPage(1)
   }
 
-  const SortIcon = ({ field }: { field: string }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-    return sortDirection === 'asc'
-      ? <ArrowUp className="h-3.5 w-3.5" />
-      : <ArrowDown className="h-3.5 w-3.5" />
-  }
-
   const handleViewDetail = (entry: AuditLogEntry) => {
     setSelectedEntry(entry)
     setDetailOpen(true)
@@ -546,7 +547,7 @@ export default function AuditLogs() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-25">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -648,28 +649,28 @@ export default function AuditLogs() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[180px]">
+              <TableHead className="w-45">
                 <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('createdAt')}>
                   Timestamp
-                  <SortIcon field="createdAt" />
+                  <SortIcon field="createdAt" currentSortField={sortField} currentSortDirection={sortDirection} />
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('category')}>
                   Category
-                  <SortIcon field="category" />
+                  <SortIcon field="category" currentSortField={sortField} currentSortDirection={sortDirection} />
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('action')}>
                   Action
-                  <SortIcon field="action" />
+                  <SortIcon field="action" currentSortField={sortField} currentSortDirection={sortDirection} />
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('entityType')}>
                   Entity Type
-                  <SortIcon field="entityType" />
+                  <SortIcon field="entityType" currentSortField={sortField} currentSortDirection={sortDirection} />
                 </Button>
               </TableHead>
               <TableHead>Description</TableHead>
@@ -677,10 +678,10 @@ export default function AuditLogs() {
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('status')}>
                   Status
-                  <SortIcon field="status" />
+                  <SortIcon field="status" currentSortField={sortField} currentSortDirection={sortDirection} />
                 </Button>
               </TableHead>
-              <TableHead className="w-[60px] text-right">Actions</TableHead>
+              <TableHead className="w-15 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -731,7 +732,7 @@ export default function AuditLogs() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">{entry.entityType}</TableCell>
-                    <TableCell className="max-w-[250px] truncate text-sm text-muted-foreground">
+                    <TableCell className="max-w-62.5 truncate text-sm text-muted-foreground">
                       {entry.description || '—'}
                     </TableCell>
                     <TableCell className="text-sm">
