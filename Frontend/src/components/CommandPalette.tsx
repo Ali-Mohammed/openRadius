@@ -54,6 +54,9 @@ import {
   HardDrive,
   Cog,
   SquareStack,
+  ScrollText,
+  Container,
+  RefreshCcw,
 } from "lucide-react"
 
 interface CommandPaletteProps {
@@ -110,6 +113,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         { title: t("navigation.groups"), url: "/billing/groups", icon: TrendingUp, keywords: ["billing groups"], permission: "billing.groups.view" },
         { title: t("navigation.cashbacks"), url: "/billing/cashbacks", icon: Gift, keywords: ["rewards", "refunds"], permission: "billing.cashbacks.view" },
         { title: t("navigation.cashbackGroups"), url: "/billing/cashback-groups", icon: PiggyBank, keywords: ["cashback groups"], permission: "billing.cashback-groups.view" },
+        { title: t("navigation.subAgentCashbacks"), url: "/billing/sub-agent-cashbacks", icon: UsersRound, keywords: ["sub agent", "cashback", "reseller"], permission: "billing.sub-agent-cashbacks.view" },
         { title: t("navigation.customWallets"), url: "/billing/wallets", icon: Wallet, keywords: ["wallets", "accounts"], permission: "billing.wallets.view" },
         { title: t("navigation.userWallets"), url: "/billing/user-wallets", icon: WalletCards, keywords: ["user wallets", "balances"], permission: "billing.user-wallets.view" },
         { title: t("navigation.topUp"), url: "/billing/topup", icon: ArrowUpCircle, keywords: ["recharge", "add funds"], permission: "billing.topup.create" },
@@ -140,13 +144,22 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       ],
     },
     {
+      title: t("navigation.microservices"),
+      items: [
+        { title: t("navigation.radiusSyncService"), url: "/microservices/radius-sync", icon: RefreshCcw, keywords: ["radius sync", "synchronization", "service"], permission: "microservices.radius-sync.view" },
+      ],
+    },
+    {
       title: t("navigation.appSetting"),
       items: [
         { title: t("navigation.workspace"), url: "/workspace/view", icon: Eye, keywords: ["workspace", "tenant"], permission: "workspace.view" },
+        { title: t("navigation.serverMonitoring"), url: "/workspace/server-monitoring", icon: Container, keywords: ["server", "monitoring", "docker", "containers", "health"], permission: "server-monitoring.view" },
+        { title: t("navigation.auditLogs"), url: "/audit-logs", icon: ScrollText, keywords: ["audit", "logs", "activity", "history", "changes"], permission: "audit.view" },
         { title: t("navigation.general"), url: "/settings/general", icon: DollarSign, keywords: ["general settings", "preferences"], permission: "settings.general.view" },
         { title: t("navigation.paymentInformation"), url: "/settings/payment-history", icon: CreditCard, keywords: ["payment", "history", "transactions", "zaincash", "qicard", "switch"], permission: "settings.payment-history.view" },
         { title: t("navigation.oidc"), url: "/settings/oidc", icon: Key, keywords: ["authentication", "sso", "login"], permission: "settings.oidc.view" },
         { title: t("navigation.databaseBackup"), url: "/settings/database-backup", icon: HardDrive, keywords: ["backup", "restore", "export"], permission: "settings.database-backup.view" },
+        { title: t("navigation.systemUpdate"), url: "/settings/system-update", icon: RefreshCcw, keywords: ["update", "upgrade", "version"], permission: "settings.system-update.view" },
         { title: t("navigation.integrations"), url: "/integrations", icon: Radio, keywords: ["third party", "api"], permission: "settings.integrations.view" },
       ],
     },
