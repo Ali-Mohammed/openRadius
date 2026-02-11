@@ -360,17 +360,7 @@ export default function AuditLogs() {
   const [selectedEntry, setSelectedEntry] = useState<AuditLogEntry | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
-  // Debounce search input
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
-  const handleSearch = (value: string) => {
-    setSearch(value)
-    if (searchTimeout) clearTimeout(searchTimeout)
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(value)
-      setCurrentPage(1)
-    }, 400)
-    setSearchTimeout(timeout)
-  }
+  // Search is triggered on Enter key or Search button click (like RadiusUsers)
 
   // ── Queries ──
   const { data: logsData, isLoading, isFetching } = useQuery({
@@ -447,54 +437,31 @@ export default function AuditLogs() {
   const startRecord = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0
   const endRecord = Math.min(currentPage * pageSize, totalCount)
 
+  // Generate numbered page buttons like RadiusUsers
+  const getPaginationPages = (current: number, total: number): (number | '...')[] => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+    const pages: (number | '...')[] = []
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i)
+      pages.push('...', total)
+    } else if (current >= total - 3) {
+      pages.push(1, '...')
+      for (let i = total - 4; i <= total; i++) pages.push(i)
+    } else {
+      pages.push(1, '...', current - 1, current, current + 1, '...', total)
+    }
+    return pages
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Audit Logs</h1>
           <p className="text-sm text-muted-foreground">View all system activity and changes across the platform</p>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search audit logs..."
-              className="pl-8 w-64"
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-            {search && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                onClick={() => { setSearch(''); setDebouncedSearch(''); setCurrentPage(1) }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-          <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
-            <SelectTrigger className="w-25">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-              <SelectItem value="200">200</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['auditLogs'] })}
-            disabled={isFetching}
-            title="Refresh"
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          </Button>
+        <div className="flex items-center gap-2">
           <Popover open={showFilters} onOpenChange={setShowFilters}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="icon" title="Filters">
@@ -568,170 +535,268 @@ export default function AuditLogs() {
               </div>
             </PopoverContent>
           </Popover>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-45">
-                <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('createdAt')}>
-                  Timestamp
-                  <SortIcon field="createdAt" currentSortField={sortField} currentSortDirection={sortDirection} />
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('category')}>
-                  Category
-                  <SortIcon field="category" currentSortField={sortField} currentSortDirection={sortDirection} />
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('action')}>
-                  Action
-                  <SortIcon field="action" currentSortField={sortField} currentSortDirection={sortDirection} />
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('entityType')}>
-                  Entity Type
-                  <SortIcon field="entityType" currentSortField={sortField} currentSortDirection={sortDirection} />
-                </Button>
-              </TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Performed By</TableHead>
-              <TableHead>
-                <Button variant="ghost" size="sm" className="-ml-3 h-8" onClick={() => handleSort('status')}>
-                  Status
-                  <SortIcon field="status" currentSortField={sortField} currentSortDirection={sortDirection} />
-                </Button>
-              </TableHead>
-              <TableHead className="w-15 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 10 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : logs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center gap-2">
-                    <ScrollText className="h-10 w-10 text-muted-foreground/40" />
-                    <p>No audit log entries found</p>
-                    {(debouncedSearch || activeFilterCount > 0) && (
-                      <Button variant="outline" size="sm" onClick={() => { setSearch(''); setDebouncedSearch(''); clearFilters() }}>
-                        Clear all filters
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              logs.map((entry) => {
-                const statusCfg = getStatusConfig(entry.status)
-                const StatusIcon = statusCfg.icon
-                return (
-                  <TableRow
-                    key={entry.uuid}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleViewDetail(entry)}
-                  >
-                    <TableCell className="font-mono text-xs">
-                      <div>{formatRelativeTime(entry.createdAt)}</div>
-                      <div className="text-muted-foreground">{format(new Date(entry.createdAt), 'HH:mm:ss')}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getCategoryColor(entry.category)}>
-                        {entry.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getActionColor(entry.action)}>
-                        {entry.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">{entry.entityType}</TableCell>
-                    <TableCell className="max-w-62.5 truncate text-sm text-muted-foreground">
-                      {entry.description || '—'}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {entry.performedBy ? (
-                        <div>
-                          <div className="font-medium">{entry.performedBy.fullName || 'Unknown'}</div>
-                          {entry.performedBy.email && (
-                            <div className="text-xs text-muted-foreground">{entry.performedBy.email}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">System</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.bg} ${statusCfg.color}`}>
-                        <StatusIcon className="h-3 w-3" />
-                        {entry.status}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => { e.stopPropagation(); handleViewDetail(entry) }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      {totalCount > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {startRecord} to {endRecord} of {totalCount.toLocaleString()} entries
-          </p>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage <= 1} onClick={() => setCurrentPage(1)}>
-              <ChevronsLeft className="h-4 w-4" />
+            <Input
+              placeholder="Search audit logs..."
+              className="w-64"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setDebouncedSearch(search)
+                  setCurrentPage(1)
+                }
+              }}
+            />
+            <Button variant="outline" size="icon" onClick={() => { setDebouncedSearch(search); setCurrentPage(1) }}>
+              <Search className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-1 px-2">
-              <span className="text-sm">Page</span>
-              <Input
-                className="h-8 w-14 text-center"
-                value={currentPage}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value)
-                  if (!isNaN(val) && val >= 1 && val <= totalPages) setCurrentPage(val)
-                }}
-              />
-              <span className="text-sm">of {totalPages}</span>
-            </div>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>
-              <ChevronsRight className="h-4 w-4" />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['auditLogs'] })}
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Table Card */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-hidden relative">
+          {isLoading ? (
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow>
+                    <TableHead className="h-12 px-4 w-40"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-30"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-30"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-35"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-50"><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead className="h-12 px-4 w-40"><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead className="h-12 px-4 w-25"><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="h-12 px-4 w-20"><Skeleton className="h-4 w-12" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell className="h-12 px-4"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="h-12 px-4">
+                        <div className="flex justify-end">
+                          <Skeleton className="h-8 w-8 rounded" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : !isLoading && logs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <ScrollText className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No audit log entries found</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                {debouncedSearch || activeFilterCount > 0
+                  ? 'Try adjusting your search or filters'
+                  : 'Activity logs will appear here once actions are performed'}
+              </p>
+              {(debouncedSearch || activeFilterCount > 0) && (
+                <Button variant="outline" size="sm" onClick={() => { setSearch(''); setDebouncedSearch(''); clearFilters() }}>
+                  Clear all filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
+              {isFetching && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-background p-4 rounded-lg shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Refreshing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow className="hover:bg-muted">
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap w-40">
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('createdAt')}>
+                        Timestamp
+                        <SortIcon field="createdAt" currentSortField={sortField} currentSortDirection={sortDirection} />
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('category')}>
+                        Category
+                        <SortIcon field="category" currentSortField={sortField} currentSortDirection={sortDirection} />
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('action')}>
+                        Action
+                        <SortIcon field="action" currentSortField={sortField} currentSortDirection={sortDirection} />
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('entityType')}>
+                        Entity Type
+                        <SortIcon field="entityType" currentSortField={sortField} currentSortDirection={sortDirection} />
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap">Description</TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap">Performed By</TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('status')}>
+                        Status
+                        <SortIcon field="status" currentSortField={sortField} currentSortDirection={sortDirection} />
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-12 px-4 font-semibold whitespace-nowrap text-right w-20">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((entry) => {
+                    const statusCfg = getStatusConfig(entry.status)
+                    const StatusIcon = statusCfg.icon
+                    return (
+                      <TableRow
+                        key={entry.uuid}
+                        className="cursor-pointer hover:bg-muted/50 border-b"
+                        onClick={() => handleViewDetail(entry)}
+                      >
+                        <TableCell className="h-10 px-4 font-mono text-xs">
+                          <div>{formatRelativeTime(entry.createdAt)}</div>
+                          <div className="text-muted-foreground">{format(new Date(entry.createdAt), 'HH:mm:ss')}</div>
+                        </TableCell>
+                        <TableCell className="h-10 px-4">
+                          <Badge variant="outline" className={getCategoryColor(entry.category)}>
+                            {entry.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="h-10 px-4">
+                          <Badge variant="outline" className={getActionColor(entry.action)}>
+                            {entry.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="h-10 px-4 text-sm">{entry.entityType}</TableCell>
+                        <TableCell className="h-10 px-4 max-w-62.5 truncate text-sm text-muted-foreground">
+                          {entry.description || '—'}
+                        </TableCell>
+                        <TableCell className="h-10 px-4 text-sm">
+                          {entry.performedBy ? (
+                            <div>
+                              <div className="font-medium">{entry.performedBy.fullName || 'Unknown'}</div>
+                              {entry.performedBy.email && (
+                                <div className="text-xs text-muted-foreground">{entry.performedBy.email}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">System</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="h-10 px-4">
+                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.bg} ${statusCfg.color}`}>
+                            <StatusIcon className="h-3 w-3" />
+                            {entry.status}
+                          </div>
+                        </TableCell>
+                        <TableCell className="h-10 px-4 text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => { e.stopPropagation(); handleViewDetail(entry) }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Pagination Footer */}
+          {totalCount > 0 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                  <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
+                    <SelectTrigger className="h-8 w-17.5 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="h-4 w-px bg-border" />
+                <div className="text-sm text-muted-foreground font-medium">
+                  Showing {startRecord.toLocaleString()} to {endRecord.toLocaleString()} of {totalCount.toLocaleString()} entries
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage <= 1} onClick={() => setCurrentPage(1)}>
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {getPaginationPages(currentPage, totalPages).map((page, idx) => (
+                  page === '...' ? (
+                    <Button
+                      key={`ellipsis-${idx}`}
+                      variant="ghost"
+                      size="icon"
+                      disabled
+                      className="h-8 w-8 p-0 text-sm"
+                    >
+                      ...
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="icon"
+                      onClick={() => setCurrentPage(page as number)}
+                      className="h-8 w-8 p-0 text-sm font-medium"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Detail Dialog */}
       <AuditLogDetail
