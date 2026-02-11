@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import {
   ScrollText,
@@ -19,11 +19,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Activity,
-  Shield,
-  Clock,
   User,
-  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -345,6 +341,8 @@ function SortIcon({ field, currentSortField, currentSortDirection }: { field: st
 // ── Main Page ───────────────────────────────────────────────────────────────
 
 export default function AuditLogs() {
+  const queryClient = useQueryClient()
+
   // ── State ──
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -390,16 +388,6 @@ export default function AuditLogs() {
         pageSize,
         sortField,
         sortDirection,
-      }),
-  })
-
-  const { data: stats } = useQuery({
-    queryKey: ['auditLogs', 'stats', filterCategory, startDate, endDate],
-    queryFn: () =>
-      auditLogApi.getStats({
-        category: filterCategory || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
       }),
   })
 
@@ -460,70 +448,19 @@ export default function AuditLogs() {
   const endRecord = Math.min(currentPage * pageSize, totalCount)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ScrollText className="h-8 w-8" />
-            Audit Logs
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            View all system activity and changes across the platform
-          </p>
+          <h1 className="text-2xl font-bold">Audit Logs</h1>
+          <p className="text-sm text-muted-foreground">View all system activity and changes across the platform</p>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEntries.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.todayEntries.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Categories</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.byCategory.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Failed Actions</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.failedEntries.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-1">
+          <div className="relative">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search audit logs..."
-              className="pl-8"
+              className="pl-8 w-64"
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
             />
@@ -538,14 +475,6 @@ export default function AuditLogs() {
               </Button>
             )}
           </div>
-          {activeFilterCount > 0 && (
-            <Badge variant="secondary" className="gap-1">
-              <Filter className="h-3 w-3" />
-              {activeFilterCount} active
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
           <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
             <SelectTrigger className="w-25">
               <SelectValue />
@@ -560,20 +489,18 @@ export default function AuditLogs() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => {
-              // Trigger react-query refetch by changing a key
-            }}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['auditLogs'] })}
             disabled={isFetching}
+            title="Refresh"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
           <Popover open={showFilters} onOpenChange={setShowFilters}>
             <PopoverTrigger asChild>
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
+              <Button variant="outline" size="icon" title="Filters">
+                <Filter className="h-4 w-4" />
                 {activeFilterCount > 0 && (
-                  <Badge variant="secondary" className="ml-2 h-5 px-1.5">{activeFilterCount}</Badge>
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">{activeFilterCount}</span>
                 )}
               </Button>
             </PopoverTrigger>
