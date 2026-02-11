@@ -302,6 +302,7 @@ public class NavigationService : INavigationService
                     new() { TitleKey = "navigation.databaseBackup", Url = "/settings/database-backup", Icon = "HardDrive", RequiredPermission = "settings.database-backup.view" },
                     new() { TitleKey = "navigation.systemUpdate", Url = "/settings/system-update", Icon = "RefreshCcw", RequiredPermission = "settings.system-update.view" },
                     new() { TitleKey = "navigation.integrations", Url = "/integrations", Icon = "Radio", RequiredPermission = "settings.integrations.view" },
+                    new() { TitleKey = "navigation.developer", Url = "/settings/general?tab=developer", Icon = "Code", RequiredPermission = "settings.developer.view" },
                 }
             },
 

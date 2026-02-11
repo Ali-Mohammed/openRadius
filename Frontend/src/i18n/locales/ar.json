@@ -62,7 +62,8 @@
     "connectorSettings": "الإعدادات",
     "microservices": "الخدمات المصغرة",
     "radiusSyncService": "خدمة مزامنة Radius",
-    "auditLogs": "سجلات التدقيق"
+    "auditLogs": "سجلات التدقيق",
+    "developer": "المطور"
   },
   "dashboard": {
     "title": "لوحة التحكم",

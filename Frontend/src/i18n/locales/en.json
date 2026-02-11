@@ -68,7 +68,8 @@
     "connectorSettings": "Settings",
     "microservices": "Microservices",
     "radiusSyncService": "Radius Sync Service",
-    "auditLogs": "Audit Logs"
+    "auditLogs": "Audit Logs",
+    "developer": "Developer"
   },
   "dashboard": {
     "title": "Dashboard",

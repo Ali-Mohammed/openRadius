@@ -84,8 +84,48 @@ public static class SeedData
         {
             Console.WriteLine($"⊘ Skipping RolePermissions (already exists: {rolePermissionsCount})");
         }
+
+        // Seed System Settings defaults
+        SeedSystemSettings(context);
         
         Console.WriteLine("=== Seed data check complete ===");
+    }
+
+    /// <summary>
+    /// Seeds default system settings if they don't already exist.
+    /// </summary>
+    private static void SeedSystemSettings(MasterDbContext context)
+    {
+        var defaults = new List<SystemSetting>
+        {
+            new()
+            {
+                Key = SystemSettingKeys.SwaggerEnabled,
+                Value = "false",
+                Description = "Controls whether the Swagger API documentation endpoint is accessible",
+                Category = "Developer",
+                DataType = "boolean",
+                IsEditable = true,
+            },
+        };
+
+        var existingKeys = context.SystemSettings
+            .Where(s => !s.IsDeleted)
+            .Select(s => s.Key)
+            .ToHashSet();
+
+        var toAdd = defaults.Where(d => !existingKeys.Contains(d.Key)).ToList();
+
+        if (toAdd.Count > 0)
+        {
+            context.SystemSettings.AddRange(toAdd);
+            context.SaveChanges();
+            Console.WriteLine($"✓ {toAdd.Count} system settings seeded");
+        }
+        else
+        {
+            Console.WriteLine("⊘ System settings already up to date");
+        }
     }
 
     private static void SeedPermissions(MasterDbContext context)
@@ -519,6 +559,9 @@ public static class SeedData
             // System Update
             new Permission { Name = "settings.system-update.view", Description = "View system update status", Category = "Settings" },
             new Permission { Name = "settings.system-update.update", Description = "Apply system updates", Category = "Settings" },
+            // System Settings (Developer)
+            new Permission { Name = "settings.developer.view", Description = "View developer settings (Swagger toggle)", Category = "Settings" },
+            new Permission { Name = "settings.developer.update", Description = "Update developer settings", Category = "Settings" },
             // User Management
             new Permission { Name = "users.view", Description = "View users", Category = "UserManagement" },
             new Permission { Name = "users.create", Description = "Create users", Category = "UserManagement" },

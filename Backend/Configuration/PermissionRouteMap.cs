@@ -368,6 +368,12 @@ public static class PermissionRouteMap
             new("GET",    "api/system-update/status",                 "settings.system-update.view"),
 
             // ═══════════════════════════════════════════════════════════
+            //  MANAGEMENT — System Settings (Developer)
+            // ═══════════════════════════════════════════════════════════
+            new("GET",    "api/system-settings/swagger",              "settings.developer.view"),
+            new("PUT",    "api/system-settings/swagger",              "settings.developer.update"),
+
+            // ═══════════════════════════════════════════════════════════
             //  MANAGEMENT — Server Monitoring (also has [RequirePermission] attributes)
             // ═══════════════════════════════════════════════════════════
             new("GET",    "api/server-monitoring/resources",          "server-monitoring.view"),

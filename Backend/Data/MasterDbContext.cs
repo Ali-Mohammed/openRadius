@@ -28,6 +28,7 @@ public class MasterDbContext : DbContext
     public DbSet<BackupHistory> BackupHistories { get; set; }
     public DbSet<ApprovedMicroservice> ApprovedMicroservices { get; set; }
     public DbSet<EdgeRuntimeScript> EdgeRuntimeScripts { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -179,6 +180,41 @@ public class MasterDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(uw => uw.WorkspaceId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => e.Key).IsUnique();
+            entity.HasIndex(e => new { e.Category, e.IsDeleted });
+            entity.Property(e => e.Key).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Value).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Category).HasMaxLength(50);
+            entity.Property(e => e.DataType).HasMaxLength(20);
+
+            // Concurrency token
+            entity.Property(e => e.RowVersion)
+                  .IsRowVersion()
+                  .HasColumnName("xmin")
+                  .HasColumnType("xid");
+
+            // FK → Users (audit)
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.UpdatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.UpdatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.DeletedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.DeletedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

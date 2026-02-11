@@ -275,6 +275,9 @@ try
     // Add Edge Runtime Script Service for generating install scripts
     builder.Services.AddScoped<IEdgeRuntimeScriptService, EdgeRuntimeScriptService>();
 
+    // Add System Settings Service for global configuration (Swagger toggle, etc.)
+    builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+
     // Add Kafka Consumer Service for CDC monitoring
     builder.Services.AddHostedService<KafkaConsumerService>();
 
@@ -585,11 +588,11 @@ try
     // CORS must be before authentication/authorization
     app.UseCors("AllowFrontend");
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    // Swagger is always registered but gated by the SwaggerEnabled system setting.
+    // The middleware returns 404 when the setting is disabled.
+    app.UseSwaggerGate();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
     // Rate limiting should be early in the pipeline
     app.UseRateLimiter();

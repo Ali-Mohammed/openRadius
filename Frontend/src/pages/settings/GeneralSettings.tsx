@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DollarSign, Users, Tags, Coins, FileText } from 'lucide-react'
+import { DollarSign, Users, Tags, Coins, FileText, Code } from 'lucide-react'
 import { type FilterColumn } from '@/components/QueryBuilder'
 import { settingsApi } from '@/api/settingsApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -11,6 +11,7 @@ import CashbackTab from './tabs/CashbackTab'
 import TagSyncTab from './tabs/TagSyncTab'
 import PaymentMethodsTab from './tabs/PaymentMethodsTab'
 import LogsTab from './tabs/LogsTab'
+import DeveloperTab from './tabs/DeveloperTab'
 
 export default function GeneralSettings() {
   const { currentWorkspaceId, isLoading: isLoadingWorkspace } = useWorkspace()
@@ -91,6 +92,10 @@ export default function GeneralSettings() {
             <FileText className="h-4 w-4 mr-2" />
             Logs
           </TabsTrigger>
+          <TabsTrigger value="developer">
+            <Code className="h-4 w-4 mr-2" />
+            Developer
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
@@ -134,6 +139,10 @@ export default function GeneralSettings() {
 
         <TabsContent value="logs" className="space-y-4">
           <LogsTab />
+        </TabsContent>
+
+        <TabsContent value="developer" className="space-y-4">
+          <DeveloperTab />
         </TabsContent>
       </Tabs>
     </div>
