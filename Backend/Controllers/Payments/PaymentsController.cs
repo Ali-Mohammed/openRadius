@@ -2395,8 +2395,7 @@ namespace Backend.Controllers.Payments
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> ForceCompletePayment(
             Guid uuid,
-            [FromForm][Required][MaxLength(2000)] string justification,
-            [FromForm][Required] IFormFile document)
+            [FromForm] ForceCompletePaymentRequest request)
         {
             using var activity = ActivitySource.StartActivity("ForceCompletePayment");
             activity?.SetTag("payment.uuid", uuid);
@@ -2408,6 +2407,9 @@ namespace Backend.Controllers.Payments
                 {
                     return Unauthorized(new { message = "User not authenticated" });
                 }
+
+                var justification = request.Justification;
+                var document = request.Document;
 
                 // Validate justification
                 if (string.IsNullOrWhiteSpace(justification))

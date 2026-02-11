@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace Backend.DTOs
 {
@@ -259,5 +260,18 @@ namespace Backend.DTOs
         public string Status { get; set; } = string.Empty;
         public decimal? DailySpendingLimit { get; set; }
         public decimal? MaxFillLimit { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for force-completing a payment with proof documentation.
+    /// </summary>
+    public class ForceCompletePaymentRequest
+    {
+        [Required]
+        [MaxLength(2000)]
+        public string Justification { get; set; } = string.Empty;
+
+        [Required]
+        public IFormFile Document { get; set; } = null!;
     }
 }

@@ -643,28 +643,42 @@ try
     }
 
     // Also create a default dashboard pointing to workspace 1 for convenience
-    var workspace1Connection = GetTenantConnectionString(
-        builder.Configuration.GetConnectionString("DefaultConnection")!,
-        1
-    );
-    var defaultHangfireOptions = new PostgreSqlStorageOptions
+    // Only if at least one workspace exists — otherwise Hangfire can't connect
+    using (var defaultScope = app.Services.CreateScope())
     {
-        SchemaName = "hangfire"
-    };
-    var dashboardStorage = new PostgreSqlStorage(
-        new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(workspace1Connection, defaultHangfireOptions),
-        defaultHangfireOptions);
-    JobStorage.Current = dashboardStorage;
+        var masterCtx = defaultScope.ServiceProvider.GetRequiredService<MasterDbContext>();
+        var firstWorkspace = masterCtx.Workspaces.Where(w => w.DeletedAt == null).OrderBy(w => w.Id).FirstOrDefault();
 
-    app.UseHangfireDashboard("/hangfire", new DashboardOptions
-    {
-        Authorization = new[] { new HangfireAuthorizationFilter() },
-        DashboardTitle = "OpenRadius Jobs - Workspace 1 (Default)",
-        DisplayStorageConnectionString = false,
-        AppPath = null
-    }, dashboardStorage);
+        if (firstWorkspace != null)
+        {
+            var workspace1Connection = GetTenantConnectionString(
+                builder.Configuration.GetConnectionString("DefaultConnection")!,
+                firstWorkspace.Id
+            );
+            var defaultHangfireOptions = new PostgreSqlStorageOptions
+            {
+                SchemaName = "hangfire"
+            };
+            var dashboardStorage = new PostgreSqlStorage(
+                new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(workspace1Connection, defaultHangfireOptions),
+                defaultHangfireOptions);
+            JobStorage.Current = dashboardStorage;
 
-    Console.WriteLine($"📊 Default Hangfire dashboard at: /hangfire (points to Workspace 1)");
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = new[] { new HangfireAuthorizationFilter() },
+                DashboardTitle = $"OpenRadius Jobs - {firstWorkspace.Title} (Default)",
+                DisplayStorageConnectionString = false,
+                AppPath = null
+            }, dashboardStorage);
+
+            Console.WriteLine($"📊 Default Hangfire dashboard at: /hangfire (points to Workspace {firstWorkspace.Id})");
+        }
+        else
+        {
+            Console.WriteLine("⊘ No workspaces found — skipping default Hangfire dashboard");
+        }
+    }
 
     app.MapControllers();
     app.MapHealthChecks("/health");
