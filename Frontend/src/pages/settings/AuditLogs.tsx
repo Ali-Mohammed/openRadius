@@ -567,7 +567,7 @@ export default function AuditLogs() {
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden relative">
           {isLoading ? (
-            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
               <Table>
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
@@ -619,7 +619,7 @@ export default function AuditLogs() {
               )}
             </div>
           ) : (
-            <div className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
+            <div className="overflow-auto" style={{ height: 'calc(100vh - 220px)' }}>
               {isFetching && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-20 flex items-center justify-center">
                   <div className="bg-background p-4 rounded-lg shadow-lg">
