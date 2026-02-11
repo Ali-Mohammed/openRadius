@@ -27,16 +27,26 @@ public class SwaggerGateMiddleware
     {
         if (context.Request.Path.StartsWithSegments("/swagger"))
         {
-            var settingsService = context.RequestServices.GetRequiredService<ISystemSettingsService>();
-            var isEnabled = await settingsService.GetBoolSettingAsync("SwaggerEnabled", defaultValue: false);
-
-            if (!isEnabled)
+            try
             {
-                _logger.LogDebug("Swagger request blocked — SwaggerEnabled is false. Path: {Path}", context.Request.Path);
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync("{\"error\":\"Not Found\"}");
-                return;
+                var settingsService = context.RequestServices.GetRequiredService<ISystemSettingsService>();
+                var isEnabled = await settingsService.GetBoolSettingAsync("SwaggerEnabled", defaultValue: false);
+
+                if (!isEnabled)
+                {
+                    _logger.LogDebug("Swagger request blocked — SwaggerEnabled is false. Path: {Path}", context.Request.Path);
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync("{\"error\":\"Not Found\"}");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                // If the SystemSettings table doesn't exist yet (pending migration)
+                // or the database is unreachable, allow Swagger through rather than
+                // returning 500. This prevents a chicken-and-egg problem during first deploy.
+                _logger.LogWarning(ex, "SwaggerGateMiddleware: failed to read SwaggerEnabled setting — allowing Swagger through");
             }
         }
 

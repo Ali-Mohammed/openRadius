@@ -9,6 +9,11 @@
 # Stage 1: Build Stage
 # -----------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+# Workaround: Disable W^X memory mapping to fix mmap EINVAL error
+# in BuildKit's overlay filesystem on arm64 (.NET SDK 10.0.103+)
+ENV DOTNET_EnableWriteXorExecute=0
+
 WORKDIR /src
 
 # Copy project file and restore dependencies (cached layer)
