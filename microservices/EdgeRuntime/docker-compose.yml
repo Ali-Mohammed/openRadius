@@ -42,6 +42,8 @@ services:
       dockerfile: Dockerfile
     container_name: connect_local1
     platform: linux/amd64
+    extra_hosts:
+      - "kafka.open-radius.org:157.230.113.249"
     depends_on:
       postgres_local1:
         condition: service_healthy

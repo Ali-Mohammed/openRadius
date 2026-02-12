@@ -264,6 +264,32 @@ public class DebeziumController : ControllerBase
             ?? "http://localhost:8083";
     }
 
+    // Build the Debezium source connector config dictionary
+    private Dictionary<string, object> BuildConnectorConfig(DebeziumConnector connector, string hostname)
+    {
+        return new Dictionary<string, object>
+        {
+            { "connector.class", connector.ConnectorClass },
+            { "database.hostname", hostname },
+            { "database.port", connector.DatabasePort.ToString() },
+            { "database.user", connector.DatabaseUser },
+            { "database.password", connector.DatabasePassword },
+            { "database.dbname", connector.DatabaseName },
+            { "database.server.name", connector.DatabaseServerName },
+            { "topic.prefix", connector.DatabaseServerName },
+            { "plugin.name", connector.PluginName },
+            { "slot.name", connector.SlotName },
+            { "publication.autocreate.mode", connector.PublicationAutocreateMode },
+            { "table.include.list", connector.TableIncludeList },
+            { "snapshot.mode", connector.SnapshotMode },
+            // Ensure schema is included in CDC messages for sink connector compatibility
+            { "key.converter", "org.apache.kafka.connect.json.JsonConverter" },
+            { "value.converter", "org.apache.kafka.connect.json.JsonConverter" },
+            { "key.converter.schemas.enable", "true" },
+            { "value.converter.schemas.enable", "true" }
+        };
+    }
+
     // Connector endpoints - List all connectors
     [HttpGet("connectors")]
     public async Task<ActionResult> GetConnectors()
@@ -368,23 +394,7 @@ public class DebeziumController : ControllerBase
                 hostname = "openradius-postgres";
             }
 
-            // Build Debezium connector config
-            var config = new Dictionary<string, object>
-            {
-                { "connector.class", connector.ConnectorClass },
-                { "database.hostname", hostname },
-                { "database.port", connector.DatabasePort.ToString() },
-                { "database.user", connector.DatabaseUser },
-                { "database.password", connector.DatabasePassword },
-                { "database.dbname", connector.DatabaseName },
-                { "database.server.name", connector.DatabaseServerName },
-                { "topic.prefix", connector.DatabaseServerName },
-                { "plugin.name", connector.PluginName },
-                { "slot.name", connector.SlotName },
-                { "publication.autocreate.mode", connector.PublicationAutocreateMode },
-                { "table.include.list", connector.TableIncludeList },
-                { "snapshot.mode", connector.SnapshotMode }
-            };
+            var config = BuildConnectorConfig(connector, hostname);
 
             // Add any additional config from JSON
             if (!string.IsNullOrEmpty(connector.AdditionalConfig))
@@ -555,23 +565,7 @@ public class DebeziumController : ControllerBase
                 hostname = "openradius-postgres";
             }
 
-            // Build Debezium connector config
-            var config = new Dictionary<string, object>
-            {
-                { "connector.class", connector.ConnectorClass },
-                { "database.hostname", hostname },
-                { "database.port", connector.DatabasePort.ToString() },
-                { "database.user", connector.DatabaseUser },
-                { "database.password", connector.DatabasePassword },
-                { "database.dbname", connector.DatabaseName },
-                { "database.server.name", connector.DatabaseServerName },
-                { "topic.prefix", connector.DatabaseServerName },
-                { "plugin.name", connector.PluginName },
-                { "slot.name", connector.SlotName },
-                { "publication.autocreate.mode", connector.PublicationAutocreateMode },
-                { "table.include.list", connector.TableIncludeList },
-                { "snapshot.mode", connector.SnapshotMode }
-            };
+            var config = BuildConnectorConfig(connector, hostname);
 
             // Add any additional config from JSON
             if (!string.IsNullOrEmpty(connector.AdditionalConfig))
