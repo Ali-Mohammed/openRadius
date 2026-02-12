@@ -89,8 +89,7 @@ services:
 
 networks:
   openradius-network:
-    external: true
-    name: openradius_openradius-network
+    driver: bridge
 
 volumes:
   postgres_data:
