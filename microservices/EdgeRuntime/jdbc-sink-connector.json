@@ -1,5 +1,5 @@
 {
-  "name": "jdbc-sink-connector",
+  "name": "jdbc-sink-workspace_1",
   "config": {
     "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
     "tasks.max": "1",
@@ -11,11 +11,15 @@
     "delete.enabled": "true",
     "primary.key.mode": "record_key",
     "primary.key.fields": "Id",
-    "auto.create": "false",
+    "auto.create": "true",
     "auto.evolve": "true",
     "schema.evolution": "basic",
     "quote.identifiers": "true",
-    "table.name.format": "public.RadiusUsers",
+    "transforms": "route",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "workspace_1.public.(.*)",
+    "transforms.route.replacement": "public.$1",
+    "table.name.format": "${topic}",
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "true",
@@ -23,7 +27,7 @@
     "errors.tolerance": "all",
     "errors.log.enable": "true",
     "errors.log.include.messages": "true",
-    "errors.deadletterqueue.topic.name": "dlq-jdbc-sink-errors",
+    "errors.deadletterqueue.topic.name": "dlq-jdbc-sink-workspace_1",
     "errors.deadletterqueue.topic.replication.factor": "1",
     "errors.deadletterqueue.context.headers.enable": "true"
   }
