@@ -13,6 +13,26 @@ TEST_USER="${3:-test_acct_user}"
 SESSION_ID="test-session-$(date +%s)"
 PROJECT="${COMPOSE_PROJECT_NAME:-edge}"
 
+# Determine if we should run radclient inside Docker (needed for macOS Docker Desktop UDP)
+USE_DOCKER="${USE_DOCKER:-auto}"
+if [[ "$USE_DOCKER" == "auto" ]]; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+        USE_DOCKER="yes"
+    else
+        USE_DOCKER="no"
+    fi
+fi
+
+# Wrapper: run radclient either locally or inside the freeradius container
+run_radclient() {
+    local args="$*"
+    if [[ "$USE_DOCKER" == "yes" ]]; then
+        docker exec -i "${PROJECT}_freeradius" radclient $args
+    else
+        radclient $args
+    fi
+}
+
 echo "============================================"
 echo "  EdgeRuntime - Accounting Pipeline Test"
 echo "  Server: $RADIUS_HOST"
@@ -21,11 +41,19 @@ echo "  Session: $SESSION_ID"
 echo "  Destination: ClickHouse (insert-only)"
 echo "============================================"
 
-if ! command -v radclient &> /dev/null; then
-    echo "❌ radclient not found. Install freeradius-utils:"
-    echo "   macOS:  brew install freeradius-server"
-    echo "   Linux:  apt install freeradius-utils"
-    exit 1
+if [[ "$USE_DOCKER" == "yes" ]]; then
+    echo "  Mode: Docker (radclient runs inside ${PROJECT}_freeradius)"
+    if ! docker ps --format '{{.Names}}' | grep -q "${PROJECT}_freeradius"; then
+        echo "❌ ${PROJECT}_freeradius container not running"
+        exit 1
+    fi
+else
+    if ! command -v radclient &> /dev/null; then
+        echo "❌ radclient not found. Install freeradius-utils:"
+        echo "   macOS:  brew install freeradius-server"
+        echo "   Linux:  apt install freeradius-utils"
+        exit 1
+    fi
 fi
 
 # --- Accounting Start ---
@@ -42,7 +70,7 @@ Called-Station-Id = AA:BB:CC:DD:EE:FF
 Calling-Station-Id = 11:22:33:44:55:66
 Acct-Authentic = RADIUS
 Service-Type = Framed-User
-Framed-Protocol = PPP" | radclient -x "$RADIUS_HOST:1813" acct "$RADIUS_SECRET"
+Framed-Protocol = PPP" | run_radclient -x "$RADIUS_HOST:1813" acct "$RADIUS_SECRET"
 echo "  ✓ Start sent"
 
 sleep 2
@@ -57,7 +85,7 @@ NAS-IP-Address = 192.168.1.1
 Acct-Session-Time = 300
 Acct-Input-Octets = 1048576
 Acct-Output-Octets = 5242880
-Framed-IP-Address = 10.0.0.100" | radclient -x "$RADIUS_HOST:1813" acct "$RADIUS_SECRET"
+Framed-IP-Address = 10.0.0.100" | run_radclient -x "$RADIUS_HOST:1813" acct "$RADIUS_SECRET"
 echo "  ✓ Interim update sent"
 
 sleep 2
@@ -73,7 +101,7 @@ Acct-Session-Time = 600
 Acct-Input-Octets = 2097152
 Acct-Output-Octets = 10485760
 Acct-Terminate-Cause = User-Request
-Framed-IP-Address = 10.0.0.100" | radclient -x "$RADIUS_HOST:1813" acct "$RADIUS_SECRET"
+Framed-IP-Address = 10.0.0.100" | run_radclient -x "$RADIUS_HOST:1813" acct "$RADIUS_SECRET"
 echo "  ✓ Stop sent"
 
 # --- Verify ---
