@@ -594,10 +594,10 @@ FB_METRICS=$(curl -sf "http://localhost:${FLUENT_BIT_METRICS_PORT:-2020}/api/v1/
 if [ -n "$FB_METRICS" ]; then
     echo "    ✓ Fluent Bit is running"
     # Extract key metrics
-    FB_INPUT=$(echo "$FB_METRICS" | grep -o '"input_records_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2)
-    FB_OUTPUT=$(echo "$FB_METRICS" | grep -o '"output_proc_records_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2)
-    FB_ERRORS=$(echo "$FB_METRICS" | grep -o '"output_errors_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2)
-    FB_RETRIES=$(echo "$FB_METRICS" | grep -o '"output_retries_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2)
+    FB_INPUT=$(echo "$FB_METRICS" | grep -o '"input_records_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2 || true)
+    FB_OUTPUT=$(echo "$FB_METRICS" | grep -o '"output_proc_records_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2 || true)
+    FB_ERRORS=$(echo "$FB_METRICS" | grep -o '"output_errors_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2 || true)
+    FB_RETRIES=$(echo "$FB_METRICS" | grep -o '"output_retries_total":[0-9]*' 2>/dev/null | head -1 | cut -d: -f2 || true)
     echo "    Input records:  ${FB_INPUT:-n/a}"
     echo "    Output records: ${FB_OUTPUT:-n/a}"
     echo "    Errors:         ${FB_ERRORS:-n/a}"
