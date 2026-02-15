@@ -27,16 +27,16 @@ Designed for ISP environments that need high-performance RADIUS authentication, 
 │   │  DB2: auth    │                     │    • RadiusProfiles                     │  │
 │   │  DB3: rate    │                     │    • RadiusCustomAttributes (reply AVPs)│  │
 │   └──────┬───────┘                     │  FreeRADIUS Tables:                     │  │
-│          │                              │    • radacct (accounting sessions)      │  │
-│          │       ┌──────────────────┐   │    • radpostauth (auth log)             │  │
-│          └──────►│   FreeRADIUS 3.2  │◄─┤    • radcheck/radreply (overrides)     │  │
+│          │                              │    • radpostauth (auth log)             │  │
+│          │       ┌──────────────────┐   │    • radcheck/radreply (overrides)      │  │
+│          └──────►│   FreeRADIUS 3.2  │◄─┤                                         │  │
 │                  │                    │  └─────────────────────────────────────────┘  │
 │                  │  Auth:  SQL module │                                               │
 │                  │         RadiusUsers│                                               │
 │                  │  NAS:   SQL client │                                               │
 │                  │         RadiusNas  │                                               │
-│                  │  Acct:  SQL +      │                                               │
-│                  │         linelog    │                                               │
+│                  │  Acct:  linelog    │                                               │
+│                  │         (CH only)  │                                               │
 │                  └────────┬──────────┘                                               │
 │                           │ JSON linelog                                              │
 │                           │ (accounting.json + postauth.json)                        │
@@ -56,10 +56,10 @@ Designed for ISP environments that need high-performance RADIUS authentication, 
 
 | Service            | Image                                        | Port(s)                              | Purpose                                                        |
 |--------------------|----------------------------------------------|--------------------------------------|----------------------------------------------------------------|
-| **PostgreSQL**     | `postgres:18.1`                              | `5434` → 5432                        | Edge DB — CDC-synced tables + FreeRADIUS radacct/postauth       |
+| **PostgreSQL**     | `postgres:18.1`                              | `5434` → 5432                        | Edge DB — CDC-synced tables + FreeRADIUS postauth/check/reply    |
 | **Redis**          | `redis:7-alpine`                             | `6380` → 6379                        | Auth cache (DB2), sessions (DB1), general (DB0), rate limit (DB3) |
 | **Kafka Connect**  | `debezium/connect:3.0.0.Final` + JDBC        | `8084` → 8083                        | JDBC Sink — cloud CDC → local PostgreSQL (4 tables)             |
-| **ClickHouse**     | `clickhouse/clickhouse-server:24.8-alpine`   | `8123` (HTTP), `9000` (native)       | Columnar analytics — accounting + auth event storage            |
+| **ClickHouse**     | `clickhouse/clickhouse-server:24.8-alpine`   | `8123` (HTTP), `9000` (native)       | **Sole accounting destination** — insert-only analytics engine   |
 | **Fluent Bit**     | `fluent/fluent-bit:3.2`                      | `2020` (metrics)                     | JSON linelog → ClickHouse HTTP pipeline (acct + postauth)       |
 | **FreeRADIUS**     | `freeradius/freeradius-server:latest`         | `1812/udp`, `1813/udp`, `18120`      | RADIUS authentication + accounting server                       |
 
@@ -85,7 +85,7 @@ docker compose up -d
 # 5. Test authentication
 ./scripts/test-auth.sh
 
-# 6. Test accounting pipeline (PostgreSQL + ClickHouse)
+# 6. Test accounting pipeline (ClickHouse only)
 ./scripts/test-accounting.sh
 ```
 
@@ -134,7 +134,7 @@ EdgeRuntime/
 │       │                                        #   client_query → RadiusNasDevices
 │       │                                        #   authorize_check_query → RadiusUsers
 │       │                                        #   authorize_reply_query → RadiusCustomAttributes
-│       │                                        #   Accounting & post-auth → radacct / radpostauth
+│       │                                        #   Post-auth → radpostauth (no acct queries)
 │       │
 │       ├── sites-available/
 │       │   └── default                          # Virtual server: auth + acct + post-auth pipelines
@@ -148,7 +148,7 @@ EdgeRuntime/
 │   ├── clickhouse/
 │   │   └── 01-schema.sql                        # radius_analytics DB: tables, MVs, views
 │   └── postgres/
-│       └── 01-init.sql                          # RadiusUsers schema + radacct + radpostauth + check/reply
+│       └── 01-init.sql                          # RadiusUsers schema + radpostauth + check/reply
 │
 └── scripts/
     ├── health-check.sh                          # Service health + connector status + table row counts
@@ -235,15 +235,10 @@ FreeRADIUS (startup + reload) ──► SQL read_clients ──► "RadiusNasDev
   - `localhost` (127.0.0.1) — secret: `testing123` — for health checks & testing
   - `docker-network` (172.16.0.0/12) — secret: `testing123` — for inter-container communication
 
-### 4. Accounting (Dual-Write Pipeline)
+### 4. Accounting (ClickHouse Only — Insert-Only)
 
 ```
 RADIUS Accounting Packet (Start / Interim-Update / Stop)
-    │
-    ├──► SQL module ──► PostgreSQL (radacct)
-    │    • Session lifecycle: Start creates, Interim updates, Stop finalizes
-    │    • Consolidated: 1 row per session (upsert by acctuniqueid)
-    │    • Used for: operational queries, concurrent session checks
     │
     └──► linelog_accounting ──► /var/log/radius/accounting.json
                                         │
@@ -253,11 +248,21 @@ RADIUS Accounting Packet (Start / Interim-Update / Stop)
                                         │ lua filter (sanitize numerics, compute gigawords)
                                         ▼
                                  ClickHouse (HTTP INSERT → radius_accounting)
-                                        • Event-sourced: every event is a separate row
+                                        • Insert-only / append-only (no UPDATEs)
+                                        • Event-sourced: every event is an immutable row
                                         • Partitioned by month (toYYYYMM)
                                         • Ordered by (username, event_timestamp, acctsessionid)
                                         • 2-year TTL auto-deletion
                                         • Feeds materialized views for real-time analytics
+```
+
+**Why ClickHouse-only (no PostgreSQL radacct):**
+
+- **Insert-only = fastest write path** — no UPDATE locks, no upsert contention
+- **Event-sourced model** — every Start/Interim/Stop is an immutable row (better for auditing)
+- **Purpose-built engine** — ClickHouse handles millions of inserts/day natively
+- **Separation of concerns** — PostgreSQL = relational (auth), ClickHouse = analytical (accounting)
+- **Session tracking** handled by `radutmp` module (no radacct dependency)
 ```
 
 **Fluent Bit processing pipeline:**
@@ -381,13 +386,14 @@ ORDER BY event_timestamp;
 
 | Table            | Purpose                                         |
 |------------------|------------------------------------------------ |
-| `radacct`        | Accounting sessions (1 row per session, upsert) |
 | `radpostauth`    | Post-auth log (every auth attempt)              |
 | `radcheck`       | Per-user check items (optional overrides)       |
 | `radreply`       | Per-user reply items (optional overrides)       |
 | `radgroupcheck`  | Per-group check items                           |
 | `radgroupreply`  | Per-group reply items                           |
 | `radusergroup`   | User-to-group mappings                          |
+
+> **Note:** No `radacct` table — all accounting data is stored exclusively in ClickHouse.
 
 ---
 
@@ -470,7 +476,7 @@ Full reference in `.env.example`:
 
 - **authorize**: preprocess → SQL (RadiusUsers) → PAP/CHAP
 - **authenticate**: PAP, CHAP, MS-CHAP
-- **accounting**: SQL (radacct) + `accounting_json` (linelog) + detail
+- **accounting**: `accounting_json` (linelog → Fluent Bit → ClickHouse) + detail + radutmp
 - **post-auth**: SQL (radpostauth) + `postauth_json` (linelog) + default timeouts (Session=86400s, Idle=3600s)
 
 ### Custom Dictionary (`config/freeradius/dictionary`)
@@ -488,7 +494,7 @@ Full reference in `.env.example`:
 | `scripts/health-check.sh`     | Checks all 6 containers, connector status, PG/CH table counts, Redis     |
 | `scripts/register-connector.sh`| Registers JDBC Sink connector (interactive — prompts to recreate if exists)|
 | `scripts/test-auth.sh`        | Auto-discovers a CDC-synced user, runs `radtest`, tests reject case       |
-| `scripts/test-accounting.sh`  | Sends Start → Interim → Stop, verifies data in both PostgreSQL and ClickHouse |
+| `scripts/test-accounting.sh`  | Sends Start → Interim → Stop, verifies data in ClickHouse (sole destination) |
 
 ---
 
