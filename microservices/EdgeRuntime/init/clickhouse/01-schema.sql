@@ -1,6 +1,9 @@
 -- ============================================================================
 -- ClickHouse Schema for RADIUS Accounting Analytics
 -- Enterprise ISP - High-performance columnar storage
+--
+-- Data source: FreeRADIUS → linelog JSON → Fluent Bit → ClickHouse HTTP
+-- Each row represents one accounting event (start / interim / stop / on / off)
 -- ============================================================================
 
 -- ===========================================
@@ -8,35 +11,27 @@
 -- ===========================================
 CREATE TABLE IF NOT EXISTS radius_accounting
 (
+    -- Event timestamp (Unix epoch from FreeRADIUS %l)
+    event_timestamp     UInt64,
+
     -- Session identifiers
-    radacctid           UInt64,
     acctsessionid       String,
-    acctuniqueid        String,
+    acctuniqueid        String DEFAULT '',
 
     -- User info
-    username            String,
+    username            String DEFAULT '',
     realm               String DEFAULT '',
 
     -- NAS info
-    nasipaddress        String,
+    nasipaddress        String DEFAULT '',
     nasportid           String DEFAULT '',
     nasporttype         String DEFAULT '',
 
-    -- Timestamps
-    acctstarttime       DateTime64(3, 'UTC'),
-    acctupdatetime      Nullable(DateTime64(3, 'UTC')),
-    acctstoptime        Nullable(DateTime64(3, 'UTC')),
-
     -- Session metrics
-    acctinterval        UInt64 DEFAULT 0,
     acctsessiontime     UInt64 DEFAULT 0,
     acctauthentic       String DEFAULT '',
 
-    -- Connection info
-    connectinfo_start   String DEFAULT '',
-    connectinfo_stop    String DEFAULT '',
-
-    -- Traffic (bytes)
+    -- Traffic (bytes) — gigaword-adjusted by Fluent Bit Lua filter
     acctinputoctets     UInt64 DEFAULT 0,
     acctoutputoctets    UInt64 DEFAULT 0,
 
@@ -52,17 +47,17 @@ CREATE TABLE IF NOT EXISTS radius_accounting
     framedprotocol      String DEFAULT '',
     framedipaddress     String DEFAULT '',
 
-    -- Metadata
+    -- Event classification
     event_type          Enum8('start' = 1, 'interim' = 2, 'stop' = 3, 'on' = 4, 'off' = 5) DEFAULT 'start',
     edge_site_id        String DEFAULT '',
-    forwarded_at        DateTime64(3, 'UTC') DEFAULT now64(3),
+    ingested_at         DateTime64(3, 'UTC') DEFAULT now64(3),
 
-    -- Partition key (derived)
-    event_date          Date DEFAULT toDate(acctstarttime)
+    -- Partition key (derived from event_timestamp)
+    event_date          Date DEFAULT toDate(toDateTime(event_timestamp))
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(event_date)
-ORDER BY (username, acctstarttime, acctsessionid)
+ORDER BY (username, event_timestamp, acctsessionid)
 TTL event_date + INTERVAL 2 YEAR DELETE
 SETTINGS index_granularity = 8192;
 
@@ -71,18 +66,17 @@ SETTINGS index_granularity = 8192;
 -- ===========================================
 CREATE TABLE IF NOT EXISTS radius_postauth
 (
-    id              UInt64,
-    username        String,
+    event_timestamp UInt64,
+    username        String DEFAULT '',
     pass            String DEFAULT '',
     reply           String DEFAULT '',
-    authdate        DateTime64(3, 'UTC'),
     edge_site_id    String DEFAULT '',
-    forwarded_at    DateTime64(3, 'UTC') DEFAULT now64(3),
-    event_date      Date DEFAULT toDate(authdate)
+    ingested_at     DateTime64(3, 'UTC') DEFAULT now64(3),
+    event_date      Date DEFAULT toDate(toDateTime(event_timestamp))
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(event_date)
-ORDER BY (username, authdate)
+ORDER BY (username, event_timestamp)
 TTL event_date + INTERVAL 1 YEAR DELETE
 SETTINGS index_granularity = 8192;
 
@@ -108,7 +102,7 @@ ORDER BY (event_hour, username, nasipaddress);
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_hourly_traffic_view
 TO mv_hourly_traffic
 AS SELECT
-    toStartOfHour(acctstarttime) AS event_hour,
+    toStartOfHour(toDateTime(event_timestamp)) AS event_hour,
     username,
     nasipaddress,
     sumState(acctinputoctets)    AS total_input,
@@ -136,7 +130,7 @@ ORDER BY (event_date, nasipaddress);
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_daily_nas_summary_view
 TO mv_daily_nas_summary
 AS SELECT
-    toDate(acctstarttime)        AS event_date,
+    toDate(toDateTime(event_timestamp)) AS event_date,
     nasipaddress,
     uniqState(username)          AS unique_users,
     countState()                 AS total_sessions,
@@ -161,7 +155,7 @@ ORDER BY (event_date, reply);
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_daily_auth_summary_view
 TO mv_daily_auth_summary
 AS SELECT
-    toDate(authdate)     AS event_date,
+    toDate(toDateTime(event_timestamp)) AS event_date,
     reply,
     countState()         AS auth_count,
     uniqState(username)  AS unique_users
@@ -179,16 +173,20 @@ SELECT
     acctsessionid,
     nasipaddress,
     framedipaddress,
-    acctstarttime,
+    toDateTime(event_timestamp) AS event_time,
     acctsessiontime,
     acctinputoctets,
     acctoutputoctets,
     calledstationid,
-    callingstationid
+    callingstationid,
+    event_type
 FROM radius_accounting
-WHERE acctstoptime IS NULL
-  AND acctstarttime > now() - INTERVAL 24 HOUR
-ORDER BY acctstarttime DESC;
+WHERE event_type = 'start'
+  AND event_timestamp > toUnixTimestamp(now() - INTERVAL 24 HOUR)
+  AND acctsessionid NOT IN (
+      SELECT acctsessionid FROM radius_accounting WHERE event_type = 'stop'
+  )
+ORDER BY event_timestamp DESC;
 
 -- Top users by traffic (last 24 hours)
 CREATE VIEW IF NOT EXISTS v_top_users_24h AS
@@ -200,7 +198,8 @@ SELECT
     sum(acctinputoctets) + sum(acctoutputoctets)     AS total_traffic,
     sum(acctsessiontime)                             AS total_time_seconds
 FROM radius_accounting
-WHERE acctstarttime > now() - INTERVAL 24 HOUR
+WHERE event_timestamp > toUnixTimestamp(now() - INTERVAL 24 HOUR)
+  AND event_type IN ('interim', 'stop')
 GROUP BY username
 ORDER BY total_traffic DESC
 LIMIT 100;

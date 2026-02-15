@@ -96,8 +96,6 @@ CREATE TABLE IF NOT EXISTS public.radacct (
     framedinterfaceid   varchar(44),
     delegatedipv6prefix inet,
     class               varchar(64),
-    -- Tracking column for ClickHouse forwarder
-    forwarded_to_ch     boolean NOT NULL DEFAULT false,
     created_at          timestamp with time zone NOT NULL DEFAULT now()
 );
 
@@ -108,8 +106,6 @@ CREATE INDEX IF NOT EXISTS radacct_acctsessionid_idx ON radacct (acctsessionid);
 CREATE INDEX IF NOT EXISTS radacct_acctstarttime_idx ON radacct (acctstarttime);
 CREATE INDEX IF NOT EXISTS radacct_acctstoptime_idx ON radacct (acctstoptime);
 CREATE INDEX IF NOT EXISTS radacct_nasipaddress_acctstarttime_idx ON radacct (nasipaddress, acctstarttime);
--- Index for the forwarder to find un-forwarded rows efficiently
-CREATE INDEX IF NOT EXISTS radacct_forwarded_idx ON radacct (forwarded_to_ch) WHERE forwarded_to_ch = false;
 
 -- ===========================================
 -- 3. FreeRADIUS Post-Auth Table
@@ -175,28 +171,23 @@ CREATE TABLE IF NOT EXISTS public.radusergroup (
 CREATE INDEX IF NOT EXISTS radusergroup_username_idx ON radusergroup (username);
 
 -- ===========================================
--- 5. NOTIFY trigger for accounting forwarder
--- Fires on INSERT/UPDATE to radacct so the forwarder picks up new rows
+-- 5. NAS Clients Table (FreeRADIUS generate_sql_clients)
+-- RadiusNasDevices is CDC-synced from cloud; this is the FreeRADIUS-standard
+-- "nas" table that generate_sql_clients expects.
 -- ===========================================
 
-CREATE OR REPLACE FUNCTION notify_radacct_change()
-RETURNS trigger AS $$
-BEGIN
-    PERFORM pg_notify('radacct_change', json_build_object(
-        'operation', TG_OP,
-        'radacctid', NEW.radacctid,
-        'acctsessionid', NEW.acctsessionid,
-        'username', NEW.username
-    )::text);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_radacct_notify ON radacct;
-CREATE TRIGGER trg_radacct_notify
-    AFTER INSERT OR UPDATE ON radacct
-    FOR EACH ROW
-    EXECUTE FUNCTION notify_radacct_change();
+CREATE TABLE IF NOT EXISTS public.nas (
+    id          serial PRIMARY KEY,
+    nasname     varchar(128) NOT NULL,
+    shortname   varchar(32),
+    type        varchar(30) DEFAULT 'other',
+    ports       integer,
+    secret      varchar(60) NOT NULL DEFAULT 'secret',
+    server      varchar(64),
+    community   varchar(50),
+    description varchar(200) DEFAULT 'RADIUS Client'
+);
+CREATE INDEX IF NOT EXISTS nas_nasname_idx ON nas (nasname);
 
 -- ===========================================
 -- 6. Grant permissions

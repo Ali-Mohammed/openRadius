@@ -36,7 +36,7 @@ check_service "PostgreSQL" "postgres"
 check_service "Redis" "redis"
 check_service "Kafka Connect" "connect"
 check_service "ClickHouse" "clickhouse"
-check_service "Acct Forwarder" "acct_forwarder"
+check_service "Fluent Bit" "fluent_bit"
 check_service "FreeRADIUS" "freeradius"
 
 echo ""

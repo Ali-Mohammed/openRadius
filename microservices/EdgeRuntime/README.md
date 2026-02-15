@@ -10,24 +10,23 @@
 │  ┌─────────────┐    ┌──────────────┐    ┌─────────────────────────┐  │
 │  │ Cloud Kafka  │───►│ Kafka Connect│───►│  PostgreSQL             │  │
 │  │ (CDC source) │    │ (JDBC Sink)  │    │  • RadiusUsers (synced) │  │
-│  └─────────────┘    └──────────────┘    │  • RadiusNasDevices     │  │
-│                                          │  • radacct (accounting) │  │
-│  ┌─────────────┐                        │  • radpostauth          │  │
-│  │  FreeRADIUS  │◄──────────────────────│  • RadiusCustomAttrs    │  │
+│  └─────────────┘    └──────────────┘    │  • radacct (accounting) │  │
+│                                          │  • radpostauth          │  │
+│  ┌─────────────┐                        │  • RadiusCustomAttrs    │  │
+│  │  FreeRADIUS  │◄──────────────────────│                         │  │
 │  │  Auth + Acct │───────────────────────►│                         │  │
-│  └──────┬──────┘                        └──────────┬──────────────┘  │
-│         │                                           │                 │
-│  ┌──────┴──────┐                        ┌──────────▼──────────────┐  │
-│  │    Redis     │                        │   Acct Forwarder        │  │
-│  │  • Sessions  │                        │   (PG → ClickHouse)     │  │
-│  │  • Auth cache│                        └──────────┬──────────────┘  │
-│  │  • Rate limit│                                   │                 │
-│  └─────────────┘                        ┌──────────▼──────────────┐  │
-│                                          │   ClickHouse            │  │
-│                                          │   • Accounting analytics│  │
-│                                          │   • Traffic reports     │  │
-│                                          │   • Session history     │  │
-│                                          └─────────────────────────┘  │
+│  └──────┬──────┘                        └─────────────────────────┘  │
+│         │                                                            │
+│  ┌──────┴──────┐    ┌──────────────┐    ┌─────────────────────────┐  │
+│  │    Redis     │    │  Fluent Bit  │───►│   ClickHouse            │  │
+│  │  • Sessions  │    │  (tail JSON  │    │   • Accounting analytics│  │
+│  │  • Auth cache│    │   → HTTP)    │    │   • Traffic reports     │  │
+│  │  • Rate limit│    └──────▲───────┘    │   • Session history     │  │
+│  └─────────────┘           │             └─────────────────────────┘  │
+│                     ┌──────┴───────┐                                  │
+│                     │  JSON Linelog │                                  │
+│                     │  (shared vol) │                                  │
+│                     └──────────────┘                                  │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -39,7 +38,7 @@
 | **Redis 7** | Session cache, auth cache, rate limiting | 6380 |
 | **Kafka Connect** | CDC JDBC Sink (cloud → local sync) | 8084 |
 | **ClickHouse 24** | Columnar analytics for accounting data | 8123, 9000 |
-| **Acct Forwarder** | Pipes radacct → ClickHouse in real-time | - |
+| **Fluent Bit 3.2** | Tails JSON linelog → ClickHouse HTTP insert | 2020 (metrics) |
 | **FreeRADIUS 3.2** | RADIUS auth (1812/udp) + accounting (1813/udp) | 1812, 1813, 18120 |
 
 ## Quick Start
@@ -92,26 +91,28 @@ EdgeRuntime/
 ├── Dockerfile                  # Kafka Connect + JDBC Sink plugin
 ├── .env.example                # Environment template
 ├── jdbc-sink-connector.json    # CDC sink connector config
-├── acct-forwarder/             # PostgreSQL → ClickHouse forwarder
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── forwarder.py
 ├── config/
 │   ├── clickhouse/
 │   │   ├── config.xml          # ClickHouse server tuning
 │   │   └── users.xml           # ClickHouse profiles & quotas
+│   ├── fluent-bit/
+│   │   ├── fluent-bit.conf     # Main pipeline config (tail → HTTP)
+│   │   ├── parsers.conf        # JSON parser for linelog output
+│   │   └── sanitize.lua        # Lua filter: numeric defaults, gigawords
 │   └── freeradius/
 │       ├── radiusd.conf        # Main RADIUS server config
 │       ├── clients.conf        # NAS device definitions
 │       ├── dictionary          # Custom VSA attributes
 │       ├── mods-available/
 │       │   ├── sql             # PostgreSQL module (auth + acct)
-│       │   └── redis           # Redis caching module
+│       │   ├── redis           # Redis caching module
+│       │   └── linelog_accounting  # JSON linelog for Fluent Bit
 │       ├── mods-enabled/
 │       │   ├── sql
-│       │   └── redis
+│       │   ├── redis
+│       │   └── linelog_accounting
 │       ├── sites-available/
-│       │   └── default         # Virtual server config
+│       │   └── default         # Virtual server (SQL + linelog + Redis)
 │       └── sites-enabled/
 │           └── default
 ├── init/
@@ -136,10 +137,11 @@ EdgeRuntime/
 
 ### Accounting (Write Path)
 1. NAS sends Accounting packets to FreeRADIUS (UDP 1813)
-2. FreeRADIUS writes to PostgreSQL `radacct` table
-3. PostgreSQL triggers `NOTIFY` on new/updated rows
-4. Acct Forwarder picks up un-forwarded rows and batch-inserts into ClickHouse
-5. Rows marked as `forwarded_to_ch = true` in PostgreSQL
+2. FreeRADIUS writes to PostgreSQL `radacct` table (operational data)
+3. FreeRADIUS also writes JSON via `linelog_accounting` to shared volume
+4. Fluent Bit tails the JSON file with persistent offset tracking (at-least-once)
+5. Fluent Bit sanitizes numeric fields via Lua filter (gigaword computation)
+6. Fluent Bit batch-inserts into ClickHouse via HTTP (`INSERT ... FORMAT JSONEachRow`)
 
 ### CDC Sync (Cloud → Edge)
 1. Cloud Debezium source captures changes from cloud PostgreSQL

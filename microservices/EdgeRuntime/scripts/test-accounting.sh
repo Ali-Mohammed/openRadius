@@ -82,22 +82,21 @@ echo "[4/4] Verifying data pipeline..."
 echo ""
 echo "  PostgreSQL (radacct):"
 docker exec "${PROJECT}_postgres" psql -U postgres -d edge_db -c \
-    "SELECT radacctid, acctsessionid, username, acctstarttime, acctstoptime, acctinputoctets, acctoutputoctets, forwarded_to_ch FROM radacct WHERE acctsessionid = '$SESSION_ID';" 2>/dev/null || echo "  ⚠ Could not query PostgreSQL"
+    "SELECT radacctid, acctsessionid, username, acctstarttime, acctstoptime, acctinputoctets, acctoutputoctets FROM radacct WHERE acctsessionid = '$SESSION_ID';" 2>/dev/null || echo "  ⚠ Could not query PostgreSQL"
 
 echo ""
-echo "  Waiting 10s for forwarder to process..."
+echo "  Waiting 10s for Fluent Bit to flush to ClickHouse..."
 sleep 10
 
 echo ""
 echo "  ClickHouse (radius_accounting):"
 docker exec "${PROJECT}_clickhouse" clickhouse-client \
     --database radius_analytics \
-    --query "SELECT radacctid, acctsessionid, username, acctstarttime, acctstoptime, acctinputoctets, acctoutputoctets, event_type FROM radius_accounting WHERE acctsessionid = '$SESSION_ID' FORMAT Pretty;" 2>/dev/null || echo "  ⚠ Could not query ClickHouse"
+    --query "SELECT acctsessionid, username, event_type, toDateTime(event_timestamp) AS event_time, acctsessiontime, acctinputoctets, acctoutputoctets FROM radius_accounting WHERE acctsessionid = '$SESSION_ID' ORDER BY event_timestamp FORMAT Pretty;" 2>/dev/null || echo "  ⚠ Could not query ClickHouse"
 
 echo ""
-echo "  PostgreSQL forwarded flag:"
-docker exec "${PROJECT}_postgres" psql -U postgres -d edge_db -c \
-    "SELECT radacctid, forwarded_to_ch FROM radacct WHERE acctsessionid = '$SESSION_ID';" 2>/dev/null || echo "  ⚠ Could not query PostgreSQL"
+echo "  Fluent Bit metrics:"
+curl -sf "http://localhost:${FLUENT_BIT_METRICS_PORT:-2020}/api/v1/metrics" 2>/dev/null | head -20 || echo "  ⚠ Could not reach Fluent Bit metrics endpoint"
 
 echo ""
 echo "============================================"
