@@ -94,18 +94,22 @@ server default {
     }
 
     # =================================================================
-    # Accounting — ClickHouse only (insert-only, append-only)
-    #   1. linelog: writes JSON to file (Fluent Bit tails → ClickHouse)
-    #   2. detail: backup detail files (local recovery)
-    #   3. radutmp: session tracking for simultaneous-use control
+    # Accounting
+    #   1. linelog: writes JSON to file (Fluent Bit tails → ClickHouse analytics)
+    #   2. session_tracker: real-time session state in Redis (online users)
+    #   3. detail: backup detail files (local recovery)
+    #   4. radutmp: session tracking for simultaneous-use control
     #
     # NOTE: No SQL accounting. All accounting data goes exclusively to
-    #       ClickHouse via the Fluent Bit pipeline for maximum write
-    #       throughput and enterprise-grade analytics.
+    #       ClickHouse via the Fluent Bit pipeline for analytics.
+    #       Redis provides real-time session state (who is online now).
     # =================================================================
     accounting {
-        # Write JSON line for Fluent Bit → ClickHouse pipeline (sole destination)
+        # Write JSON line for Fluent Bit → ClickHouse pipeline (analytics)
         accounting_json
+
+        # Real-time session tracking in Redis (online users + stale detection)
+        session_tracker
 
         # Backup detail file (local recovery if Fluent Bit is down)
         detail

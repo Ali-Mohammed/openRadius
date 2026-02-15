@@ -1,0 +1,25 @@
+# FreeRADIUS rlm_perl Module - Enterprise Redis Session Tracker
+# EdgeRuntime Deployment
+#
+# Runs session_tracker.pl on every accounting event.
+# Maintains real-time session state in Redis DB 1:
+#   - Per-session hash with TTL (stale detection)
+#   - Per-user session sets
+#   - Per-NAS session sets
+#   - Global online users set
+#
+# Environment variables (set in docker-compose):
+#   REDIS_HOST        Redis hostname (default: redis)
+#   REDIS_PORT        Redis port (default: 6379)
+#   REDIS_DB          Redis database (default: 1)
+#   SESSION_TTL       Default session TTL in seconds (default: 660)
+#   SESSION_MAX_TTL   Max session TTL (default: 86400)
+
+perl session_tracker {
+    filename = /etc/freeradius/scripts/session_tracker.pl
+
+    # Pass environment variables to the Perl script
+    func_accounting = accounting
+    func_instantiate = instantiate
+    func_detach = detach
+}
