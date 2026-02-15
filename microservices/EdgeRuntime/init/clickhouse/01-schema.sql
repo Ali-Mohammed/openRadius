@@ -169,27 +169,53 @@ GROUP BY event_date, reply;
 -- 4. Useful Views for Querying
 -- ===========================================
 
--- Active sessions (no stop time yet)
+-- Active sessions (started in last 24h with no corresponding stop)
+-- Uses argMax to get the latest event per session for accurate state
 CREATE VIEW IF NOT EXISTS v_active_sessions AS
 SELECT
     username,
     acctsessionid,
     nasipaddress,
     framedipaddress,
-    toDateTime(event_timestamp) AS event_time,
-    acctsessiontime,
-    acctinputoctets,
-    acctoutputoctets,
-    calledstationid,
-    callingstationid,
-    event_type
+    toDateTime(max(event_timestamp))          AS last_seen,
+    argMax(acctsessiontime, event_timestamp)   AS session_seconds,
+    argMax(acctinputoctets, event_timestamp)   AS download_bytes,
+    argMax(acctoutputoctets, event_timestamp)  AS upload_bytes,
+    argMax(calledstationid, event_timestamp)   AS calledstationid,
+    argMax(callingstationid, event_timestamp)  AS callingstationid,
+    argMax(event_type, event_timestamp)        AS last_event
 FROM radius_accounting
-WHERE event_type = 'start'
-  AND event_timestamp > toUnixTimestamp(now() - INTERVAL 24 HOUR)
+WHERE event_timestamp > toUnixTimestamp(now() - INTERVAL 24 HOUR)
+  AND acctsessionid != ''
+  AND event_type IN ('start', 'interim')
   AND acctsessionid NOT IN (
-      SELECT acctsessionid FROM radius_accounting WHERE event_type = 'stop'
+      SELECT acctsessionid
+      FROM radius_accounting
+      WHERE event_type = 'stop'
+        AND event_timestamp > toUnixTimestamp(now() - INTERVAL 24 HOUR)
   )
-ORDER BY event_timestamp DESC;
+GROUP BY username, acctsessionid, nasipaddress, framedipaddress
+ORDER BY last_seen DESC;
+
+-- Online users summary (aggregated per user across all active sessions)
+CREATE VIEW IF NOT EXISTS v_online_users AS
+SELECT
+    username,
+    count()                                                  AS active_sessions,
+    groupArray(nasipaddress)                                 AS nas_devices,
+    groupArray(framedipaddress)                               AS ip_addresses,
+    min(last_seen)                                           AS earliest_seen,
+    max(last_seen)                                           AS latest_seen,
+    sum(session_seconds)                                     AS total_session_seconds,
+    formatReadableTimeDelta(sum(session_seconds))             AS total_time,
+    sum(download_bytes)                                      AS total_download,
+    sum(upload_bytes)                                        AS total_upload,
+    formatReadableSize(sum(download_bytes))                   AS download_human,
+    formatReadableSize(sum(upload_bytes))                     AS upload_human,
+    formatReadableSize(sum(download_bytes) + sum(upload_bytes)) AS total_traffic
+FROM v_active_sessions
+GROUP BY username
+ORDER BY latest_seen DESC;
 
 -- Top users by traffic (last 24 hours)
 CREATE VIEW IF NOT EXISTS v_top_users_24h AS

@@ -26,6 +26,7 @@ freeradius_logs/
 
 # Build artifacts
 connectors/
+plugins/
 
 # Backup files
 backups/
