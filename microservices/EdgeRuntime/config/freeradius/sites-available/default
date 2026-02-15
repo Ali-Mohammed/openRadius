@@ -2,8 +2,9 @@
 # Enterprise ISP - EdgeRuntime Deployment
 #
 # Auth: PostgreSQL (CDC-synced users) + Redis (auth result caching)
-# Acct: PostgreSQL (operational) + linelog JSON (→ Fluent Bit → ClickHouse)
-# Session: Redis-based session tracking for simultaneous-use control
+# Acct: ClickHouse only (insert-only via linelog JSON → Fluent Bit → ClickHouse)
+# Post-Auth: PostgreSQL (radpostauth) + linelog JSON → ClickHouse
+# Session: radutmp-based session tracking for simultaneous-use control
 
 server default {
     listen {
@@ -93,22 +94,23 @@ server default {
     }
 
     # =================================================================
-    # Accounting
-    #   1. SQL: writes to PostgreSQL radacct (operational queries/session mgmt)
-    #   2. linelog: writes JSON to file (Fluent Bit tails → ClickHouse analytics)
-    #   3. detail: backup detail files
+    # Accounting — ClickHouse only (insert-only, append-only)
+    #   1. linelog: writes JSON to file (Fluent Bit tails → ClickHouse)
+    #   2. detail: backup detail files (local recovery)
+    #   3. radutmp: session tracking for simultaneous-use control
+    #
+    # NOTE: No SQL accounting. All accounting data goes exclusively to
+    #       ClickHouse via the Fluent Bit pipeline for maximum write
+    #       throughput and enterprise-grade analytics.
     # =================================================================
     accounting {
-        # Write to PostgreSQL radacct table (operational data)
-        sql
-
-        # Write JSON line for Fluent Bit → ClickHouse analytics pipeline
+        # Write JSON line for Fluent Bit → ClickHouse pipeline (sole destination)
         accounting_json
 
-        # Backup detail file
+        # Backup detail file (local recovery if Fluent Bit is down)
         detail
 
-        # Session tracking
+        # Session tracking for simultaneous-use control
         radutmp
     }
 
