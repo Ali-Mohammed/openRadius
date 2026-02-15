@@ -1,6 +1,9 @@
 -- ============================================================================
 -- EdgeRuntime PostgreSQL Initialization
--- Creates schemas for CDC-synced data + FreeRADIUS accounting/auth
+-- Creates schemas for CDC-synced data + FreeRADIUS post-auth/check/reply
+--
+-- NOTE: Accounting data is stored exclusively in ClickHouse (insert-only).
+--       No radacct table needed in PostgreSQL.
 -- ============================================================================
 
 -- ===========================================
@@ -67,53 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_radiususers_profileid ON public."RadiusUsers"("Pr
 CREATE INDEX IF NOT EXISTS idx_radiususers_expiration ON public."RadiusUsers"("Expiration");
 
 -- ===========================================
--- 2. FreeRADIUS Accounting Tables
--- ===========================================
-
--- RADIUS Accounting (radacct) - primary accounting table
-CREATE TABLE IF NOT EXISTS public.radacct (
-    radacctid           bigserial PRIMARY KEY,
-    acctsessionid       varchar(64) NOT NULL,
-    acctuniqueid        varchar(32) NOT NULL UNIQUE,
-    username            varchar(253),
-    realm               varchar(64),
-    nasipaddress        inet NOT NULL,
-    nasportid           varchar(32),
-    nasporttype         varchar(32),
-    acctstarttime       timestamp with time zone,
-    acctupdatetime      timestamp with time zone,
-    acctstoptime        timestamp with time zone,
-    acctinterval        bigint,
-    acctsessiontime     bigint,
-    acctauthentic       varchar(32),
-    connectinfo_start   varchar(128),
-    connectinfo_stop    varchar(128),
-    acctinputoctets     bigint,
-    acctoutputoctets    bigint,
-    calledstationid     varchar(50),
-    callingstationid    varchar(50),
-    acctterminatecause  varchar(32),
-    servicetype         varchar(32),
-    framedprotocol      varchar(32),
-    framedipaddress     inet,
-    framedipv6address   inet,
-    framedipv6prefix    inet,
-    framedinterfaceid   varchar(44),
-    delegatedipv6prefix inet,
-    class               varchar(64),
-    created_at          timestamp with time zone NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS radacct_username_idx ON radacct (username);
-CREATE INDEX IF NOT EXISTS radacct_framedipaddress_idx ON radacct (framedipaddress);
-CREATE INDEX IF NOT EXISTS radacct_nasipaddress_idx ON radacct (nasipaddress);
-CREATE INDEX IF NOT EXISTS radacct_acctsessionid_idx ON radacct (acctsessionid);
-CREATE INDEX IF NOT EXISTS radacct_acctstarttime_idx ON radacct (acctstarttime);
-CREATE INDEX IF NOT EXISTS radacct_acctstoptime_idx ON radacct (acctstoptime);
-CREATE INDEX IF NOT EXISTS radacct_nasipaddress_acctstarttime_idx ON radacct (nasipaddress, acctstarttime);
-
--- ===========================================
--- 3. FreeRADIUS Post-Auth Table
+-- 2. FreeRADIUS Post-Auth Table
 -- ===========================================
 
 CREATE TABLE IF NOT EXISTS public.radpostauth (
@@ -128,7 +85,7 @@ CREATE INDEX IF NOT EXISTS radpostauth_username_idx ON radpostauth (username);
 CREATE INDEX IF NOT EXISTS radpostauth_authdate_idx ON radpostauth (authdate);
 
 -- ===========================================
--- 4. FreeRADIUS Check/Reply Tables (optional, for local overrides)
+-- 3. FreeRADIUS Check/Reply Tables (optional, for local overrides)
 -- ===========================================
 
 CREATE TABLE IF NOT EXISTS public.radcheck (
@@ -176,7 +133,7 @@ CREATE TABLE IF NOT EXISTS public.radusergroup (
 CREATE INDEX IF NOT EXISTS radusergroup_username_idx ON radusergroup (username);
 
 -- ===========================================
--- 5. Grant permissions
+-- 4. Grant permissions
 -- ===========================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;

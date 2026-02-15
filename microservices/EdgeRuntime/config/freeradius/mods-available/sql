@@ -3,9 +3,9 @@
 #
 # Auth: CDC-synced RadiusUsers table (credentials + expiration check)
 # Reply attrs: CDC-synced RadiusCustomAttributes (profile + user level)
-# Accounting: local radacct table (operational data)
 # NAS clients: CDC-synced RadiusNasDevices table (loaded at startup via read_clients)
-# Analytics: linelog JSON → Fluent Bit → ClickHouse (separate pipeline)
+# Post-Auth: radpostauth table (auth event logging)
+# Accounting: NOT handled by SQL — goes to ClickHouse via linelog/Fluent Bit
 #
 # All query logic is in the dialect queries.conf:
 #   mods-config/sql/main/postgresql/queries.conf
@@ -46,10 +46,9 @@ sql {
     client_table = "RadiusNasDevices"
 
     # =========================================================================
-    # Table names for accounting and post-auth (standard FreeRADIUS tables)
+    # Table names for post-auth logging
+    # NOTE: No acct_table — accounting goes exclusively to ClickHouse
     # =========================================================================
-    acct_table1 = "radacct"
-    acct_table2 = "radacct"
     postauth_table = "radpostauth"
 
     # =========================================================================
@@ -67,9 +66,6 @@ sql {
 
     # SQL-User-Name definition
     sql_user_name = "%{User-Name}"
-
-    # Delete stale sessions on start
-    delete_stale_sessions = yes
 
     # Connection timeout
     connect_timeout = 5

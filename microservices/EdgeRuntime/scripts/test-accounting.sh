@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================================
 # EdgeRuntime - Accounting Test
-# Sends test accounting packets and verifies data lands in both
-# PostgreSQL (radacct) and ClickHouse (radius_accounting)
+# Sends test accounting packets and verifies data lands in ClickHouse
+# (sole accounting destination — insert-only, append-only)
 # ============================================================================
 
 set -euo pipefail
@@ -18,6 +18,7 @@ echo "  EdgeRuntime - Accounting Pipeline Test"
 echo "  Server: $RADIUS_HOST"
 echo "  User:   $TEST_USER"
 echo "  Session: $SESSION_ID"
+echo "  Destination: ClickHouse (insert-only)"
 echo "============================================"
 
 if ! command -v radclient &> /dev/null; then
@@ -77,22 +78,24 @@ echo "  ✓ Stop sent"
 
 # --- Verify ---
 echo ""
-echo "[4/4] Verifying data pipeline..."
-
-echo ""
-echo "  PostgreSQL (radacct):"
-docker exec "${PROJECT}_postgres" psql -U postgres -d edge_db -c \
-    "SELECT radacctid, acctsessionid, username, acctstarttime, acctstoptime, acctinputoctets, acctoutputoctets FROM radacct WHERE acctsessionid = '$SESSION_ID';" 2>/dev/null || echo "  ⚠ Could not query PostgreSQL"
+echo "[4/4] Verifying ClickHouse data pipeline..."
 
 echo ""
 echo "  Waiting 10s for Fluent Bit to flush to ClickHouse..."
 sleep 10
 
 echo ""
-echo "  ClickHouse (radius_accounting):"
+echo "  ClickHouse (radius_accounting) — all 3 events should appear:"
 docker exec "${PROJECT}_clickhouse" clickhouse-client \
     --database radius_analytics \
     --query "SELECT acctsessionid, username, event_type, toDateTime(event_timestamp) AS event_time, acctsessiontime, acctinputoctets, acctoutputoctets FROM radius_accounting WHERE acctsessionid = '$SESSION_ID' ORDER BY event_timestamp FORMAT Pretty;" 2>/dev/null || echo "  ⚠ Could not query ClickHouse"
+
+echo ""
+echo "  Event count:"
+EVENT_COUNT=$(docker exec "${PROJECT}_clickhouse" clickhouse-client \
+    --database radius_analytics \
+    --query "SELECT count() FROM radius_accounting WHERE acctsessionid = '$SESSION_ID' FORMAT TabSeparated;" 2>/dev/null || echo "0")
+echo "    Found $EVENT_COUNT events (expected: 3 — start, interim, stop)"
 
 echo ""
 echo "  Fluent Bit metrics:"
