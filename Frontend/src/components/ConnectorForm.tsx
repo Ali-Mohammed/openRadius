@@ -66,7 +66,11 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
   const [testing, setTesting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'failed'>('unknown');
   const [availableTables, setAvailableTables] = useState<string[]>([]);
-  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [selectedTables, setSelectedTables] = useState<string[]>(
+    connector?.tableIncludeList
+      ? connector.tableIncludeList.split(',').map(t => t.trim())
+      : ['public.RadiusUsers', 'public.RadiusNasDevices', 'public.RadiusProfiles', 'public.RadiusCustomAttributes']
+  );
   const [showGuide, setShowGuide] = useState(!connector);
   const [formData, setFormData] = useState<Connector>({
     name: '',
@@ -80,7 +84,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     pluginName: 'pgoutput',
     slotName: '',
     publicationAutocreateMode: 'filtered',
-    tableIncludeList: '',
+    tableIncludeList: 'public.RadiusUsers,public.RadiusNasDevices,public.RadiusProfiles,public.RadiusCustomAttributes',
     snapshotMode: 'initial',
     additionalConfig: '',
   });
