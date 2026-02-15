@@ -1,8 +1,9 @@
 # PostgreSQL SQL Module Configuration
 # Enterprise ISP - EdgeRuntime Deployment
 #
-# Auth queries read from CDC-synced RadiusUsers table
-# Accounting writes to local radacct table (forwarded to ClickHouse)
+# Auth queries read from CDC-synced RadiusUsers table (with Redis caching)
+# Accounting writes to local radacct table (operational data)
+# Analytics pipeline: linelog JSON → Fluent Bit → ClickHouse
 # NAS devices loaded dynamically from RadiusNasDevices table
 
 sql {
@@ -104,7 +105,7 @@ sql {
 
     # =========================================================================
     # Accounting queries - write to local PostgreSQL radacct table
-    # The acct-forwarder sidecar forwards these to ClickHouse
+    # Operational data; analytics go via linelog → Fluent Bit → ClickHouse
     # =========================================================================
     accounting {
         reference = "%{tolower:type.%{Acct-Status-Type}.query}"
@@ -147,8 +148,7 @@ sql {
                          SET acctupdatetime = NOW(), \
                              acctinterval = (EXTRACT(EPOCH FROM (NOW() - acctstarttime)))::integer, \
                              acctinputoctets = (('%{%{Acct-Input-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Input-Octets}:-0}'::bigint), \
-                             acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint), \
-                             forwarded_to_ch = false \
+                             acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint) \
                          WHERE acctsessionid = '%{Acct-Session-Id}' \
                          AND username = '%{SQL-User-Name}' \
                          AND nasipaddress = '%{NAS-IP-Address}'"
@@ -161,8 +161,7 @@ sql {
                              acctinputoctets = (('%{%{Acct-Input-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Input-Octets}:-0}'::bigint), \
                              acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint), \
                              acctterminatecause = '%{Acct-Terminate-Cause}', \
-                             connectinfo_stop = '%{Connect-Info}', \
-                             forwarded_to_ch = false \
+                             connectinfo_stop = '%{Connect-Info}' \
                          WHERE acctsessionid = '%{Acct-Session-Id}' \
                          AND username = '%{SQL-User-Name}' \
                          AND nasipaddress = '%{NAS-IP-Address}'"

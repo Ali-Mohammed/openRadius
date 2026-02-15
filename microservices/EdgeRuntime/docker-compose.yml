@@ -2,9 +2,10 @@
 # Combines CDC data sync (Kafka Connect) + FreeRADIUS + ClickHouse (accounting analytics)
 #
 # Architecture:
-#   Cloud Kafka ──► Kafka Connect (JDBC Sink) ──► PostgreSQL ◄── FreeRADIUS (auth/acct)
-#   FreeRADIUS ──► radacct (PostgreSQL) ──► acct-forwarder ──► ClickHouse (analytics)
-#   Redis (session cache, rate limiting, auth cache)
+#   Cloud Kafka ──► Kafka Connect (JDBC Sink) ──► PostgreSQL ◄── FreeRADIUS (auth)
+#   FreeRADIUS ──► linelog (JSON) ──► Fluent Bit ──► ClickHouse (accounting analytics)
+#   FreeRADIUS ──► radacct (PostgreSQL) (operational accounting)
+#   FreeRADIUS ◄──► Redis (auth cache, session tracking, rate limiting)
 
 services:
   # ============================================================================
@@ -199,44 +200,46 @@ services:
         max-file: "5"
 
   # ============================================================================
-  # Accounting Forwarder - Pipes RADIUS accounting from PostgreSQL to ClickHouse
-  # Uses PostgreSQL LISTEN/NOTIFY + polling for reliable data forwarding
+  # Fluent Bit - Log processor & accounting pipeline
+  # Tails FreeRADIUS JSON accounting logs and streams to ClickHouse via HTTP
   # ============================================================================
-  acct-forwarder:
-    build:
-      context: ./acct-forwarder
-      dockerfile: Dockerfile
-    container_name: ${COMPOSE_PROJECT_NAME:-edge}_acct_forwarder
+  fluent-bit:
+    image: fluent/fluent-bit:3.2
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_fluent_bit
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-edge_db}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
-      CLICKHOUSE_HOST: clickhouse
-      CLICKHOUSE_PORT: 9000
-      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-radius_analytics}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-radius}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme_in_production}
-      BATCH_SIZE: ${ACCT_BATCH_SIZE:-500}
-      POLL_INTERVAL_SECONDS: ${ACCT_POLL_INTERVAL:-5}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-radius_analytics}
+      EDGE_SITE_ID: ${EDGE_SITE_ID:-}
+    volumes:
+      - ./config/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./config/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./config/fluent-bit/sanitize.lua:/fluent-bit/etc/sanitize.lua:ro
+      - radius_logs:/var/log/radius:ro
+      - fluent_bit_data:/fluent-bit/data
     depends_on:
-      postgres:
-        condition: service_healthy
       clickhouse:
         condition: service_healthy
+    ports:
+      - "${FLUENT_BIT_METRICS_PORT:-2020}:2020"
     networks:
       - edge-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2020/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 512M
+          memory: 256M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -245,8 +248,8 @@ services:
 
   # ============================================================================
   # FreeRADIUS 3.2 - RADIUS authentication and accounting server
-  # Auth: reads users/NAS from local PostgreSQL (CDC synced from cloud)
-  # Acct: writes to local PostgreSQL radacct table (forwarded to ClickHouse)
+  # Auth: reads users/NAS from local PostgreSQL (CDC synced) + Redis caching
+  # Acct: writes to PostgreSQL (operational) + linelog JSON (→ Fluent Bit → ClickHouse)
   # ============================================================================
   freeradius:
     image: freeradius/freeradius-server:latest
@@ -262,10 +265,12 @@ services:
       - ./config/freeradius/mods-enabled/sql:/etc/freeradius/mods-enabled/sql:ro
       - ./config/freeradius/mods-available/redis:/etc/freeradius/mods-available/redis:ro
       - ./config/freeradius/mods-enabled/redis:/etc/freeradius/mods-enabled/redis:ro
+      - ./config/freeradius/mods-available/linelog_accounting:/etc/freeradius/mods-available/linelog_accounting:ro
+      - ./config/freeradius/mods-enabled/linelog_accounting:/etc/freeradius/mods-enabled/linelog_accounting:ro
       - ./config/freeradius/sites-available/default:/etc/freeradius/sites-available/default:ro
       - ./config/freeradius/sites-enabled/default:/etc/freeradius/sites-enabled/default:ro
       - ./config/freeradius/dictionary:/etc/freeradius/dictionary:ro
-      - freeradius_logs:/var/log/radius
+      - radius_logs:/var/log/radius
     depends_on:
       postgres:
         condition: service_healthy
@@ -304,5 +309,7 @@ volumes:
     driver: local
   clickhouse_logs:
     driver: local
-  freeradius_logs:
+  radius_logs:
+    driver: local
+  fluent_bit_data:
     driver: local

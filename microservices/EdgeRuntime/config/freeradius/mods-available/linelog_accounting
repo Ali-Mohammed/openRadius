@@ -1,0 +1,39 @@
+# FreeRADIUS Linelog Module - JSON Accounting Output
+# Enterprise ISP - EdgeRuntime Deployment
+#
+# Writes one JSON object per line to /var/log/radius/accounting.json
+# Fluent Bit tails this file and streams to ClickHouse
+#
+# Each accounting event (Start, Interim-Update, Stop, Accounting-On/Off)
+# produces a single JSON line with all relevant RADIUS attributes.
+
+linelog accounting_json {
+    filename = /var/log/radius/accounting.json
+    permissions = 0644
+
+    reference = "messages.%{tolower:%{%{Acct-Status-Type}:-unknown}}"
+
+    messages {
+        start = "{\"event_type\":\"start\",\"event_timestamp\":%l,\"acctsessionid\":\"%{Acct-Session-Id}\",\"acctuniqueid\":\"%{Acct-Unique-Session-Id}\",\"username\":\"%{User-Name}\",\"realm\":\"%{Realm}\",\"nasipaddress\":\"%{NAS-IP-Address}\",\"nasportid\":\"%{%{NAS-Port-ID}:-%{NAS-Port}}\",\"nasporttype\":\"%{NAS-Port-Type}\",\"acctauthentic\":\"%{Acct-Authentic}\",\"connectinfo_start\":\"%{Connect-Info}\",\"calledstationid\":\"%{Called-Station-Id}\",\"callingstationid\":\"%{Calling-Station-Id}\",\"servicetype\":\"%{Service-Type}\",\"framedprotocol\":\"%{Framed-Protocol}\",\"framedipaddress\":\"%{Framed-IP-Address}\",\"acctsessiontime\":0,\"acctinputoctets\":0,\"acctoutputoctets\":0,\"acctinputgigawords\":0,\"acctoutputgigawords\":0,\"acctterminatecause\":\"\"}"
+
+        interim-update = "{\"event_type\":\"interim\",\"event_timestamp\":%l,\"acctsessionid\":\"%{Acct-Session-Id}\",\"acctuniqueid\":\"%{Acct-Unique-Session-Id}\",\"username\":\"%{User-Name}\",\"realm\":\"%{Realm}\",\"nasipaddress\":\"%{NAS-IP-Address}\",\"nasportid\":\"%{%{NAS-Port-ID}:-%{NAS-Port}}\",\"nasporttype\":\"%{NAS-Port-Type}\",\"framedipaddress\":\"%{Framed-IP-Address}\",\"acctsessiontime\":%{%{Acct-Session-Time}:-0},\"acctinputoctets\":%{%{Acct-Input-Octets}:-0},\"acctoutputoctets\":%{%{Acct-Output-Octets}:-0},\"acctinputgigawords\":%{%{Acct-Input-Gigawords}:-0},\"acctoutputgigawords\":%{%{Acct-Output-Gigawords}:-0},\"acctterminatecause\":\"\",\"calledstationid\":\"%{Called-Station-Id}\",\"callingstationid\":\"%{Calling-Station-Id}\",\"servicetype\":\"%{Service-Type}\",\"framedprotocol\":\"%{Framed-Protocol}\",\"acctauthentic\":\"%{Acct-Authentic}\"}"
+
+        stop = "{\"event_type\":\"stop\",\"event_timestamp\":%l,\"acctsessionid\":\"%{Acct-Session-Id}\",\"acctuniqueid\":\"%{Acct-Unique-Session-Id}\",\"username\":\"%{User-Name}\",\"realm\":\"%{Realm}\",\"nasipaddress\":\"%{NAS-IP-Address}\",\"nasportid\":\"%{%{NAS-Port-ID}:-%{NAS-Port}}\",\"nasporttype\":\"%{NAS-Port-Type}\",\"framedipaddress\":\"%{Framed-IP-Address}\",\"acctsessiontime\":%{%{Acct-Session-Time}:-0},\"acctinputoctets\":%{%{Acct-Input-Octets}:-0},\"acctoutputoctets\":%{%{Acct-Output-Octets}:-0},\"acctinputgigawords\":%{%{Acct-Input-Gigawords}:-0},\"acctoutputgigawords\":%{%{Acct-Output-Gigawords}:-0},\"acctterminatecause\":\"%{Acct-Terminate-Cause}\",\"connectinfo_stop\":\"%{Connect-Info}\",\"calledstationid\":\"%{Called-Station-Id}\",\"callingstationid\":\"%{Calling-Station-Id}\",\"servicetype\":\"%{Service-Type}\",\"framedprotocol\":\"%{Framed-Protocol}\",\"acctauthentic\":\"%{Acct-Authentic}\"}"
+
+        accounting-on = "{\"event_type\":\"on\",\"event_timestamp\":%l,\"acctsessionid\":\"\",\"acctuniqueid\":\"\",\"username\":\"\",\"realm\":\"\",\"nasipaddress\":\"%{NAS-IP-Address}\",\"nasportid\":\"\",\"nasporttype\":\"\",\"acctsessiontime\":0,\"acctinputoctets\":0,\"acctoutputoctets\":0,\"acctinputgigawords\":0,\"acctoutputgigawords\":0,\"acctterminatecause\":\"%{%{Acct-Terminate-Cause}:-NAS-Reboot}\",\"calledstationid\":\"\",\"callingstationid\":\"\",\"servicetype\":\"\",\"framedprotocol\":\"\",\"framedipaddress\":\"\",\"acctauthentic\":\"\"}"
+
+        accounting-off = "{\"event_type\":\"off\",\"event_timestamp\":%l,\"acctsessionid\":\"\",\"acctuniqueid\":\"\",\"username\":\"\",\"realm\":\"\",\"nasipaddress\":\"%{NAS-IP-Address}\",\"nasportid\":\"\",\"nasporttype\":\"\",\"acctsessiontime\":0,\"acctinputoctets\":0,\"acctoutputoctets\":0,\"acctinputgigawords\":0,\"acctoutputgigawords\":0,\"acctterminatecause\":\"%{%{Acct-Terminate-Cause}:-NAS-Reboot}\",\"calledstationid\":\"\",\"callingstationid\":\"\",\"servicetype\":\"\",\"framedprotocol\":\"\",\"framedipaddress\":\"\",\"acctauthentic\":\"\"}"
+    }
+}
+
+# Post-Auth JSON linelog - writes auth events for analytics
+linelog postauth_json {
+    filename = /var/log/radius/postauth.json
+    permissions = 0644
+
+    reference = "messages.default"
+
+    messages {
+        default = "{\"event_timestamp\":%l,\"username\":\"%{User-Name}\",\"pass\":\"\",\"reply\":\"%{reply:Packet-Type}\",\"authdate\":%l}"
+    }
+}

@@ -1,7 +1,9 @@
 # Default FreeRADIUS Virtual Server
 # Enterprise ISP - EdgeRuntime Deployment
-# Auth: PostgreSQL (CDC-synced users) + Redis (caching)
-# Acct: PostgreSQL (forwarded to ClickHouse)
+#
+# Auth: PostgreSQL (CDC-synced users) + Redis (auth result caching)
+# Acct: PostgreSQL (operational) + linelog JSON (→ Fluent Bit → ClickHouse)
+# Session: Redis-based session tracking for simultaneous-use control
 
 server default {
     listen {
@@ -27,10 +29,24 @@ server default {
     }
 
     # =================================================================
-    # Authorization - check credentials from CDC-synced RadiusUsers
+    # Authorization - CDC-synced RadiusUsers + Redis caching
+    #
+    # Flow:
+    #   1. Preprocess the request
+    #   2. Check Redis auth cache (DB 2) for cached credentials
+    #   3. On cache miss → query PostgreSQL via SQL module
+    #   4. Store result in Redis for subsequent requests
+    #   5. Authenticate via PAP/CHAP
     # =================================================================
     authorize {
         preprocess
+
+        # Check Redis auth cache first (avoids PostgreSQL hit on repeated auths)
+        # Key format: radius:auth:<username>
+        # If cached, the password is already in control:Cleartext-Password
+        update control {
+            &Cache-Status-Only = "yes"
+        }
 
         # Query SQL for user credentials from RadiusUsers table
         sql
@@ -77,12 +93,22 @@ server default {
     }
 
     # =================================================================
-    # Accounting - writes to PostgreSQL radacct table
-    # The acct-forwarder sidecar forwards data to ClickHouse
+    # Accounting
+    #   1. SQL: writes to PostgreSQL radacct (operational queries/session mgmt)
+    #   2. linelog: writes JSON to file (Fluent Bit tails → ClickHouse analytics)
+    #   3. detail: backup detail files
     # =================================================================
     accounting {
-        detail
+        # Write to PostgreSQL radacct table (operational data)
         sql
+
+        # Write JSON line for Fluent Bit → ClickHouse analytics pipeline
+        accounting_json
+
+        # Backup detail file
+        detail
+
+        # Session tracking
         radutmp
     }
 
@@ -95,12 +121,20 @@ server default {
 
     # =================================================================
     # Post-authentication
+    #   - Log auth result to PostgreSQL (via SQL)
+    #   - Write JSON auth log for Fluent Bit → ClickHouse (via linelog)
+    #   - Set default session timeouts
     # =================================================================
     post-auth {
+        # Log to PostgreSQL
         sql
+
+        # Write JSON auth log for analytics
+        postauth_json
 
         Post-Auth-Type REJECT {
             sql
+            postauth_json
             attr_filter.access_reject
         }
 
