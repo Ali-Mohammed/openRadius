@@ -197,6 +197,7 @@ PRE_COUNT=$(docker exec "${PROJECT}_clickhouse" clickhouse-client \
     --database radius_analytics \
     --query "SELECT count() FROM radius_accounting FORMAT TabSeparated" 2>/dev/null || echo "0")
 echo "  ℹ Pre-test ClickHouse rows: $PRE_COUNT"
+RUN_START_TS=$(date +%s)
 echo ""
 
 # ═════════════════════════════════════════════════
@@ -527,8 +528,8 @@ $CH_CMD --query "
         toDateTime(event_timestamp) AS event_time,
         acctterminatecause
     FROM radius_accounting
-    WHERE acctsessionid LIKE '${RUN_ID}%'
-      AND event_type IN ('on', 'off')
+    WHERE event_type IN ('on', 'off')
+      AND event_timestamp >= $RUN_START_TS
     ORDER BY event_timestamp
     FORMAT PrettyCompact
 " 2>/dev/null || echo "    ⚠ Query failed"
@@ -614,8 +615,8 @@ EXPECTED_STOPS=$((SENT_STOP))
 CH_STARTS=$($CH_CMD --query "SELECT countIf(event_type='start') FROM radius_accounting WHERE acctsessionid LIKE '${RUN_ID}%' FORMAT TabSeparated" 2>/dev/null || echo "0")
 CH_INTERIMS=$($CH_CMD --query "SELECT countIf(event_type='interim') FROM radius_accounting WHERE acctsessionid LIKE '${RUN_ID}%' FORMAT TabSeparated" 2>/dev/null || echo "0")
 CH_STOPS=$($CH_CMD --query "SELECT countIf(event_type='stop') FROM radius_accounting WHERE acctsessionid LIKE '${RUN_ID}%' FORMAT TabSeparated" 2>/dev/null || echo "0")
-CH_ON=$($CH_CMD --query "SELECT countIf(event_type='on') FROM radius_accounting WHERE acctsessionid LIKE '${RUN_ID}%' FORMAT TabSeparated" 2>/dev/null || echo "0")
-CH_OFF=$($CH_CMD --query "SELECT countIf(event_type='off') FROM radius_accounting WHERE acctsessionid LIKE '${RUN_ID}%' FORMAT TabSeparated" 2>/dev/null || echo "0")
+CH_ON=$($CH_CMD --query "SELECT countIf(event_type='on') FROM radius_accounting WHERE event_type IN ('on','off') AND event_timestamp >= $RUN_START_TS FORMAT TabSeparated" 2>/dev/null || echo "0")
+CH_OFF=$($CH_CMD --query "SELECT countIf(event_type='off') FROM radius_accounting WHERE event_type IN ('on','off') AND event_timestamp >= $RUN_START_TS FORMAT TabSeparated" 2>/dev/null || echo "0")
 
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║                    Validation Summary                        ║"
