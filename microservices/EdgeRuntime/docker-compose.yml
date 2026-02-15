@@ -259,6 +259,7 @@ services:
       - ./config/freeradius/clients.conf:/etc/freeradius/clients.conf:ro
       - ./config/freeradius/mods-available/sql:/etc/freeradius/mods-available/sql:ro
       - ./config/freeradius/mods-enabled/sql:/etc/freeradius/mods-enabled/sql:ro
+      - ./config/freeradius/mods-config/sql/main/postgresql/queries.conf:/etc/freeradius/mods-config/sql/main/postgresql/queries.conf:ro
       - ./config/freeradius/mods-available/redis:/etc/freeradius/mods-available/redis:ro
       - ./config/freeradius/mods-enabled/redis:/etc/freeradius/mods-enabled/redis:ro
       - ./config/freeradius/mods-available/linelog_accounting:/etc/freeradius/mods-available/linelog_accounting:ro
