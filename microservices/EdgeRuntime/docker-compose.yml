@@ -1,24 +1,42 @@
-# local1-docker-compose.yml
+# EdgeRuntime - Unified Docker Compose
+# Combines CDC data sync (Kafka Connect) + FreeRADIUS + ClickHouse (accounting analytics)
+#
+# Architecture:
+#   Cloud Kafka ──► Kafka Connect (JDBC Sink) ──► PostgreSQL ◄── FreeRADIUS (auth/acct)
+#   FreeRADIUS ──► radacct (PostgreSQL) ──► acct-forwarder ──► ClickHouse (analytics)
+#   Redis (session cache, rate limiting, auth cache)
 
 services:
-  postgres_local1:
+  # ============================================================================
+  # PostgreSQL - Primary edge database
+  # Stores CDC-synced users/NAS from cloud + FreeRADIUS accounting/postauth
+  # ============================================================================
+  postgres:
     image: postgres:18.1
-    container_name: postgres_local1
-    command: postgres -c wal_level=logical
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_postgres
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c work_mem=8MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-local1_db}
+      POSTGRES_DB: ${POSTGRES_DB:-edge_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
     ports:
-      - "5434:5432"
+      - "${POSTGRES_PORT:-5434}:5432"
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init/postgres:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql
     networks:
-      - openradius-network
+      - edge-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-edge_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,27 +52,71 @@ services:
       driver: "json-file"
       options:
         max-size: "10m"
+        max-file: "5"
+
+  # ============================================================================
+  # Redis - Session cache, auth cache, rate limiting
+  # DB 0: General / DB 1: Sessions / DB 2: Auth cache / DB 3: Rate limiting
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_redis
+    command: >
+      redis-server
+      --maxmemory ${REDIS_MAX_MEMORY:-512mb}
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --save 60 1000
+      --tcp-backlog 511
+      --timeout 300
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
         max-file: "3"
 
-  connect_local1:
+  # ============================================================================
+  # Kafka Connect (Debezium JDBC Sink) - CDC sync from cloud
+  # Consumes change events from cloud Kafka and writes to local PostgreSQL
+  # ============================================================================
+  connect:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: connect_local1
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_connect
     platform: linux/amd64
     extra_hosts:
-      - "kafka.open-radius.org:157.230.113.249"
+      - "kafka.open-radius.org:${KAFKA_HOST_IP:-157.230.113.249}"
     depends_on:
-      postgres_local1:
+      postgres:
         condition: service_healthy
     environment:
-      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:19092}
+      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-157.230.113.249:9094}
       GROUP_ID: ${CONNECTOR_GROUP_ID:-2}
-      CONFIG_STORAGE_TOPIC: connect_configs_local1
-      OFFSET_STORAGE_TOPIC: connect_offsets_local1
-      STATUS_STORAGE_TOPIC: connect_status_local1
-      REST_ADVERTISED_HOST_NAME: connect_local1
-      # Production settings
+      CONFIG_STORAGE_TOPIC: connect_configs_${COMPOSE_PROJECT_NAME:-edge}
+      OFFSET_STORAGE_TOPIC: connect_offsets_${COMPOSE_PROJECT_NAME:-edge}
+      STATUS_STORAGE_TOPIC: connect_status_${COMPOSE_PROJECT_NAME:-edge}
+      REST_ADVERTISED_HOST_NAME: ${COMPOSE_PROJECT_NAME:-edge}_connect
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
       CONNECT_OFFSET_FLUSH_INTERVAL_MS: "10000"
@@ -62,12 +124,11 @@ services:
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
-      # Heap settings for performance
       KAFKA_HEAP_OPTS: "-Xms512M -Xmx2G"
     ports:
-      - "8084:8083"
+      - "${CONNECT_PORT:-8084}:8083"
     networks:
-      - openradius-network
+      - edge-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/"]
@@ -87,12 +148,161 @@ services:
       driver: "json-file"
       options:
         max-size: "10m"
+        max-file: "5"
+
+  # ============================================================================
+  # ClickHouse - Columnar analytics engine for RADIUS accounting
+  # High-performance storage for session data, traffic analytics, reporting
+  # ============================================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-radius_analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-radius}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme_in_production}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    volumes:
+      - ./init/clickhouse:/docker-entrypoint-initdb.d
+      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
+      - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/custom.xml:ro
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    networks:
+      - edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--query", "SELECT 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ============================================================================
+  # Accounting Forwarder - Pipes RADIUS accounting from PostgreSQL to ClickHouse
+  # Uses PostgreSQL LISTEN/NOTIFY + polling for reliable data forwarding
+  # ============================================================================
+  acct-forwarder:
+    build:
+      context: ./acct-forwarder
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_acct_forwarder
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-edge_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-radius_analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-radius}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme_in_production}
+      BATCH_SIZE: ${ACCT_BATCH_SIZE:-500}
+      POLL_INTERVAL_SECONDS: ${ACCT_POLL_INTERVAL:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - edge-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
         max-file: "3"
 
+  # ============================================================================
+  # FreeRADIUS 3.2 - RADIUS authentication and accounting server
+  # Auth: reads users/NAS from local PostgreSQL (CDC synced from cloud)
+  # Acct: writes to local PostgreSQL radacct table (forwarded to ClickHouse)
+  # ============================================================================
+  freeradius:
+    image: freeradius/freeradius-server:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_freeradius
+    ports:
+      - "${RADIUS_AUTH_PORT:-1812}:1812/udp"
+      - "${RADIUS_ACCT_PORT:-1813}:1813/udp"
+      - "${RADIUS_STATUS_PORT:-18120}:18120"
+    volumes:
+      - ./config/freeradius/radiusd.conf:/etc/freeradius/radiusd.conf:ro
+      - ./config/freeradius/clients.conf:/etc/freeradius/clients.conf:ro
+      - ./config/freeradius/mods-available/sql:/etc/freeradius/mods-available/sql:ro
+      - ./config/freeradius/mods-enabled/sql:/etc/freeradius/mods-enabled/sql:ro
+      - ./config/freeradius/mods-available/redis:/etc/freeradius/mods-available/redis:ro
+      - ./config/freeradius/mods-enabled/redis:/etc/freeradius/mods-enabled/redis:ro
+      - ./config/freeradius/sites-available/default:/etc/freeradius/sites-available/default:ro
+      - ./config/freeradius/sites-enabled/default:/etc/freeradius/sites-enabled/default:ro
+      - ./config/freeradius/dictionary:/etc/freeradius/dictionary:ro
+      - freeradius_logs:/var/log/radius
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-UTC}
+    networks:
+      - edge-network
+    restart: unless-stopped
+    command: ["${RADIUS_CMD:--X}"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
 networks:
-  openradius-network:
+  edge-network:
     driver: bridge
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+  freeradius_logs:
     driver: local

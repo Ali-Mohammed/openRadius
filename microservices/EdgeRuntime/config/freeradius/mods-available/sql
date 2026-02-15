@@ -1,0 +1,184 @@
+# PostgreSQL SQL Module Configuration
+# Enterprise ISP - EdgeRuntime Deployment
+#
+# Auth queries read from CDC-synced RadiusUsers table
+# Accounting writes to local radacct table (forwarded to ClickHouse)
+# NAS devices loaded dynamically from RadiusNasDevices table
+
+sql {
+    driver = "rlm_sql_postgresql"
+    dialect = "postgresql"
+
+    # =========================================================================
+    # Database connection - local PostgreSQL (CDC-synced from cloud)
+    # The container name "postgres" resolves via Docker networking
+    # =========================================================================
+    server = "postgres"
+    port = 5432
+    login = "postgres"
+    password = "changeme_in_production"
+    radius_db = "edge_db"
+
+    # Connection pool - enterprise ISP optimized
+    pool {
+        start = 5
+        min = 3
+        max = 32
+        spare = 10
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+        cleanup_interval = 30
+        spread = yes
+    }
+
+    # Load NAS devices from database
+    read_clients = yes
+
+    # Table names
+    client_table = "RadiusNasDevices"
+    acct_table1 = "radacct"
+    acct_table2 = "radacct"
+    postauth_table = "radpostauth"
+
+    # Group attribute name
+    group_attribute = "SQL-Group"
+
+    # SQL-User-Name definition
+    sql_user_name = "%{User-Name}"
+
+    # =========================================================================
+    # NAS Client query - reads from CDC-synced RadiusNasDevices table
+    # =========================================================================
+    client {
+        query = "SELECT \"Id\" as id, \"Nasname\" as nasname, \"Shortname\" as shortname, \
+                 CASE \"Type\" \
+                   WHEN 0 THEN 'other' \
+                   WHEN 1 THEN 'cisco' \
+                   WHEN 2 THEN 'mikrotik' \
+                   ELSE 'other' \
+                 END as type, \
+                 \"Secret\" as secret, \"Server\" as server \
+                 FROM \"RadiusNasDevices\" \
+                 WHERE \"Enabled\" = 1 AND \"IsDeleted\" = false"
+    }
+
+    # =========================================================================
+    # Authorization queries - read from CDC-synced RadiusUsers table
+    # =========================================================================
+
+    # Check user credentials (Cleartext-Password from RadiusUsers.Password)
+    authorize_check_query = "SELECT 1 as id, '%{SQL-User-Name}' as username, \
+                             'Cleartext-Password' as attribute, \"Password\" as value, ':=' as op \
+                             FROM \"RadiusUsers\" \
+                             WHERE \"Username\" = '%{SQL-User-Name}' \
+                             AND \"Enabled\" = true \
+                             AND \"IsDeleted\" = false \
+                             AND \"Password\" IS NOT NULL \
+                             AND (\"Expiration\" IS NULL OR \"Expiration\" > NOW()) \
+                             LIMIT 1"
+
+    # Reply attributes from RadiusCustomAttributes (joined via ProfileId and UserId)
+    authorize_reply_query = "SELECT ca.\"Id\" as id, '%{SQL-User-Name}' as username, \
+                             ca.\"AttributeName\" as attribute, ca.\"AttributeValue\" as value, ':=' as op \
+                             FROM \"RadiusCustomAttributes\" ca \
+                             INNER JOIN \"RadiusUsers\" ru ON ca.\"RadiusProfileId\" = ru.\"ProfileId\" \
+                             WHERE ru.\"Username\" = '%{SQL-User-Name}' \
+                             AND ca.\"Enabled\" = true \
+                             AND ca.\"IsDeleted\" = false \
+                             UNION ALL \
+                             SELECT ca.\"Id\" as id, '%{SQL-User-Name}' as username, \
+                             ca.\"AttributeName\" as attribute, ca.\"AttributeValue\" as value, ':=' as op \
+                             FROM \"RadiusCustomAttributes\" ca \
+                             WHERE ca.\"RadiusUserId\" = (SELECT \"Id\" FROM \"RadiusUsers\" WHERE \"Username\" = '%{SQL-User-Name}') \
+                             AND ca.\"Enabled\" = true \
+                             AND ca.\"IsDeleted\" = false \
+                             ORDER BY id"
+
+    # Delete old sessions
+    delete_stale_sessions = yes
+
+    # Connection timeout
+    connect_timeout = 5
+
+    # =========================================================================
+    # Accounting queries - write to local PostgreSQL radacct table
+    # The acct-forwarder sidecar forwards these to ClickHouse
+    # =========================================================================
+    accounting {
+        reference = "%{tolower:type.%{Acct-Status-Type}.query}"
+
+        type {
+            accounting-on {
+                query = "UPDATE ${....acct_table1} \
+                         SET acctstoptime = NOW(), \
+                             acctterminatecause = '%{%{Acct-Terminate-Cause}:-NAS-Reboot}' \
+                         WHERE acctstoptime IS NULL \
+                         AND nasipaddress = '%{NAS-IP-Address}' \
+                         AND acctstarttime <= NOW()"
+            }
+
+            accounting-off {
+                query = "${..accounting-on.query}"
+            }
+
+            start {
+                query = "INSERT INTO ${....acct_table1} \
+                         (acctsessionid, acctuniqueid, username, realm, nasipaddress, \
+                          nasportid, nasporttype, acctstarttime, acctstoptime, \
+                          acctsessiontime, acctauthentic, connectinfo_start, \
+                          connectinfo_stop, acctinputoctets, acctoutputoctets, \
+                          calledstationid, callingstationid, acctterminatecause, \
+                          servicetype, framedprotocol, framedipaddress) \
+                         VALUES \
+                         ('%{Acct-Session-Id}', '%{Acct-Unique-Session-Id}', \
+                          '%{SQL-User-Name}', '%{Realm}', '%{NAS-IP-Address}', \
+                          '%{%{NAS-Port-ID}:-%{NAS-Port}}', '%{NAS-Port-Type}', \
+                          NOW(), NULL, 0, '%{Acct-Authentic}', \
+                          '%{Connect-Info}', NULL, 0, 0, \
+                          '%{Called-Station-Id}', '%{Calling-Station-Id}', NULL, \
+                          '%{Service-Type}', '%{Framed-Protocol}', \
+                          NULLIF('%{Framed-IP-Address}', '')::inet)"
+            }
+
+            interim-update {
+                query = "UPDATE ${....acct_table1} \
+                         SET acctupdatetime = NOW(), \
+                             acctinterval = (EXTRACT(EPOCH FROM (NOW() - acctstarttime)))::integer, \
+                             acctinputoctets = (('%{%{Acct-Input-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Input-Octets}:-0}'::bigint), \
+                             acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint), \
+                             forwarded_to_ch = false \
+                         WHERE acctsessionid = '%{Acct-Session-Id}' \
+                         AND username = '%{SQL-User-Name}' \
+                         AND nasipaddress = '%{NAS-IP-Address}'"
+            }
+
+            stop {
+                query = "UPDATE ${....acct_table1} \
+                         SET acctstoptime = NOW(), \
+                             acctsessiontime = '%{%{Acct-Session-Time}:-0}', \
+                             acctinputoctets = (('%{%{Acct-Input-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Input-Octets}:-0}'::bigint), \
+                             acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint), \
+                             acctterminatecause = '%{Acct-Terminate-Cause}', \
+                             connectinfo_stop = '%{Connect-Info}', \
+                             forwarded_to_ch = false \
+                         WHERE acctsessionid = '%{Acct-Session-Id}' \
+                         AND username = '%{SQL-User-Name}' \
+                         AND nasipaddress = '%{NAS-IP-Address}'"
+            }
+        }
+    }
+
+    # =========================================================================
+    # Post-Auth logging
+    # =========================================================================
+    post-auth {
+        reference = ".query"
+        query = "INSERT INTO ${..postauth_table} \
+                 (username, pass, reply, authdate) \
+                 VALUES \
+                 ('%{User-Name}', '%{%{User-Password}:-%{Chap-Password}}', \
+                  '%{reply:Packet-Type}', NOW())"
+    }
+}

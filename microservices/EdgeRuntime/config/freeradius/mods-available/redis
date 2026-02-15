@@ -1,0 +1,94 @@
+# Redis Caching Module Configuration
+# Enterprise ISP - EdgeRuntime Deployment
+# Session cache, auth cache, rate limiting
+
+redis {
+    # Redis server connection (Docker service name)
+    server = "redis"
+    port = 6379
+    database = 0
+
+    # Connection pool - enterprise optimized
+    pool {
+        start = 5
+        min = 3
+        max = 32
+        spare = 10
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+        cleanup_interval = 30
+    }
+
+    connect_timeout = 5
+    reply_timeout = 5
+
+    reconnect {
+        num = 3
+        delay = 1000
+    }
+}
+
+# Session tracking cache
+redis session_cache {
+    server = "redis"
+    port = 6379
+    database = 1
+
+    pool {
+        start = 3
+        min = 2
+        max = 16
+        spare = 5
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+    }
+
+    # TTL: 24 hours
+    expire = 86400
+}
+
+# Authentication results cache
+redis auth_cache {
+    server = "redis"
+    port = 6379
+    database = 2
+
+    pool {
+        start = 3
+        min = 2
+        max = 16
+        spare = 5
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+    }
+
+    # TTL: 1 hour
+    expire = 3600
+}
+
+# Rate limiting
+redis rate_limit {
+    server = "redis"
+    port = 6379
+    database = 3
+
+    pool {
+        start = 2
+        min = 1
+        max = 8
+        spare = 3
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+    }
+
+    # TTL: 5 minutes
+    expire = 300
+}

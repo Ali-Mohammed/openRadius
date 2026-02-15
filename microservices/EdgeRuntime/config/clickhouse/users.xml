@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!-- ClickHouse Users Configuration for EdgeRuntime -->
+<clickhouse>
+    <profiles>
+        <default>
+            <!-- Query resource limits -->
+            <max_memory_usage>2000000000</max_memory_usage>
+            <max_execution_time>300</max_execution_time>
+            <max_rows_to_read>1000000000</max_rows_to_read>
+            <max_bytes_to_read>100000000000</max_bytes_to_read>
+            <use_uncompressed_cache>0</use_uncompressed_cache>
+            <load_balancing>random</load_balancing>
+        </default>
+
+        <readonly>
+            <readonly>1</readonly>
+            <max_memory_usage>1000000000</max_memory_usage>
+            <max_execution_time>60</max_execution_time>
+        </readonly>
+
+        <!-- Profile for batch inserts from accounting forwarder -->
+        <batch_writer>
+            <max_memory_usage>4000000000</max_memory_usage>
+            <max_execution_time>600</max_execution_time>
+            <max_insert_block_size>1048576</max_insert_block_size>
+            <min_insert_block_size_rows>1048576</min_insert_block_size_rows>
+        </batch_writer>
+    </profiles>
+
+    <quotas>
+        <default>
+            <interval>
+                <duration>3600</duration>
+                <queries>0</queries>
+                <errors>0</errors>
+                <result_rows>0</result_rows>
+                <read_rows>0</read_rows>
+                <execution_time>0</execution_time>
+            </interval>
+        </default>
+    </quotas>
+</clickhouse>

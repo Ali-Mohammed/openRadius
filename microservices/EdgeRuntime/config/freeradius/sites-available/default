@@ -1,0 +1,119 @@
+# Default FreeRADIUS Virtual Server
+# Enterprise ISP - EdgeRuntime Deployment
+# Auth: PostgreSQL (CDC-synced users) + Redis (caching)
+# Acct: PostgreSQL (forwarded to ClickHouse)
+
+server default {
+    listen {
+        type = auth
+        ipaddr = *
+        port = 1812
+        limit {
+            max_connections = 256
+            lifetime = 0
+            idle_timeout = 30
+        }
+    }
+
+    listen {
+        type = acct
+        ipaddr = *
+        port = 1813
+        limit {
+            max_connections = 256
+            lifetime = 0
+            idle_timeout = 30
+        }
+    }
+
+    # =================================================================
+    # Authorization - check credentials from CDC-synced RadiusUsers
+    # =================================================================
+    authorize {
+        preprocess
+
+        # Query SQL for user credentials from RadiusUsers table
+        sql
+
+        # Check group membership
+        if (ok || updated) {
+            sql
+        }
+
+        # Process CHAP if present
+        if ("%{%{Packet-Type}:-}" == "Access-Request") {
+            chap
+        }
+
+        # PAP
+        pap
+    }
+
+    # =================================================================
+    # Authentication
+    # =================================================================
+    authenticate {
+        Auth-Type PAP {
+            pap
+        }
+
+        Auth-Type CHAP {
+            chap
+        }
+
+        Auth-Type MS-CHAP {
+            mschap
+        }
+    }
+
+    # =================================================================
+    # Pre-accounting
+    # =================================================================
+    preacct {
+        preprocess
+        acct_unique
+        suffix
+        files
+    }
+
+    # =================================================================
+    # Accounting - writes to PostgreSQL radacct table
+    # The acct-forwarder sidecar forwards data to ClickHouse
+    # =================================================================
+    accounting {
+        detail
+        sql
+        radutmp
+    }
+
+    # =================================================================
+    # Session tracking
+    # =================================================================
+    session {
+        radutmp
+    }
+
+    # =================================================================
+    # Post-authentication
+    # =================================================================
+    post-auth {
+        sql
+
+        Post-Auth-Type REJECT {
+            sql
+            attr_filter.access_reject
+        }
+
+        # Default session timeouts (can be overridden by profile attributes)
+        update reply {
+            &Session-Timeout := 86400
+            &Idle-Timeout := 3600
+        }
+    }
+
+    pre-proxy {
+    }
+
+    post-proxy {
+    }
+}

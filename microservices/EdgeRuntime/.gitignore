@@ -1,20 +1,37 @@
-# Add sensitive files to gitignore
+# ============================================================================
+# EdgeRuntime .gitignore
+# ============================================================================
+
+# Environment / secrets
 .env
 .env.production
 .env.staging
+.env.local
+secrets/
+*.pem
+*.key
+*.crt
+
+# Logs
 *.log
 *.pid
+logs/
 
-# Project directories
-connectors/
-
-# Docker volumes
+# Docker volumes / data
 postgres_data/
+redis_data/
+clickhouse_data/
+clickhouse_logs/
+freeradius_logs/
+
+# Build artifacts
+connectors/
 
 # Backup files
 backups/
 *.backup
 *.dump
+*.bak
 
 # IDE files
 .idea/
@@ -26,8 +43,8 @@ backups/
 .DS_Store
 Thumbs.db
 
-# Secrets
-secrets/
-*.pem
-*.key
-*.crt
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
