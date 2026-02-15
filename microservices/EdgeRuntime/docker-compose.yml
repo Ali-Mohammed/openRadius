@@ -3,14 +3,13 @@
 #
 # Architecture:
 #   Cloud Kafka ──► Kafka Connect (JDBC Sink) ──► PostgreSQL ◄── FreeRADIUS (auth)
-#   FreeRADIUS ──► linelog (JSON) ──► Fluent Bit ──► ClickHouse (accounting analytics)
-#   FreeRADIUS ──► radacct (PostgreSQL) (operational accounting)
+#   FreeRADIUS ──► linelog (JSON) ──► Fluent Bit ──► ClickHouse (sole accounting destination)
 #   FreeRADIUS ◄──► Redis (auth cache, session tracking, rate limiting)
 
 services:
   # ============================================================================
   # PostgreSQL - Primary edge database
-  # Stores CDC-synced users/NAS from cloud + FreeRADIUS accounting/postauth
+  # Stores CDC-synced users/NAS from cloud + FreeRADIUS postauth logs
   # ============================================================================
   postgres:
     image: postgres:18.1
@@ -245,7 +244,7 @@ services:
   # ============================================================================
   # FreeRADIUS 3.2 - RADIUS authentication and accounting server
   # Auth: reads users/NAS from local PostgreSQL (CDC synced) + Redis caching
-  # Acct: writes to PostgreSQL (operational) + linelog JSON (→ Fluent Bit → ClickHouse)
+  # Acct: ClickHouse only (linelog JSON → Fluent Bit → ClickHouse, insert-only)
   # ============================================================================
   freeradius:
     image: freeradius/freeradius-server:latest

@@ -462,9 +462,10 @@ Full reference in `.env.example`:
 | `client_query`          | `RadiusNasDevices`         | Load NAS: Enabled=1, IsDeleted=false, CASE Type → string          |
 | `authorize_check_query` | `RadiusUsers`              | Cleartext-Password: Enabled, !Deleted, has password, not expired   |
 | `authorize_reply_query` | `RadiusCustomAttributes`   | UNION: profile-level (via ProfileId) + user-level (via RadiusUserId) |
-| `accounting.*`          | `radacct`                  | Standard FreeRADIUS accounting (start/interim/stop/on/off)         |
 | `post-auth`             | `radpostauth`              | Auth event logging (accept + reject)                               |
-| `simul_count_query`     | `radacct`                  | Concurrent session counting                                        |
+
+> **Note:** No accounting queries — accounting goes exclusively to ClickHouse via linelog/Fluent Bit.
+> Session tracking for simultaneous-use uses the `radutmp` module (not SQL).
 
 ### Linelog Module (`config/freeradius/mods-available/linelog_accounting`)
 
