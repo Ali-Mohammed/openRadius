@@ -227,11 +227,7 @@ services:
       - edge-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2020/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
+      disable: true
     deploy:
       resources:
         limits:

@@ -6,6 +6,9 @@
 -- Each row represents one accounting event (start / interim / stop / on / off)
 -- ============================================================================
 
+CREATE DATABASE IF NOT EXISTS radius_analytics;
+USE radius_analytics;
+
 -- ===========================================
 -- 1. Main Accounting Table (MergeTree with date partitioning)
 -- ===========================================
