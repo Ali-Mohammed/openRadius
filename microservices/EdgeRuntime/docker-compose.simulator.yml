@@ -1,12 +1,15 @@
-# Nokia BNG Simulator - run alongside EdgeRuntime
+# Nokia 7750 SR BNG Simulator — High-Performance Go Edition
 #
 # Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.simulator.yml up --build simulator
+#   docker compose -f docker-compose.yml -f docker-compose.simulator.yml run --rm -T simulator
 #
-# Modes (via environment):
-#   Fast:    CYCLE_INTERVAL=1 INTERIM_INTERVAL=30 MAX_SUBSCRIBERS=50 CONNECT_CHANCE=30
-#   Gentle:  CYCLE_INTERVAL=10 INTERIM_INTERVAL=300 MAX_SUBSCRIBERS=10 CONNECT_CHANCE=10
-#   Default: CYCLE_INTERVAL=5 INTERIM_INTERVAL=300 MAX_SUBSCRIBERS=20
+# Presets (via CLI args in command override):
+#   --turbo    200ms cycle, 30s interim, 40 subs, burst 30, 8 conn/cyc
+#   --fast     500ms cycle, 60s interim, 40 subs, burst 20, 5 conn/cyc  (default)
+#   --gentle   5s cycle, 300s interim, 10 subs, burst 5, 1 conn/cyc
+#
+# Or override individual env vars:
+#   docker compose ... run --rm -T -e CYCLE_MS=200 -e BURST_SIZE=30 simulator
 
 services:
   simulator:
@@ -20,11 +23,12 @@ services:
       RADIUS_ACCT_PORT: "1813"
       RADIUS_SECRET: ${RADIUS_SECRET:-testing123}
       PG_CONN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/${POSTGRES_DB:-edge_db}?sslmode=disable"
-      MAX_SUBSCRIBERS: ${SIM_MAX_SUBSCRIBERS:-20}
-      CYCLE_INTERVAL: ${SIM_CYCLE_INTERVAL:-5}
-      INTERIM_INTERVAL: ${SIM_INTERIM_INTERVAL:-300}
-      CONNECT_CHANCE: ${SIM_CONNECT_CHANCE:-15}
-      DISCONNECT_CHANCE: ${SIM_DISCONNECT_CHANCE:-3}
+      MAX_SUBSCRIBERS: ${SIM_MAX_SUBSCRIBERS:-40}
+      CYCLE_MS: ${SIM_CYCLE_MS:-500}
+      INTERIM_INTERVAL: ${SIM_INTERIM_INTERVAL:-60}
+      CONNECTS_PER_CYCLE: ${SIM_CONNECTS_PER_CYCLE:-5}
+      BURST_SIZE: ${SIM_BURST_SIZE:-20}
+      DISCONNECT_CHANCE: ${SIM_DISCONNECT_CHANCE:-5}
       HEADLESS: ${SIM_HEADLESS:-true}
     depends_on:
       freeradius:
@@ -37,5 +41,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 128M
+          cpus: '1.0'
+          memory: 256M
