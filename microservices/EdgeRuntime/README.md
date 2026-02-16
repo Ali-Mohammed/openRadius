@@ -496,6 +496,8 @@ Full reference in `.env.example`:
 | `scripts/register-connector.sh`| Registers JDBC Sink connector (interactive — prompts to recreate if exists)|
 | `scripts/test-auth.sh`        | Auto-discovers a CDC-synced user, runs `radtest`, tests reject case       |
 | `scripts/test-accounting.sh`  | Sends Start → Interim → Stop, verifies data in ClickHouse (sole destination) |
+| `scripts/nokia-bng-simulator/run.sh` | Nokia 7750 SR BNG simulator — full lifecycle (auth + accounting) with 6 chassis |
+| `scripts/radius-loadtest/run.sh` | Realistic RADIUS auth load test — 100K users, 4 phases (steady/ramp/outage/peak). [Full report](scripts/radius-loadtest/LOADTEST_REPORT.md) |
 
 ---
 
