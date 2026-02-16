@@ -218,6 +218,7 @@ log_event() {
 
 send_acct() {
     local attrs="$1"
+    local acct_type="$2"  # for logging context
     local result
     result=$(echo "$attrs" | docker compose exec -T freeradius radclient 127.0.0.1:1813 acct testing123 2>&1) || true
 
@@ -225,7 +226,7 @@ send_acct() {
         return 0
     else
         STAT_ERRORS=$((STAT_ERRORS + 1))
-        log_event "ERROR" "Acct failed: $(echo "$result" | head -1)"
+        log_event "ERROR" "Acct-${acct_type:-?} failed: $(echo "$result" | head -1)"
         return 1
     fi
 }
@@ -296,7 +297,7 @@ Acct-Interim-Interval = ${INTERIM_INTERVAL}
 NAS-Identifier = \"${nas_name}\"
 Acct-Authentic = RADIUS"
 
-    if send_acct "$attrs"; then
+    if send_acct "$attrs" "Start"; then
         STAT_STARTS=$((STAT_STARTS + 1))
         log_event "START" "$username session=$session_id nas=$nas_name ip=$framed_ip profile=$(get_prof_name $profile_idx)"
         return 0
