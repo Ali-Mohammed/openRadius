@@ -69,6 +69,44 @@ CREATE INDEX IF NOT EXISTS idx_radiususers_enabled ON public."RadiusUsers"("Enab
 CREATE INDEX IF NOT EXISTS idx_radiususers_profileid ON public."RadiusUsers"("ProfileId");
 CREATE INDEX IF NOT EXISTS idx_radiususers_expiration ON public."RadiusUsers"("Expiration");
 
+-- High-performance partial index for FreeRADIUS authorize_check_query
+-- Covers the exact WHERE clause: Enabled=true, IsDeleted=false, Password NOT NULL
+-- Turns full table scan into single index lookup → O(1) per auth request at scale
+CREATE INDEX IF NOT EXISTS idx_radiususers_username_auth
+    ON public."RadiusUsers" ("Username")
+    WHERE "Enabled" = true AND "IsDeleted" = false AND "Password" IS NOT NULL;
+
+-- RadiusCustomAttributes - synced from cloud via CDC
+-- Used by FreeRADIUS SQL module for reply attributes (authorize_reply_query)
+CREATE TABLE IF NOT EXISTS public."RadiusCustomAttributes"
+(
+    "Id"              integer                  not null
+        constraint "RadiusCustomAttributes_pkey"
+            primary key,
+    "Uuid"            uuid                     not null,
+    "AttributeName"   text                     not null,
+    "AttributeValue"  text                     not null,
+    "LinkType"        text                     not null,
+    "RadiusUserId"    integer,
+    "RadiusProfileId" integer,
+    "Enabled"         boolean                  not null,
+    "IsDeleted"       boolean                  not null,
+    "DeletedAt"       timestamp(6) with time zone,
+    "DeletedBy"       integer,
+    "CreatedAt"       timestamp(6) with time zone not null,
+    "UpdatedAt"       timestamp(6) with time zone not null
+);
+
+-- Partial indexes for FreeRADIUS authorize_reply_query (LATERAL UNION ALL branches)
+-- Each branch gets its own index scan instead of a full table scan
+CREATE INDEX IF NOT EXISTS idx_radiuscustomattr_profileid
+    ON public."RadiusCustomAttributes" ("RadiusProfileId")
+    WHERE "Enabled" = true AND "IsDeleted" = false;
+
+CREATE INDEX IF NOT EXISTS idx_radiuscustomattr_userid
+    ON public."RadiusCustomAttributes" ("RadiusUserId")
+    WHERE "Enabled" = true AND "IsDeleted" = false;
+
 -- ===========================================
 -- 2. FreeRADIUS Post-Auth Table
 -- ===========================================
