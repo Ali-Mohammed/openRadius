@@ -1,16 +1,21 @@
 #!/bin/bash
-# RADIUS Authentication Load Test — Run Script
-# Tests if FreeRADIUS + PostgreSQL can handle concurrent auth for all users
+# Nokia 7750 SR BNG — Realistic RADIUS Auth Load Test
+# Tests FreeRADIUS + PostgreSQL with real-world BNG traffic patterns
 #
 # Usage:
-#   ./run.sh                  # default: 5 rounds, 50 concurrency
-#   ./run.sh --quick          # quick: 3 rounds, 20 concurrency
-#   ./run.sh --stress         # stress: 10 rounds, 200 concurrency
-#   ./run.sh --extreme        # extreme: inject 100K users, 500 concurrency
-#   ./run.sh --scale 50000    # custom scale: inject 50K users
+#   ./run.sh                  # default: 100K users, quick phases
+#   ./run.sh --quick          # quick: shorter phases, 100K users
+#   ./run.sh --full           # full: longer phases, realistic durations
+#   ./run.sh --scale 200000   # custom: inject 200K users
+#
+# Phases:
+#   1. STEADY STATE   — Normal PPPoE churn (lease expiry, reboots)
+#   2. RAMP UP        — Morning peak (subscribers come online)
+#   3. POWER OUTAGE   — Mass reconnect storm (CPEs boot staggered)
+#   4. SUSTAINED PEAK — Max throughput ceiling test
 #
 # Environment overrides:
-#   CONCURRENCY=100 ROUNDS=10 ./run.sh
+#   STEADY_RPS=100 PEAK_RPS=2000 ./run.sh
 
 set -e
 
@@ -19,51 +24,47 @@ EDGE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BINARY="$SCRIPT_DIR/radius-loadtest-linux"
 NETWORK="edge_edge-network"
 
-# ── Defaults ──────────────────────────────────────────────────────────────
-CONCURRENCY="${CONCURRENCY:-50}"
-ROUNDS="${ROUNDS:-5}"
-SCALE="${SCALE:-0}"
-VERBOSE="${VERBOSE:-false}"
 EXTRA_ARGS=""
 
 # ── Parse args ────────────────────────────────────────────────────────────
 case "${1:-}" in
   --quick)
     EXTRA_ARGS="-quick"
-    echo "⚡ Quick test mode"
+    echo "⚡ Quick realistic test (100K users, shorter phases)"
     ;;
-  --stress)
-    EXTRA_ARGS="-stress"
-    echo "🔥 Stress test mode"
-    ;;
-  --extreme)
-    EXTRA_ARGS="-extreme"
-    echo "💀 Extreme test mode (100K users)"
+  --full)
+    EXTRA_ARGS="-full"
+    echo "🏗️  Full realistic test (100K users, production-length phases)"
     ;;
   --scale)
-    SCALE="${2:-10000}"
-    echo "📈 Scale test: $SCALE synthetic users"
-    ;;
-  --verbose|-v)
-    VERBOSE="true"
+    EXTRA_ARGS="-scale=${2:-100000}"
+    echo "📈 Scale test: ${2:-100000} synthetic users"
     ;;
   --help|-h)
-    echo "Usage: $0 [--quick|--stress|--extreme|--scale N|--help]"
+    echo "Nokia 7750 SR BNG — Realistic RADIUS Auth Load Test"
+    echo ""
+    echo "Usage: $0 [--quick|--full|--scale N|--help]"
     echo ""
     echo "Presets:"
-    echo "  (default)    5 rounds, 50 concurrency, real users only"
-    echo "  --quick      3 rounds, 20 concurrency"
-    echo "  --stress     10 rounds, 200 concurrency"
-    echo "  --extreme    100K injected users, 10 rounds, 500 concurrency"
-    echo "  --scale N    Inject N synthetic users for scale testing"
+    echo "  (default)    100K users, quick phases (~2 min)"
+    echo "  --quick      100K users, short phases (~1 min)"
+    echo "  --full       100K users, production-length phases (~5 min)"
+    echo "  --scale N    Inject N synthetic users with default phases"
+    echo ""
+    echo "Phases simulate real BNG traffic:"
+    echo "  1. Steady State   — Normal PPPoE churn"
+    echo "  2. Ramp Up        — Morning peak (06:00-08:00)"
+    echo "  3. Power Outage   — Mass CPE reconnect after outage"
+    echo "  4. Sustained Peak — Max throughput test"
     echo ""
     echo "Override with env vars:"
-    echo "  CONCURRENCY=100 ROUNDS=10 ./run.sh"
-    echo "  RADIUS_SECRET=mysecret ./run.sh"
+    echo "  STEADY_RPS=100 PEAK_RPS=2000 ./run.sh"
+    echo "  SCALE=200000 ./run.sh --quick"
     exit 0
     ;;
   "")
-    echo "⚡ Default load test"
+    EXTRA_ARGS="-quick"
+    echo "⚡ Default: Quick realistic test (100K users)"
     ;;
 esac
 
@@ -80,22 +81,9 @@ if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
   exit 1
 fi
 
-# ── Build CLI args ────────────────────────────────────────────────────────
-CLI_ARGS="$EXTRA_ARGS"
-if [[ "$SCALE" -gt 0 ]] && [[ -z "$EXTRA_ARGS" ]]; then
-  CLI_ARGS="$CLI_ARGS -scale=$SCALE"
-fi
-if [[ "$VERBOSE" == "true" ]]; then
-  CLI_ARGS="$CLI_ARGS -verbose"
-fi
-# Only pass concurrency/rounds if not using a preset
-if [[ -z "$EXTRA_ARGS" ]]; then
-  CLI_ARGS="$CLI_ARGS -concurrency=$CONCURRENCY -rounds=$ROUNDS"
-fi
-
 # ── Run ───────────────────────────────────────────────────────────────────
 echo ""
-echo "Running load test on Docker network: $NETWORK"
+echo "Running realistic BNG load test on Docker network: $NETWORK"
 echo ""
 
 exec docker run --rm -i \
@@ -105,5 +93,6 @@ exec docker run --rm -i \
   -e RADIUS_HOST=freeradius \
   -e RADIUS_SECRET="${RADIUS_SECRET:-testing123}" \
   -e PG_DSN="host=postgres port=5432 user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-changeme_in_production} dbname=${POSTGRES_DB:-edge_db} sslmode=disable" \
+  -e SCALE="${SCALE:-}" \
   --entrypoint /loadtest \
-  alpine:3.19 $CLI_ARGS
+  alpine:3.19 $EXTRA_ARGS
