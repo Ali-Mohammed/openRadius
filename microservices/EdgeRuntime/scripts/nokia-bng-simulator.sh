@@ -361,7 +361,7 @@ Acct-Input-Gigawords = ${dl_giga}
 Acct-Output-Gigawords = ${ul_giga}
 Acct-Authentic = RADIUS"
 
-    if send_acct "$attrs"; then
+    if send_acct "$attrs" "Interim"; then
         echo "${S_USER}|${S_PASS}|${S_SID}|${S_NAS}|${S_PORT}|${S_IP}|${S_MAC}|${S_PROF}|${S_START}|${new_time}|${new_dl}|${new_ul}|${new_cycle}" \
             > "$file"
         STAT_INTERIMS=$((STAT_INTERIMS + 1))
@@ -404,10 +404,7 @@ Acct-Input-Gigawords = ${dl_giga}
 Acct-Output-Gigawords = ${ul_giga}
 Acct-Authentic = RADIUS"
 
-    if send_acct "$attrs"; then
-        rm -f "$file"
-        STAT_STOPS=$((STAT_STOPS + 1))
-        log_event "STOP" "$username cause=$cause time=${S_TIME}s dl=$(format_bytes_hr $S_DL) ul=$(format_bytes_hr $S_UL)"
+    if send_acct "$attrs" "Stop"; then
         return 0
     fi
     return 1
