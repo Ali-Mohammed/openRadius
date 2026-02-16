@@ -66,30 +66,30 @@ type Config struct {
 	Verbose      bool
 
 	// Phase durations
-	SteadyDuration  time.Duration
-	RampDuration    time.Duration
-	OutageDuration  time.Duration
-	PeakDuration    time.Duration
+	SteadyDuration time.Duration
+	RampDuration   time.Duration
+	OutageDuration time.Duration
+	PeakDuration   time.Duration
 
 	// Rates
-	SteadyRPS    int // auth/sec during steady state
-	PeakRPS      int // target auth/sec at peak
-	OutageBatch  int // users per second during outage recovery
+	SteadyRPS   int // auth/sec during steady state
+	PeakRPS     int // target auth/sec at peak
+	OutageBatch int // users per second during outage recovery
 }
 
 // ─── Live metrics (lock-free) ───────────────────────────────────────────────
 
 type LiveStats struct {
-	Sent    atomic.Int64
-	Accept  atomic.Int64
-	Reject  atomic.Int64
-	Error   atomic.Int64
-	LatSum  atomic.Int64 // microseconds
-	LatMax  atomic.Int64
+	Sent   atomic.Int64
+	Accept atomic.Int64
+	Reject atomic.Int64
+	Error  atomic.Int64
+	LatSum atomic.Int64 // microseconds
+	LatMax atomic.Int64
 
 	// Per-second sliding window
-	mu          sync.Mutex
-	secResults  []Result
+	mu         sync.Mutex
+	secResults []Result
 }
 
 func (ls *LiveStats) Record(r Result) {
@@ -696,7 +696,7 @@ func printFinalReport(phases []PhaseSummary, userCount int) {
 		fmt.Printf("  │     Full %dk user re-auth: ~%.0fs (%.1f min)\n",
 			userCount/1000, recoveryTime, recoveryTime/60)
 
-		subsPerBNG := 16000 // typical Nokia 7750 SR
+		subsPerBNG := 16000                                             // typical Nokia 7750 SR
 		bngsSupported := int(peakPhase.RPS * 120 / float64(subsPerBNG)) // 2-min recovery window
 		if bngsSupported < 1 {
 			bngsSupported = 1
