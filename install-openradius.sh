@@ -656,7 +656,7 @@ check_sudo() {
     print_info "Checking sudo privileges..."
     if ! sudo -v; then
         print_error "Sudo privileges required. Please run with sudo or as root."
-        exit 1
+        exit 12
     fi
     print_success "Sudo access confirmed"
 }
@@ -665,13 +665,13 @@ check_sudo() {
 check_ubuntu() {
     if [[ ! -f /etc/os-release ]]; then
         print_error "Cannot detect OS. This script is designed for Ubuntu."
-        exit 1
+        exit 11
     fi
     
     source /etc/os-release
     if [[ "$ID" != "ubuntu" ]]; then
         print_error "This script is designed for Ubuntu. Detected: $ID"
-        exit 1
+        exit 11
     fi
     
     print_success "Ubuntu $VERSION_ID detected"
@@ -802,6 +802,19 @@ configure_firewall() {
 # =============================================================================
 
 collect_configuration() {
+    # In unattended mode, configuration is already loaded from config file
+    if [[ "$UNATTENDED" == "true" ]]; then
+        print_header "CONFIGURATION (UNATTENDED)"
+        print_success "Using pre-loaded configuration:"
+        print_info "  Domain:     $DOMAIN"
+        print_info "  SSL Email:  $SSL_EMAIL"
+        print_info "  Sample:     $INSTALL_SAMPLE"
+        print_info "  Keycloak:   $CONFIGURE_KEYCLOAK"
+        print_info "  Backup:     $ENABLE_BACKUP"
+        log "[CONFIG] Unattended: DOMAIN=$DOMAIN SSL_EMAIL=$SSL_EMAIL"
+        return 0
+    fi
+
     print_header "CONFIGURATION"
     
     # Domain Configuration
@@ -1099,6 +1112,16 @@ show_dns_instructions() {
     echo "  cdc.$DOMAIN          →  $DOMAIN"
     echo ""
     
+    # In unattended mode, skip the DNS prompt (use SKIP_SSL from config)
+    if [[ "$UNATTENDED" == "true" ]]; then
+        if [[ "$SKIP_SSL" == "true" ]]; then
+            print_info "Unattended: SKIP_SSL=true — will use self-signed certificates"
+        else
+            print_info "Unattended: Will attempt Let's Encrypt SSL certificates"
+        fi
+        return 0
+    fi
+
     echo -e "${YELLOW}Have you configured DNS records? [y/N]: ${NC}"
     read -p "> " dns_configured
     dns_configured=${dns_configured,,}  # Convert to lowercase
@@ -1231,7 +1254,7 @@ clone_repository() {
     # Ensure we're in a valid directory before cloning
     cd /tmp || cd / || {
         print_error "Failed to navigate to a valid directory"
-        exit 1
+        exit 50
     }
     
     # Clone repository (directory already exists with .env file)
@@ -1245,7 +1268,7 @@ clone_repository() {
     # Navigate to installation directory
     cd "$install_dir" || {
         print_error "Failed to navigate to installation directory"
-        exit 1
+        exit 50
     }
     
     print_success "Repository cloned to $install_dir"
@@ -1492,7 +1515,7 @@ pull_docker_images() {
     print_error "Failed to pull Docker images after $max_retries attempts."
     print_info "Please check your internet connection and Docker daemon status."
     print_info "You can retry manually with: docker compose -f docker-compose.prod.yml pull"
-    exit 1
+    exit 60
 }
 
 # =============================================================================
@@ -2183,9 +2206,17 @@ check_existing_installation() {
         echo -e "${RED}  • All configuration${NC}"
         echo -e "${RED}  • All logs${NC}"
         echo ""
-        echo -e "${YELLOW}Do you want to remove the existing installation and start fresh? [y/N]: ${NC}"
-        read -p "> " remove_confirm
-        remove_confirm=${remove_confirm,,}  # Convert to lowercase
+
+        # In unattended mode, auto-confirm removal (the user opted for a fresh install)
+        if [[ "$UNATTENDED" == "true" ]]; then
+            print_warning "Unattended mode: auto-confirming removal of existing installation"
+            log "[UNATTENDED] Auto-confirming removal of existing installation"
+            remove_confirm="y"
+        else
+            echo -e "${YELLOW}Do you want to remove the existing installation and start fresh? [y/N]: ${NC}"
+            read -p "> " remove_confirm
+            remove_confirm=${remove_confirm,,}  # Convert to lowercase
+        fi
         
         if [[ "$remove_confirm" != "y" ]]; then
             print_error "Installation cancelled. Existing installation preserved."
