@@ -2142,6 +2142,12 @@ show_summary() {
         echo -e "  View with: ${YELLOW}sudo cat $creds_path${NC}"
         echo ""
     fi
+
+    echo -e "${CYAN}Install Log:${NC}"
+    echo -e "  Full log: ${GREEN}$LOG_FILE${NC}"
+    echo -e "  View with: ${YELLOW}sudo cat $LOG_FILE${NC}"
+    echo ""
+
     print_warning "IMPORTANT: Securely store the credentials file and delete it from the server!"
     
     echo ""
@@ -2260,6 +2266,9 @@ check_existing_installation() {
 # =============================================================================
 
 main() {
+    # Parse CLI arguments FIRST (before any output)
+    parse_args "$@"
+
     # Auto-elevate to root if not running as root
     if [[ $EUID -ne 0 ]]; then
         print_warning "This script requires root privileges."
@@ -2267,7 +2276,29 @@ main() {
         exec sudo bash "$0" "$@"
         exit $?
     fi
-    
+
+    # Initialize logging infrastructure
+    init_logging "$@"
+
+    # Resume mode — load checkpoint and skip completed steps
+    if [[ "$RESUME" == "true" ]]; then
+        load_checkpoint
+        log "[RESUME] Resuming installation from checkpoint"
+        print_header "RESUMING INSTALLATION"
+        print_info "Skipping previously completed steps..."
+        echo ""
+    fi
+
+    # Unattended mode — load and validate config file
+    if [[ "$UNATTENDED" == "true" ]]; then
+        if [[ -z "$CONFIG_FILE" ]]; then
+            print_error "--unattended requires --config <file>"
+            show_usage
+            exit 31
+        fi
+        load_unattended_config
+    fi
+
     clear
     
     # ASCII Art Banner
@@ -2296,63 +2327,115 @@ EOF
     echo "  • Firewall configuration"
     echo "  • Automated backups (optional)"
     echo ""
-    
-    echo -e "${YELLOW}Do you want to continue? [y/N]: ${NC}"
-    read -p "> " confirm
-    confirm=${confirm,,}  # Convert to lowercase
-    if [[ "$confirm" != "y" ]]; then
-        print_error "Installation cancelled"
-        exit 0
+
+    if [[ "$RESUME" == "true" ]]; then
+        print_info "Mode: RESUME (from checkpoint)"
+    elif [[ "$UNATTENDED" == "true" ]]; then
+        print_info "Mode: UNATTENDED (config: $CONFIG_FILE)"
+    fi
+
+    log "[MAIN] Starting installation. Mode: $(if [[ "$RESUME" == "true" ]]; then echo 'resume'; elif [[ "$UNATTENDED" == "true" ]]; then echo 'unattended'; else echo 'interactive'; fi)"
+
+    # Interactive confirmation (skip in unattended/resume mode)
+    if [[ "$UNATTENDED" != "true" && "$RESUME" != "true" ]]; then
+        echo -e "${YELLOW}Do you want to continue? [y/N]: ${NC}"
+        read -p "> " confirm
+        confirm=${confirm,,}  # Convert to lowercase
+        if [[ "$confirm" != "y" ]]; then
+            print_error "Installation cancelled"
+            exit 0
+        fi
     fi
     
-    # Pre-installation checks
+    # =========================================================================
+    # Phase 1: System Verification
+    # =========================================================================
     check_root
     check_sudo
     check_ubuntu
+
+    # Check for existing installation (skippable via checkpoint)
+    run_step "check_existing_installation" check_existing_installation
     
-    # Check for existing installation
-    check_existing_installation
+    # =========================================================================
+    # Phase 2: Pre-Flight Checks
+    # =========================================================================
+    run_step "preflight_checks" preflight_checks
+
+    # =========================================================================
+    # Phase 3: Install Dependencies
+    # =========================================================================
+    run_step "install_docker" install_docker
+    run_step "install_docker_compose" install_docker_compose
+    run_step "install_prerequisites" install_prerequisites
     
-    # Install dependencies
-    install_docker
-    install_docker_compose
-    install_prerequisites
+    # =========================================================================
+    # Phase 4: System Configuration
+    # =========================================================================
+    run_step "configure_firewall" configure_firewall
     
-    # Configure system
-    configure_firewall
+    # =========================================================================
+    # Phase 5: Collect & Generate Configuration
+    # =========================================================================
+    run_step "collect_configuration" collect_configuration
+    run_step "generate_env_file" generate_env_file
+    run_step "save_credentials" save_credentials
     
-    # Collect configuration
-    collect_configuration
+    # =========================================================================
+    # Phase 6: DNS & SSL
+    # =========================================================================
+    run_step "show_dns_instructions" show_dns_instructions
+    run_step "generate_ssl_certificates" generate_ssl_certificates
     
-    # Generate configuration files
-    generate_env_file
-    save_credentials
+    # =========================================================================
+    # Phase 7: Deploy Application
+    # =========================================================================
+    run_step "clone_repository" clone_repository
+    run_step "configure_nginx" configure_nginx
+    run_step "generate_htpasswd_files" generate_htpasswd_files
+    run_step "generate_edge_env" generate_edge_env
+    run_step "prepare_keycloak_import" prepare_keycloak_import
+    run_step "pull_docker_images" pull_docker_images
+    run_step "start_services" start_services
+    run_step "wait_for_services" wait_for_services
     
-    # DNS and SSL
-    show_dns_instructions
-    generate_ssl_certificates
+    # =========================================================================
+    # Phase 8: Post-Deploy Configuration
+    # =========================================================================
+    run_step "configure_keycloak" configure_keycloak
     
-    # Clone repository and deploy
-    clone_repository
-    configure_nginx
-    generate_htpasswd_files
-    generate_edge_env
-    prepare_keycloak_import
-    pull_docker_images
-    start_services
-    wait_for_services
-    
-    # Configure Keycloak
-    configure_keycloak
-    
-    # Post-installation
-    setup_backup
-    
+    # =========================================================================
+    # Phase 9: Post-Installation
+    # =========================================================================
+    run_step "setup_backup" setup_backup
+
+    # =========================================================================
+    # Success — Clean up checkpoint and show summary
+    # =========================================================================
+    # Disable error trap for the summary (install is complete)
+    trap - EXIT
+
+    # Remove checkpoint file (successful install doesn't need it)
+    rm -f "$CHECKPOINT_FILE" 2>/dev/null || true
+    log "[CHECKPOINT] Removed (installation successful)"
+
+    # Calculate total install time
+    local install_end_time=$(date +%s)
+    local install_duration=$((install_end_time - INSTALL_START_TIME))
+    local install_mins=$((install_duration / 60))
+    local install_secs=$((install_duration % 60))
+    log "[MAIN] Installation completed in ${install_mins}m ${install_secs}s"
+
     # Show summary
     show_summary
-    
+
+    echo -e "${GREEN}Total installation time: ${install_mins}m ${install_secs}s${NC}"
+    echo -e "${CYAN}Full install log: ${GREEN}$LOG_FILE${NC}"
+    echo ""
+
     print_success "Installation script completed!"
+    log "[MAIN] === INSTALLATION SUCCESSFUL ==="
 }
 
-# Run main function
-main
+# Run main function with all CLI args
+main "$@"
