@@ -1,0 +1,41 @@
+# Nokia BNG Simulator - run alongside EdgeRuntime
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.simulator.yml up --build simulator
+#
+# Modes (via environment):
+#   Fast:    CYCLE_INTERVAL=1 INTERIM_INTERVAL=30 MAX_SUBSCRIBERS=50 CONNECT_CHANCE=30
+#   Gentle:  CYCLE_INTERVAL=10 INTERIM_INTERVAL=300 MAX_SUBSCRIBERS=10 CONNECT_CHANCE=10
+#   Default: CYCLE_INTERVAL=5 INTERIM_INTERVAL=300 MAX_SUBSCRIBERS=20
+
+services:
+  simulator:
+    build:
+      context: ./scripts/nokia-bng-simulator
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-edge}_simulator
+    environment:
+      RADIUS_HOST: freeradius
+      RADIUS_AUTH_PORT: "1812"
+      RADIUS_ACCT_PORT: "1813"
+      RADIUS_SECRET: ${RADIUS_SECRET:-testing123}
+      PG_CONN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/${POSTGRES_DB:-edge_db}?sslmode=disable"
+      MAX_SUBSCRIBERS: ${SIM_MAX_SUBSCRIBERS:-20}
+      CYCLE_INTERVAL: ${SIM_CYCLE_INTERVAL:-5}
+      INTERIM_INTERVAL: ${SIM_INTERIM_INTERVAL:-300}
+      CONNECT_CHANCE: ${SIM_CONNECT_CHANCE:-15}
+      DISCONNECT_CHANCE: ${SIM_DISCONNECT_CHANCE:-3}
+      HEADLESS: ${SIM_HEADLESS:-true}
+    depends_on:
+      freeradius:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - edge-network
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
