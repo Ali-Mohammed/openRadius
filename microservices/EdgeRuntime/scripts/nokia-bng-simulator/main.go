@@ -66,6 +66,7 @@ type Stats struct {
 	Interims int64
 	Stops    int64
 	Errors   int64
+	Rejects  int64
 	Cycles   int64
 	TotalDL  int64
 	TotalUL  int64
@@ -160,7 +161,7 @@ func (s *Simulator) loadSubscribers() error {
 	defer cancel()
 
 	rows, err := db.QueryContext(ctx,
-		`SELECT "Username", "Password" FROM "RadiusUsers" WHERE "Enabled"=true AND "IsDeleted"=false AND "Password" IS NOT NULL ORDER BY random() LIMIT $1`, s.maxSubs)
+		`SELECT "Username", "Password" FROM "RadiusUsers" WHERE "Enabled"=true AND "IsDeleted"=false AND "Password" IS NOT NULL AND "Expiration" > NOW() ORDER BY random() LIMIT $1`, s.maxSubs)
 	if err != nil {
 		return fmt.Errorf("pg query: %w", err)
 	}
@@ -304,6 +305,7 @@ func (s *Simulator) exchangeAcct(pkt *radius.Packet) error {
 
 func (s *Simulator) doConnect(sub *Subscriber) {
 	if err := s.sendAuth(sub.Username, sub.Password); err != nil {
+		atomic.AddInt64(&s.stats.Rejects, 1)
 		s.logEvent("WARN", fmt.Sprintf("Auth reject: %s - %v", sub.Username, err))
 		return
 	}
@@ -450,9 +452,9 @@ func (s *Simulator) drawDashboard() {
 	fmt.Printf("  Runtime: \033[1m%s\033[0m | Cycle: \033[1m%d\033[0m | Active: \033[1;32m%d\033[0m\n",
 		fmtDuration(runtime), atomic.LoadInt64(&s.stats.Cycles), active)
 	fmt.Println("\033[1;36m+-------------------------------------------------------------------------+\033[0m")
-	fmt.Printf("  \033[32mStart:\033[0m %-6d | \033[33mInterim:\033[0m %-6d | \033[31mStop:\033[0m %-6d | \033[31mErr:\033[0m %-4d\n",
+	fmt.Printf("  \033[32mStart:\033[0m %-6d | \033[33mInterim:\033[0m %-6d | \033[31mStop:\033[0m %-6d | \033[35mReject:\033[0m %-4d | \033[31mErr:\033[0m %-4d\n",
 		atomic.LoadInt64(&s.stats.Starts), atomic.LoadInt64(&s.stats.Interims),
-		atomic.LoadInt64(&s.stats.Stops), atomic.LoadInt64(&s.stats.Errors))
+		atomic.LoadInt64(&s.stats.Stops), atomic.LoadInt64(&s.stats.Rejects), atomic.LoadInt64(&s.stats.Errors))
 	fmt.Printf("  DL: %-14s | UL: %-14s\n",
 		fmtBytes(atomic.LoadInt64(&s.stats.TotalDL)), fmtBytes(atomic.LoadInt64(&s.stats.TotalUL)))
 	fmt.Println("\033[1;36m+-------------------------------------------------------------------------+\033[0m")
@@ -521,6 +523,7 @@ func (s *Simulator) shutdown() {
 	fmt.Printf("  Starts:    %d\n", atomic.LoadInt64(&s.stats.Starts))
 	fmt.Printf("  Interims:  %d\n", atomic.LoadInt64(&s.stats.Interims))
 	fmt.Printf("  Stops:     %d\n", atomic.LoadInt64(&s.stats.Stops))
+	fmt.Printf("  Rejects:   %d\n", atomic.LoadInt64(&s.stats.Rejects))
 	fmt.Printf("  Errors:    %d\n", atomic.LoadInt64(&s.stats.Errors))
 	fmt.Printf("  Total DL:  %s\n", fmtBytes(atomic.LoadInt64(&s.stats.TotalDL)))
 	fmt.Printf("  Total UL:  %s\n", fmtBytes(atomic.LoadInt64(&s.stats.TotalUL)))
