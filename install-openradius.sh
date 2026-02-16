@@ -6,14 +6,51 @@
 # This script installs Docker, Docker Compose, and sets up OpenRadius
 # with nginx reverse proxy for production deployment on Ubuntu.
 #
+# Usage:
+#   Interactive:    sudo ./install-openradius.sh
+#   Unattended:     sudo ./install-openradius.sh --unattended --config /path/to/config.yml
+#   Resume failed:  sudo ./install-openradius.sh --resume
+#   Specific step:  sudo ./install-openradius.sh --resume --from pull_docker_images
+#
+# Exit Codes:
+#   0   Success
+#   1   General / unknown error
+#   10  Pre-flight check failed (disk, RAM, CPU, DNS, ports)
+#   11  OS not supported
+#   12  Missing root / sudo privileges
+#   20  Docker installation failed
+#   21  Docker Compose installation failed
+#   22  Prerequisites installation failed
+#   30  Configuration validation failed
+#   31  Unattended config file not found or invalid
+#   40  SSL certificate generation failed (non-fatal, self-signed used)
+#   50  Git clone failed
+#   60  Docker image pull failed
+#   70  Service startup failed
+#   71  Health check timeout
+#   80  Keycloak configuration failed (non-fatal)
+#   90  Cleanup / rollback in progress
+#
 # Powered By: Ali Al-Estarbadee
 # Email: ali87mohammed@hotmail.com
 # =============================================================================
 
-set -e  # Exit on any error
-
 # Version
-OPENRADIUS_VERSION="1.7"
+OPENRADIUS_VERSION="2.0"
+
+# =============================================================================
+# Strict Mode & Globals
+# =============================================================================
+set -o pipefail  # Catch pipe failures
+
+INSTALL_DIR="/opt/openradius"
+LOG_FILE="/opt/openradius/install.log"
+CHECKPOINT_FILE="/opt/openradius/.install-checkpoint"
+UNATTENDED=false
+RESUME=false
+RESUME_FROM=""
+CONFIG_FILE=""
+INSTALL_START_TIME=$(date +%s)
 
 # Colors for output
 RED='\033[0;31m'
@@ -22,36 +59,551 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
+GRAY='\033[0;90m'
 NC='\033[0m' # No Color
+
+# =============================================================================
+# Logging Infrastructure
+# =============================================================================
+# All output is tee'd to both console and log file with ISO 8601 timestamps.
+# The log file captures stdout + stderr for post-mortem analysis.
+# =============================================================================
+
+init_logging() {
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    # Rotate old log if > 10MB
+    if [[ -f "$LOG_FILE" ]] && [[ $(stat -f%z "$LOG_FILE" 2>/dev/null || stat -c%s "$LOG_FILE" 2>/dev/null) -gt 10485760 ]]; then
+        mv "$LOG_FILE" "${LOG_FILE}.$(date +%Y%m%d-%H%M%S).bak"
+    fi
+    echo "" >> "$LOG_FILE"
+    echo "# ================================================================" >> "$LOG_FILE"
+    echo "# OpenRadius Installation — $(date -Iseconds)" >> "$LOG_FILE"
+    echo "# Version: $OPENRADIUS_VERSION" >> "$LOG_FILE"
+    echo "# Hostname: $(hostname -f 2>/dev/null || hostname)" >> "$LOG_FILE"
+    echo "# Kernel: $(uname -r)" >> "$LOG_FILE"
+    echo "# User: $(whoami) (UID=$EUID)" >> "$LOG_FILE"
+    echo "# Command: $0 $*" >> "$LOG_FILE"
+    echo "# ================================================================" >> "$LOG_FILE"
+}
+
+# Timestamped log entry (to file only)
+log() {
+    echo "[$(date -Iseconds)] $*" >> "$LOG_FILE"
+}
+
+# Timestamped log entry (to file + stderr for debug)
+log_debug() {
+    echo "[$(date -Iseconds)] [DEBUG] $*" >> "$LOG_FILE"
+}
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
 
 print_header() {
+    local msg="$1"
     echo -e "\n${PURPLE}================================================================================================${NC}"
-    echo -e "${PURPLE}$1${NC}"
+    echo -e "${PURPLE}$msg${NC}"
     echo -e "${PURPLE}================================================================================================${NC}\n"
+    log "===== $msg ====="
 }
 
 print_success() {
     echo -e "${GREEN}✓ $1${NC}"
+    log "[OK]    $1"
 }
 
 print_error() {
     echo -e "${RED}✗ $1${NC}"
+    log "[ERROR] $1"
 }
 
 print_warning() {
     echo -e "${YELLOW}⚠ $1${NC}"
+    log "[WARN]  $1"
 }
 
 print_info() {
     echo -e "${CYAN}ℹ $1${NC}"
+    log "[INFO]  $1"
 }
 
 print_step() {
     echo -e "${BLUE}➜ $1${NC}"
+    log "[STEP]  $1"
+}
+
+# =============================================================================
+# Error Handling & Cleanup Trap
+# =============================================================================
+# On any unexpected failure the trap logs the error, prints diagnostics,
+# saves a checkpoint for --resume, and exits with a structured code.
+# =============================================================================
+
+CURRENT_STEP=""
+LAST_EXIT_CODE=0
+
+cleanup_on_error() {
+    LAST_EXIT_CODE=$?
+    if [[ $LAST_EXIT_CODE -eq 0 ]]; then
+        return
+    fi
+
+    echo ""
+    print_error "Installation failed during step: ${CURRENT_STEP:-unknown}"
+    print_error "Exit code: $LAST_EXIT_CODE"
+    log "[FATAL] Installation failed at step '${CURRENT_STEP:-unknown}' with exit code $LAST_EXIT_CODE"
+
+    # Save checkpoint for resume
+    if [[ -n "$CURRENT_STEP" ]]; then
+        save_checkpoint "$CURRENT_STEP"
+        print_info "Checkpoint saved. Resume with:"
+        print_info "  sudo ./install-openradius.sh --resume"
+    fi
+
+    # Diagnostics
+    print_info "Diagnostics:"
+    print_info "  Install log: $LOG_FILE"
+    print_info "  Last 20 lines of log:"
+    tail -20 "$LOG_FILE" 2>/dev/null | while IFS= read -r line; do
+        echo -e "    ${GRAY}$line${NC}"
+    done
+
+    # Show Docker status if relevant
+    if command -v docker &>/dev/null; then
+        local running=$(docker ps --format '{{.Names}} ({{.Status}})' 2>/dev/null | grep openradius | head -5)
+        if [[ -n "$running" ]]; then
+            print_info "  Running containers:"
+            echo "$running" | while IFS= read -r line; do
+                echo -e "    ${GRAY}$line${NC}"
+            done
+        fi
+    fi
+
+    echo ""
+    print_warning "To retry from the failed step: sudo ./install-openradius.sh --resume"
+    print_warning "To start fresh: sudo ./install-openradius.sh"
+    echo ""
+
+    exit $LAST_EXIT_CODE
+}
+
+trap cleanup_on_error EXIT
+
+# Wrapper to run a step with checkpoint tracking
+run_step() {
+    local step_name="$1"
+    local step_func="$2"
+
+    # If resuming, skip completed steps
+    if [[ "$RESUME" == "true" && -f "$CHECKPOINT_FILE" ]]; then
+        local completed=$(grep "^COMPLETED:" "$CHECKPOINT_FILE" | cut -d: -f2)
+        if echo "$completed" | grep -qw "$step_name"; then
+            print_info "Skipping (already completed): $step_name"
+            log "[SKIP]  $step_name (checkpoint: already completed)"
+            return 0
+        fi
+        # If --from is set, skip until we reach it
+        if [[ -n "$RESUME_FROM" ]]; then
+            if [[ "$step_name" != "$RESUME_FROM" ]]; then
+                print_info "Skipping (resume target not reached): $step_name"
+                return 0
+            else
+                RESUME_FROM=""  # Found it, run from here
+            fi
+        fi
+    fi
+
+    CURRENT_STEP="$step_name"
+    log "[BEGIN] $step_name"
+    local step_start=$(date +%s)
+
+    # Run the step (set -e is handled by the trap)
+    $step_func
+
+    local step_end=$(date +%s)
+    local step_duration=$((step_end - step_start))
+    log "[END]   $step_name (${step_duration}s)"
+    mark_checkpoint_complete "$step_name"
+    CURRENT_STEP=""
+}
+
+# =============================================================================
+# Checkpoint System
+# =============================================================================
+# Saves progress so a failed install can resume from the last successful step.
+# Checkpoint file format:
+#   COMPLETED:step_name
+#   VAR:DOMAIN=example.com
+#   VAR:POSTGRES_PASSWORD=...
+# =============================================================================
+
+save_checkpoint() {
+    local failed_step="$1"
+    mkdir -p "$(dirname "$CHECKPOINT_FILE")" 2>/dev/null || true
+
+    {
+        echo "# OpenRadius Install Checkpoint — $(date -Iseconds)"
+        echo "FAILED_AT:$failed_step"
+        # Save all configuration variables so resume can skip collect_configuration
+        for var in DOMAIN SSL_EMAIL POSTGRES_PASSWORD KEYCLOAK_ADMIN_PASSWORD REDIS_PASSWORD \
+                   OPENRADIUS_USER_PASSWORD SEQ_API_KEY SWITCH_DECRYPTION_KEY \
+                   REDPANDA_CONSOLE_PASSWORD SEQ_CONSOLE_PASSWORD CDC_CONSOLE_PASSWORD \
+                   KAFKA_SASL_PASSWORD INSTALL_SAMPLE CONFIGURE_KEYCLOAK ENABLE_BACKUP \
+                   SKIP_SSL; do
+            if [[ -n "${!var}" ]]; then
+                echo "VAR:${var}=${!var}"
+            fi
+        done
+        # Preserve completed steps from previous checkpoint
+        if [[ -f "$CHECKPOINT_FILE" ]]; then
+            grep "^COMPLETED:" "$CHECKPOINT_FILE"
+        fi
+    } > "${CHECKPOINT_FILE}.tmp"
+    mv "${CHECKPOINT_FILE}.tmp" "$CHECKPOINT_FILE"
+    chmod 600 "$CHECKPOINT_FILE"
+    log "[CHECKPOINT] Saved at step: $failed_step"
+}
+
+mark_checkpoint_complete() {
+    local step_name="$1"
+    if [[ -f "$CHECKPOINT_FILE" ]]; then
+        echo "COMPLETED:$step_name" >> "$CHECKPOINT_FILE"
+    else
+        echo "COMPLETED:$step_name" > "$CHECKPOINT_FILE"
+        chmod 600 "$CHECKPOINT_FILE"
+    fi
+}
+
+load_checkpoint() {
+    if [[ ! -f "$CHECKPOINT_FILE" ]]; then
+        print_error "No checkpoint file found at $CHECKPOINT_FILE"
+        print_info "Run without --resume for a fresh installation."
+        exit 31
+    fi
+
+    print_info "Loading checkpoint from previous installation..."
+    log "[CHECKPOINT] Loading from $CHECKPOINT_FILE"
+
+    # Restore variables
+    while IFS= read -r line; do
+        if [[ "$line" == VAR:* ]]; then
+            local kv="${line#VAR:}"
+            local key="${kv%%=*}"
+            local val="${kv#*=}"
+            export "$key=$val"
+            log_debug "Restored variable: $key"
+        fi
+    done < "$CHECKPOINT_FILE"
+
+    local failed_at=$(grep "^FAILED_AT:" "$CHECKPOINT_FILE" | tail -1 | cut -d: -f2)
+    local completed_count=$(grep -c "^COMPLETED:" "$CHECKPOINT_FILE" || true)
+    print_success "Checkpoint loaded: $completed_count steps completed, failed at: $failed_at"
+
+    # If no explicit --from, resume from the failed step
+    if [[ -z "$RESUME_FROM" ]]; then
+        RESUME_FROM="$failed_at"
+    fi
+}
+
+# =============================================================================
+# Parse Command-Line Arguments
+# =============================================================================
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --unattended|-u)
+                UNATTENDED=true
+                shift
+                ;;
+            --config|-c)
+                CONFIG_FILE="$2"
+                shift 2
+                ;;
+            --resume|-r)
+                RESUME=true
+                shift
+                ;;
+            --from)
+                RESUME_FROM="$2"
+                shift 2
+                ;;
+            --log)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            --help|-h)
+                show_usage
+                exit 0
+                ;;
+            --version|-v)
+                echo "OpenRadius Installer v${OPENRADIUS_VERSION}"
+                exit 0
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_usage
+                exit 1
+                ;;
+        esac
+    done
+}
+
+show_usage() {
+    cat << 'EOF'
+Usage: sudo ./install-openradius.sh [OPTIONS]
+
+Options:
+  --unattended, -u        Non-interactive mode (requires --config)
+  --config, -c FILE       Path to YAML/env config file for unattended install
+  --resume, -r            Resume a previously failed installation
+  --from STEP             Resume from a specific step (use with --resume)
+  --log FILE              Custom log file path (default: /opt/openradius/install.log)
+  --version, -v           Show version and exit
+  --help, -h              Show this help message
+
+Unattended Config File Format (install-config.env):
+  DOMAIN=example.com
+  SSL_EMAIL=admin@example.com
+  PASSWORD_MODE=auto          # auto | custom
+  POSTGRES_PASSWORD=...       # only if PASSWORD_MODE=custom
+  KEYCLOAK_ADMIN_PASSWORD=... # only if PASSWORD_MODE=custom
+  REDIS_PASSWORD=...          # only if PASSWORD_MODE=custom
+  INSTALL_SAMPLE=n
+  CONFIGURE_KEYCLOAK=y
+  ENABLE_BACKUP=y
+  SKIP_SSL=false              # true to skip Let's Encrypt
+
+Examples:
+  # Fresh interactive install
+  sudo ./install-openradius.sh
+
+  # Unattended install
+  sudo ./install-openradius.sh --unattended --config /root/install-config.env
+
+  # Resume after failure
+  sudo ./install-openradius.sh --resume
+
+  # Resume from a specific step
+  sudo ./install-openradius.sh --resume --from pull_docker_images
+
+Steps (for --from):
+  preflight_checks, install_docker, install_docker_compose, install_prerequisites,
+  configure_firewall, collect_configuration, generate_env_file, save_credentials,
+  show_dns_instructions, generate_ssl_certificates, clone_repository,
+  configure_nginx, generate_htpasswd_files, generate_edge_env,
+  prepare_keycloak_import, pull_docker_images, start_services,
+  wait_for_services, configure_keycloak, setup_backup
+EOF
+}
+
+# =============================================================================
+# Unattended Mode — Load Config File
+# =============================================================================
+
+load_unattended_config() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        print_error "Config file not found: $CONFIG_FILE"
+        exit 31
+    fi
+
+    print_info "Loading unattended configuration from: $CONFIG_FILE"
+    log "[UNATTENDED] Loading config from $CONFIG_FILE"
+
+    # Source the config file (key=value format)
+    set -a
+    source "$CONFIG_FILE"
+    set +a
+
+    # Validate required fields
+    local missing=()
+    [[ -z "${DOMAIN:-}" ]] && missing+=("DOMAIN")
+    [[ -z "${SSL_EMAIL:-}" ]] && missing+=("SSL_EMAIL")
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        print_error "Missing required fields in config file: ${missing[*]}"
+        exit 31
+    fi
+
+    if ! validate_domain "$DOMAIN"; then
+        print_error "Invalid domain in config: $DOMAIN"
+        exit 30
+    fi
+
+    if ! validate_email "$SSL_EMAIL"; then
+        print_error "Invalid email in config: $SSL_EMAIL"
+        exit 30
+    fi
+
+    # Auto-generate passwords if not provided or PASSWORD_MODE=auto
+    local pw_mode="${PASSWORD_MODE:-auto}"
+    if [[ "$pw_mode" == "auto" ]]; then
+        print_step "Generating secure passwords (unattended)..."
+        POSTGRES_PASSWORD=$(generate_password 32)
+        KEYCLOAK_ADMIN_PASSWORD=$(generate_password 32)
+        REDIS_PASSWORD=$(generate_password 32)
+        OPENRADIUS_USER_PASSWORD=$(generate_password 24)
+        SEQ_API_KEY=$(generate_password 32)
+        SWITCH_DECRYPTION_KEY=$(generate_hex_key)
+        REDPANDA_CONSOLE_PASSWORD=$(generate_password 24)
+        SEQ_CONSOLE_PASSWORD=$(generate_password 24)
+        CDC_CONSOLE_PASSWORD=$(generate_password 24)
+        KAFKA_SASL_PASSWORD=$(generate_password 32)
+        print_success "Passwords auto-generated"
+    else
+        # Validate custom passwords
+        for var in POSTGRES_PASSWORD KEYCLOAK_ADMIN_PASSWORD REDIS_PASSWORD; do
+            if [[ ${#!var} -lt 16 ]]; then
+                print_error "$var must be at least 16 characters"
+                exit 30
+            fi
+        done
+        # Auto-generate the rest
+        : "${OPENRADIUS_USER_PASSWORD:=$(generate_password 24)}"
+        : "${SEQ_API_KEY:=$(generate_password 32)}"
+        : "${SWITCH_DECRYPTION_KEY:=$(generate_hex_key)}"
+        : "${REDPANDA_CONSOLE_PASSWORD:=$(generate_password 24)}"
+        : "${SEQ_CONSOLE_PASSWORD:=$(generate_password 24)}"
+        : "${CDC_CONSOLE_PASSWORD:=$(generate_password 24)}"
+        : "${KAFKA_SASL_PASSWORD:=$(generate_password 32)}"
+    fi
+
+    # Defaults
+    : "${INSTALL_SAMPLE:=n}"
+    : "${CONFIGURE_KEYCLOAK:=y}"
+    : "${ENABLE_BACKUP:=y}"
+    : "${SKIP_SSL:=false}"
+
+    print_success "Unattended configuration loaded and validated"
+}
+
+# =============================================================================
+# Pre-Flight Checks
+# =============================================================================
+# Validates system readiness before starting installation:
+#   - Disk space (min 20GB free)
+#   - RAM (min 4GB, recommended 8GB)
+#   - CPU cores (min 2)
+#   - DNS resolution for the domain
+#   - Port availability (80, 443, 9094)
+#   - Required commands
+# =============================================================================
+
+preflight_checks() {
+    print_header "PRE-FLIGHT CHECKS"
+    local warnings=0
+    local errors=0
+
+    # --- Disk Space ---
+    local disk_avail_kb=$(df /opt 2>/dev/null | awk 'NR==2 {print $4}' || df / | awk 'NR==2 {print $4}')
+    local disk_avail_gb=$((disk_avail_kb / 1024 / 1024))
+    if [[ $disk_avail_gb -lt 10 ]]; then
+        print_error "Insufficient disk space: ${disk_avail_gb}GB available (minimum: 10GB)"
+        errors=$((errors + 1))
+    elif [[ $disk_avail_gb -lt 20 ]]; then
+        print_warning "Low disk space: ${disk_avail_gb}GB available (recommended: 20GB+)"
+        warnings=$((warnings + 1))
+    else
+        print_success "Disk space: ${disk_avail_gb}GB available"
+    fi
+
+    # --- RAM ---
+    local ram_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local ram_total_gb=$((ram_total_kb / 1024 / 1024))
+    local ram_total_mb=$((ram_total_kb / 1024))
+    if [[ $ram_total_mb -lt 3500 ]]; then
+        print_error "Insufficient RAM: ${ram_total_mb}MB (minimum: 4GB)"
+        errors=$((errors + 1))
+    elif [[ $ram_total_mb -lt 7500 ]]; then
+        print_warning "RAM: ${ram_total_mb}MB (recommended: 8GB+ for production)"
+        warnings=$((warnings + 1))
+    else
+        print_success "RAM: ${ram_total_mb}MB (${ram_total_gb}GB)"
+    fi
+
+    # --- CPU Cores ---
+    local cpu_cores=$(nproc 2>/dev/null || echo 1)
+    if [[ $cpu_cores -lt 2 ]]; then
+        print_error "Insufficient CPU: $cpu_cores core(s) (minimum: 2)"
+        errors=$((errors + 1))
+    elif [[ $cpu_cores -lt 4 ]]; then
+        print_warning "CPU: $cpu_cores cores (recommended: 4+ for production)"
+        warnings=$((warnings + 1))
+    else
+        print_success "CPU: $cpu_cores cores"
+    fi
+
+    # --- DNS Resolution ---
+    if [[ -n "${DOMAIN:-}" ]]; then
+        local server_ip=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null || echo "")
+        if [[ -n "$server_ip" ]]; then
+            local dns_result=$(dig +short "$DOMAIN" A 2>/dev/null | head -1)
+            if [[ -z "$dns_result" ]]; then
+                print_warning "DNS: $DOMAIN does not resolve yet (configure after install)"
+                warnings=$((warnings + 1))
+            elif [[ "$dns_result" == "$server_ip" ]]; then
+                print_success "DNS: $DOMAIN → $server_ip ✓"
+            else
+                print_warning "DNS: $DOMAIN → $dns_result (expected $server_ip)"
+                warnings=$((warnings + 1))
+            fi
+        else
+            print_warning "Cannot determine server IP — DNS check skipped"
+            warnings=$((warnings + 1))
+        fi
+    fi
+
+    # --- Port Availability ---
+    for port in 80 443 9094; do
+        if ss -tlnp 2>/dev/null | grep -q ":${port} " || netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
+            local proc=$(ss -tlnp 2>/dev/null | grep ":${port} " | awk '{print $NF}' | head -1)
+            print_warning "Port $port is in use by: $proc"
+            warnings=$((warnings + 1))
+        else
+            print_success "Port $port: available"
+        fi
+    done
+
+    # --- Required Commands ---
+    for cmd in curl openssl git; do
+        if command -v "$cmd" &>/dev/null; then
+            print_success "Command: $cmd ✓"
+        else
+            print_warning "Command: $cmd not found (will be installed)"
+            warnings=$((warnings + 1))
+        fi
+    done
+
+    # --- Internet Connectivity ---
+    if curl -s --connect-timeout 5 https://github.com > /dev/null 2>&1; then
+        print_success "Internet: reachable (github.com)"
+    elif curl -s --connect-timeout 5 https://hub.docker.com > /dev/null 2>&1; then
+        print_success "Internet: reachable (hub.docker.com)"
+    else
+        print_error "No internet connectivity — cannot download packages or images"
+        errors=$((errors + 1))
+    fi
+
+    # --- Summary ---
+    echo ""
+    log "[PREFLIGHT] Completed: $errors errors, $warnings warnings"
+    if [[ $errors -gt 0 ]]; then
+        print_error "Pre-flight checks failed with $errors error(s)"
+        if [[ "$UNATTENDED" == "true" ]]; then
+            exit 10
+        fi
+        echo -e "${YELLOW}Continue anyway? (NOT recommended) [y/N]: ${NC}"
+        read -p "> " force_continue
+        if [[ "${force_continue,,}" != "y" ]]; then
+            exit 10
+        fi
+        print_warning "Continuing despite pre-flight failures — you have been warned!"
+    elif [[ $warnings -gt 0 ]]; then
+        print_warning "Pre-flight completed with $warnings warning(s)"
+    else
+        print_success "All pre-flight checks passed"
+    fi
 }
 
 # Generate secure random password
