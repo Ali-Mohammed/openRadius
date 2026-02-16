@@ -405,6 +405,9 @@ Acct-Output-Gigawords = ${ul_giga}
 Acct-Authentic = RADIUS"
 
     if send_acct "$attrs" "Stop"; then
+        rm -f "$file"
+        STAT_STOPS=$((STAT_STOPS + 1))
+        log_event "STOP" "$username cause=$cause time=${S_TIME}s dl=$(format_bytes_hr $S_DL) ul=$(format_bytes_hr $S_UL)"
         return 0
     fi
     return 1
