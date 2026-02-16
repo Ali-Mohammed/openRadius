@@ -218,14 +218,8 @@ log_event() {
 
 send_acct() {
     local attrs="$1"
-    # Validate no empty lines / broken attribute pairs
-    if echo "$attrs" | grep -qE '^\s*$'; then
-        STAT_ERRORS=$((STAT_ERRORS + 1))
-        log_event "ERROR" "Acct skipped: empty line in attributes"
-        return 1
-    fi
     local result
-    result=$(printf '%s\n' "$attrs" | docker compose exec -T freeradius radclient 127.0.0.1:1813 acct testing123 2>&1) || true
+    result=$(echo "$attrs" | docker compose exec -T freeradius radclient 127.0.0.1:1813 acct testing123 2>&1) || true
 
     if echo "$result" | grep -q "Received Accounting-Response"; then
         return 0
@@ -239,11 +233,9 @@ send_acct() {
 send_auth() {
     local username="$1"
     local password="$2"
-    local attrs
-    attrs=$(printf 'User-Name = "%s"\nUser-Password = "%s"' "$username" "$password")
 
     local result
-    result=$(printf '%s\n' "$attrs" | docker compose exec -T freeradius radclient 127.0.0.1:1812 auth testing123 2>&1) || true
+    result=$(printf 'User-Name = "%s"\nUser-Password = "%s"\n' "$username" "$password" | docker compose exec -T freeradius radclient 127.0.0.1:1812 auth testing123 2>&1) || true
 
     if echo "$result" | grep -q "Access-Accept"; then
         return 0
