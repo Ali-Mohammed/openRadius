@@ -315,6 +315,9 @@ collect_configuration() {
         
         SEQ_API_KEY=$(generate_password 32)
         SWITCH_DECRYPTION_KEY=$(generate_hex_key)
+        REDPANDA_CONSOLE_PASSWORD=$(generate_password 24)
+        SEQ_CONSOLE_PASSWORD=$(generate_password 24)
+        CDC_CONSOLE_PASSWORD=$(generate_password 24)
     else
         # Auto-generate passwords
         print_step "Generating secure passwords..."
@@ -324,6 +327,9 @@ collect_configuration() {
         OPENRADIUS_USER_PASSWORD=$(generate_password 24)
         SEQ_API_KEY=$(generate_password 32)
         SWITCH_DECRYPTION_KEY=$(generate_hex_key)
+        REDPANDA_CONSOLE_PASSWORD=$(generate_password 24)
+        SEQ_CONSOLE_PASSWORD=$(generate_password 24)
+        CDC_CONSOLE_PASSWORD=$(generate_password 24)
         print_success "Passwords generated"
     fi
     
@@ -401,6 +407,13 @@ SEQ_API_KEY=$SEQ_API_KEY
 SWITCH_DECRYPTION_KEY=$SWITCH_DECRYPTION_KEY
 
 # =============================================================================
+# Admin Console Passwords (Nginx Basic Auth)
+# =============================================================================
+REDPANDA_CONSOLE_PASSWORD=$REDPANDA_CONSOLE_PASSWORD
+SEQ_CONSOLE_PASSWORD=$SEQ_CONSOLE_PASSWORD
+CDC_CONSOLE_PASSWORD=$CDC_CONSOLE_PASSWORD
+
+# =============================================================================
 # Docker Configuration (for system update feature)
 # =============================================================================
 DOCKER_GID=$(getent group docker | cut -d: -f3)
@@ -456,6 +469,17 @@ Seq:
   - API Key: $SEQ_API_KEY
 
 Switch Decryption Key: $SWITCH_DECRYPTION_KEY
+
+Admin Consoles (Nginx Basic Auth):
+  Redpanda Console (https://kafka.$DOMAIN):
+    - Username: admin
+    - Password: $REDPANDA_CONSOLE_PASSWORD
+  Seq Logs (https://logs.$DOMAIN):
+    - Username: admin
+    - Password: $SEQ_CONSOLE_PASSWORD
+  Debezium CDC API (https://cdc.$DOMAIN):
+    - Username: admin
+    - Password: $CDC_CONSOLE_PASSWORD
 
 # =============================================================================
 # Service URLs
@@ -715,6 +739,30 @@ prepare_keycloak_import() {
         print_warning "keycloak-config.json not found at $install_dir/keycloak/"
         print_info "Realm will be created manually after Keycloak starts"
     fi
+}
+
+# =============================================================================
+# Generate .htpasswd Files for Admin Consoles
+# =============================================================================
+
+generate_htpasswd_files() {
+    print_step "Generating .htpasswd files for admin consoles..."
+
+    local ssl_dir="/opt/openradius/nginx/ssl"
+
+    # Ensure ssl directory exists
+    run_sudo mkdir -p "$ssl_dir"
+
+    # Generate .htpasswd files using the auto-generated passwords
+    # -cb: create file, use bcrypt, read password from command line
+    run_sudo htpasswd -cb "$ssl_dir/.htpasswd_kafka" admin "$REDPANDA_CONSOLE_PASSWORD"
+    run_sudo htpasswd -cb "$ssl_dir/.htpasswd_seq"   admin "$SEQ_CONSOLE_PASSWORD"
+    run_sudo htpasswd -cb "$ssl_dir/.htpasswd_cdc"   admin "$CDC_CONSOLE_PASSWORD"
+
+    # Secure permissions — readable by nginx (root), no world access
+    run_sudo chmod 640 "$ssl_dir/.htpasswd_kafka" "$ssl_dir/.htpasswd_seq" "$ssl_dir/.htpasswd_cdc"
+
+    print_success ".htpasswd files generated for Redpanda Console, Seq Logs, Debezium CDC"
 }
 
 # =============================================================================
@@ -1288,6 +1336,15 @@ show_summary() {
     echo -e "  Password: ${YELLOW}$OPENRADIUS_USER_PASSWORD${NC}"
     echo ""
     
+    echo -e "${CYAN}Admin Consoles (Nginx Basic Auth):${NC}"
+    echo -e "  Redpanda Console:  ${GREEN}https://kafka.$DOMAIN${NC}"
+    echo -e "    Username: ${GREEN}admin${NC}   Password: ${YELLOW}$REDPANDA_CONSOLE_PASSWORD${NC}"
+    echo -e "  Seq Logs:          ${GREEN}https://logs.$DOMAIN${NC}"
+    echo -e "    Username: ${GREEN}admin${NC}   Password: ${YELLOW}$SEQ_CONSOLE_PASSWORD${NC}"
+    echo -e "  Debezium CDC:      ${GREEN}https://cdc.$DOMAIN${NC}"
+    echo -e "    Username: ${GREEN}admin${NC}   Password: ${YELLOW}$CDC_CONSOLE_PASSWORD${NC}"
+    echo ""
+
     echo -e "${CYAN}Useful Commands:${NC}"
     echo -e "  View logs:       ${YELLOW}docker compose -f docker-compose.prod.yml logs -f${NC}"
     echo -e "  Check status:    ${YELLOW}docker compose -f docker-compose.prod.yml ps${NC}"
@@ -1361,6 +1418,14 @@ show_summary() {
     echo -e "  ${CYAN}📖 Full guide: ${GREEN}KEYCLOAK_SUB_CLAIM_FIX.md${NC}"
     echo ""
     
+    local creds_pattern="/opt/openradius/openradius-credentials-*.txt"
+    local creds_path=$(ls -t $creds_pattern 2>/dev/null | head -1)
+    if [[ -n "$creds_path" ]]; then
+        echo -e "${CYAN}Credentials File:${NC}"
+        echo -e "  All passwords saved to: ${GREEN}$creds_path${NC}"
+        echo -e "  View with: ${YELLOW}sudo cat $creds_path${NC}"
+        echo ""
+    fi
     print_warning "IMPORTANT: Securely store the credentials file and delete it from the server!"
     
     echo ""
@@ -1546,6 +1611,7 @@ EOF
     # Clone repository and deploy
     clone_repository
     configure_nginx
+    generate_htpasswd_files
     prepare_keycloak_import
     pull_docker_images
     start_services

@@ -29,6 +29,10 @@ Thumbs.db
 .env.development
 .env.production
 
+# Ignore htpasswd files (nginx Basic Auth credentials)
+.htpasswd*
+nginx/ssl/.htpasswd*
+
 # Ignore logs
 *.log
 logs/
