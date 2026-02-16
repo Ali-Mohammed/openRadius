@@ -236,8 +236,11 @@ configure_firewall() {
     sudo ufw allow 80/tcp comment 'HTTP'
     sudo ufw allow 443/tcp comment 'HTTPS'
     
-    # Allow Kafka broker for Edge Runtime and external CDC consumers
-    sudo ufw allow 9094/tcp comment 'Kafka Broker'
+    # Allow Kafka broker for Edge Runtime CDC consumers (SASL/SCRAM protected)
+    # NOTE: For additional security, restrict to known Edge IPs:
+    #   sudo ufw delete allow 9094/tcp
+    #   sudo ufw allow from <EDGE_IP> to any port 9094 proto tcp comment 'Kafka - Edge Site 1'
+    sudo ufw allow 9094/tcp comment 'Kafka Broker (SASL/SCRAM)'
     
     print_success "Firewall configured (ports 22, 80, 443, 9094 open)"
 }
@@ -318,6 +321,7 @@ collect_configuration() {
         REDPANDA_CONSOLE_PASSWORD=$(generate_password 24)
         SEQ_CONSOLE_PASSWORD=$(generate_password 24)
         CDC_CONSOLE_PASSWORD=$(generate_password 24)
+        KAFKA_SASL_PASSWORD=$(generate_password 32)
     else
         # Auto-generate passwords
         print_step "Generating secure passwords..."
@@ -330,6 +334,7 @@ collect_configuration() {
         REDPANDA_CONSOLE_PASSWORD=$(generate_password 24)
         SEQ_CONSOLE_PASSWORD=$(generate_password 24)
         CDC_CONSOLE_PASSWORD=$(generate_password 24)
+        KAFKA_SASL_PASSWORD=$(generate_password 32)
         print_success "Passwords generated"
     fi
     
@@ -414,6 +419,11 @@ SEQ_CONSOLE_PASSWORD=$SEQ_CONSOLE_PASSWORD
 CDC_CONSOLE_PASSWORD=$CDC_CONSOLE_PASSWORD
 
 # =============================================================================
+# Kafka/Redpanda SASL Authentication (Broker Security)
+# =============================================================================
+KAFKA_SASL_PASSWORD=$KAFKA_SASL_PASSWORD
+
+# =============================================================================
 # Docker Configuration (for system update feature)
 # =============================================================================
 DOCKER_GID=$(getent group docker | cut -d: -f3)
@@ -469,6 +479,13 @@ Seq:
   - API Key: $SEQ_API_KEY
 
 Switch Decryption Key: $SWITCH_DECRYPTION_KEY
+
+Kafka Broker (SASL/SCRAM Authentication):
+  - Broker: kafka.$DOMAIN:9094
+  - Username: admin
+  - Password: $KAFKA_SASL_PASSWORD
+  - Mechanism: SCRAM-SHA-256
+  - NOTE: EdgeRuntime sites need this password to connect
 
 Admin Consoles (Nginx Basic Auth):
   Redpanda Console (https://kafka.$DOMAIN):
@@ -1343,6 +1360,14 @@ show_summary() {
     echo -e "    Username: ${GREEN}admin${NC}   Password: ${YELLOW}$SEQ_CONSOLE_PASSWORD${NC}"
     echo -e "  Debezium CDC:      ${GREEN}https://cdc.$DOMAIN${NC}"
     echo -e "    Username: ${GREEN}admin${NC}   Password: ${YELLOW}$CDC_CONSOLE_PASSWORD${NC}"
+    echo ""
+
+    echo -e "${CYAN}Kafka Broker (SASL/SCRAM):${NC}"
+    echo -e "  Broker:    ${GREEN}kafka.$DOMAIN:9094${NC}"
+    echo -e "  Username:  ${GREEN}admin${NC}"
+    echo -e "  Password:  ${YELLOW}$KAFKA_SASL_PASSWORD${NC}"
+    echo -e "  Mechanism: ${GREEN}SCRAM-SHA-256${NC}"
+    echo -e "  ${YELLOW}⚠ EdgeRuntime sites need this password in their .env${NC}"
     echo ""
 
     echo -e "${CYAN}Useful Commands:${NC}"

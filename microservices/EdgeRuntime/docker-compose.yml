@@ -125,6 +125,18 @@ services:
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
       KAFKA_HEAP_OPTS: "-Xms512M -Xmx2G"
+      # SASL/SCRAM authentication to cloud Redpanda broker
+      CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_SASL_MECHANISM: SCRAM-SHA-256
+      CONNECT_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"${KAFKA_SASL_USERNAME:-admin}\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
+      # SASL for consumer (reading from cloud topics)
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-256
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"${KAFKA_SASL_USERNAME:-admin}\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
+      # SASL for producer (writing consumer offsets back)
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-256
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"${KAFKA_SASL_USERNAME:-admin}\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
     ports:
       - "${CONNECT_PORT:-8084}:8083"
     networks:

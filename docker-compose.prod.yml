@@ -105,6 +105,7 @@ services:
     command:
       - redpanda
       - start
+      # Listeners: internal (plaintext, Docker-only) + external (SASL, internet-facing)
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
       - --advertise-kafka-addr internal://redpanda:9092,external://kafka.${DOMAIN:-localhost}:9094
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
@@ -115,8 +116,18 @@ services:
       - --mode dev-container
       - --smp 1
       - --default-log-level=info
+      # SASL/SCRAM authentication — external listener only
+      # Internal listener stays plaintext for Debezium/Console within Docker network
+      - --set redpanda.enable_sasl=true
+      - --set redpanda.superusers=["admin"]
+      - --set redpanda.kafka_api[1].authentication_method=sasl
+      # Bootstrap SCRAM superuser (created on first start)
+      - --set redpanda.sasl_mechanisms=["SCRAM"]
+    environment:
+      # Bootstrap user — Redpanda creates this SCRAM user on first startup
+      RP_BOOTSTRAP_USER: "admin:${KAFKA_SASL_PASSWORD:-changeme_in_production}"
     ports:
-      - "9094:19092"  # Kafka external — clients connect to kafka.<domain>:9094
+      - "9094:19092"  # Kafka external (SASL) — clients connect to kafka.<domain>:9094
     expose:
       - "18081"  # Schema Registry
       - "18082"  # Pandaproxy
@@ -145,6 +156,11 @@ services:
       CONSOLE_CONFIG_FILE: |
         kafka:
           brokers: ["redpanda:9092"]
+          sasl:
+            enabled: true
+            mechanism: SCRAM-SHA-256
+            username: admin
+            password: ${KAFKA_SASL_PASSWORD:-changeme_in_production}
         redpanda:
           adminApi:
             enabled: true
