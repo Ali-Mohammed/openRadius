@@ -120,6 +120,7 @@ services:
       # Internal listener stays plaintext for Debezium/Console within Docker network
       - --set redpanda.enable_sasl=true
       - --set redpanda.superusers=["admin"]
+      - --set redpanda.kafka_api[0].authentication_method=none
       - --set redpanda.kafka_api[1].authentication_method=sasl
       # Bootstrap SCRAM superuser (created on first start)
       - --set redpanda.sasl_mechanisms=["SCRAM"]
@@ -156,11 +157,6 @@ services:
       CONSOLE_CONFIG_FILE: |
         kafka:
           brokers: ["redpanda:9092"]
-          sasl:
-            enabled: true
-            mechanism: SCRAM-SHA-256
-            username: admin
-            password: ${KAFKA_SASL_PASSWORD:-changeme_in_production}
         redpanda:
           adminApi:
             enabled: true
