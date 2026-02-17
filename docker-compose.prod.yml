@@ -117,8 +117,9 @@ services:
       - --smp 1
       - --default-log-level=info
       # SASL/SCRAM authentication — external listener only
-      # Internal listener stays plaintext for Debezium/Console within Docker network
-      - --set redpanda.enable_sasl=true
+      # Use kafka_enable_authorization + per-listener authentication_method
+      # instead of enable_sasl (which forces SASL on ALL listeners)
+      - --set redpanda.kafka_enable_authorization=true
       - --set redpanda.superusers=["admin"]
       - --set redpanda.kafka_api[0].authentication_method=none
       - --set redpanda.kafka_api[1].authentication_method=sasl
