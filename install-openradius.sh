@@ -764,11 +764,35 @@ install_prerequisites() {
         curl \
         wget \
         openssl \
-        certbot \
-        python3-certbot-nginx \
         ufw \
         jq \
         apache2-utils
+    
+    # Install certbot via snap (recommended for Ubuntu 22.04+)
+    # The apt-installed certbot is broken on modern Ubuntu (FileNotFoundError)
+    print_info "Installing certbot via snap (recommended method)..."
+    
+    # Remove broken apt certbot if present
+    sudo apt-get remove -y certbot python3-certbot-nginx 2>/dev/null || true
+    
+    # Ensure snapd is installed and running
+    sudo apt-get install -y snapd
+    sudo systemctl enable --now snapd.socket 2>/dev/null || true
+    
+    # Wait for snapd to be ready
+    sudo snap wait system seed.loaded 2>/dev/null || sleep 5
+    
+    # Ensure core snap is installed (required by certbot)
+    sudo snap install core 2>/dev/null || sudo snap refresh core 2>/dev/null || true
+    
+    # Install certbot via snap
+    if sudo snap install --classic certbot; then
+        # Create symlink so certbot is on PATH
+        sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+        print_success "Certbot installed via snap"
+    else
+        print_warning "Failed to install certbot via snap. SSL certificates will use self-signed fallback."
+    fi
     
     print_success "Prerequisites installed"
 }
@@ -1161,6 +1185,24 @@ generate_ssl_certificates() {
     fi
     
     print_step "Generating SSL certificates with Let's Encrypt..."
+    
+    # Check if certbot is available
+    if ! command -v certbot &>/dev/null; then
+        print_warning "Certbot is not installed. Falling back to self-signed certificates."
+        print_info "Install certbot later: sudo snap install --classic certbot && sudo ln -sf /snap/bin/certbot /usr/bin/certbot"
+        
+        sudo mkdir -p /opt/openradius/nginx/ssl
+        sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /opt/openradius/nginx/ssl/privkey.pem \
+            -out /opt/openradius/nginx/ssl/fullchain.pem \
+            -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN"
+        sudo chmod 644 /opt/openradius/nginx/ssl/fullchain.pem
+        sudo chmod 600 /opt/openradius/nginx/ssl/privkey.pem
+        
+        print_warning "Using self-signed certificates. Generate real certificates later with:"
+        print_info "  sudo certbot certonly --standalone -d $DOMAIN -d api.$DOMAIN -d auth.$DOMAIN -d logs.$DOMAIN -d kafka.$DOMAIN -d cdc.$DOMAIN"
+        return
+    fi
     
     # Ensure certbot directories exist
     sudo mkdir -p /var/log/letsencrypt
