@@ -161,16 +161,6 @@ services:
           adminApi:
             enabled: true
             urls: ["http://redpanda:9644"]
-        login:
-          enabled: true
-          plain:
-            enabled: true
-            credentials:
-              - username: admin
-                password: ${REDPANDA_CONSOLE_PASSWORD:-changeme_in_production}
-        enterprise:
-          rbac:
-            enabled: false
     expose:
       - "8080"
     networks:
