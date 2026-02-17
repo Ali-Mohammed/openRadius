@@ -87,13 +87,16 @@ init_logging() {
 }
 
 # Timestamped log entry (to file only)
+# Silently skips if the log directory doesn't exist yet (early boot).
 log() {
-    echo "[$(date -Iseconds)] $*" >> "$LOG_FILE"
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    echo "[$(date -Iseconds)] $*" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 # Timestamped log entry (to file + stderr for debug)
 log_debug() {
-    echo "[$(date -Iseconds)] [DEBUG] $*" >> "$LOG_FILE"
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    echo "[$(date -Iseconds)] [DEBUG] $*" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 # =============================================================================
@@ -267,11 +270,12 @@ save_checkpoint() {
 
 mark_checkpoint_complete() {
     local step_name="$1"
+    mkdir -p "$(dirname "$CHECKPOINT_FILE")" 2>/dev/null || true
     if [[ -f "$CHECKPOINT_FILE" ]]; then
-        echo "COMPLETED:$step_name" >> "$CHECKPOINT_FILE"
+        echo "COMPLETED:$step_name" >> "$CHECKPOINT_FILE" 2>/dev/null || true
     else
-        echo "COMPLETED:$step_name" > "$CHECKPOINT_FILE"
-        chmod 600 "$CHECKPOINT_FILE"
+        echo "COMPLETED:$step_name" > "$CHECKPOINT_FILE" 2>/dev/null || true
+        chmod 600 "$CHECKPOINT_FILE" 2>/dev/null || true
     fi
 }
 
