@@ -102,9 +102,9 @@ info "Generating .htpasswd_cdc    (Debezium CDC API)..."
 htpasswd -cb "$SSL_DIR/.htpasswd_cdc" admin "$CDC_PW"
 
 # ---------------------------------------------------------------------------
-# Set permissions
+# Set permissions (644 so nginx worker process can read them)
 # ---------------------------------------------------------------------------
-chmod 640 "$SSL_DIR/.htpasswd_kafka" "$SSL_DIR/.htpasswd_seq" "$SSL_DIR/.htpasswd_cdc"
+chmod 644 "$SSL_DIR/.htpasswd_kafka" "$SSL_DIR/.htpasswd_seq" "$SSL_DIR/.htpasswd_cdc"
 
 # ---------------------------------------------------------------------------
 # Summary
