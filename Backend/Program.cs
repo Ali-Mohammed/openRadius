@@ -16,6 +16,7 @@ using OfficeOpenXml;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using Microsoft.AspNetCore.HttpOverrides;
 using Hangfire;
 using Hangfire.PostgreSql;
 
@@ -584,6 +585,14 @@ try
     }
 
     // Configure the HTTP request pipeline.
+
+    // ForwardedHeaders MUST be first — the app is behind nginx reverse proxy.
+    // Without this, Hangfire (and other middleware) generates incorrect URLs
+    // because it sees http://backend:5000 instead of https://api.domain.com.
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
 
     // CORS must be before authentication/authorization
     app.UseCors("AllowFrontend");
