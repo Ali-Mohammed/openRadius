@@ -31,8 +31,9 @@ for file in .htpasswd_kafka .htpasswd_seq .htpasswd_cdc; do
         echo "⚠ WARNING: $SSL_DIR/$file not found — creating placeholder (run generate-htpasswd.sh!)"
         # apr1 format placeholder that can never be guessed
         echo "admin:\$apr1\$placeholder\$$(head -c 16 /dev/urandom | base64 | tr -d '=+/' | head -c 22)" > "$SSL_DIR/$file"
-        chmod 640 "$SSL_DIR/$file" 2>/dev/null || true
     fi
+    # Ensure nginx worker (non-root) can read htpasswd files
+    chmod 644 "$SSL_DIR/$file" 2>/dev/null || true
 done
 
 # Execute the original nginx entrypoint
