@@ -233,7 +233,7 @@ function ExecutionListItem({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-2.5 border rounded-lg hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+      className="w-full text-left p-2.5 border dark:border-gray-700 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 transition-all group"
     >
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
@@ -241,26 +241,26 @@ function ExecutionListItem({
             <StatusIcon className={`h-3 w-3 ${execution.status === 'running' ? 'animate-spin' : ''}`} />
             {cfg.label}
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {TRIGGER_LABELS[execution.triggerType] ?? execution.triggerType}
           </span>
         </div>
-        <ChevronRight className="h-3.5 w-3.5 text-gray-400 group-hover:text-blue-600" />
+        <ChevronRight className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 group-hover:text-blue-600" />
       </div>
 
       {execution.radiusUsername && (
-        <div className="text-xs text-gray-600 mb-1">
+        <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
           User: <span className="font-medium">{execution.radiusUsername}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
         <span>{new Date(execution.createdAt).toLocaleString()}</span>
         <span>{execution.executionTimeMs}ms</span>
       </div>
 
       {execution.resultSummary && (
-        <div className="text-xs text-gray-500 mt-1 truncate">{execution.resultSummary}</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{execution.resultSummary}</div>
       )}
     </button>
   );
