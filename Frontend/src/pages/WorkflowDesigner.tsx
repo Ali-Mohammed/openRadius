@@ -282,13 +282,13 @@ function TemplateTextarea({
         placeholder={placeholder}
       />
       {showSuggestions && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-auto">
           {filtered.map((v, i) => (
             <button
               key={v.key}
               type="button"
-              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-start gap-2 hover:bg-blue-50 ${
-                i === selectedIndex ? 'bg-blue-50' : ''
+              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-start gap-2 hover:bg-blue-50 dark:hover:bg-blue-950 ${
+                i === selectedIndex ? 'bg-blue-50 dark:bg-blue-950' : ''
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -296,8 +296,8 @@ function TemplateTextarea({
               }}
               onMouseEnter={() => setSelectedIndex(i)}
             >
-              <code className="text-blue-600 font-mono shrink-0 bg-blue-50 px-1 rounded">{`{{${v.key}}}`}</code>
-              <span className="text-gray-500 truncate">{v.description}</span>
+              <code className="text-blue-600 dark:text-blue-400 font-mono shrink-0 bg-blue-50 dark:bg-blue-900 px-1 rounded">{`{{${v.key}}}`}</code>
+              <span className="text-gray-500 dark:text-gray-400 truncate">{v.description}</span>
             </button>
           ))}
         </div>
@@ -415,13 +415,13 @@ function TemplateInput({
         placeholder={placeholder}
       />
       {showSuggestions && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-auto">
           {filtered.map((v, i) => (
             <button
               key={v.key}
               type="button"
-              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-start gap-2 hover:bg-blue-50 ${
-                i === selectedIndex ? 'bg-blue-50' : ''
+              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-start gap-2 hover:bg-blue-50 dark:hover:bg-blue-950 ${
+                i === selectedIndex ? 'bg-blue-50 dark:bg-blue-950' : ''
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -429,8 +429,8 @@ function TemplateInput({
               }}
               onMouseEnter={() => setSelectedIndex(i)}
             >
-              <code className="text-blue-600 font-mono shrink-0 bg-blue-50 px-1 rounded">{`{{${v.key}}}`}</code>
-              <span className="text-gray-500 truncate">{v.description}</span>
+              <code className="text-blue-600 dark:text-blue-400 font-mono shrink-0 bg-blue-50 dark:bg-blue-900 px-1 rounded">{`{{${v.key}}}`}</code>
+              <span className="text-gray-500 dark:text-gray-400 truncate">{v.description}</span>
             </button>
           ))}
         </div>
