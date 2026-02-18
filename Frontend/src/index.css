@@ -209,6 +209,11 @@
   height: 20px;
 }
 
+/* Only show resize handles during editing */
+.react-grid-layout:not(.dashboard-grid-editing) .react-resizable-handle {
+  display: none;
+}
+
 .react-resizable-handle-se {
   bottom: 0;
   right: 0;
