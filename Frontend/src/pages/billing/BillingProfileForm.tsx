@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, ArrowLeft, Wallet, Package, DollarSign, Search, Users } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Wallet, Package, DollarSign, Search, Users, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -38,6 +38,7 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { cn } from '../../lib/utils';
 import { PREDEFINED_COLORS, AVAILABLE_ICONS, getIconComponent } from '@/utils/iconColorHelper';
+import { getAutomations, type Automation } from '../../api/automations';
 
 export default function BillingProfileForm() {
   const { id } = useParams<{ id: string }>();
@@ -54,8 +55,9 @@ export default function BillingProfileForm() {
     name: '',
     description: '',
     price: 0,
-    radiusProfileId: 0,
+    radiusProfileId: null,
     billingGroupId: 0,
+    automationId: null,
     wallets: [],
     addons: [],
     // Advanced Options
@@ -85,6 +87,8 @@ export default function BillingProfileForm() {
   const [selectedDirectUsers, setSelectedDirectUsers] = useState<number[]>([]);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [userSearch, setUserSearch] = useState('');
+  const [selectedAutomationId, setSelectedAutomationId] = useState<number | null>(null);
+  const [automationPopoverOpen, setAutomationPopoverOpen] = useState(false);
 
   const [wallets, setWallets] = useState<BillingProfileWallet[]>([]);
   const [addons, setAddons] = useState<BillingProfileAddon[]>([]);
@@ -224,11 +228,6 @@ export default function BillingProfileForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedRadiusProfiles.length || selectedRadiusProfiles.length === 0) {
-      toast.error('Please select at least one radius profile');
-      return;
-    }
-
     if (assignmentMode === 'groups') {
       if (!selectAllGroups && selectedBillingGroups.length === 0) {
         toast.error('Please select at least one billing group or choose "All Groups"');
@@ -243,8 +242,9 @@ export default function BillingProfileForm() {
 
     const submitData: CreateBillingProfileRequest = {
       ...formData,
-      radiusProfileId: selectedRadiusProfiles[0]?.profileId || 0,
+      radiusProfileId: selectedRadiusProfiles.length > 0 ? (selectedRadiusProfiles[0]?.profileId || null) : null,
       billingGroupId: assignmentMode === 'groups' ? (selectAllGroups ? 0 : selectedBillingGroups[0] || 0) : 0,
+      automationId: selectedAutomationId,
       userIds: assignmentMode === 'users' ? selectedDirectUsers : undefined,
       wallets: wallets.map(w => ({
         walletType: w.walletType,
