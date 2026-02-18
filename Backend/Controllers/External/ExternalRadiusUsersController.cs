@@ -116,7 +116,10 @@ public class ExternalRadiusUsersController : ControllerBase
             query = query.Where(u => u.Zone != null && u.Zone.Name == zoneName);
 
         if (!string.IsNullOrWhiteSpace(onlineStatus))
-            query = query.Where(u => u.OnlineStatus == onlineStatus);
+        {
+            if (int.TryParse(onlineStatus, out var onlineStatusInt))
+                query = query.Where(u => u.OnlineStatus == onlineStatusInt);
+        }
 
         if (createdAfter.HasValue)
             query = query.Where(u => u.CreatedAt >= createdAfter.Value.ToUniversalTime());
@@ -171,9 +174,9 @@ public class ExternalRadiusUsersController : ControllerBase
             ProfileName = u.Profile?.Name,
             GroupName = u.RadiusGroup?.Name,
             ZoneName = u.Zone?.Name,
-            Tags = u.RadiusUserTags?
+            Tags = u.RadiusUserTags
                 .Where(t => t.RadiusTag != null)
-                .Select(t => t.RadiusTag!.Name)
+                .Select(t => t.RadiusTag!.Title)
                 .ToList() ?? new List<string>(),
             CreatedAt = u.CreatedAt,
             UpdatedAt = u.UpdatedAt,
@@ -244,9 +247,9 @@ public class ExternalRadiusUsersController : ControllerBase
             ProfileName = user.Profile?.Name,
             GroupName = user.RadiusGroup?.Name,
             ZoneName = user.Zone?.Name,
-            Tags = user.RadiusUserTags?
+            Tags = user.RadiusUserTags
                 .Where(t => t.RadiusTag != null)
-                .Select(t => t.RadiusTag!.Name)
+                .Select(t => t.RadiusTag!.Title)
                 .ToList() ?? new List<string>(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,

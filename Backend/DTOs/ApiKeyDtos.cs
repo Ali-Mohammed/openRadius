@@ -90,7 +90,7 @@ public class ExternalRadiusUserDto
     public decimal LoanBalance { get; set; }
     public DateTime? Expiration { get; set; }
     public DateTime? LastOnline { get; set; }
-    public string? OnlineStatus { get; set; }
+    public int OnlineStatus { get; set; }
     public int? RemainingDays { get; set; }
     public string? ProfileName { get; set; }
     public string? GroupName { get; set; }
