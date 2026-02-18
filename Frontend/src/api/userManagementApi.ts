@@ -103,6 +103,14 @@ export interface SetPasswordRequest {
   temporary?: boolean
 }
 
+export interface BulkUpdateRolesGroupsRequest {
+  userIds: number[]
+  roleIds: number[]
+  groupIds: number[]
+  updateRoles: boolean
+  updateGroups: boolean
+}
+
 export const userManagementApi = {
   // Sync Keycloak users
   syncKeycloakUsers: async (): Promise<{ message: string; syncedCount: number; updatedCount: number; totalProcessed: number }> => {
@@ -194,6 +202,11 @@ export const userManagementApi = {
 
   assignGroupsToUser: async (userId: number, groupIds: number[]): Promise<{ message: string }> => {
     const response = await apiClient.post(`/api/user-management/${userId}/groups`, groupIds)
+    return response.data
+  },
+
+  bulkUpdateRolesGroups: async (data: BulkUpdateRolesGroupsRequest): Promise<{ message: string }> => {
+    const response = await apiClient.post('/api/user-management/bulk-update-roles-groups', data)
     return response.data
   },
 

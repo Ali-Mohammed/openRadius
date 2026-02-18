@@ -20,7 +20,7 @@ import {
   Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
   FileText, Building2, MoreVertical, ChevronsUpDown, Check
 } from 'lucide-react'
-import { userManagementApi, type User } from '@/api/userManagementApi'
+import { userManagementApi, type User, type BulkUpdateRolesGroupsRequest } from '@/api/userManagementApi'
 import { zoneApi } from '@/services/zoneApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -125,6 +125,18 @@ export default function UserManagement() {
   const hasSetInitialZones = useRef(false)
   const hasSetInitialWorkspaces = useRef(false)
   
+  // Multi-select state
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set())
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
+  const [bulkRoleIds, setBulkRoleIds] = useState<number[]>([])
+  const [bulkGroupIds, setBulkGroupIds] = useState<number[]>([])
+  const [bulkUpdateRoles, setBulkUpdateRoles] = useState(true)
+  const [bulkUpdateGroups, setBulkUpdateGroups] = useState(true)
+  const [bulkRolesSearchOpen, setBulkRolesSearchOpen] = useState(false)
+  const [bulkRolesSearchQuery, setBulkRolesSearchQuery] = useState('')
+  const [bulkGroupsSearchOpen, setBulkGroupsSearchOpen] = useState(false)
+  const [bulkGroupsSearchQuery, setBulkGroupsSearchQuery] = useState('')
+
   // Form fields for creating a new user
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -452,6 +464,24 @@ export default function UserManagement() {
     },
   })
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: (data: BulkUpdateRolesGroupsRequest) =>
+      userManagementApi.bulkUpdateRolesGroups(data),
+    onSuccess: (data) => {
+      toast.success(data.message)
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setIsBulkDialogOpen(false)
+      setSelectedUserIds(new Set())
+      setBulkRoleIds([])
+      setBulkGroupIds([])
+      setBulkUpdateRoles(true)
+      setBulkUpdateGroups(true)
+    },
+    onError: (error: Error) => {
+      toast.error(formatApiError(error))
+    },
+  })
+
   // Handlers
   const handleOpenDialog = (user?: User) => {
     if (user) {
@@ -518,6 +548,50 @@ export default function UserManagement() {
         toast.error(formatApiError(error as Error))
       }
     }
+  }
+
+  const handleToggleSelectUser = (userId: number) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedUserIds.size === paginatedUsers.length) {
+      setSelectedUserIds(new Set())
+    } else {
+      setSelectedUserIds(new Set(paginatedUsers.map(u => u.id)))
+    }
+  }
+
+  const handleOpenBulkDialog = () => {
+    setBulkRoleIds([])
+    setBulkGroupIds([])
+    setBulkUpdateRoles(true)
+    setBulkUpdateGroups(true)
+    setBulkRolesSearchQuery('')
+    setBulkGroupsSearchQuery('')
+    setIsBulkDialogOpen(true)
+  }
+
+  const handleBulkSave = () => {
+    if (!bulkUpdateRoles && !bulkUpdateGroups) {
+      toast.error('Please select at least one field to update')
+      return
+    }
+    bulkUpdateMutation.mutate({
+      userIds: Array.from(selectedUserIds),
+      roleIds: bulkRoleIds,
+      groupIds: bulkGroupIds,
+      updateRoles: bulkUpdateRoles,
+      updateGroups: bulkUpdateGroups,
+    })
   }
 
   const handleSort = useCallback((field: string) => {
@@ -1191,12 +1265,26 @@ export default function UserManagement() {
               <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-[15]">
                   <TableRow className="hover:bg-muted">
+                    <TableHead className="h-12 w-12 px-4">
+                      <Checkbox
+                        checked={paginatedUsers.length > 0 && selectedUserIds.size === paginatedUsers.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
                     {columnOrder.map(column => renderColumnHeader(column))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedUsers.map((user) => (
-                    <TableRow key={user.id} className={user.enabled === false ? 'opacity-60' : ''}>
+                    <TableRow key={user.id} className={`${user.enabled === false ? 'opacity-60' : ''} ${selectedUserIds.has(user.id) ? 'bg-primary/5' : ''}`}>
+                      <TableCell className="h-12 w-12 px-4">
+                        <Checkbox
+                          checked={selectedUserIds.has(user.id)}
+                          onCheckedChange={() => handleToggleSelectUser(user.id)}
+                          aria-label={`Select ${user.firstName} ${user.lastName}`}
+                        />
+                      </TableCell>
                       {columnOrder.map(column => renderTableCell(column, user))}
                     </TableRow>
                   ))}
