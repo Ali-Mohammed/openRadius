@@ -28,10 +28,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatApiError } from '@/utils/errorHandler'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { apiKeysApi, type ApiKeyDto, type ApiKeyCreatedDto, type ApiKeyScopeInfo } from '@/api/apiKeysApi'
 
 export default function ApiKeysTab() {
   const queryClient = useQueryClient()
+  const { currentWorkspaceId, currentWorkspace } = useWorkspace()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createdKey, setCreatedKey] = useState<ApiKeyCreatedDto | null>(null)
   const [deleteUuid, setDeleteUuid] = useState<string | null>(null)
@@ -44,13 +46,15 @@ export default function ApiKeysTab() {
 
   // ── Queries ─────────────────────────────────────────────────────
   const { data: apiKeysData, isLoading } = useQuery({
-    queryKey: ['api-keys'],
+    queryKey: ['api-keys', currentWorkspaceId],
     queryFn: () => apiKeysApi.list(1, 100),
+    enabled: currentWorkspaceId !== null,
   })
 
   const { data: scopes = [] } = useQuery({
-    queryKey: ['api-key-scopes'],
+    queryKey: ['api-key-scopes', currentWorkspaceId],
     queryFn: () => apiKeysApi.getScopes(),
+    enabled: currentWorkspaceId !== null,
   })
 
   // ── Mutations ───────────────────────────────────────────────────
@@ -60,7 +64,7 @@ export default function ApiKeysTab() {
       setCreatedKey(data)
       setShowCreateDialog(false)
       resetForm()
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+      queryClient.invalidateQueries({ queryKey: ['api-keys', currentWorkspaceId] })
       toast.success('API key created successfully')
     },
     onError: (error) => toast.error(formatApiError(error)),
@@ -70,7 +74,7 @@ export default function ApiKeysTab() {
     mutationFn: (uuid: string) => apiKeysApi.delete(uuid),
     onSuccess: () => {
       setDeleteUuid(null)
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+      queryClient.invalidateQueries({ queryKey: ['api-keys', currentWorkspaceId] })
       toast.success('API key deleted')
     },
     onError: (error) => toast.error(formatApiError(error)),
@@ -80,7 +84,7 @@ export default function ApiKeysTab() {
     mutationFn: ({ uuid, isActive }: { uuid: string; isActive: boolean }) =>
       apiKeysApi.update(uuid, { isActive }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+      queryClient.invalidateQueries({ queryKey: ['api-keys', currentWorkspaceId] })
       toast.success('API key updated')
     },
     onError: (error) => toast.error(formatApiError(error)),
@@ -146,9 +150,14 @@ export default function ApiKeysTab() {
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
                 API Keys
+                {currentWorkspace && (
+                  <Badge variant="outline" className="text-[10px] font-normal ml-1">
+                    {currentWorkspace.title || currentWorkspace.name}
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription className="mt-1">
-                Create and manage API keys for external programmatic access to your workspace data.
+                Manage API keys for this workspace. Each key grants external programmatic access to this workspace's data only.
                 API keys authenticate requests to the <code className="bg-muted px-1 rounded text-xs">/api/v1/</code> endpoints.
               </CardDescription>
             </div>
