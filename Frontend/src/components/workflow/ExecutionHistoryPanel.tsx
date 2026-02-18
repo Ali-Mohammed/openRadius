@@ -128,27 +128,27 @@ export function ExecutionHistoryPanel({ automationUuid, onClose }: ExecutionHist
 
   // List view
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-96 bg-white border-l shadow-xl z-50 flex flex-col">
+    <div className="absolute right-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-900 border-l dark:border-gray-700 shadow-xl z-50 flex flex-col">
       {/* Header */}
-      <div className="px-3 py-2 border-b flex items-center justify-between">
+      <div className="px-3 py-2 border-b dark:border-gray-700 flex items-center justify-between">
         <h3 className="font-semibold text-sm flex items-center gap-2">
           <Activity className="h-4 w-4" />
           Execution History
         </h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-lg">×</button>
       </div>
 
       {/* Stats bar */}
       {stats && (
-        <div className="px-3 py-2 border-b bg-gray-50">
+        <div className="px-3 py-2 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <div className="grid grid-cols-4 gap-2 text-center">
-            <StatBadge label="Total" value={stats.totalExecutions} color="text-gray-700" />
+            <StatBadge label="Total" value={stats.totalExecutions} color="text-gray-700 dark:text-gray-300" />
             <StatBadge label="OK" value={stats.completed} color="text-green-600" />
             <StatBadge label="Partial" value={stats.completedWithErrors} color="text-amber-600" />
             <StatBadge label="Failed" value={stats.failed} color="text-red-600" />
           </div>
           {stats.avgExecutionTimeMs > 0 && (
-            <div className="text-xs text-gray-500 text-center mt-1">
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
               Avg: {stats.avgExecutionTimeMs}ms
               {stats.lastExecutedAt && (
                 <> · Last: {new Date(stats.lastExecutedAt).toLocaleDateString()}</>
