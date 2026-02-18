@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { DollarSign, Save } from 'lucide-react'
+import { Building2, Save } from 'lucide-react'
 import { settingsApi } from '@/api/settingsApi'
 import { formatApiError } from '@/utils/errorHandler'
 import { Separator } from '@/components/ui/separator'
@@ -56,11 +56,11 @@ export default function CompanyInfoTab({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
+          <Building2 className="h-5 w-5" />
           Company Information
         </CardTitle>
         <CardDescription>
-          Configure your company settings and preferences
+          Configure your company details, currency, and display preferences
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
