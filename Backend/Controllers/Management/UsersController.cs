@@ -14,17 +14,20 @@ namespace Backend.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly MasterDbContext _context;
+    private readonly ApplicationDbContext _appContext;
     private readonly ILogger<UsersController> _logger;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
 
     public UsersController(
-        MasterDbContext context, 
+        MasterDbContext context,
+        ApplicationDbContext appContext,
         ILogger<UsersController> logger,
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory)
     {
         _context = context;
+        _appContext = appContext;
         _logger = logger;
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
@@ -36,7 +39,30 @@ public class UsersController : ControllerBase
         var users = await _context.Users
             .Include(u => u.Supervisor)
             .ToListAsync();
-        
+
+        // Get radius user counts per user via their assigned zones
+        var userZones = await _appContext.UserZones
+            .Select(uz => new { uz.UserId, uz.ZoneId })
+            .ToListAsync();
+
+        var zoneIds = userZones.Select(uz => uz.ZoneId).Distinct().ToList();
+
+        var radiusUserCountsByZone = await _appContext.RadiusUsers
+            .Where(r => !r.IsDeleted && r.ZoneId.HasValue && zoneIds.Contains(r.ZoneId.Value))
+            .GroupBy(r => r.ZoneId!.Value)
+            .Select(g => new { ZoneId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var radiusCountByZone = radiusUserCountsByZone.ToDictionary(x => x.ZoneId, x => x.Count);
+
+        // Build a lookup: userId -> total radius users across all their zones
+        var radiusUserCountByUser = userZones
+            .GroupBy(uz => uz.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(uz => radiusCountByZone.GetValueOrDefault(uz.ZoneId, 0))
+            );
+
         var response = users.Select(u => new
         {
             u.Id,
@@ -52,7 +78,8 @@ public class UsersController : ControllerBase
                 FirstName = u.Supervisor.FirstName,
                 LastName = u.Supervisor.LastName,
                 Email = u.Supervisor.Email
-            } : null
+            } : null,
+            RadiusUserCount = radiusUserCountByUser.GetValueOrDefault(u.Id, 0)
         });
         
         return Ok(response);

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Search, UserCog, AlertTriangle } from "lucide-react"
+import { Search, UserCog, AlertTriangle, Users } from "lucide-react"
 import { toast } from "sonner"
 
 interface ImpersonateUserDialogProps {
@@ -34,6 +34,7 @@ interface User {
   email: string
   firstName: string
   lastName: string
+  radiusUserCount?: number
 }
 
 export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDialogProps) {
@@ -160,6 +161,10 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
                         <div className="text-sm text-muted-foreground truncate">
                           {user.email}
                         </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground shrink-0" title="Total radius users">
+                        <Users className="h-4 w-4" />
+                        <span>{user.radiusUserCount ?? 0}</span>
                       </div>
                     </button>
                   ))}
