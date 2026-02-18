@@ -165,8 +165,8 @@ export function ExecutionHistoryPanel({ automationUuid, onClose }: ExecutionHist
             <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
           </div>
         ) : executions.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
             <p className="text-sm font-medium">No executions yet</p>
             <p className="text-xs mt-1">Executions will appear here when<br />the automation workflow runs.</p>
           </div>
@@ -185,21 +185,21 @@ export function ExecutionHistoryPanel({ automationUuid, onClose }: ExecutionHist
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs">
+        <div className="px-3 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between text-xs">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-2 py-1 border rounded disabled:opacity-50 hover:bg-white"
+            className="px-2 py-1 border dark:border-gray-600 rounded disabled:opacity-50 hover:bg-white dark:hover:bg-gray-700"
           >
             Previous
           </button>
-          <span className="text-gray-500">
+          <span className="text-gray-500 dark:text-gray-400">
             Page {page} of {totalPages}
           </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="px-2 py-1 border rounded disabled:opacity-50 hover:bg-white"
+            className="px-2 py-1 border dark:border-gray-600 rounded disabled:opacity-50 hover:bg-white dark:hover:bg-gray-700"
           >
             Next
           </button>
@@ -215,7 +215,7 @@ function StatBadge({ label, value, color }: { label: string; value: number; colo
   return (
     <div>
       <div className={`text-sm font-bold ${color}`}>{value}</div>
-      <div className="text-xs text-gray-500">{label}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
     </div>
   );
 }
