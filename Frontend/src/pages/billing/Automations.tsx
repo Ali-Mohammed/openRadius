@@ -292,13 +292,13 @@ export default function Automations() {
               <TableBody>
                 {isLoadingActive ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={6} className="text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : activeAutomations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={6} className="text-center">
                       No automations found. Click "Add Automation" to create one.
                     </TableCell>
                   </TableRow>
