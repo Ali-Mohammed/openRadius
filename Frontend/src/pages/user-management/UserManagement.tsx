@@ -909,7 +909,7 @@ export default function UserManagement() {
     switch (column) {
       case 'name':
         return (
-          <TableCell key={column} className="h-12 px-4 font-medium" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3 font-medium" style={{ width: `${cellWidth}px` }}>
             {user.firstName || user.lastName
               ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
               : user.email}
