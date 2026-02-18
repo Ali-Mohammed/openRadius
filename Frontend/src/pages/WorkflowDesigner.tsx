@@ -51,11 +51,16 @@ import {
   RotateCcw,
   ShieldCheck,
   Globe,
-  Activity
+  Activity,
+  Loader2,
+  X,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { getAutomationById, updateAutomation } from '../api/automations';
+import { getAutomationById, updateAutomation, testAutomation, type TestAutomationResult, type TestStepResult } from '../api/automations';
 import { workflowHistoryApi } from '../api/workflowHistory';
 import { ExecutionHistoryPanel } from '../components/workflow/ExecutionHistoryPanel';
 
