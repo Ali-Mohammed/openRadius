@@ -303,6 +303,26 @@ export default function WorkflowDesigner() {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.setData('application/nodedata', JSON.stringify(nodeData));
     event.dataTransfer.effectAllowed = 'move';
+
+    // Create a custom drag image from just the dragged item element
+    // This prevents the browser from capturing the entire sidebar/menu as the drag preview
+    const dragElement = event.currentTarget as HTMLElement;
+    const clone = dragElement.cloneNode(true) as HTMLElement;
+    clone.style.position = 'absolute';
+    clone.style.top = '-9999px';
+    clone.style.left = '-9999px';
+    clone.style.width = `${dragElement.offsetWidth}px`;
+    clone.style.opacity = '0.85';
+    clone.style.pointerEvents = 'none';
+    document.body.appendChild(clone);
+
+    const rect = dragElement.getBoundingClientRect();
+    event.dataTransfer.setDragImage(clone, event.clientX - rect.left, event.clientY - rect.top);
+
+    // Remove the clone after the browser has captured it
+    requestAnimationFrame(() => {
+      document.body.removeChild(clone);
+    });
   };
 
   const handleSave = () => {

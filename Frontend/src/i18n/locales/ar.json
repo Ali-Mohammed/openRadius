@@ -126,7 +126,9 @@
     "noZone": "بدون منطقة",
     "group": "المجموعة",
     "selectGroup": "اختر مجموعة (اختياري)",
-    "noGroup": "بدون مجموعة",    "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟"
+    "noGroup": "بدون مجموعة",
+    "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟",
+    "updateSuccess": "تم تحديث المستخدم بنجاح"
   },
   "radiusProfiles": {
     "title": "ملفات RADIUS الشخصية",

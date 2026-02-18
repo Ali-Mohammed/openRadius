@@ -135,7 +135,8 @@
     "group": "Group",
     "selectGroup": "Select group (optional)",
     "noGroup": "No Group",
-    "deleteConfirm": "Are you sure you want to delete this user?"
+    "deleteConfirm": "Are you sure you want to delete this user?",
+    "updateSuccess": "User updated successfully"
   },
   "radiusProfiles": {
     "title": "RADIUS Profiles",
