@@ -20,6 +20,7 @@ public class RadiusActivationController : ControllerBase
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ISasActivationService _sasActivationService;
     private readonly IAutomationEngineService _automationEngine;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public RadiusActivationController(
         ApplicationDbContext context,
@@ -27,7 +28,8 @@ public class RadiusActivationController : ControllerBase
         ILogger<RadiusActivationController> logger,
         IHttpContextAccessor httpContextAccessor,
         ISasActivationService sasActivationService,
-        IAutomationEngineService automationEngine)
+        IAutomationEngineService automationEngine,
+        IServiceScopeFactory serviceScopeFactory)
     {
         _context = context;
         _masterContext = masterContext;
@@ -35,6 +37,7 @@ public class RadiusActivationController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
         _sasActivationService = sasActivationService;
         _automationEngine = automationEngine;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     // GET: api/RadiusActivation
@@ -1435,36 +1438,41 @@ public class RadiusActivationController : ControllerBase
             }
 
             // Fire automation event: User Activated
+            // Use IServiceScopeFactory to create an independent DI scope so the
+            // automation engine's DbContext is not disposed when the HTTP request ends.
+            var activatedEvent = new AutomationEvent
+            {
+                EventType = AutomationEventType.UserActivated,
+                TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserActivated),
+                RadiusUserId = radiusUser.Id,
+                RadiusUserUuid = radiusUser.Uuid,
+                RadiusUsername = radiusUser.Username,
+                PerformedBy = userEmail,
+                IpAddress = ipAddress,
+                Context = new Dictionary<string, object?>
+                {
+                    ["username"] = radiusUser.Username,
+                    ["email"] = radiusUser.Email,
+                    ["enabled"] = radiusUser.Enabled,
+                    ["balance"] = radiusUser.Balance,
+                    ["profileId"] = radiusUser.ProfileId,
+                    ["expiration"] = radiusUser.Expiration?.ToString("O"),
+                    ["activationType"] = activation.Type,
+                    ["activationAmount"] = activation.Amount,
+                    ["previousExpireDate"] = activation.PreviousExpireDate?.ToString("O"),
+                    ["nextExpireDate"] = activation.NextExpireDate?.ToString("O"),
+                    ["paymentMethod"] = request.PaymentMethod,
+                    ["activationId"] = activation.Id,
+                    ["billingActivationId"] = billingActivation.Id
+                }
+            };
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await _automationEngine.FireEventAsync(new AutomationEvent
-                    {
-                        EventType = AutomationEventType.UserActivated,
-                        TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserActivated),
-                        RadiusUserId = radiusUser.Id,
-                        RadiusUserUuid = radiusUser.Uuid,
-                        RadiusUsername = radiusUser.Username,
-                        PerformedBy = userEmail,
-                        IpAddress = ipAddress,
-                        Context = new Dictionary<string, object?>
-                        {
-                            ["username"] = radiusUser.Username,
-                            ["email"] = radiusUser.Email,
-                            ["enabled"] = radiusUser.Enabled,
-                            ["balance"] = radiusUser.Balance,
-                            ["profileId"] = radiusUser.ProfileId,
-                            ["expiration"] = radiusUser.Expiration?.ToString("O"),
-                            ["activationType"] = activation.Type,
-                            ["activationAmount"] = activation.Amount,
-                            ["previousExpireDate"] = activation.PreviousExpireDate?.ToString("O"),
-                            ["nextExpireDate"] = activation.NextExpireDate?.ToString("O"),
-                            ["paymentMethod"] = request.PaymentMethod,
-                            ["activationId"] = activation.Id,
-                            ["billingActivationId"] = billingActivation.Id
-                        }
-                    });
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var engine = scope.ServiceProvider.GetRequiredService<IAutomationEngineService>();
+                    await engine.FireEventAsync(activatedEvent);
                 }
                 catch (Exception ex)
                 {

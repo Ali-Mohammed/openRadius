@@ -21,15 +21,18 @@ public class RadiusUserController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RadiusUserController> _logger;
     private readonly IAutomationEngineService _automationEngine;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public RadiusUserController(
         ApplicationDbContext context,
         ILogger<RadiusUserController> logger,
-        IAutomationEngineService automationEngine)
+        IAutomationEngineService automationEngine,
+        IServiceScopeFactory serviceScopeFactory)
     {
         _context = context;
         _logger = logger;
         _automationEngine = automationEngine;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     // Helper method to calculate remaining days based on expiration date
@@ -938,32 +941,37 @@ public class RadiusUserController : ControllerBase
         };
 
         // Fire automation event: User Created
+        // Use IServiceScopeFactory to create an independent DI scope so the
+        // automation engine's DbContext is not disposed when the HTTP request ends.
+        var createdEvent = new AutomationEvent
+        {
+            EventType = AutomationEventType.UserCreated,
+            TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserCreated),
+            RadiusUserId = user.Id,
+            RadiusUserUuid = user.Uuid,
+            RadiusUsername = user.Username,
+            PerformedBy = User.Identity?.Name ?? "System",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Context = new Dictionary<string, object?>
+            {
+                ["username"] = user.Username,
+                ["email"] = user.Email,
+                ["phone"] = user.Phone,
+                ["enabled"] = user.Enabled,
+                ["balance"] = user.Balance,
+                ["profileId"] = user.ProfileId,
+                ["expiration"] = user.Expiration?.ToString("O"),
+                ["groupId"] = user.GroupId,
+                ["zoneId"] = user.ZoneId
+            }
+        };
         _ = Task.Run(async () =>
         {
             try
             {
-                await _automationEngine.FireEventAsync(new AutomationEvent
-                {
-                    EventType = AutomationEventType.UserCreated,
-                    TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserCreated),
-                    RadiusUserId = user.Id,
-                    RadiusUserUuid = user.Uuid,
-                    RadiusUsername = user.Username,
-                    PerformedBy = User.Identity?.Name ?? "System",
-                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    Context = new Dictionary<string, object?>
-                    {
-                        ["username"] = user.Username,
-                        ["email"] = user.Email,
-                        ["phone"] = user.Phone,
-                        ["enabled"] = user.Enabled,
-                        ["balance"] = user.Balance,
-                        ["profileId"] = user.ProfileId,
-                        ["expiration"] = user.Expiration?.ToString("O"),
-                        ["groupId"] = user.GroupId,
-                        ["zoneId"] = user.ZoneId
-                    }
-                });
+                using var scope = _serviceScopeFactory.CreateScope();
+                var engine = scope.ServiceProvider.GetRequiredService<IAutomationEngineService>();
+                await engine.FireEventAsync(createdEvent);
             }
             catch (Exception ex)
             {
@@ -1161,34 +1169,39 @@ public class RadiusUserController : ControllerBase
         };
 
         // Fire automation event: User Updated (only if changes were made)
+        // Use IServiceScopeFactory to create an independent DI scope so the
+        // automation engine's DbContext is not disposed when the HTTP request ends.
         if (changes.Any())
         {
+            var updatedEvent = new AutomationEvent
+            {
+                EventType = AutomationEventType.UserUpdated,
+                TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserUpdated),
+                RadiusUserId = user.Id,
+                RadiusUserUuid = user.Uuid,
+                RadiusUsername = user.Username,
+                PerformedBy = User.Identity?.Name ?? "System",
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Context = new Dictionary<string, object?>
+                {
+                    ["username"] = user.Username,
+                    ["email"] = user.Email,
+                    ["phone"] = user.Phone,
+                    ["enabled"] = user.Enabled,
+                    ["balance"] = user.Balance,
+                    ["profileId"] = user.ProfileId,
+                    ["expiration"] = user.Expiration?.ToString("O"),
+                    ["changes"] = changes,
+                    ["changeCount"] = changes.Count
+                }
+            };
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await _automationEngine.FireEventAsync(new AutomationEvent
-                    {
-                        EventType = AutomationEventType.UserUpdated,
-                        TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserUpdated),
-                        RadiusUserId = user.Id,
-                        RadiusUserUuid = user.Uuid,
-                        RadiusUsername = user.Username,
-                        PerformedBy = User.Identity?.Name ?? "System",
-                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                        Context = new Dictionary<string, object?>
-                        {
-                            ["username"] = user.Username,
-                            ["email"] = user.Email,
-                            ["phone"] = user.Phone,
-                            ["enabled"] = user.Enabled,
-                            ["balance"] = user.Balance,
-                            ["profileId"] = user.ProfileId,
-                            ["expiration"] = user.Expiration?.ToString("O"),
-                            ["changes"] = changes,
-                            ["changeCount"] = changes.Count
-                        }
-                    });
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var engine = scope.ServiceProvider.GetRequiredService<IAutomationEngineService>();
+                    await engine.FireEventAsync(updatedEvent);
                 }
                 catch (Exception ex)
                 {
