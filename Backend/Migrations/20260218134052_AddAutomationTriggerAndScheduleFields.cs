@@ -40,7 +40,7 @@ namespace Backend.Migrations
                 table: "Automations",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "on_requested");
         }
 
         /// <inheritdoc />
