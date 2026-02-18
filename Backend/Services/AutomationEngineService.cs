@@ -20,6 +20,13 @@ public interface IAutomationEngineService
     /// Executes matched workflows asynchronously (fire-and-forget from the caller's perspective).
     /// </summary>
     Task FireEventAsync(AutomationEvent automationEvent);
+
+    /// <summary>
+    /// Hangfire-compatible entry point for processing automation events.
+    /// Creates its own DbContext from the connection string since Hangfire jobs
+    /// run outside the HTTP request scope (no tenant context available).
+    /// </summary>
+    Task ProcessAutomationEventAsync(string serializedEvent, int workspaceId, string connectionString);
 }
 
 /// <summary>
@@ -61,8 +68,41 @@ public class AutomationEngineService : IAutomationEngineService
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// Hangfire-compatible entry point. Deserializes the event and creates a workspace-scoped
+    /// DbContext since Hangfire jobs don't have HTTP context or tenant info.
+    /// </summary>
+    public async Task ProcessAutomationEventAsync(string serializedEvent, int workspaceId, string connectionString)
+    {
+        _logger.LogInformation(
+            "[Hangfire] Processing automation event for workspace {WorkspaceId}",
+            workspaceId);
+
+        var automationEvent = JsonSerializer.Deserialize<AutomationEvent>(serializedEvent, JsonOptions);
+        if (automationEvent == null)
+        {
+            _logger.LogError("[Hangfire] Failed to deserialize automation event");
+            return;
+        }
+
+        // Create workspace-specific context (Hangfire jobs don't have HTTP context/tenant info)
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        optionsBuilder.UseNpgsql(connectionString);
+        using var workspaceContext = new ApplicationDbContext(optionsBuilder.Options);
+
+        await FireEventInternalAsync(automationEvent, workspaceContext);
+    }
+
     /// <inheritdoc />
     public async Task FireEventAsync(AutomationEvent automationEvent)
+    {
+        await FireEventInternalAsync(automationEvent, _context);
+    }
+
+    /// <summary>
+    /// Core event processing logic shared by both the scoped (HTTP) and Hangfire paths.
+    /// </summary>
+    private async Task FireEventInternalAsync(AutomationEvent automationEvent, ApplicationDbContext context)
     {
         try
         {
@@ -72,7 +112,7 @@ public class AutomationEngineService : IAutomationEngineService
                 automationEvent.RadiusUsername,
                 automationEvent.RadiusUserId);
 
-            var activeAutomations = await _context.Automations
+            var activeAutomations = await context.Automations
                 .Where(a => a.Status == "active" && a.IsActive && !a.IsDeleted && a.WorkflowJson != null)
                 .ToListAsync();
 
@@ -87,7 +127,7 @@ public class AutomationEngineService : IAutomationEngineService
 
             foreach (var automation in activeAutomations)
             {
-                await EvaluateAutomationAsync(automation, automationEvent);
+                await EvaluateAutomationAsync(automation, automationEvent, context);
             }
         }
         catch (Exception ex)
@@ -100,7 +140,7 @@ public class AutomationEngineService : IAutomationEngineService
     /// Evaluates a single automation's workflow against the fired event.
     /// Creates a full execution log with per-node step tracking.
     /// </summary>
-    private async Task EvaluateAutomationAsync(Automation automation, AutomationEvent automationEvent)
+    private async Task EvaluateAutomationAsync(Automation automation, AutomationEvent automationEvent, ApplicationDbContext context)
     {
         var stopwatch = Stopwatch.StartNew();
         AutomationExecutionLog? executionLog = null;
@@ -148,15 +188,16 @@ public class AutomationEngineService : IAutomationEngineService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.AutomationExecutionLogs.Add(executionLog);
-            await _context.SaveChangesAsync();
+            context.AutomationExecutionLogs.Add(executionLog);
+            await context.SaveChangesAsync();
 
             // Execution context to track state across traversal
             var execContext = new ExecutionContext
             {
                 ExecutionLog = executionLog,
                 StepOrder = 0,
-                AutomationEvent = automationEvent
+                AutomationEvent = automationEvent,
+                DbContext = context
             };
 
             // Record trigger step
@@ -168,7 +209,7 @@ public class AutomationEngineService : IAutomationEngineService
                 triggerStep.Result = $"Trigger matched: {automationEvent.TriggerType}";
                 triggerStep.InputData = JsonSerializer.Serialize(automationEvent.Context, JsonOptions);
                 triggerStep.CompletedAt = DateTime.UtcNow;
-                _context.AutomationExecutionSteps.Add(triggerStep);
+                context.AutomationExecutionSteps.Add(triggerStep);
                 executionLog.NodesVisited++;
 
                 // Traverse from this trigger
@@ -188,7 +229,7 @@ public class AutomationEngineService : IAutomationEngineService
                 executionLog.Status = "completed";
 
             executionLog.ResultSummary = BuildResultSummary(executionLog);
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             _logger.LogInformation(
                 "Automation '{Title}' completed: {Succeeded}/{Total} actions succeeded in {Ms}ms [CorrelationId: {CorrelationId}]",
@@ -208,7 +249,7 @@ public class AutomationEngineService : IAutomationEngineService
                 executionLog.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
                 executionLog.CompletedAt = DateTime.UtcNow;
                 executionLog.ResultSummary = $"Execution failed: {ex.Message}";
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
             else
             {
@@ -235,8 +276,8 @@ public class AutomationEngineService : IAutomationEngineService
                         CompletedAt = DateTime.UtcNow,
                         CreatedAt = DateTime.UtcNow
                     };
-                    _context.AutomationExecutionLogs.Add(failLog);
-                    await _context.SaveChangesAsync();
+                    context.AutomationExecutionLogs.Add(failLog);
+                    await context.SaveChangesAsync();
                 }
                 catch (Exception logEx)
                 {
@@ -327,7 +368,7 @@ public class AutomationEngineService : IAutomationEngineService
 
         try
         {
-            var result = await ExecuteActionAsync(actionNode, execContext.AutomationEvent, step);
+            var result = await ExecuteActionAsync(actionNode, execContext.AutomationEvent, step, execContext.DbContext);
             
             stepStopwatch.Stop();
             step.Status = "completed";
@@ -349,8 +390,8 @@ public class AutomationEngineService : IAutomationEngineService
                 actionNode.Data?.ActionType, actionNode.Id);
         }
 
-        _context.AutomationExecutionSteps.Add(step);
-        await _context.SaveChangesAsync();
+        execContext.DbContext.AutomationExecutionSteps.Add(step);
+        await execContext.DbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -377,8 +418,8 @@ public class AutomationEngineService : IAutomationEngineService
             step.ExecutionTimeMs = stepStopwatch.ElapsedMilliseconds;
             step.CompletedAt = DateTime.UtcNow;
 
-            _context.AutomationExecutionSteps.Add(step);
-            await _context.SaveChangesAsync();
+            execContext.DbContext.AutomationExecutionSteps.Add(step);
+            await execContext.DbContext.SaveChangesAsync();
             return result;
         }
         catch (Exception ex)
@@ -389,8 +430,8 @@ public class AutomationEngineService : IAutomationEngineService
             step.ExecutionTimeMs = stepStopwatch.ElapsedMilliseconds;
             step.CompletedAt = DateTime.UtcNow;
 
-            _context.AutomationExecutionSteps.Add(step);
-            await _context.SaveChangesAsync();
+            execContext.DbContext.AutomationExecutionSteps.Add(step);
+            await execContext.DbContext.SaveChangesAsync();
 
             _logger.LogError(ex, "Condition evaluation failed: {ConditionType}", conditionNode.Data?.ConditionType);
             return false;
@@ -404,7 +445,8 @@ public class AutomationEngineService : IAutomationEngineService
     private async Task<string> ExecuteActionAsync(
         WorkflowNode actionNode,
         AutomationEvent automationEvent,
-        AutomationExecutionStep step)
+        AutomationExecutionStep step,
+        ApplicationDbContext dbContext)
     {
         var actionType = actionNode.Data?.ActionType;
 
@@ -451,7 +493,7 @@ public class AutomationEngineService : IAutomationEngineService
                 return $"Debit wallet for {automationEvent.RadiusUsername}";
 
             case "suspend-user":
-                await SuspendUserAsync(automationEvent.RadiusUserId);
+                await SuspendUserAsync(automationEvent.RadiusUserId, dbContext);
                 step.OutputData = JsonSerializer.Serialize(new
                 {
                     action = "suspend-user",
@@ -730,14 +772,14 @@ public class AutomationEngineService : IAutomationEngineService
     /// <summary>
     /// Suspends a RADIUS user by setting Enabled = false.
     /// </summary>
-    private async Task SuspendUserAsync(int radiusUserId)
+    private async Task SuspendUserAsync(int radiusUserId, ApplicationDbContext dbContext)
     {
-        var user = await _context.RadiusUsers.FindAsync(radiusUserId);
+        var user = await dbContext.RadiusUsers.FindAsync(radiusUserId);
         if (user != null)
         {
             user.Enabled = false;
             user.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
             _logger.LogInformation("Suspended RADIUS user {Username} (ID: {Id})", user.Username, user.Id);
         }
     }
@@ -791,6 +833,7 @@ public class AutomationEngineService : IAutomationEngineService
         public AutomationExecutionLog ExecutionLog { get; set; } = null!;
         public int StepOrder { get; set; }
         public AutomationEvent AutomationEvent { get; set; } = null!;
+        public ApplicationDbContext DbContext { get; set; } = null!;
     }
 }
 

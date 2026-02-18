@@ -9,7 +9,9 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using OfficeOpenXml;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers;
 
@@ -20,19 +22,19 @@ public class RadiusUserController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RadiusUserController> _logger;
-    private readonly IAutomationEngineService _automationEngine;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IWorkspaceJobService _jobService;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
 
     public RadiusUserController(
         ApplicationDbContext context,
         ILogger<RadiusUserController> logger,
-        IAutomationEngineService automationEngine,
-        IServiceScopeFactory serviceScopeFactory)
+        IWorkspaceJobService jobService,
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor)
     {
         _context = context;
         _logger = logger;
-        _automationEngine = automationEngine;
-        _serviceScopeFactory = serviceScopeFactory;
+        _jobService = jobService;
+        _tenantAccessor = tenantAccessor;
     }
 
     // Helper method to calculate remaining days based on expiration date
@@ -941,8 +943,7 @@ public class RadiusUserController : ControllerBase
         };
 
         // Fire automation event: User Created
-        // Use IServiceScopeFactory to create an independent DI scope so the
-        // automation engine's DbContext is not disposed when the HTTP request ends.
+        // Enqueue via Hangfire for enterprise reliability (persistence, retries, monitoring).
         var createdEvent = new AutomationEvent
         {
             EventType = AutomationEventType.UserCreated,
@@ -965,19 +966,17 @@ public class RadiusUserController : ControllerBase
                 ["zoneId"] = user.ZoneId
             }
         };
-        _ = Task.Run(async () =>
+        var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+        if (tenantInfo?.ConnectionString != null)
         {
-            try
-            {
-                using var scope = _serviceScopeFactory.CreateScope();
-                var engine = scope.ServiceProvider.GetRequiredService<IAutomationEngineService>();
-                await engine.FireEventAsync(createdEvent);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fire UserCreated automation event for user {Username}", user.Username);
-            }
-        });
+            var serializedEvent = JsonSerializer.Serialize(createdEvent);
+            _jobService.Enqueue<IAutomationEngineService>(
+                service => service.ProcessAutomationEventAsync(serializedEvent, tenantInfo.WorkspaceId, tenantInfo.ConnectionString));
+        }
+        else
+        {
+            _logger.LogWarning("No tenant context available to enqueue UserCreated automation event for user {Username}", user.Username);
+        }
 
         return CreatedAtAction(nameof(GetUserByUuid), new { uuid = user.Uuid }, response);
     }
@@ -1169,8 +1168,7 @@ public class RadiusUserController : ControllerBase
         };
 
         // Fire automation event: User Updated (only if changes were made)
-        // Use IServiceScopeFactory to create an independent DI scope so the
-        // automation engine's DbContext is not disposed when the HTTP request ends.
+        // Enqueue via Hangfire for enterprise reliability (persistence, retries, monitoring).
         if (changes.Any())
         {
             var updatedEvent = new AutomationEvent
@@ -1195,19 +1193,17 @@ public class RadiusUserController : ControllerBase
                     ["changeCount"] = changes.Count
                 }
             };
-            _ = Task.Run(async () =>
+            var updateTenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+            if (updateTenantInfo?.ConnectionString != null)
             {
-                try
-                {
-                    using var scope = _serviceScopeFactory.CreateScope();
-                    var engine = scope.ServiceProvider.GetRequiredService<IAutomationEngineService>();
-                    await engine.FireEventAsync(updatedEvent);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to fire UserUpdated automation event for user {Username}", user.Username);
-                }
-            });
+                var serializedEvent = JsonSerializer.Serialize(updatedEvent);
+                _jobService.Enqueue<IAutomationEngineService>(
+                    service => service.ProcessAutomationEventAsync(serializedEvent, updateTenantInfo.WorkspaceId, updateTenantInfo.ConnectionString));
+            }
+            else
+            {
+                _logger.LogWarning("No tenant context available to enqueue UserUpdated automation event for user {Username}", user.Username);
+            }
         }
 
         return Ok(response);

@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using System.Security.Claims;
+using System.Text.Json;
 using Backend.Helpers;
 using Backend.Services;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers;
 
@@ -19,8 +21,8 @@ public class RadiusActivationController : ControllerBase
     private readonly ILogger<RadiusActivationController> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ISasActivationService _sasActivationService;
-    private readonly IAutomationEngineService _automationEngine;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IWorkspaceJobService _jobService;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
 
     public RadiusActivationController(
         ApplicationDbContext context,
@@ -28,16 +30,16 @@ public class RadiusActivationController : ControllerBase
         ILogger<RadiusActivationController> logger,
         IHttpContextAccessor httpContextAccessor,
         ISasActivationService sasActivationService,
-        IAutomationEngineService automationEngine,
-        IServiceScopeFactory serviceScopeFactory)
+        IWorkspaceJobService jobService,
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor)
     {
         _context = context;
         _masterContext = masterContext;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
         _sasActivationService = sasActivationService;
-        _automationEngine = automationEngine;
-        _serviceScopeFactory = serviceScopeFactory;
+        _jobService = jobService;
+        _tenantAccessor = tenantAccessor;
     }
 
     // GET: api/RadiusActivation
@@ -1438,8 +1440,7 @@ public class RadiusActivationController : ControllerBase
             }
 
             // Fire automation event: User Activated
-            // Use IServiceScopeFactory to create an independent DI scope so the
-            // automation engine's DbContext is not disposed when the HTTP request ends.
+            // Enqueue via Hangfire for enterprise reliability (persistence, retries, monitoring).
             var activatedEvent = new AutomationEvent
             {
                 EventType = AutomationEventType.UserActivated,
@@ -1466,19 +1467,17 @@ public class RadiusActivationController : ControllerBase
                     ["billingActivationId"] = billingActivation.Id
                 }
             };
-            _ = Task.Run(async () =>
+            var activationTenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+            if (activationTenantInfo?.ConnectionString != null)
             {
-                try
-                {
-                    using var scope = _serviceScopeFactory.CreateScope();
-                    var engine = scope.ServiceProvider.GetRequiredService<IAutomationEngineService>();
-                    await engine.FireEventAsync(activatedEvent);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to fire UserActivated automation event for user {Username}", radiusUser.Username);
-                }
-            });
+                var serializedEvent = JsonSerializer.Serialize(activatedEvent);
+                _jobService.Enqueue<IAutomationEngineService>(
+                    service => service.ProcessAutomationEventAsync(serializedEvent, activationTenantInfo.WorkspaceId, activationTenantInfo.ConnectionString));
+            }
+            else
+            {
+                _logger.LogWarning("No tenant context available to enqueue UserActivated automation event for user {Username}", radiusUser.Username);
+            }
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {
