@@ -135,6 +135,15 @@ try
         {
             [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
         });
+
+        // Add API Key authentication to Swagger UI (for external /api/v1/ endpoints)
+        options.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.OpenApiSecurityScheme
+        {
+            Type = Microsoft.OpenApi.SecuritySchemeType.ApiKey,
+            In = Microsoft.OpenApi.ParameterLocation.Header,
+            Name = "X-API-Key",
+            Description = "API key for external access. Create one under Settings → API Keys."
+        });
     });
 
     // Configure Master PostgreSQL Database (for tenant/workspace management)
