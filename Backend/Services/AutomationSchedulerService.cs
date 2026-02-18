@@ -283,7 +283,7 @@ public class AutomationSchedulerService : IAutomationSchedulerService
             // Create a scheduled automation event
             var automationEvent = new AutomationEvent
             {
-                EventType = AutomationEventType.UserCreated, // Generic — scheduled automations aren't user-specific
+                EventType = AutomationEventType.Scheduled,
                 TriggerType = "scheduled",
                 RadiusUserId = 0,
                 RadiusUserUuid = Guid.Empty,

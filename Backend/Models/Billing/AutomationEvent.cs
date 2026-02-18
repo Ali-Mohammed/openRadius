@@ -12,7 +12,9 @@ public enum AutomationEventType
     UserExpired,
     UserChurned,
     PaymentReceived,
-    UserDeleted
+    UserDeleted,
+    Scheduled,
+    ManualRequest
 }
 
 /// <summary>
@@ -77,6 +79,8 @@ public class AutomationEvent
         AutomationEventType.UserChurned => "user-churned",
         AutomationEventType.PaymentReceived => "payment-received",
         AutomationEventType.UserDeleted => "user-deleted",
+        AutomationEventType.Scheduled => "scheduled",
+        AutomationEventType.ManualRequest => "manual-request",
         _ => throw new ArgumentOutOfRangeException(nameof(eventType))
     };
 }
