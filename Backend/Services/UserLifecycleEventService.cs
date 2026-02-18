@@ -45,10 +45,10 @@ public class UserLifecycleEventService : IUserLifecycleEventService
     private readonly ILoggerFactory _loggerFactory;
 
     /// <summary>
-    /// Number of days after expiration before a user is considered "churned".
-    /// Default: 30 days.
+    /// Fallback: number of days after expiration before a user is considered "churned".
+    /// Actual value is read from Workspace.ChurnDays in the General Settings UI.
     /// </summary>
-    private const int DefaultChurnThresholdDays = 30;
+    private const int FallbackChurnThresholdDays = 20;
 
     /// <summary>
     /// Maximum number of users to process per batch to prevent memory issues.
@@ -236,8 +236,13 @@ public class UserLifecycleEventService : IUserLifecycleEventService
                 return;
             }
 
-            var churnThresholdDays = _configuration.GetValue("Automation:ChurnThresholdDays", DefaultChurnThresholdDays);
+            // Read ChurnDays from workspace settings (General Settings → Churn Days)
+            var churnThresholdDays = await GetWorkspaceChurnDaysAsync(workspaceId);
             var churnCutoff = DateTime.UtcNow.AddDays(-churnThresholdDays);
+
+            _logger.LogDebug(
+                "[Hangfire] Using ChurnDays={ChurnDays} from workspace {WorkspaceId} settings",
+                churnThresholdDays, workspaceId);
 
             // Find users who have already had user-churned events fired
             var alreadyChurnedUserIds = await context.AutomationExecutionLogs
@@ -338,6 +343,42 @@ public class UserLifecycleEventService : IUserLifecycleEventService
                 "[Hangfire] Failed to detect churned users for workspace {WorkspaceId}",
                 workspaceId);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Reads the ChurnDays setting from the Workspace entity in the master database.
+    /// This value is configured via Settings → General → Churn Days in the UI.
+    /// Falls back to FallbackChurnThresholdDays if the workspace is not found.
+    /// </summary>
+    private async Task<int> GetWorkspaceChurnDaysAsync(int workspaceId)
+    {
+        try
+        {
+            var masterConnectionString = _configuration.GetConnectionString("MasterConnection");
+            if (string.IsNullOrEmpty(masterConnectionString))
+            {
+                _logger.LogWarning("[Hangfire] MasterConnection not configured, using fallback ChurnDays={Days}", FallbackChurnThresholdDays);
+                return FallbackChurnThresholdDays;
+            }
+
+            var masterOptionsBuilder = new DbContextOptionsBuilder<MasterDbContext>();
+            masterOptionsBuilder.UseNpgsql(masterConnectionString);
+            using var masterContext = new MasterDbContext(masterOptionsBuilder.Options);
+
+            var churnDays = await masterContext.Workspaces
+                .Where(w => w.Id == workspaceId && w.DeletedAt == null)
+                .Select(w => w.ChurnDays)
+                .FirstOrDefaultAsync();
+
+            // ChurnDays defaults to 20 in the DB; 0 means workspace not found
+            return churnDays > 0 ? churnDays : FallbackChurnThresholdDays;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Hangfire] Failed to read ChurnDays from workspace {WorkspaceId}, using fallback={Days}",
+                workspaceId, FallbackChurnThresholdDays);
+            return FallbackChurnThresholdDays;
         }
     }
 }
