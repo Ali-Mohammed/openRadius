@@ -374,7 +374,20 @@ export default function UserWallets() {
     enabled: isDialogOpen,
   })
 
-  const users = usersData || []
+  // Fetch user IDs that already have wallets
+  const { data: assignedUserIds = [] } = useQuery({
+    queryKey: ['userWallets', 'assignedUserIds'],
+    queryFn: () => userWalletApi.getAssignedUserIds(),
+    enabled: isDialogOpen && !editingWallet,
+  })
+
+  // Only show users without existing wallets when creating
+  const users = useMemo(() => {
+    const allUsers = usersData || []
+    if (editingWallet) return allUsers
+    const assignedSet = new Set(assignedUserIds)
+    return allUsers.filter((u: { id: number }) => !assignedSet.has(u.id))
+  }, [usersData, assignedUserIds, editingWallet])
 
   // Filter and sort wallets locally for better UX
   const filteredWallets = useMemo(() => {

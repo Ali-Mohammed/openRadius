@@ -84,6 +84,11 @@ const userWalletApi = {
     await apiClient.delete(`/api/user-wallets/${id}`)
   },
 
+  async getAssignedUserIds(): Promise<number[]> {
+    const response = await apiClient.get<number[]>('/api/user-wallets/assigned-user-ids')
+    return response.data
+  },
+
   async getMyWallet(): Promise<{ 
     hasWallet: boolean; 
     id?: number; 

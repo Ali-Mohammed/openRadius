@@ -275,6 +275,27 @@ public class UserWalletController : ControllerBase
         }
     }
 
+    // GET: api/user-wallets/assigned-user-ids
+    [HttpGet("assigned-user-ids")]
+    public async Task<ActionResult<List<int>>> GetAssignedUserIds()
+    {
+        try
+        {
+            var userIds = await _context.UserWallets
+                .Where(uw => !uw.IsDeleted)
+                .Select(uw => uw.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(userIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving assigned user IDs");
+            return StatusCode(500, new { error = "An error occurred while retrieving assigned user IDs" });
+        }
+    }
+
     // POST: api/user-wallets
     [HttpPost]
     public async Task<ActionResult<object>> CreateUserWallet([FromBody] CreateUserWalletRequest request)
