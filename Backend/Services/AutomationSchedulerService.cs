@@ -53,6 +53,8 @@ public class AutomationSchedulerService : IAutomationSchedulerService
 {
     private readonly ILogger<AutomationSchedulerService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILoggerFactory _loggerFactory;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -62,10 +64,14 @@ public class AutomationSchedulerService : IAutomationSchedulerService
 
     public AutomationSchedulerService(
         ILogger<AutomationSchedulerService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory,
+        ILoggerFactory loggerFactory)
     {
         _logger = logger;
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
+        _loggerFactory = loggerFactory;
     }
 
     /// <inheritdoc />
@@ -297,15 +303,10 @@ public class AutomationSchedulerService : IAutomationSchedulerService
             var serializedEvent = JsonSerializer.Serialize(automationEvent, JsonOptions);
 
             // Use the AutomationEngineService's Hangfire-compatible entry point
-            var httpClientFactory = new ServiceCollection()
-                .AddHttpClient()
-                .BuildServiceProvider()
-                .GetRequiredService<IHttpClientFactory>();
-
             var engineService = new AutomationEngineService(
                 context,
-                new LoggerFactory().CreateLogger<AutomationEngineService>(),
-                httpClientFactory,
+                _loggerFactory.CreateLogger<AutomationEngineService>(),
+                _httpClientFactory,
                 _configuration);
 
             await engineService.ProcessAutomationEventAsync(serializedEvent, workspaceId, connectionString);
