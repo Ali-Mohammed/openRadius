@@ -19,19 +19,22 @@ public class RadiusActivationController : ControllerBase
     private readonly ILogger<RadiusActivationController> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ISasActivationService _sasActivationService;
+    private readonly IAutomationEngineService _automationEngine;
 
     public RadiusActivationController(
         ApplicationDbContext context,
         MasterDbContext masterContext,
         ILogger<RadiusActivationController> logger,
         IHttpContextAccessor httpContextAccessor,
-        ISasActivationService sasActivationService)
+        ISasActivationService sasActivationService,
+        IAutomationEngineService automationEngine)
     {
         _context = context;
         _masterContext = masterContext;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
         _sasActivationService = sasActivationService;
+        _automationEngine = automationEngine;
     }
 
     // GET: api/RadiusActivation
@@ -1430,6 +1433,44 @@ public class RadiusActivationController : ControllerBase
                 // Log but don't fail the activation if SAS enqueuing setup fails
                 _logger.LogError(ex, $"Failed to queue SAS4 activation {activation.Id}, but activation was successful");
             }
+
+            // Fire automation event: User Activated
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _automationEngine.FireEventAsync(new AutomationEvent
+                    {
+                        EventType = AutomationEventType.UserActivated,
+                        TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserActivated),
+                        RadiusUserId = radiusUser.Id,
+                        RadiusUserUuid = radiusUser.Uuid,
+                        RadiusUsername = radiusUser.Username,
+                        PerformedBy = userEmail,
+                        IpAddress = ipAddress,
+                        Context = new Dictionary<string, object?>
+                        {
+                            ["username"] = radiusUser.Username,
+                            ["email"] = radiusUser.Email,
+                            ["enabled"] = radiusUser.Enabled,
+                            ["balance"] = radiusUser.Balance,
+                            ["profileId"] = radiusUser.ProfileId,
+                            ["expiration"] = radiusUser.Expiration?.ToString("O"),
+                            ["activationType"] = activation.Type,
+                            ["activationAmount"] = activation.Amount,
+                            ["previousExpireDate"] = activation.PreviousExpireDate?.ToString("O"),
+                            ["nextExpireDate"] = activation.NextExpireDate?.ToString("O"),
+                            ["paymentMethod"] = request.PaymentMethod,
+                            ["activationId"] = activation.Id,
+                            ["billingActivationId"] = billingActivation.Id
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to fire UserActivated automation event for user {Username}", radiusUser.Username);
+                }
+            });
 
             return CreatedAtAction(nameof(GetActivation), new { id = activation.Id }, new RadiusActivationResponse
             {

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using Backend.Helpers;
+using Backend.Services;
 using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
@@ -19,11 +20,16 @@ public class RadiusUserController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RadiusUserController> _logger;
+    private readonly IAutomationEngineService _automationEngine;
 
-    public RadiusUserController(ApplicationDbContext context, ILogger<RadiusUserController> logger)
+    public RadiusUserController(
+        ApplicationDbContext context,
+        ILogger<RadiusUserController> logger,
+        IAutomationEngineService automationEngine)
     {
         _context = context;
         _logger = logger;
+        _automationEngine = automationEngine;
     }
 
     // Helper method to calculate remaining days based on expiration date
@@ -931,6 +937,40 @@ public class RadiusUserController : ControllerBase
             LastSyncedAt = user.LastSyncedAt
         };
 
+        // Fire automation event: User Created
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _automationEngine.FireEventAsync(new AutomationEvent
+                {
+                    EventType = AutomationEventType.UserCreated,
+                    TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserCreated),
+                    RadiusUserId = user.Id,
+                    RadiusUserUuid = user.Uuid,
+                    RadiusUsername = user.Username,
+                    PerformedBy = User.Identity?.Name ?? "System",
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Context = new Dictionary<string, object?>
+                    {
+                        ["username"] = user.Username,
+                        ["email"] = user.Email,
+                        ["phone"] = user.Phone,
+                        ["enabled"] = user.Enabled,
+                        ["balance"] = user.Balance,
+                        ["profileId"] = user.ProfileId,
+                        ["expiration"] = user.Expiration?.ToString("O"),
+                        ["groupId"] = user.GroupId,
+                        ["zoneId"] = user.ZoneId
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fire UserCreated automation event for user {Username}", user.Username);
+            }
+        });
+
         return CreatedAtAction(nameof(GetUserByUuid), new { uuid = user.Uuid }, response);
     }
 
@@ -1119,6 +1159,43 @@ public class RadiusUserController : ControllerBase
             UpdatedAt = user.UpdatedAt,
             LastSyncedAt = user.LastSyncedAt
         };
+
+        // Fire automation event: User Updated (only if changes were made)
+        if (changes.Any())
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _automationEngine.FireEventAsync(new AutomationEvent
+                    {
+                        EventType = AutomationEventType.UserUpdated,
+                        TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserUpdated),
+                        RadiusUserId = user.Id,
+                        RadiusUserUuid = user.Uuid,
+                        RadiusUsername = user.Username,
+                        PerformedBy = User.Identity?.Name ?? "System",
+                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                        Context = new Dictionary<string, object?>
+                        {
+                            ["username"] = user.Username,
+                            ["email"] = user.Email,
+                            ["phone"] = user.Phone,
+                            ["enabled"] = user.Enabled,
+                            ["balance"] = user.Balance,
+                            ["profileId"] = user.ProfileId,
+                            ["expiration"] = user.Expiration?.ToString("O"),
+                            ["changes"] = changes,
+                            ["changeCount"] = changes.Count
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to fire UserUpdated automation event for user {Username}", user.Username);
+                }
+            });
+        }
 
         return Ok(response);
     }

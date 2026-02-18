@@ -53,6 +53,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TransactionHistory> TransactionHistories { get; set; }
     public DbSet<Addon> Addons { get; set; }
     public DbSet<Automation> Automations { get; set; }
+    public DbSet<AutomationExecutionLog> AutomationExecutionLogs { get; set; }
     public DbSet<WorkflowHistory> WorkflowHistories { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
     public DbSet<BillingProfile> BillingProfiles { get; set; }
@@ -654,6 +655,25 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.ReferenceEntityUuid);
 
             entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // === AutomationExecutionLog Configuration ===
+        modelBuilder.Entity<AutomationExecutionLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => e.AutomationId);
+            entity.HasIndex(e => e.TriggerType);
+            entity.HasIndex(e => e.RadiusUserId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.AutomationId, e.TriggerType, e.CreatedAt });
+            entity.HasIndex(e => new { e.RadiusUserId, e.CreatedAt });
+
+            entity.HasOne(e => e.Automation)
+                  .WithMany()
+                  .HasForeignKey(e => e.AutomationId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

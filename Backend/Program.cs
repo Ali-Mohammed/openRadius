@@ -276,6 +276,9 @@ try
     // Add Edge Runtime Script Service for generating install scripts
     builder.Services.AddScoped<IEdgeRuntimeScriptService, EdgeRuntimeScriptService>();
 
+    // Add Automation Engine Service for evaluating workflow automations on domain events
+    builder.Services.AddScoped<IAutomationEngineService, AutomationEngineService>();
+
     // Add System Settings Service for global configuration (Swagger toggle, etc.)
     builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 

@@ -48,7 +48,8 @@ import {
   Calendar,
   MessageSquare,
   History,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -66,6 +67,7 @@ const nodeTypes = {
 const TRIGGER_TYPES = [
   { value: 'user-created', label: 'User Created', description: 'When a new user is created', icon: UserPlus },
   { value: 'user-updated', label: 'User Updated', description: 'When user profile is updated', icon: UserCog },
+  { value: 'user-activated', label: 'User Activated', description: 'When user subscription is activated', icon: ShieldCheck },
   { value: 'user-expired', label: 'User Expired', description: 'When user subscription expires', icon: Clock },
   { value: 'user-churned', label: 'User Churned', description: 'When user stops service', icon: UserX },
   { value: 'payment-received', label: 'Payment Received', description: 'When payment is received', icon: CreditCard },

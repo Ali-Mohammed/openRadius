@@ -1,10 +1,11 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { Zap, UserPlus, UserMinus, Clock, TrendingDown, DollarSign } from 'lucide-react';
+import { Zap, UserPlus, UserMinus, Clock, TrendingDown, DollarSign, ShieldCheck } from 'lucide-react';
 
 const triggerIcons = {
   'user-created': UserPlus,
   'user-updated': Zap,
+  'user-activated': ShieldCheck,
   'user-expired': Clock,
   'user-churned': TrendingDown,
   'payment-received': DollarSign,
