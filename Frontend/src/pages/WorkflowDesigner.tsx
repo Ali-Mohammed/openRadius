@@ -802,11 +802,11 @@ export default function WorkflowDesigner() {
           </div>
 
           {/* Canvas Skeleton */}
-          <div className="flex-1 bg-gray-50 relative">
+          <div className="flex-1 bg-gray-50 dark:bg-gray-950 relative">
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
-                <div className="text-sm text-gray-600 font-medium">Loading workflow...</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Loading workflow...</div>
               </div>
             </div>
           </div>
@@ -820,7 +820,7 @@ export default function WorkflowDesigner() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-56 bg-white border-r flex flex-col overflow-hidden">
+        <div className="w-56 bg-white dark:bg-gray-900 border-r flex flex-col overflow-hidden">
           <div className="px-2 py-1.5 border-b">
             <h2 className="font-semibold text-sm">Nodes Library</h2>
             <p className="text-xs text-muted-foreground">Drag to canvas</p>
@@ -829,7 +829,7 @@ export default function WorkflowDesigner() {
           <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2">
             {/* Triggers Section — filtered by automation triggerType */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                 Triggers
               </h3>
@@ -852,13 +852,13 @@ export default function WorkflowDesigner() {
                         triggerType: trigger.value,
                       })
                     }
-                    className="border border-blue-200 bg-blue-50 rounded p-2 cursor-move hover:border-blue-400 hover:shadow-sm transition-all"
+                    className="border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 rounded p-2 cursor-move hover:border-blue-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-xs text-blue-900">{trigger.label}</div>
-                        <div className="text-xs text-blue-600 line-clamp-1">{trigger.description}</div>
+                        <div className="font-medium text-xs text-blue-900 dark:text-blue-200">{trigger.label}</div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 line-clamp-1">{trigger.description}</div>
                       </div>
                     </div>
                   </div>
@@ -868,7 +868,7 @@ export default function WorkflowDesigner() {
 
             {/* Actions Section */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                 Actions
               </h3>
@@ -886,13 +886,13 @@ export default function WorkflowDesigner() {
                         actionType: action.value,
                       })
                     }
-                    className="border border-green-200 bg-green-50 rounded p-2 cursor-move hover:border-green-400 hover:shadow-sm transition-all"
+                    className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 rounded p-2 cursor-move hover:border-green-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-xs text-green-900">{action.label}</div>
-                        <div className="text-xs text-green-600 line-clamp-1">{action.description}</div>
+                        <div className="font-medium text-xs text-green-900 dark:text-green-200">{action.label}</div>
+                        <div className="text-xs text-green-600 dark:text-green-400 line-clamp-1">{action.description}</div>
                       </div>
                     </div>
                   </div>
@@ -902,7 +902,7 @@ export default function WorkflowDesigner() {
 
             {/* Conditions Section */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
                 Conditions
               </h3>
@@ -920,13 +920,13 @@ export default function WorkflowDesigner() {
                         conditionType: condition.value,
                       })
                     }
-                    className="border border-yellow-200 bg-yellow-50 rounded p-2 cursor-move hover:border-yellow-400 hover:shadow-sm transition-all"
+                    className="border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950 rounded p-2 cursor-move hover:border-yellow-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-xs text-yellow-900">{condition.label}</div>
-                        <div className="text-xs text-yellow-600 line-clamp-1">{condition.description}</div>
+                        <div className="font-medium text-xs text-yellow-900 dark:text-yellow-200">{condition.label}</div>
+                        <div className="text-xs text-yellow-600 dark:text-yellow-400 line-clamp-1">{condition.description}</div>
                       </div>
                     </div>
                   </div>
@@ -936,7 +936,7 @@ export default function WorkflowDesigner() {
 
             {/* Comments Section */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
                 Comments
               </h3>
@@ -954,13 +954,13 @@ export default function WorkflowDesigner() {
                         commentType: comment.value,
                       })
                     }
-                    className="border border-gray-300 bg-gray-50 rounded p-2 cursor-move hover:border-gray-400 hover:shadow-sm transition-all"
+                    className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded p-2 cursor-move hover:border-gray-400 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="h-5 w-5 text-gray-600 shrink-0 mt-0.5" />
+                      <Icon className="h-5 w-5 text-gray-600 dark:text-gray-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-xs text-gray-900">{comment.label}</div>
-                        <div className="text-xs text-gray-600 line-clamp-1">{comment.description}</div>
+                        <div className="font-medium text-xs text-gray-900 dark:text-gray-100">{comment.label}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">{comment.description}</div>
                       </div>
                     </div>
                   </div>
@@ -968,7 +968,7 @@ export default function WorkflowDesigner() {
             </div>
           </div>
 
-          <div className="px-2 py-1.5 border-t bg-gray-50">
+          <div className="px-2 py-1.5 border-t bg-gray-50 dark:bg-gray-800">
             <h3 className="font-semibold text-xs mb-1.5">Quick Tips</h3>
             <ul className="text-xs space-y-0.5 text-muted-foreground">
               <li>🎯 Drag nodes to canvas</li>
@@ -980,7 +980,7 @@ export default function WorkflowDesigner() {
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 bg-gray-50">
+        <div className="flex-1 bg-gray-50 dark:bg-gray-950">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -997,12 +997,12 @@ export default function WorkflowDesigner() {
             minZoom={0.2}
             maxZoom={2}
             fitView={false}
-            className="bg-gray-50"
+            className="bg-gray-50 dark:bg-gray-950"
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-            <Controls className="bg-white border shadow-lg" />
+            <Controls className="bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-lg" />
             <MiniMap 
-              className="bg-white border shadow-lg"
+              className="bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-lg"
               nodeColor={(node) => {
                 if (node.type === 'trigger') return '#3b82f6';
                 if (node.type === 'action') return '#10b981';
@@ -1010,7 +1010,7 @@ export default function WorkflowDesigner() {
                 return '#6b7280';
               }}
             />
-            <Panel position="top-right" className="bg-white p-3 rounded-lg shadow-lg border">
+            <Panel position="top-right" className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border dark:border-gray-700">
               <div className="text-xs space-y-1">
                 <div className="font-semibold">Workflow Stats</div>
                 <div className="text-muted-foreground">
@@ -1025,23 +1025,23 @@ export default function WorkflowDesigner() {
           
           {/* Node Configuration Panel - Right Sidebar */}
           {selectedNode && (
-            <div className="absolute right-0 top-0 bottom-0 w-64 bg-white border-l shadow-lg z-40 flex flex-col">
+            <div className="absolute right-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-l dark:border-gray-700 shadow-lg z-40 flex flex-col">
               <div className="px-2 py-1.5 border-b flex items-center justify-between">
                 <h3 className="font-semibold text-sm">Node Settings</h3>
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="text-gray-400 hover:text-gray-600 text-lg"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg"
                 >
                   ×
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1.5">Type</label>
-                  <div className="text-xs capitalize px-3 py-2 bg-gray-100 rounded font-medium">{selectedNode.type}</div>
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Type</label>
+                  <div className="text-xs capitalize px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded font-medium">{selectedNode.type}</div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1.5">Label</label>
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Label</label>
                   <input
                     type="text"
                     value={selectedNode.data.label || ''}
@@ -1060,7 +1060,7 @@ export default function WorkflowDesigner() {
                 </div>
                 {selectedNode.type === 'comment' && (
                   <div>
-                    <label className="text-xs font-semibold text-gray-700 block mb-1.5">Comment Text</label>
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Comment Text</label>
                     <textarea
                       value={selectedNode.data.text || ''}
                       onChange={(e) => {
@@ -1079,7 +1079,7 @@ export default function WorkflowDesigner() {
                   </div>
                 )}
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1.5">Description</label>
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Description</label>
                   <textarea
                     value={selectedNode.data.description || ''}
                     onChange={(e) => {
