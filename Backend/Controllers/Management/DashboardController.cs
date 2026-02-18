@@ -302,6 +302,180 @@ public class DashboardController : ControllerBase
         }
     }
 
+    // GET: api/dashboard/{id}/export
+    [HttpGet("{id}/export")]
+    public async Task<ActionResult<object>> ExportDashboard(int id)
+    {
+        try
+        {
+            var dashboard = await _context.Dashboards
+                .Where(d => d.Id == id && !d.IsDeleted)
+                .Include(d => d.Tabs.Where(t => !t.IsDeleted))
+                    .ThenInclude(t => t.Items.Where(i => !i.IsDeleted))
+                .Include(d => d.GlobalFilters.Where(f => !f.IsDeleted))
+                .FirstOrDefaultAsync();
+
+            if (dashboard == null)
+            {
+                return NotFound(new { message = "Dashboard not found" });
+            }
+
+            var exportData = new
+            {
+                version = "1.0",
+                exportedAt = DateTime.UtcNow.ToString("o"),
+                dashboard = new
+                {
+                    name = dashboard.Name,
+                    description = dashboard.Description,
+                    icon = dashboard.Icon,
+                    color = dashboard.Color,
+                    tabs = dashboard.Tabs
+                        .OrderBy(t => t.OrderIndex)
+                        .Select(t => new
+                        {
+                            name = t.Name,
+                            orderIndex = t.OrderIndex,
+                            items = t.Items.Select(i => new
+                            {
+                                type = i.Type,
+                                title = i.Title,
+                                layout = new { x = i.LayoutX, y = i.LayoutY, w = i.LayoutW, h = i.LayoutH },
+                                config = JsonSerializer.Deserialize<object>(i.Config)
+                            }).ToList()
+                        }).ToList(),
+                    globalFilters = dashboard.GlobalFilters
+                        .OrderBy(f => f.OrderIndex)
+                        .Select(f => new
+                        {
+                            label = f.Label,
+                            type = f.Type,
+                            value = f.Value != null ? JsonSerializer.Deserialize<object>(f.Value) : null,
+                            options = f.Options != null ? JsonSerializer.Deserialize<object>(f.Options) : null,
+                            orderIndex = f.OrderIndex
+                        }).ToList()
+                }
+            };
+
+            return Ok(exportData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting dashboard {DashboardId}", id);
+            return StatusCode(500, new { message = "Error exporting dashboard" });
+        }
+    }
+
+    // POST: api/dashboard/import
+    [HttpPost("import")]
+    public async Task<ActionResult<object>> ImportDashboard([FromBody] ImportDashboardDto importData)
+    {
+        try
+        {
+            if (importData?.Dashboard == null)
+            {
+                return BadRequest(new { message = "Invalid import data: missing dashboard object" });
+            }
+
+            var dto = importData.Dashboard;
+
+            // Create the dashboard
+            var dashboard = new Dashboard
+            {
+                Name = !string.IsNullOrWhiteSpace(dto.Name) ? dto.Name : "Imported Dashboard",
+                Description = dto.Description,
+                Icon = !string.IsNullOrWhiteSpace(dto.Icon) ? dto.Icon : "LayoutDashboard",
+                Color = !string.IsNullOrWhiteSpace(dto.Color) ? dto.Color : "#3b82f6",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.Dashboards.Add(dashboard);
+            await _context.SaveChangesAsync();
+
+            // Create tabs and items
+            if (dto.Tabs != null)
+            {
+                foreach (var tabDto in dto.Tabs)
+                {
+                    var tab = new DashboardTab
+                    {
+                        DashboardId = dashboard.Id,
+                        Name = !string.IsNullOrWhiteSpace(tabDto.Name) ? tabDto.Name : "Tab",
+                        OrderIndex = tabDto.OrderIndex
+                    };
+                    _context.Set<DashboardTab>().Add(tab);
+                    await _context.SaveChangesAsync();
+
+                    if (tabDto.Items != null)
+                    {
+                        foreach (var itemDto in tabDto.Items)
+                        {
+                            var item = new DashboardItem
+                            {
+                                TabId = tab.Id,
+                                Type = !string.IsNullOrWhiteSpace(itemDto.Type) ? itemDto.Type : "chart",
+                                Title = !string.IsNullOrWhiteSpace(itemDto.Title) ? itemDto.Title : "Untitled",
+                                LayoutX = itemDto.Layout?.X ?? 0,
+                                LayoutY = itemDto.Layout?.Y ?? 0,
+                                LayoutW = itemDto.Layout?.W ?? 6,
+                                LayoutH = itemDto.Layout?.H ?? 4,
+                                Config = itemDto.Config != null
+                                    ? JsonSerializer.Serialize(itemDto.Config)
+                                    : "{}"
+                            };
+                            _context.Set<DashboardItem>().Add(item);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Create default tab if none provided
+                var defaultTab = new DashboardTab
+                {
+                    DashboardId = dashboard.Id,
+                    Name = "Overview",
+                    OrderIndex = 0
+                };
+                _context.Set<DashboardTab>().Add(defaultTab);
+            }
+
+            // Create global filters
+            if (dto.GlobalFilters != null)
+            {
+                foreach (var filterDto in dto.GlobalFilters)
+                {
+                    var filter = new DashboardGlobalFilter
+                    {
+                        DashboardId = dashboard.Id,
+                        Label = !string.IsNullOrWhiteSpace(filterDto.Label) ? filterDto.Label : "Filter",
+                        Type = !string.IsNullOrWhiteSpace(filterDto.Type) ? filterDto.Type : "text",
+                        Value = filterDto.Value != null ? JsonSerializer.Serialize(filterDto.Value) : null,
+                        Options = filterDto.Options != null ? JsonSerializer.Serialize(filterDto.Options) : null,
+                        OrderIndex = filterDto.OrderIndex
+                    };
+                    _context.Set<DashboardGlobalFilter>().Add(filter);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Dashboard imported successfully: {DashboardId} '{Name}'", dashboard.Id, dashboard.Name);
+
+            return Ok(new
+            {
+                id = dashboard.Id.ToString(),
+                name = dashboard.Name,
+                message = "Dashboard imported successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing dashboard");
+            return StatusCode(500, new { message = "Error importing dashboard" });
+        }
+    }
+
     // POST: api/dashboard/{id}/items
     [HttpPost("{id}/items")]
     public async Task<ActionResult<object>> AddItem(int id, [FromBody] AddItemDto dto)
