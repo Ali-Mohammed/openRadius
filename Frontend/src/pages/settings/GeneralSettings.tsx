@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Settings, Users, Tags, Coins, FileText, Code, Key } from 'lucide-react'
+import { Building2, Users, Tags, Coins, FileText, Code, Key } from 'lucide-react'
 import { type FilterColumn } from '@/components/QueryBuilder'
 import { settingsApi } from '@/api/settingsApi'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -70,8 +70,8 @@ export default function GeneralSettings() {
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="general">
-            <Settings className="h-4 w-4 mr-2" />
-            General
+            <Building2 className="h-4 w-4 mr-2" />
+            Company Information
           </TabsTrigger>
           <TabsTrigger value="radius-user">
             <Users className="h-4 w-4 mr-2" />
