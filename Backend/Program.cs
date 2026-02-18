@@ -219,7 +219,8 @@ try
                     return Task.CompletedTask;
                 }
             };
-        });
+        })
+        .AddApiKeyAuthentication();
 
     builder.Services.AddAuthorization();
 
@@ -281,6 +282,9 @@ try
 
     // Add System Settings Service for global configuration (Swagger toggle, etc.)
     builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+
+    // Add API Key Service for external API access management
+    builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
     // Add Kafka Consumer Service for CDC monitoring
     builder.Services.AddHostedService<KafkaConsumerService>();
