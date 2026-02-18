@@ -6,6 +6,7 @@ using Backend.Helpers;
 using Backend.Services;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
+using System.Text.Json;
 
 namespace Backend.Controllers;
 
@@ -18,19 +19,22 @@ public class AutomationController : ControllerBase
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAutomationSchedulerService _schedulerService;
     private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
+    private readonly IAutomationEngineService _automationEngine;
 
     public AutomationController(
         ApplicationDbContext context,
         ILogger<AutomationController> logger,
         IHttpContextAccessor httpContextAccessor,
         IAutomationSchedulerService schedulerService,
-        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor)
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor,
+        IAutomationEngineService automationEngine)
     {
         _context = context;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
         _schedulerService = schedulerService;
         _tenantAccessor = tenantAccessor;
+        _automationEngine = automationEngine;
     }
 
     private string? GetCurrentUserId()
@@ -268,6 +272,108 @@ public class AutomationController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while restoring the automation" });
         }
     }
+
+    // POST: api/automation/{id}/test
+    [HttpPost("{id}/test")]
+    public async Task<ActionResult<object>> TestAutomation(int id, TestAutomationRequest request)
+    {
+        try
+        {
+            var automation = await _context.Automations.FindAsync(id);
+
+            if (automation == null)
+            {
+                return NotFound(new { error = "Automation not found" });
+            }
+
+            if (string.IsNullOrEmpty(automation.WorkflowJson))
+            {
+                return BadRequest(new { error = "Automation has no workflow to test. Please add nodes and save first." });
+            }
+
+            var userId = GetCurrentUserId();
+
+            // Build a test automation event with sample data
+            var triggerType = request.TriggerType ?? "user-created";
+            var context = new Dictionary<string, object?>();
+
+            // Merge user-provided context
+            if (request.Context != null)
+            {
+                foreach (var kvp in request.Context)
+                {
+                    context[kvp.Key] = kvp.Value;
+                }
+            }
+
+            // Ensure common fields have defaults if not provided
+            if (!context.ContainsKey("username")) context["username"] = request.Username ?? "test_user";
+            if (!context.ContainsKey("email")) context["email"] = request.Email ?? "test@example.com";
+            if (!context.ContainsKey("phone")) context["phone"] = "0000000000";
+            if (!context.ContainsKey("enabled")) context["enabled"] = true;
+            if (!context.ContainsKey("balance")) context["balance"] = 100.00m;
+
+            var automationEvent = new AutomationEvent
+            {
+                EventType = AutomationEventType.UserCreated,
+                TriggerType = triggerType,
+                RadiusUserId = 0,
+                RadiusUserUuid = Guid.Empty,
+                RadiusUsername = request.Username ?? "test_user",
+                PerformedBy = userId ?? "Test Runner",
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
+                OccurredAt = DateTime.UtcNow,
+                Context = context
+            };
+
+            var executionUuid = await _automationEngine.TestAutomationAsync(automation, automationEvent);
+
+            if (executionUuid == null)
+            {
+                return BadRequest(new { error = "No trigger nodes found in the workflow to execute." });
+            }
+
+            // Fetch the execution log with steps
+            var executionLog = await _context.AutomationExecutionLogs
+                .Include(e => e.Steps.OrderBy(s => s.StepOrder))
+                .FirstOrDefaultAsync(e => e.Uuid == executionUuid);
+
+            return Ok(new
+            {
+                success = true,
+                executionUuid = executionUuid,
+                status = executionLog?.Status ?? "unknown",
+                resultSummary = executionLog?.ResultSummary,
+                executionTimeMs = executionLog?.ExecutionTimeMs ?? 0,
+                nodesVisited = executionLog?.NodesVisited ?? 0,
+                actionsExecuted = executionLog?.ActionsExecuted ?? 0,
+                actionsSucceeded = executionLog?.ActionsSucceeded ?? 0,
+                actionsFailed = executionLog?.ActionsFailed ?? 0,
+                errorMessage = executionLog?.ErrorMessage,
+                steps = executionLog?.Steps?.Select(s => new
+                {
+                    stepOrder = s.StepOrder,
+                    nodeId = s.NodeId,
+                    nodeType = s.NodeType,
+                    nodeSubType = s.NodeSubType,
+                    nodeLabel = s.NodeLabel,
+                    status = s.Status,
+                    result = s.Result,
+                    errorMessage = s.ErrorMessage,
+                    executionTimeMs = s.ExecutionTimeMs,
+                    httpMethod = s.HttpMethod,
+                    httpUrl = s.HttpUrl,
+                    httpResponseStatusCode = s.HttpResponseStatusCode,
+                }).ToList()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error testing automation {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while testing the automation" });
+        }
+    }
+
     /// <summary>
     /// Syncs the Hangfire job for a scheduled automation using current tenant context.
     /// </summary>
@@ -343,4 +449,11 @@ public record UpdateAutomationRequest(
     string? CronExpression,
     int? ScheduleIntervalMinutes,
     DateTime? ScheduledTime
+);
+
+public record TestAutomationRequest(
+    string? TriggerType,
+    string? Username,
+    string? Email,
+    Dictionary<string, object?>? Context
 );

@@ -27,6 +27,13 @@ public interface IAutomationEngineService
     /// run outside the HTTP request scope (no tenant context available).
     /// </summary>
     Task ProcessAutomationEventAsync(string serializedEvent, int workspaceId, string connectionString);
+
+    /// <summary>
+    /// Test-runs a specific automation with sample event data.
+    /// Bypasses active/status checks — always executes the workflow.
+    /// Returns the execution log UUID for the test run.
+    /// </summary>
+    Task<Guid?> TestAutomationAsync(Automation automation, AutomationEvent automationEvent);
 }
 
 /// <summary>
@@ -97,6 +104,141 @@ public class AutomationEngineService : IAutomationEngineService
     public async Task FireEventAsync(AutomationEvent automationEvent)
     {
         await FireEventInternalAsync(automationEvent, _context);
+    }
+
+    /// <inheritdoc />
+    public async Task<Guid?> TestAutomationAsync(Automation automation, AutomationEvent automationEvent)
+    {
+        _logger.LogInformation(
+            "Test-running automation {AutomationId} '{Title}' with trigger {TriggerType}",
+            automation.Id, automation.Title, automationEvent.TriggerType);
+
+        try
+        {
+            var executionUuid = await EvaluateAutomationForTestAsync(automation, automationEvent, _context);
+            return executionUuid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error test-running automation {AutomationId}", automation.Id);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Evaluates a single automation for testing. Unlike the normal path, this always runs
+    /// regardless of whether trigger nodes match — if no trigger matches, it runs from the
+    /// first trigger node found in the workflow.
+    /// </summary>
+    private async Task<Guid?> EvaluateAutomationForTestAsync(
+        Automation automation, AutomationEvent automationEvent, ApplicationDbContext context)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        AutomationExecutionLog? executionLog = null;
+
+        try
+        {
+            if (string.IsNullOrEmpty(automation.WorkflowJson))
+                return null;
+
+            var workflow = JsonSerializer.Deserialize<WorkflowDefinition>(automation.WorkflowJson, JsonOptions);
+            if (workflow?.Nodes == null || !workflow.Nodes.Any())
+                return null;
+
+            // For test: find matching triggers first, then fall back to any trigger node
+            var matchingTriggers = workflow.Nodes
+                .Where(n => n.Type == "trigger" && n.Data?.TriggerType == automationEvent.TriggerType)
+                .ToList();
+
+            if (!matchingTriggers.Any())
+            {
+                // Fall back to all trigger nodes in the workflow
+                matchingTriggers = workflow.Nodes
+                    .Where(n => n.Type == "trigger")
+                    .ToList();
+            }
+
+            if (!matchingTriggers.Any())
+                return null;
+
+            executionLog = new AutomationExecutionLog
+            {
+                AutomationId = automation.Id,
+                AutomationTitle = automation.Title,
+                TriggerType = automationEvent.TriggerType,
+                TriggerNodeId = matchingTriggers.First().Id,
+                RadiusUserId = automationEvent.RadiusUserId,
+                RadiusUserUuid = automationEvent.RadiusUserUuid,
+                RadiusUsername = automationEvent.RadiusUsername,
+                Status = "running",
+                EventData = JsonSerializer.Serialize(automationEvent.Context, JsonOptions),
+                WorkflowSnapshot = automation.WorkflowJson,
+                TotalNodes = workflow.Nodes?.Count ?? 0,
+                TotalEdges = workflow.Edges?.Count ?? 0,
+                TriggeredBy = automationEvent.PerformedBy ?? "Test Run",
+                SourceIpAddress = automationEvent.IpAddress,
+                Environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production",
+                StartedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.AutomationExecutionLogs.Add(executionLog);
+            await context.SaveChangesAsync();
+
+            var execContext = new ExecutionContext
+            {
+                ExecutionLog = executionLog,
+                StepOrder = 0,
+                AutomationEvent = automationEvent,
+                DbContext = context
+            };
+
+            foreach (var trigger in matchingTriggers)
+            {
+                execContext.StepOrder++;
+                var triggerStep = CreateStep(execContext, trigger, "trigger", trigger.Data?.TriggerType);
+                triggerStep.Status = "completed";
+                triggerStep.Result = $"Test trigger: {automationEvent.TriggerType}";
+                triggerStep.InputData = JsonSerializer.Serialize(automationEvent.Context, JsonOptions);
+                triggerStep.CompletedAt = DateTime.UtcNow;
+                context.AutomationExecutionSteps.Add(triggerStep);
+                executionLog.NodesVisited++;
+
+                await TraverseFromNodeAsync(trigger, workflow, execContext);
+            }
+
+            stopwatch.Stop();
+            executionLog.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
+            executionLog.CompletedAt = DateTime.UtcNow;
+
+            if (executionLog.ActionsFailed > 0 && executionLog.ActionsSucceeded > 0)
+                executionLog.Status = "completed_with_errors";
+            else if (executionLog.ActionsFailed > 0)
+                executionLog.Status = "failed";
+            else
+                executionLog.Status = "completed";
+
+            executionLog.ResultSummary = BuildResultSummary(executionLog);
+            await context.SaveChangesAsync();
+
+            return executionLog.Uuid;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            if (executionLog != null)
+            {
+                executionLog.Status = "failed";
+                executionLog.ErrorMessage = ex.Message;
+                executionLog.ErrorStackTrace = ex.StackTrace;
+                executionLog.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
+                executionLog.CompletedAt = DateTime.UtcNow;
+                executionLog.ResultSummary = $"Test execution failed: {ex.Message}";
+                await context.SaveChangesAsync();
+                return executionLog.Uuid;
+            }
+            throw;
+        }
     }
 
     /// <summary>
