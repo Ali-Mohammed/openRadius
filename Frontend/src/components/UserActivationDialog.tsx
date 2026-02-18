@@ -2,6 +2,16 @@ import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -42,6 +52,8 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
   const [selectedPayerWalletId, setSelectedPayerWalletId] = useState('')
   const [allowProfileChange, setAllowProfileChange] = useState(false)
   const [profileChangeType, setProfileChangeType] = useState<'Immediately' | 'OnExpiration'>('Immediately')
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [pendingActivationRequest, setPendingActivationRequest] = useState<CreateRadiusActivationRequest | null>(null)
 
   // Billing profiles query
   const { data: billingProfilesData } = useQuery({
@@ -154,6 +166,8 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     setSelectedPayerWalletId('')
     setAllowProfileChange(false)
     setProfileChangeType('Immediately')
+    setShowConfirmDialog(false)
+    setPendingActivationRequest(null)
   }
 
   // Auto-select billing profile when user changes (always pre-select current profile)
@@ -189,6 +203,10 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     setProfileChangeType('Immediately')
   }, [user, billingProfiles, open])
 
+  const confirmActivation = (activationRequest: CreateRadiusActivationRequest) => {
+    activationMutation.mutate(activationRequest)
+  }
+
   const handleSubmit = () => {
     if (!user || !activationFormData.billingProfileId) {
       toast.error('Please select a billing profile')
@@ -214,12 +232,10 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
     const nextExpireDate = new Date(baseDate)
     nextExpireDate.setDate(nextExpireDate.getDate() + durationDays)
 
-    // Calculate scheduled profile change date - use now if expired, otherwise use next expiration
     let scheduledChangeDate = nextExpireDate
     if (user.expiration) {
       const currentExpireDate = new Date(user.expiration)
       if (currentExpireDate < now) {
-        // User is expired, use current time as scheduled date
         scheduledChangeDate = now
       }
     }
@@ -243,12 +259,22 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
       applyCashback: applyCashback && cashbackData && cashbackData.cashbackAmount > 0,
     }
 
-    activationMutation.mutate(activationRequest)
+    setPendingActivationRequest(activationRequest)
+    setShowConfirmDialog(true)
+  }
+
+  const handleConfirmActivation = () => {
+    if (pendingActivationRequest) {
+      confirmActivation(pendingActivationRequest)
+    }
+    setShowConfirmDialog(false)
+    setPendingActivationRequest(null)
   }
 
   if (!user) return null
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
@@ -676,5 +702,54 @@ export function UserActivationDialog({ open, onOpenChange, user, onSuccess }: Us
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Activation Confirmation Dialog */}
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm Activation</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>Are you sure you want to activate this user?</p>
+              <div className="rounded-lg border bg-muted/50 p-3 text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">User:</span>
+                  <span className="font-medium">{user?.username}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Profile:</span>
+                  <span className="font-medium">{selectedBillingProfile?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-medium">{currencySymbol} {formatCurrency(selectedBillingProfile?.price || 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Duration:</span>
+                  <span className="font-medium">{activationFormData.durationDays} Days</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payment:</span>
+                  <span className="font-medium">{activationFormData.paymentMethod}</span>
+                </div>
+              </div>
+              <p className="text-muted-foreground">The amount will be deducted from {isOnBehalfActivation ? 'the selected user\'s' : 'your'} wallet.</p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={activationMutation.isPending}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirmActivation}
+            disabled={activationMutation.isPending}
+          >
+            {activationMutation.isPending ? 'Activating...' : 'Confirm Activation'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

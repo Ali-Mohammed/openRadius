@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Zap, Trash2, Pencil, UserCog, UserPen } from 'lucide-react'
+import { Zap, Trash2, Pencil, UserCog, UserPen, Power } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -79,6 +79,7 @@ export function OverviewTab({
   const queryClient = useQueryClient()
   const [changeUsernameDialogOpen, setChangeUsernameDialogOpen] = useState(false)
   const [newUsername, setNewUsername] = useState('')
+  const [toggleStatusDialogOpen, setToggleStatusDialogOpen] = useState(false)
 
   const handleEdit = () => {
     if (user.uuid) {
@@ -109,6 +110,22 @@ export function OverviewTab({
     }
     changeUsernameMutation.mutate(newUsername)
   }
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: () => {
+      if (!user.uuid) throw new Error('User UUID not found')
+      return radiusUserApi.updateByUuid(user.uuid, { enabled: !user.enabled })
+    },
+    onSuccess: () => {
+      toast.success(`User ${user.enabled ? 'deactivated' : 'activated'} successfully`)
+      queryClient.invalidateQueries({ queryKey: ['radius-user'] })
+      queryClient.invalidateQueries({ queryKey: ['radius-users'] })
+      setToggleStatusDialogOpen(false)
+    },
+    onError: (error: any) => {
+      toast.error(formatApiError(error) || `Failed to ${user.enabled ? 'deactivate' : 'activate'} user`)
+    },
+  })
 
   return (
     <>
@@ -192,7 +209,13 @@ export function OverviewTab({
             <div>
               <p className="text-sm font-medium text-muted-foreground">Status</p>
               <div>
-                <Badge variant={user.enabled ? 'default' : 'secondary'}>
+                <Badge 
+                  variant={user.enabled ? 'default' : 'secondary'}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setToggleStatusDialogOpen(true)}
+                  title={`Click to ${user.enabled ? 'deactivate' : 'activate'} user`}
+                >
+                  <Power className="h-3 w-3 mr-1" />
                   {user.enabled ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
@@ -362,6 +385,37 @@ export function OverviewTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Toggle Status Confirmation Dialog */}
+      <AlertDialog open={toggleStatusDialogOpen} onOpenChange={setToggleStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {user.enabled ? 'Deactivate' : 'Activate'} User
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {user.enabled ? 'deactivate' : 'activate'} user "{user.username}"?
+              {user.enabled
+                ? ' The user will no longer be able to connect to the network.'
+                : ' The user will be able to connect to the network again.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={toggleStatusMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => toggleStatusMutation.mutate()}
+              disabled={toggleStatusMutation.isPending}
+              className={user.enabled ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {toggleStatusMutation.isPending
+                ? (user.enabled ? 'Deactivating...' : 'Activating...')
+                : (user.enabled ? 'Deactivate' : 'Activate')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
