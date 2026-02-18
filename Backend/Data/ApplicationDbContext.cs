@@ -365,16 +365,24 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.Name);
             entity.HasIndex(e => e.RadiusProfileId);
             entity.HasIndex(e => e.BillingGroupId);
+            entity.HasIndex(e => e.AutomationId);
             
             entity.HasOne(e => e.RadiusProfile)
                   .WithMany()
                   .HasForeignKey(e => e.RadiusProfileId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
             
             entity.HasOne(e => e.BillingGroup)
                   .WithMany()
                   .HasForeignKey(e => e.BillingGroupId)
                   .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
+            
+            entity.HasOne(e => e.Automation)
+                  .WithMany()
+                  .HasForeignKey(e => e.AutomationId)
+                  .OnDelete(DeleteBehavior.SetNull)
                   .IsRequired(false);
             
             // Add query filter to exclude soft-deleted profiles by default
