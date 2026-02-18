@@ -26,8 +26,10 @@ export interface BillingProfile {
   name: string;
   description?: string;
   price?: number;
-  radiusProfileId: number;
+  radiusProfileId?: number | null;
   billingGroupId: number;
+  automationId?: number | null;
+  automationTitle?: string | null;
   isActive: boolean;
   isDeleted: boolean;
   deletedAt?: string;
@@ -56,8 +58,9 @@ export interface CreateBillingProfileRequest {
   name: string;
   description?: string;
   price?: number;
-  radiusProfileId: number;
+  radiusProfileId?: number | null;
   billingGroupId: number;
+  automationId?: number | null;
   isActive?: boolean;
   userIds?: number[]; // Direct user assignments
   wallets?: BillingProfileWallet[];
@@ -81,8 +84,9 @@ export interface UpdateBillingProfileRequest {
   name: string;
   description?: string;
   price?: number;
-  radiusProfileId: number;
+  radiusProfileId?: number | null;
   billingGroupId: number;
+  automationId?: number | null;
   isActive?: boolean;
   userIds?: number[]; // Direct user assignments
   wallets?: BillingProfileWallet[];
