@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
-import { Plus, Edit, Settings, Filter, GripVertical, Download, Upload } from 'lucide-react'
+import { Plus, Edit, Settings, Filter, GripVertical, Download, Upload, MoreVertical } from 'lucide-react'
 import { Button } from '../../components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import { DashboardGrid } from '../../components/dashboard/DashboardGrid'
 import { GlobalFilters } from '../../components/dashboard/GlobalFilters'
@@ -416,24 +422,6 @@ export default function DashboardView() {
           </div>
           
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportDashboard}
-              title="Export dashboard as JSON"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              title="Import dashboard from JSON"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Import
-            </Button>
             <input
               ref={fileInputRef}
               type="file"
@@ -458,10 +446,29 @@ export default function DashboardView() {
               {isEditing ? 'Done Editing' : 'Edit'}
             </Button>
             {isEditing && (
-              <Button size="sm" onClick={() => setShowAddItemDialog(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Item
-              </Button>
+              <>
+                <Button size="sm" onClick={() => setShowAddItemDialog(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Item
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleExportDashboard}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Export Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import Dashboard
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
           </div>
         </div>
