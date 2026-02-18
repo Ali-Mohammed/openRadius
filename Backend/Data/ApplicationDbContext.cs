@@ -54,6 +54,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Addon> Addons { get; set; }
     public DbSet<Automation> Automations { get; set; }
     public DbSet<AutomationExecutionLog> AutomationExecutionLogs { get; set; }
+    public DbSet<AutomationExecutionStep> AutomationExecutionSteps { get; set; }
     public DbSet<WorkflowHistory> WorkflowHistories { get; set; }
     public DbSet<BillingGroup> BillingGroups { get; set; }
     public DbSet<BillingProfile> BillingProfiles { get; set; }
@@ -673,6 +674,23 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Automation)
                   .WithMany()
                   .HasForeignKey(e => e.AutomationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // === AutomationExecutionStep Configuration ===
+        modelBuilder.Entity<AutomationExecutionStep>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => e.ExecutionLogId);
+            entity.HasIndex(e => e.NodeType);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.ExecutionLogId, e.StepOrder });
+
+            entity.HasOne(e => e.ExecutionLog)
+                  .WithMany(l => l.Steps)
+                  .HasForeignKey(e => e.ExecutionLogId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

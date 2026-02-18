@@ -2,7 +2,10 @@ using Backend.Data;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Backend.Services;
 
@@ -20,27 +23,42 @@ public interface IAutomationEngineService
 }
 
 /// <summary>
-/// Automation engine that processes workflow automations when domain events fire.
+/// Enterprise automation engine that processes workflow automations when domain events fire.
 /// 
 /// Workflow evaluation:
 /// 1. Find all active automations (status = "active", isActive = true)
 /// 2. Parse each automation's WorkflowJson to find trigger nodes
 /// 3. Match trigger nodes against the fired event type
 /// 4. For matched automations, traverse the workflow graph (trigger → actions/conditions)
-/// 5. Execute action nodes and evaluate condition nodes
-/// 6. Log execution results in AutomationExecutionLogs
+/// 5. Execute action nodes (including HTTP requests) and evaluate condition nodes
+/// 6. Log execution results with per-node step tracking in AutomationExecutionLogs/Steps
 /// </summary>
 public class AutomationEngineService : IAutomationEngineService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AutomationEngineService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = false
+    };
+
+    private const int MaxHttpResponseBodyLength = 65536; // 64KB max stored response body
+    private const int HttpTimeoutSeconds = 30;
 
     public AutomationEngineService(
         ApplicationDbContext context,
-        ILogger<AutomationEngineService> logger)
+        ILogger<AutomationEngineService> logger,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
     {
         _context = context;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
     }
 
     /// <inheritdoc />
@@ -54,7 +72,6 @@ public class AutomationEngineService : IAutomationEngineService
                 automationEvent.RadiusUsername,
                 automationEvent.RadiusUserId);
 
-            // Find all active automations with workflow definitions
             var activeAutomations = await _context.Automations
                 .Where(a => a.Status == "active" && a.IsActive && !a.IsDeleted && a.WorkflowJson != null)
                 .ToListAsync();
@@ -65,7 +82,8 @@ public class AutomationEngineService : IAutomationEngineService
                 return;
             }
 
-            _logger.LogInformation("Found {Count} active automations to evaluate", activeAutomations.Count);
+            _logger.LogInformation("Evaluating {Count} active automations for event {EventType}",
+                activeAutomations.Count, automationEvent.TriggerType);
 
             foreach (var automation in activeAutomations)
             {
@@ -74,36 +92,27 @@ public class AutomationEngineService : IAutomationEngineService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing automation event {EventType}", automationEvent.TriggerType);
+            _logger.LogError(ex, "Critical error processing automation event {EventType}", automationEvent.TriggerType);
         }
     }
 
     /// <summary>
     /// Evaluates a single automation's workflow against the fired event.
+    /// Creates a full execution log with per-node step tracking.
     /// </summary>
     private async Task EvaluateAutomationAsync(Automation automation, AutomationEvent automationEvent)
     {
         var stopwatch = Stopwatch.StartNew();
+        AutomationExecutionLog? executionLog = null;
 
         try
         {
             if (string.IsNullOrEmpty(automation.WorkflowJson))
-            {
-                _logger.LogDebug("Automation {Id} has no workflow definition, skipping", automation.Id);
                 return;
-            }
 
-            // Parse the workflow JSON (same format as ReactFlow: { nodes: [], edges: [] })
-            var workflow = JsonSerializer.Deserialize<WorkflowDefinition>(automation.WorkflowJson, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
+            var workflow = JsonSerializer.Deserialize<WorkflowDefinition>(automation.WorkflowJson, JsonOptions);
             if (workflow?.Nodes == null || !workflow.Nodes.Any())
-            {
-                _logger.LogDebug("Automation {Id} has no nodes, skipping", automation.Id);
                 return;
-            }
 
             // Find trigger nodes that match the event type
             var matchingTriggers = workflow.Nodes
@@ -111,116 +120,147 @@ public class AutomationEngineService : IAutomationEngineService
                 .ToList();
 
             if (!matchingTriggers.Any())
-            {
-                _logger.LogDebug(
-                    "Automation {Id} ({Title}) has no trigger matching {TriggerType}, skipping",
-                    automation.Id, automation.Title, automationEvent.TriggerType);
                 return;
-            }
 
             _logger.LogInformation(
-                "Automation {Id} ({Title}) matched event {TriggerType} with {TriggerCount} trigger(s)",
-                automation.Id, automation.Title, automationEvent.TriggerType, matchingTriggers.Count);
+                "Automation '{Title}' (ID:{Id}) matched event {TriggerType} with {Count} trigger(s)",
+                automation.Title, automation.Id, automationEvent.TriggerType, matchingTriggers.Count);
 
-            // Create execution log
-            var executionLog = new AutomationExecutionLog
+            // Create execution log with full enterprise context
+            executionLog = new AutomationExecutionLog
             {
                 AutomationId = automation.Id,
+                AutomationTitle = automation.Title,
                 TriggerType = automationEvent.TriggerType,
+                TriggerNodeId = matchingTriggers.First().Id,
                 RadiusUserId = automationEvent.RadiusUserId,
+                RadiusUserUuid = automationEvent.RadiusUserUuid,
                 RadiusUsername = automationEvent.RadiusUsername,
-                Status = "started",
-                EventData = JsonSerializer.Serialize(automationEvent.Context),
+                Status = "running",
+                EventData = JsonSerializer.Serialize(automationEvent.Context, JsonOptions),
+                WorkflowSnapshot = automation.WorkflowJson,
+                TotalNodes = workflow.Nodes?.Count ?? 0,
+                TotalEdges = workflow.Edges?.Count ?? 0,
                 TriggeredBy = automationEvent.PerformedBy,
+                SourceIpAddress = automationEvent.IpAddress,
+                Environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production",
+                StartedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.AutomationExecutionLogs.Add(executionLog);
             await _context.SaveChangesAsync();
 
-            // Traverse the workflow from each matching trigger
-            var actionsExecuted = 0;
-            var actionResults = new List<string>();
+            // Execution context to track state across traversal
+            var execContext = new ExecutionContext
+            {
+                ExecutionLog = executionLog,
+                StepOrder = 0,
+                AutomationEvent = automationEvent
+            };
 
+            // Record trigger step
             foreach (var trigger in matchingTriggers)
             {
-                var result = await TraverseFromNodeAsync(
-                    trigger, workflow, automationEvent, actionResults);
-                actionsExecuted += result;
+                execContext.StepOrder++;
+                var triggerStep = CreateStep(execContext, trigger, "trigger", trigger.Data?.TriggerType);
+                triggerStep.Status = "completed";
+                triggerStep.Result = $"Trigger matched: {automationEvent.TriggerType}";
+                triggerStep.InputData = JsonSerializer.Serialize(automationEvent.Context, JsonOptions);
+                triggerStep.CompletedAt = DateTime.UtcNow;
+                _context.AutomationExecutionSteps.Add(triggerStep);
+                executionLog.NodesVisited++;
+
+                // Traverse from this trigger
+                await TraverseFromNodeAsync(trigger, workflow, execContext);
             }
 
-            // Update execution log with results
+            // Finalize execution log
             stopwatch.Stop();
-            executionLog.Status = "completed";
-            executionLog.ActionsExecuted = actionsExecuted;
             executionLog.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
-            executionLog.Result = actionsExecuted > 0
-                ? $"Executed {actionsExecuted} action(s): {string.Join("; ", actionResults)}"
-                : "No actions executed (no connected action nodes or conditions not met)";
             executionLog.CompletedAt = DateTime.UtcNow;
 
+            if (executionLog.ActionsFailed > 0 && executionLog.ActionsSucceeded > 0)
+                executionLog.Status = "completed_with_errors";
+            else if (executionLog.ActionsFailed > 0)
+                executionLog.Status = "failed";
+            else
+                executionLog.Status = "completed";
+
+            executionLog.ResultSummary = BuildResultSummary(executionLog);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Automation {Id} ({Title}) completed: {ActionsExecuted} actions in {ElapsedMs}ms",
-                automation.Id, automation.Title, actionsExecuted, stopwatch.ElapsedMilliseconds);
+                "Automation '{Title}' completed: {Succeeded}/{Total} actions succeeded in {Ms}ms [CorrelationId: {CorrelationId}]",
+                automation.Title, executionLog.ActionsSucceeded, executionLog.ActionsExecuted,
+                stopwatch.ElapsedMilliseconds, executionLog.CorrelationId);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "Error evaluating automation {Id}", automation.Id);
+            _logger.LogError(ex, "Error evaluating automation {Id} '{Title}'", automation.Id, automation.Title);
 
-            // Log the failure
-            try
+            if (executionLog != null)
             {
-                var failLog = new AutomationExecutionLog
-                {
-                    AutomationId = automation.Id,
-                    TriggerType = automationEvent.TriggerType,
-                    RadiusUserId = automationEvent.RadiusUserId,
-                    RadiusUsername = automationEvent.RadiusUsername,
-                    Status = "failed",
-                    ErrorMessage = ex.Message,
-                    EventData = JsonSerializer.Serialize(automationEvent.Context),
-                    TriggeredBy = automationEvent.PerformedBy,
-                    ExecutionTimeMs = stopwatch.ElapsedMilliseconds,
-                    CreatedAt = DateTime.UtcNow,
-                    CompletedAt = DateTime.UtcNow
-                };
-
-                _context.AutomationExecutionLogs.Add(failLog);
+                executionLog.Status = "failed";
+                executionLog.ErrorMessage = ex.Message;
+                executionLog.ErrorStackTrace = ex.StackTrace;
+                executionLog.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
+                executionLog.CompletedAt = DateTime.UtcNow;
+                executionLog.ResultSummary = $"Execution failed: {ex.Message}";
                 await _context.SaveChangesAsync();
             }
-            catch (Exception logEx)
+            else
             {
-                _logger.LogError(logEx, "Failed to log automation execution failure for automation {Id}", automation.Id);
+                // If we couldn't even create the execution log, create a failure record
+                try
+                {
+                    var failLog = new AutomationExecutionLog
+                    {
+                        AutomationId = automation.Id,
+                        AutomationTitle = automation.Title,
+                        TriggerType = automationEvent.TriggerType,
+                        RadiusUserId = automationEvent.RadiusUserId,
+                        RadiusUserUuid = automationEvent.RadiusUserUuid,
+                        RadiusUsername = automationEvent.RadiusUsername,
+                        Status = "failed",
+                        ErrorMessage = ex.Message,
+                        ErrorStackTrace = ex.StackTrace,
+                        EventData = JsonSerializer.Serialize(automationEvent.Context, JsonOptions),
+                        TriggeredBy = automationEvent.PerformedBy,
+                        SourceIpAddress = automationEvent.IpAddress,
+                        ExecutionTimeMs = stopwatch.ElapsedMilliseconds,
+                        ResultSummary = $"Execution failed: {ex.Message}",
+                        StartedAt = DateTime.UtcNow,
+                        CompletedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.AutomationExecutionLogs.Add(failLog);
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Failed to log execution failure for automation {Id}", automation.Id);
+                }
             }
         }
     }
 
     /// <summary>
-    /// Traverses the workflow graph starting from a node, following edges to execute
-    /// connected action and condition nodes.
+    /// Traverses the workflow graph from a node, following edges to execute connected nodes.
+    /// Each node visited creates an AutomationExecutionStep record.
     /// </summary>
-    /// <returns>Number of actions executed from this node.</returns>
-    private async Task<int> TraverseFromNodeAsync(
+    private async Task TraverseFromNodeAsync(
         WorkflowNode currentNode,
         WorkflowDefinition workflow,
-        AutomationEvent automationEvent,
-        List<string> actionResults)
+        ExecutionContext execContext)
     {
-        var actionsExecuted = 0;
-
-        // Find all edges originating from this node
         var outgoingEdges = workflow.Edges?
             .Where(e => e.Source == currentNode.Id)
             .ToList() ?? new List<WorkflowEdge>();
 
         if (!outgoingEdges.Any())
-        {
-            _logger.LogDebug("No outgoing edges from node {NodeId}", currentNode.Id);
-            return 0;
-        }
+            return;
 
         foreach (var edge in outgoingEdges)
         {
@@ -230,48 +270,35 @@ public class AutomationEngineService : IAutomationEngineService
             switch (targetNode.Type)
             {
                 case "action":
-                    var result = await ExecuteActionNodeAsync(targetNode, automationEvent);
-                    if (result != null)
-                    {
-                        actionsExecuted++;
-                        actionResults.Add(result);
-                    }
-                    // Continue traversing after action node
-                    actionsExecuted += await TraverseFromNodeAsync(targetNode, workflow, automationEvent, actionResults);
+                    await ExecuteActionWithStepAsync(targetNode, execContext);
+                    await TraverseFromNodeAsync(targetNode, workflow, execContext);
                     break;
 
                 case "condition":
-                    var conditionMet = EvaluateConditionNode(targetNode, automationEvent);
+                    var conditionResult = await EvaluateConditionWithStepAsync(targetNode, execContext);
                     
-                    // Find edges from condition node - "true" or "false" handle IDs
                     var conditionEdges = workflow.Edges?
                         .Where(e => e.Source == targetNode.Id)
                         .ToList() ?? new List<WorkflowEdge>();
 
                     foreach (var condEdge in conditionEdges)
                     {
-                        // Check if edge originates from the true or false handle
                         var isTrue = condEdge.SourceHandle == "true" || condEdge.SourceHandle == null;
                         var isFalse = condEdge.SourceHandle == "false";
 
-                        if ((conditionMet && isTrue) || (!conditionMet && isFalse))
+                        if ((conditionResult && isTrue) || (!conditionResult && isFalse))
                         {
-                            var condTargetNode = workflow.Nodes?.FirstOrDefault(n => n.Id == condEdge.Target);
-                            if (condTargetNode != null)
+                            var condTarget = workflow.Nodes?.FirstOrDefault(n => n.Id == condEdge.Target);
+                            if (condTarget != null)
                             {
-                                if (condTargetNode.Type == "action")
+                                if (condTarget.Type == "action")
                                 {
-                                    var actionResult = await ExecuteActionNodeAsync(condTargetNode, automationEvent);
-                                    if (actionResult != null)
-                                    {
-                                        actionsExecuted++;
-                                        actionResults.Add(actionResult);
-                                    }
-                                    actionsExecuted += await TraverseFromNodeAsync(condTargetNode, workflow, automationEvent, actionResults);
+                                    await ExecuteActionWithStepAsync(condTarget, execContext);
+                                    await TraverseFromNodeAsync(condTarget, workflow, execContext);
                                 }
                                 else
                                 {
-                                    actionsExecuted += await TraverseFromNodeAsync(condTargetNode, workflow, automationEvent, actionResults);
+                                    await TraverseFromNodeAsync(condTarget, workflow, execContext);
                                 }
                             }
                         }
@@ -279,99 +306,394 @@ public class AutomationEngineService : IAutomationEngineService
                     break;
 
                 case "comment":
-                    // Comments are documentation only, skip but continue traversal
-                    actionsExecuted += await TraverseFromNodeAsync(targetNode, workflow, automationEvent, actionResults);
+                    await TraverseFromNodeAsync(targetNode, workflow, execContext);
                     break;
             }
         }
-
-        return actionsExecuted;
     }
 
     /// <summary>
-    /// Executes an action node (send-email, send-notification, credit-wallet, etc.)
-    /// Returns a description of the action taken, or null if skipped.
+    /// Executes an action node and records a detailed step.
     /// </summary>
-    private async Task<string?> ExecuteActionNodeAsync(WorkflowNode actionNode, AutomationEvent automationEvent)
+    private async Task ExecuteActionWithStepAsync(WorkflowNode actionNode, ExecutionContext execContext)
     {
-        var actionType = actionNode.Data?.ActionType;
-        var label = actionNode.Data?.Label ?? actionType ?? "Unknown";
+        var stepStopwatch = Stopwatch.StartNew();
+        execContext.StepOrder++;
+        var step = CreateStep(execContext, actionNode, "action", actionNode.Data?.ActionType);
+        step.InputData = JsonSerializer.Serialize(execContext.AutomationEvent.Context, JsonOptions);
 
-        _logger.LogInformation(
-            "Executing action: {ActionType} ({Label}) for user {Username}",
-            actionType, label, automationEvent.RadiusUsername);
+        execContext.ExecutionLog.NodesVisited++;
+        execContext.ExecutionLog.ActionsExecuted++;
 
         try
         {
-            switch (actionType)
-            {
-                case "send-email":
-                    // TODO: Integrate with email service when available
-                    _logger.LogInformation(
-                        "Action: Send email to user {Username} ({Email})",
-                        automationEvent.RadiusUsername,
-                        automationEvent.Context.GetValueOrDefault("email"));
-                    return $"Send email to {automationEvent.RadiusUsername}";
-
-                case "send-notification":
-                    // TODO: Integrate with notification/SignalR hub
-                    _logger.LogInformation(
-                        "Action: Send notification for user {Username}",
-                        automationEvent.RadiusUsername);
-                    return $"Send notification for {automationEvent.RadiusUsername}";
-
-                case "credit-wallet":
-                    // TODO: Integrate with wallet service
-                    _logger.LogInformation(
-                        "Action: Credit wallet for user {Username}",
-                        automationEvent.RadiusUsername);
-                    return $"Credit wallet for {automationEvent.RadiusUsername}";
-
-                case "debit-wallet":
-                    _logger.LogInformation(
-                        "Action: Debit wallet for user {Username}",
-                        automationEvent.RadiusUsername);
-                    return $"Debit wallet for {automationEvent.RadiusUsername}";
-
-                case "suspend-user":
-                    await SuspendUserAsync(automationEvent.RadiusUserId);
-                    return $"Suspended user {automationEvent.RadiusUsername}";
-
-                case "apply-discount":
-                    _logger.LogInformation(
-                        "Action: Apply discount for user {Username}",
-                        automationEvent.RadiusUsername);
-                    return $"Apply discount for {automationEvent.RadiusUsername}";
-
-                case "update-profile":
-                    _logger.LogInformation(
-                        "Action: Update profile for user {Username}",
-                        automationEvent.RadiusUsername);
-                    return $"Update profile for {automationEvent.RadiusUsername}";
-
-                default:
-                    _logger.LogWarning("Unknown action type: {ActionType}", actionType);
-                    return $"Unknown action: {actionType}";
-            }
+            var result = await ExecuteActionAsync(actionNode, execContext.AutomationEvent, step);
+            
+            stepStopwatch.Stop();
+            step.Status = "completed";
+            step.Result = result;
+            step.ExecutionTimeMs = stepStopwatch.ElapsedMilliseconds;
+            step.CompletedAt = DateTime.UtcNow;
+            execContext.ExecutionLog.ActionsSucceeded++;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing action {ActionType} for user {Username}",
-                actionType, automationEvent.RadiusUsername);
-            return $"Failed: {actionType} - {ex.Message}";
+            stepStopwatch.Stop();
+            step.Status = "failed";
+            step.ErrorMessage = ex.Message;
+            step.ExecutionTimeMs = stepStopwatch.ElapsedMilliseconds;
+            step.CompletedAt = DateTime.UtcNow;
+            execContext.ExecutionLog.ActionsFailed++;
+            
+            _logger.LogError(ex, "Action step failed: {ActionType} for node {NodeId}",
+                actionNode.Data?.ActionType, actionNode.Id);
         }
+
+        _context.AutomationExecutionSteps.Add(step);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Evaluates a condition node and records a step with the result.
+    /// </summary>
+    private async Task<bool> EvaluateConditionWithStepAsync(WorkflowNode conditionNode, ExecutionContext execContext)
+    {
+        var stepStopwatch = Stopwatch.StartNew();
+        execContext.StepOrder++;
+        var step = CreateStep(execContext, conditionNode, "condition", conditionNode.Data?.ConditionType);
+        step.InputData = JsonSerializer.Serialize(execContext.AutomationEvent.Context, JsonOptions);
+
+        execContext.ExecutionLog.NodesVisited++;
+        execContext.ExecutionLog.ConditionsEvaluated++;
+
+        try
+        {
+            var result = EvaluateCondition(conditionNode, execContext.AutomationEvent);
+
+            stepStopwatch.Stop();
+            step.Status = result ? "condition_true" : "condition_false";
+            step.Result = $"Condition '{conditionNode.Data?.Label ?? conditionNode.Data?.ConditionType}' evaluated to {result}";
+            step.OutputData = JsonSerializer.Serialize(new { conditionResult = result }, JsonOptions);
+            step.ExecutionTimeMs = stepStopwatch.ElapsedMilliseconds;
+            step.CompletedAt = DateTime.UtcNow;
+
+            _context.AutomationExecutionSteps.Add(step);
+            await _context.SaveChangesAsync();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            stepStopwatch.Stop();
+            step.Status = "failed";
+            step.ErrorMessage = ex.Message;
+            step.ExecutionTimeMs = stepStopwatch.ElapsedMilliseconds;
+            step.CompletedAt = DateTime.UtcNow;
+
+            _context.AutomationExecutionSteps.Add(step);
+            await _context.SaveChangesAsync();
+
+            _logger.LogError(ex, "Condition evaluation failed: {ConditionType}", conditionNode.Data?.ConditionType);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Executes an action node. Returns a description of the action taken.
+    /// Supports HTTP requests with full request/response logging.
+    /// </summary>
+    private async Task<string> ExecuteActionAsync(
+        WorkflowNode actionNode,
+        AutomationEvent automationEvent,
+        AutomationExecutionStep step)
+    {
+        var actionType = actionNode.Data?.ActionType;
+
+        switch (actionType)
+        {
+            case "http-request":
+                return await ExecuteHttpRequestAsync(actionNode, automationEvent, step);
+
+            case "send-email":
+                _logger.LogInformation("Action: Send email to {Username}", automationEvent.RadiusUsername);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "send-email",
+                    recipient = automationEvent.RadiusUsername,
+                    email = automationEvent.Context.GetValueOrDefault("email")
+                }, JsonOptions);
+                return $"Send email to {automationEvent.RadiusUsername}";
+
+            case "send-notification":
+                _logger.LogInformation("Action: Send notification for {Username}", automationEvent.RadiusUsername);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "send-notification",
+                    user = automationEvent.RadiusUsername
+                }, JsonOptions);
+                return $"Send notification for {automationEvent.RadiusUsername}";
+
+            case "credit-wallet":
+                _logger.LogInformation("Action: Credit wallet for {Username}", automationEvent.RadiusUsername);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "credit-wallet",
+                    user = automationEvent.RadiusUsername
+                }, JsonOptions);
+                return $"Credit wallet for {automationEvent.RadiusUsername}";
+
+            case "debit-wallet":
+                _logger.LogInformation("Action: Debit wallet for {Username}", automationEvent.RadiusUsername);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "debit-wallet",
+                    user = automationEvent.RadiusUsername
+                }, JsonOptions);
+                return $"Debit wallet for {automationEvent.RadiusUsername}";
+
+            case "suspend-user":
+                await SuspendUserAsync(automationEvent.RadiusUserId);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "suspend-user",
+                    user = automationEvent.RadiusUsername,
+                    enabled = false
+                }, JsonOptions);
+                return $"Suspended user {automationEvent.RadiusUsername}";
+
+            case "apply-discount":
+                _logger.LogInformation("Action: Apply discount for {Username}", automationEvent.RadiusUsername);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "apply-discount",
+                    user = automationEvent.RadiusUsername
+                }, JsonOptions);
+                return $"Apply discount for {automationEvent.RadiusUsername}";
+
+            case "update-profile":
+                _logger.LogInformation("Action: Update profile for {Username}", automationEvent.RadiusUsername);
+                step.OutputData = JsonSerializer.Serialize(new
+                {
+                    action = "update-profile",
+                    user = automationEvent.RadiusUsername
+                }, JsonOptions);
+                return $"Update profile for {automationEvent.RadiusUsername}";
+
+            default:
+                _logger.LogWarning("Unknown action type: {ActionType}", actionType);
+                return $"Unknown action: {actionType}";
+        }
+    }
+
+    /// <summary>
+    /// Executes an HTTP request action with full request/response tracking.
+    /// Supports template variables like {{username}}, {{email}}, {{balance}} from event context.
+    /// </summary>
+    private async Task<string> ExecuteHttpRequestAsync(
+        WorkflowNode actionNode,
+        AutomationEvent automationEvent,
+        AutomationExecutionStep step)
+    {
+        var data = actionNode.Data;
+        var method = data?.HttpMethod?.ToUpperInvariant() ?? "GET";
+        var url = ResolveTemplateVariables(data?.HttpUrl ?? "", automationEvent);
+        var body = ResolveTemplateVariables(data?.HttpBody ?? "", automationEvent);
+        var headersJson = data?.HttpHeaders;
+        var contentType = data?.HttpContentType ?? "application/json";
+        var expectedStatusCodes = data?.HttpExpectedStatusCodes ?? "200-299";
+        var timeoutSeconds = data?.HttpTimeoutSeconds ?? HttpTimeoutSeconds;
+
+        if (string.IsNullOrWhiteSpace(url))
+            throw new InvalidOperationException("HTTP Request URL is required");
+
+        _logger.LogInformation("HTTP Request: {Method} {Url}", method, url);
+
+        // Record request details in step
+        step.HttpMethod = method;
+        step.HttpUrl = url;
+        step.HttpRequestBody = body;
+
+        // Parse custom headers
+        var headers = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(headersJson))
+        {
+            try
+            {
+                headers = JsonSerializer.Deserialize<Dictionary<string, string>>(headersJson, JsonOptions)
+                          ?? new Dictionary<string, string>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse HTTP headers JSON, using empty headers");
+            }
+        }
+        step.HttpRequestHeaders = JsonSerializer.Serialize(headers, JsonOptions);
+
+        // Execute the HTTP request
+        var httpStopwatch = Stopwatch.StartNew();
+        using var client = _httpClientFactory.CreateClient("AutomationEngine");
+        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+
+        var request = new HttpRequestMessage(new HttpMethod(method), url);
+
+        // Add custom headers
+        foreach (var header in headers)
+        {
+            if (header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                continue; // Content-Type is set on content
+            
+            if (header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+            {
+                request.Headers.TryAddWithoutValidation("Authorization", ResolveTemplateVariables(header.Value, automationEvent));
+            }
+            else
+            {
+                request.Headers.TryAddWithoutValidation(header.Key, ResolveTemplateVariables(header.Value, automationEvent));
+            }
+        }
+
+        // Add request body for methods that support it
+        if (!string.IsNullOrWhiteSpace(body) && method != "GET" && method != "HEAD" && method != "DELETE")
+        {
+            request.Content = new StringContent(body, Encoding.UTF8, contentType);
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.SendAsync(request);
+        }
+        catch (TaskCanceledException)
+        {
+            httpStopwatch.Stop();
+            step.HttpResponseTimeMs = httpStopwatch.ElapsedMilliseconds;
+            throw new TimeoutException($"HTTP request to {url} timed out after {timeoutSeconds}s");
+        }
+        catch (HttpRequestException ex)
+        {
+            httpStopwatch.Stop();
+            step.HttpResponseTimeMs = httpStopwatch.ElapsedMilliseconds;
+            throw new InvalidOperationException($"HTTP request to {url} failed: {ex.Message}", ex);
+        }
+
+        httpStopwatch.Stop();
+        step.HttpResponseTimeMs = httpStopwatch.ElapsedMilliseconds;
+        step.HttpResponseStatusCode = (int)response.StatusCode;
+
+        // Capture response headers
+        var responseHeaders = new Dictionary<string, string>();
+        foreach (var header in response.Headers)
+            responseHeaders[header.Key] = string.Join(", ", header.Value);
+        if (response.Content?.Headers != null)
+        {
+            foreach (var header in response.Content.Headers)
+                responseHeaders[header.Key] = string.Join(", ", header.Value);
+        }
+        step.HttpResponseHeaders = JsonSerializer.Serialize(responseHeaders, JsonOptions);
+
+        // Capture response body (truncated)
+        var responseBody = await response.Content.ReadAsStringAsync();
+        step.HttpResponseBody = responseBody.Length > MaxHttpResponseBodyLength
+            ? responseBody[..MaxHttpResponseBodyLength] + "...[truncated]"
+            : responseBody;
+
+        step.OutputData = JsonSerializer.Serialize(new
+        {
+            statusCode = (int)response.StatusCode,
+            reasonPhrase = response.ReasonPhrase,
+            responseTimeMs = httpStopwatch.ElapsedMilliseconds,
+            bodyLength = responseBody.Length
+        }, JsonOptions);
+
+        // Validate expected status codes
+        if (!IsExpectedStatusCode((int)response.StatusCode, expectedStatusCodes))
+        {
+            throw new InvalidOperationException(
+                $"HTTP {method} {url} returned {(int)response.StatusCode} {response.ReasonPhrase}, " +
+                $"expected {expectedStatusCodes}. Response: {step.HttpResponseBody?[..Math.Min(step.HttpResponseBody.Length, 500)]}");
+        }
+
+        _logger.LogInformation(
+            "HTTP Request completed: {Method} {Url} → {StatusCode} in {Ms}ms",
+            method, url, (int)response.StatusCode, httpStopwatch.ElapsedMilliseconds);
+
+        return $"HTTP {method} {url} → {(int)response.StatusCode} ({httpStopwatch.ElapsedMilliseconds}ms)";
+    }
+
+    /// <summary>
+    /// Replaces template variables in a string with values from the automation event context.
+    /// Supports: {{username}}, {{email}}, {{balance}}, {{userId}}, {{userUuid}}, and any context key.
+    /// </summary>
+    private static string ResolveTemplateVariables(string template, AutomationEvent automationEvent)
+    {
+        if (string.IsNullOrEmpty(template))
+            return template;
+
+        // Built-in variables
+        template = template.Replace("{{username}}", automationEvent.RadiusUsername ?? "");
+        template = template.Replace("{{userId}}", automationEvent.RadiusUserId.ToString());
+        template = template.Replace("{{userUuid}}", automationEvent.RadiusUserUuid.ToString());
+        template = template.Replace("{{triggeredBy}}", automationEvent.PerformedBy ?? "");
+        template = template.Replace("{{triggerType}}", automationEvent.TriggerType);
+        template = template.Replace("{{timestamp}}", automationEvent.OccurredAt.ToString("O"));
+
+        // Context variables: {{contextKey}}
+        foreach (var kvp in automationEvent.Context)
+        {
+            var placeholder = $"{{{{{kvp.Key}}}}}";
+            var value = kvp.Value switch
+            {
+                null => "",
+                JsonElement je => je.ValueKind switch
+                {
+                    JsonValueKind.String => je.GetString() ?? "",
+                    JsonValueKind.Number => je.GetRawText(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    _ => je.GetRawText()
+                },
+                _ => kvp.Value.ToString() ?? ""
+            };
+            template = template.Replace(placeholder, value);
+        }
+
+        return template;
+    }
+
+    /// <summary>
+    /// Validates if a status code matches the expected pattern (e.g., "200-299", "200,201,204").
+    /// </summary>
+    private static bool IsExpectedStatusCode(int statusCode, string expectedPattern)
+    {
+        if (string.IsNullOrWhiteSpace(expectedPattern))
+            return true;
+
+        foreach (var part in expectedPattern.Split(',', StringSplitOptions.TrimEntries))
+        {
+            if (part.Contains('-'))
+            {
+                var range = part.Split('-');
+                if (range.Length == 2 && int.TryParse(range[0], out var min) && int.TryParse(range[1], out var max))
+                {
+                    if (statusCode >= min && statusCode <= max)
+                        return true;
+                }
+            }
+            else if (int.TryParse(part, out var exact))
+            {
+                if (statusCode == exact)
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
     /// Evaluates a condition node to determine which branch to follow.
     /// </summary>
-    private bool EvaluateConditionNode(WorkflowNode conditionNode, AutomationEvent automationEvent)
+    private bool EvaluateCondition(WorkflowNode conditionNode, AutomationEvent automationEvent)
     {
         var conditionType = conditionNode.Data?.ConditionType;
-
-        _logger.LogInformation(
-            "Evaluating condition: {ConditionType} for user {Username}",
-            conditionType, automationEvent.RadiusUsername);
 
         switch (conditionType)
         {
@@ -379,7 +701,6 @@ public class AutomationEngineService : IAutomationEngineService
                 if (automationEvent.Context.TryGetValue("balance", out var balanceObj) && balanceObj is JsonElement balanceEl)
                 {
                     var balance = balanceEl.GetDecimal();
-                    _logger.LogInformation("Balance check: {Balance}", balance);
                     return balance > 0;
                 }
                 return false;
@@ -387,9 +708,7 @@ public class AutomationEngineService : IAutomationEngineService
             case "user-status":
                 if (automationEvent.Context.TryGetValue("enabled", out var enabledObj) && enabledObj is JsonElement enabledEl)
                 {
-                    var enabled = enabledEl.GetBoolean();
-                    _logger.LogInformation("User status check: Enabled={Enabled}", enabled);
-                    return enabled;
+                    return enabledEl.GetBoolean();
                 }
                 return true;
 
@@ -398,11 +717,7 @@ public class AutomationEngineService : IAutomationEngineService
                 {
                     var expString = expEl.GetString();
                     if (DateTime.TryParse(expString, out var expiration))
-                    {
-                        var isNotExpired = expiration > DateTime.UtcNow;
-                        _logger.LogInformation("Date check: Expiration={Expiration}, NotExpired={NotExpired}", expiration, isNotExpired);
-                        return isNotExpired;
-                    }
+                        return expiration > DateTime.UtcNow;
                 }
                 return true;
 
@@ -425,6 +740,57 @@ public class AutomationEngineService : IAutomationEngineService
             await _context.SaveChangesAsync();
             _logger.LogInformation("Suspended RADIUS user {Username} (ID: {Id})", user.Username, user.Id);
         }
+    }
+
+    /// <summary>
+    /// Creates a new execution step linked to the current execution context.
+    /// </summary>
+    private static AutomationExecutionStep CreateStep(
+        ExecutionContext ctx, WorkflowNode node, string nodeType, string? subType)
+    {
+        return new AutomationExecutionStep
+        {
+            ExecutionLogId = ctx.ExecutionLog.Id,
+            StepOrder = ctx.StepOrder,
+            NodeId = node.Id,
+            NodeType = nodeType,
+            NodeSubType = subType,
+            NodeLabel = node.Data?.Label,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// Builds a human-readable result summary for the execution log.
+    /// </summary>
+    private static string BuildResultSummary(AutomationExecutionLog log)
+    {
+        var parts = new List<string>();
+        parts.Add($"{log.NodesVisited} nodes visited");
+        
+        if (log.ActionsExecuted > 0)
+        {
+            parts.Add($"{log.ActionsSucceeded}/{log.ActionsExecuted} actions succeeded");
+            if (log.ActionsFailed > 0)
+                parts.Add($"{log.ActionsFailed} failed");
+        }
+        
+        if (log.ConditionsEvaluated > 0)
+            parts.Add($"{log.ConditionsEvaluated} conditions evaluated");
+        
+        parts.Add($"completed in {log.ExecutionTimeMs}ms");
+        
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>
+    /// Internal execution context passed through the traversal.
+    /// </summary>
+    private class ExecutionContext
+    {
+        public AutomationExecutionLog ExecutionLog { get; set; } = null!;
+        public int StepOrder { get; set; }
+        public AutomationEvent AutomationEvent { get; set; } = null!;
     }
 }
 
@@ -457,6 +823,15 @@ public class WorkflowNodeData
     public string? ConditionType { get; set; }
     public string? CommentType { get; set; }
     public string? Text { get; set; }
+    
+    // HTTP Request fields
+    public string? HttpMethod { get; set; }
+    public string? HttpUrl { get; set; }
+    public string? HttpHeaders { get; set; }
+    public string? HttpBody { get; set; }
+    public string? HttpContentType { get; set; }
+    public string? HttpExpectedStatusCodes { get; set; }
+    public int? HttpTimeoutSeconds { get; set; }
 }
 
 public class WorkflowPosition
