@@ -117,8 +117,9 @@ export default function BillingProfileForm() {
         name: existingProfile.name,
         description: existingProfile.description || '',
         price: existingProfile.price || 0,
-        radiusProfileId: existingProfile.radiusProfileId,
+        radiusProfileId: existingProfile.radiusProfileId || null,
         billingGroupId: existingProfile.billingGroupId,
+        automationId: existingProfile.automationId || null,
         wallets: existingProfile.wallets || [],
         addons: existingProfile.addons || [],
         // Advanced Options
@@ -136,7 +137,12 @@ export default function BillingProfileForm() {
       });
       console.log('FormData after setting - Color:', existingProfile.color, 'Icon:', existingProfile.icon);
       setWallets(existingProfile.wallets || []);
-      setSelectedRadiusProfiles([{profileId: existingProfile.radiusProfileId, number: 1}]);
+      if (existingProfile.radiusProfileId) {
+        setSelectedRadiusProfiles([{profileId: existingProfile.radiusProfileId, number: 1}]);
+      } else {
+        setSelectedRadiusProfiles([]);
+      }
+      setSelectedAutomationId(existingProfile.automationId || null);
       
       // Check if this profile has direct user assignments
       if (existingProfile.userIds && existingProfile.userIds.length > 0) {
@@ -195,6 +201,12 @@ export default function BillingProfileForm() {
   const { data: customWalletsData, isLoading: isLoadingCustomWallets } = useQuery({
     queryKey: ['custom-wallets'],
     queryFn: () => customWalletApi.getAll({ status: 'active', pageSize: 1000 }),
+  });
+
+  const { data: automationsData, isLoading: isLoadingAutomations } = useQuery({
+    queryKey: ['automations', currentWorkspaceId],
+    queryFn: () => getAutomations({ isActive: true, pageSize: 1000 }),
+    enabled: !!currentWorkspaceId,
   });
 
   // Mutations
