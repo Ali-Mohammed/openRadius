@@ -470,8 +470,8 @@ export default function Automations() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <form onSubmit={handleSubmit}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+          <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
             <DialogHeader>
               <DialogTitle>
                 {editingAutomation ? 'Edit Automation' : 'Create New Automation'}
@@ -483,7 +483,7 @@ export default function Automations() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 overflow-y-auto pr-1">
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
                 <Input
@@ -759,7 +759,7 @@ export default function Automations() {
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-4 border-t shrink-0">
               <Button
                 type="button"
                 variant="outline"

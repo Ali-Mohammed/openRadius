@@ -1,7 +1,6 @@
-import axios from 'axios';
-import { appConfig } from '@/config/app.config';
+import { apiClient } from '../lib/api';
 
-const API_URL = appConfig.api.baseUrl;
+const API_BASE = '/api/workflowhistory';
 
 export interface WorkflowHistory {
   id: number;
@@ -24,7 +23,7 @@ export interface CreateWorkflowHistoryRequest {
 export const workflowHistoryApi = {
   // Get history for an automation
   getHistoryByAutomation: async (automationId: number, limit: number = 50): Promise<WorkflowHistory[]> => {
-    const response = await axios.get(`${API_URL}/api/workflowhistory/automation/${automationId}`, {
+    const response = await apiClient.get(`${API_BASE}/automation/${automationId}`, {
       params: { limit }
     });
     return response.data;
@@ -32,18 +31,18 @@ export const workflowHistoryApi = {
 
   // Create a new history entry
   createHistory: async (request: CreateWorkflowHistoryRequest): Promise<WorkflowHistory> => {
-    const response = await axios.post(`${API_URL}/api/workflowhistory`, request);
+    const response = await apiClient.post(API_BASE, request);
     return response.data;
   },
 
   // Delete a history entry
   deleteHistory: async (id: number): Promise<void> => {
-    await axios.delete(`${API_URL}/api/workflowhistory/${id}`);
+    await apiClient.delete(`${API_BASE}/${id}`);
   },
 
   // Cleanup old history (keep last N entries)
   cleanupOldHistory: async (automationId: number, keepLast: number = 50): Promise<{ deleted: number }> => {
-    const response = await axios.delete(`${API_URL}/api/workflowhistory/automation/${automationId}/cleanup`, {
+    const response = await apiClient.delete(`${API_BASE}/automation/${automationId}/cleanup`, {
       params: { keepLast }
     });
     return response.data;
