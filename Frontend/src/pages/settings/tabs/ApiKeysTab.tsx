@@ -33,7 +33,7 @@ import { apiKeysApi, type ApiKeyDto, type ApiKeyCreatedDto, type ApiKeyScopeInfo
 
 export default function ApiKeysTab() {
   const queryClient = useQueryClient()
-  const { currentWorkspaceId, currentWorkspace } = useWorkspace()
+  const { currentWorkspaceId } = useWorkspace()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createdKey, setCreatedKey] = useState<ApiKeyCreatedDto | null>(null)
   const [deleteUuid, setDeleteUuid] = useState<string | null>(null)
@@ -150,11 +150,6 @@ export default function ApiKeysTab() {
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
                 API Keys
-                {currentWorkspace && (
-                  <Badge variant="outline" className="text-[10px] font-normal ml-1">
-                    {currentWorkspace.title || currentWorkspace.name}
-                  </Badge>
-                )}
               </CardTitle>
               <CardDescription className="mt-1">
                 Manage API keys for this workspace. Each key grants external programmatic access to this workspace's data only.
