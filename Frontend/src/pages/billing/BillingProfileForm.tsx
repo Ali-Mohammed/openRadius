@@ -614,9 +614,9 @@ export default function BillingProfileForm() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Radius Profiles *</CardTitle>
+                <CardTitle>Radius Profiles</CardTitle>
                 <CardDescription>
-                  Select radius profiles to associate with this billing profile
+                  Optionally select radius profiles to associate with this billing profile
                 </CardDescription>
               </div>
               <Popover open={radiusProfilePopoverOpen} onOpenChange={setRadiusProfilePopoverOpen}>
@@ -707,6 +707,116 @@ export default function BillingProfileForm() {
                 No radius profiles added yet. Click "Add Profile" to select a radius profile.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Automation Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Automation
+                </CardTitle>
+                <CardDescription>
+                  Optionally select an automation workflow to run when this billing profile is activated
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Popover open={automationPopoverOpen} onOpenChange={setAutomationPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                    disabled={isLoadingAutomations}
+                  >
+                    {selectedAutomationId
+                      ? automationsData?.data?.find((a: Automation) => a.id === selectedAutomationId)?.title || 'Select automation...'
+                      : 'No automation selected'}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search automations..." />
+                    <CommandEmpty>No automation found.</CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-auto">
+                      <CommandItem
+                        value="__none__"
+                        onSelect={() => {
+                          setSelectedAutomationId(null);
+                          setAutomationPopoverOpen(false);
+                        }}
+                      >
+                        <span className="text-muted-foreground">None (no automation)</span>
+                      </CommandItem>
+                      {automationsData?.data?.map((automation: Automation) => (
+                        <CommandItem
+                          key={automation.id}
+                          value={automation.title}
+                          onSelect={() => {
+                            setSelectedAutomationId(automation.id);
+                            setAutomationPopoverOpen(false);
+                          }}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <Zap className="h-4 w-4 text-amber-500" />
+                            <div className="flex-1">
+                              <div className="font-medium">{automation.title}</div>
+                              {automation.description && (
+                                <div className="text-xs text-muted-foreground truncate">{automation.description}</div>
+                              )}
+                            </div>
+                            <Badge variant={automation.status === 'active' ? 'default' : 'secondary'} className="text-[10px]">
+                              {automation.status}
+                            </Badge>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedAutomationId && (() => {
+                const automation = automationsData?.data?.find((a: Automation) => a.id === selectedAutomationId);
+                return automation ? (
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-amber-500" />
+                          <div>
+                            <div className="font-medium">{automation.title}</div>
+                            {automation.description && (
+                              <div className="text-sm text-muted-foreground">{automation.description}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={automation.status === 'active' ? 'default' : 'secondary'}>
+                            {automation.status}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedAutomationId(null)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null;
+              })()}
+            </div>
           </CardContent>
         </Card>
 
