@@ -631,6 +631,132 @@ export default function Automations() {
                   </Select>
                 </div>
               </div>
+
+              {/* Trigger Type Configuration */}
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="text-sm font-semibold">Trigger Type *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {TRIGGER_TYPE_OPTIONS.map((option) => {
+                    const TriggerIcon = option.icon;
+                    const isSelected = formData.triggerType === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          triggerType: option.value,
+                          scheduleType: option.value === 'scheduled' ? 'periodic' : null,
+                          cronExpression: null,
+                          scheduleIntervalMinutes: option.value === 'scheduled' ? 5 : null,
+                          scheduledTime: null,
+                        })}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all text-center ${
+                          isSelected
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        <TriggerIcon className={`h-5 w-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className={`text-xs font-medium ${isSelected ? 'text-primary' : ''}`}>{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {TRIGGER_TYPE_OPTIONS.find(t => t.value === formData.triggerType)?.description}
+                </p>
+              </div>
+
+              {/* Schedule Configuration — only visible for scheduled trigger */}
+              {formData.triggerType === 'scheduled' && (
+                <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
+                  <Label className="text-sm font-semibold">Schedule Configuration</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {SCHEDULE_TYPE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          scheduleType: option.value,
+                          scheduleIntervalMinutes: option.value === 'periodic' ? 5 : null,
+                          scheduledTime: option.value === 'at_time' ? '' : null,
+                          cronExpression: null,
+                        })}
+                        className={`flex flex-col items-start gap-1 p-3 rounded-md border transition-all ${
+                          formData.scheduleType === option.value
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        <span className={`text-sm font-medium ${formData.scheduleType === option.value ? 'text-primary' : ''}`}>
+                          {option.label}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {formData.scheduleType === 'periodic' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="interval">Run Interval</Label>
+                      <Select
+                        value={String(formData.scheduleIntervalMinutes || 5)}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, scheduleIntervalMinutes: parseInt(value) })
+                        }
+                      >
+                        <SelectTrigger>
+                          <div className="flex items-center gap-2">
+                            <Timer className="h-4 w-4 text-muted-foreground" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PERIODIC_INTERVAL_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={String(option.value)}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.scheduleType === 'at_time' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduledTime">Scheduled Date & Time</Label>
+                      <Input
+                        id="scheduledTime"
+                        type="datetime-local"
+                        value={formData.scheduledTime ? formData.scheduledTime.slice(0, 16) : ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, scheduledTime: e.target.value ? new Date(e.target.value).toISOString() : null })
+                        }
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">The automation will execute once at this exact time</p>
+                    </div>
+                  )}
+
+                  {formData.scheduleType === 'periodic' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="cronExpression">Custom Cron Expression (optional)</Label>
+                      <Input
+                        id="cronExpression"
+                        value={formData.cronExpression || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, cronExpression: e.target.value || null })
+                        }
+                        placeholder="e.g., 0 */5 * * * (every 5 minutes)"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">Leave empty to use the interval above, or provide a custom cron expression for advanced scheduling</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <DialogFooter>
