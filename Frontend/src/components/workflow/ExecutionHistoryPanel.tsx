@@ -27,19 +27,19 @@ interface ExecutionHistoryPanelProps {
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: React.ElementType; label: string }> = {
-  completed: { color: 'text-green-600', bg: 'bg-green-100', icon: CheckCircle2, label: 'Completed' },
-  completed_with_errors: { color: 'text-amber-600', bg: 'bg-amber-100', icon: AlertTriangle, label: 'Partial' },
-  failed: { color: 'text-red-600', bg: 'bg-red-100', icon: XCircle, label: 'Failed' },
-  running: { color: 'text-blue-600', bg: 'bg-blue-100', icon: Loader2, label: 'Running' },
-  skipped: { color: 'text-gray-500', bg: 'bg-gray-100', icon: Clock, label: 'Skipped' },
+  completed: { color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/40', icon: CheckCircle2, label: 'Completed' },
+  completed_with_errors: { color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/40', icon: AlertTriangle, label: 'Partial' },
+  failed: { color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/40', icon: XCircle, label: 'Failed' },
+  running: { color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/40', icon: Loader2, label: 'Running' },
+  skipped: { color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800', icon: Clock, label: 'Skipped' },
 };
 
 const STEP_STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
-  completed: { color: 'text-green-700', bg: 'bg-green-100' },
-  failed: { color: 'text-red-700', bg: 'bg-red-100' },
-  condition_true: { color: 'text-emerald-700', bg: 'bg-emerald-100' },
-  condition_false: { color: 'text-orange-700', bg: 'bg-orange-100' },
-  skipped: { color: 'text-gray-500', bg: 'bg-gray-100' },
+  completed: { color: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/40' },
+  failed: { color: 'text-red-700 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/40' },
+  condition_true: { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  condition_false: { color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-900/40' },
+  skipped: { color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800' },
 };
 
 const TRIGGER_LABELS: Record<string, string> = {
