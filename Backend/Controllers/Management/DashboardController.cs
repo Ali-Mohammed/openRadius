@@ -883,3 +883,52 @@ public class FilterConditionDto
     public JsonElement? Value { get; set; }
     public JsonElement? Value2 { get; set; }
 }
+
+// Import DTOs
+public class ImportDashboardDto
+{
+    public string? Version { get; set; }
+    public ImportDashboardDataDto? Dashboard { get; set; }
+}
+
+public class ImportDashboardDataDto
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public List<ImportTabDto>? Tabs { get; set; }
+    public List<ImportGlobalFilterDto>? GlobalFilters { get; set; }
+}
+
+public class ImportTabDto
+{
+    public string? Name { get; set; }
+    public int OrderIndex { get; set; }
+    public List<ImportItemDto>? Items { get; set; }
+}
+
+public class ImportItemDto
+{
+    public string? Type { get; set; }
+    public string? Title { get; set; }
+    public ImportLayoutDto? Layout { get; set; }
+    public JsonElement? Config { get; set; }
+}
+
+public class ImportLayoutDto
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int W { get; set; }
+    public int H { get; set; }
+}
+
+public class ImportGlobalFilterDto
+{
+    public string? Label { get; set; }
+    public string? Type { get; set; }
+    public JsonElement? Value { get; set; }
+    public JsonElement? Options { get; set; }
+    public int OrderIndex { get; set; }
+}

@@ -46,5 +46,17 @@ export const dashboardApi = {
   deleteItem: async (dashboardId: string, itemId: string): Promise<void> => {
     await apiClient.delete(`/api/dashboard/${dashboardId}/items/${itemId}`)
   },
+
+  // Export dashboard as JSON
+  exportDashboard: async (id: string): Promise<object> => {
+    const response = await apiClient.get(`/api/dashboard/${id}/export`)
+    return response.data
+  },
+
+  // Import dashboard from JSON
+  importDashboard: async (data: object): Promise<{ id: string; name: string; message: string }> => {
+    const response = await apiClient.post('/api/dashboard/import', data)
+    return response.data
+  },
 }
 

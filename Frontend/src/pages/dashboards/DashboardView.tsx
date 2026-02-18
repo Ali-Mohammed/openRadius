@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
-import { Plus, Edit, Settings, Filter, GripVertical } from 'lucide-react'
+import { Plus, Edit, Settings, Filter, GripVertical, Download, Upload } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import { DashboardGrid } from '../../components/dashboard/DashboardGrid'
@@ -26,6 +26,60 @@ export default function DashboardView() {
   const [isLoading, setIsLoading] = useState(true)
   const [draggedTabIndex, setDraggedTabIndex] = useState<number | null>(null)
   const originalDashboardRef = useRef<Dashboard | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleExportDashboard = async () => {
+    if (!id) return
+    try {
+      const exportData = await dashboardApi.exportDashboard(id)
+      const json = JSON.stringify(exportData, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dashboard-${dashboard?.name?.replace(/\s+/g, '-').toLowerCase() || id}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success('Dashboard exported successfully')
+    } catch (error) {
+      console.error('Error exporting dashboard:', error)
+      toast.error('Failed to export dashboard')
+    }
+  }
+
+  const handleImportDashboard = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const importData = JSON.parse(text)
+
+      if (!importData.dashboard) {
+        toast.error('Invalid dashboard file: missing dashboard data')
+        return
+      }
+
+      const result = await dashboardApi.importDashboard(importData)
+      toast.success(`Dashboard "${result.name}" imported successfully`)
+      // Navigate to the newly imported dashboard
+      window.location.href = `/dashboards/${result.id}`
+    } catch (error) {
+      console.error('Error importing dashboard:', error)
+      if (error instanceof SyntaxError) {
+        toast.error('Invalid JSON file')
+      } else {
+        toast.error('Failed to import dashboard')
+      }
+    } finally {
+      // Reset file input so the same file can be imported again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
 
   useEffect(() => {
     if (id) {
@@ -362,6 +416,31 @@ export default function DashboardView() {
           </div>
           
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportDashboard}
+              title="Export dashboard as JSON"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import dashboard from JSON"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleImportDashboard}
+            />
             <Button
               variant="outline"
               size="sm"
