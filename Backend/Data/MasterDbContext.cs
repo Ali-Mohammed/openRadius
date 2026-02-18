@@ -29,6 +29,7 @@ public class MasterDbContext : DbContext
     public DbSet<ApprovedMicroservice> ApprovedMicroservices { get; set; }
     public DbSet<EdgeRuntimeScript> EdgeRuntimeScripts { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
+    public DbSet<ApiKey> ApiKeys { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -215,6 +216,19 @@ public class MasterDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.DeletedBy)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ApiKey>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Uuid).IsUnique();
+            entity.HasIndex(e => e.KeyPrefix);
+            entity.HasIndex(e => new { e.WorkspaceId, e.IsDeleted });
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.KeyPrefix).IsRequired().HasMaxLength(12);
+            entity.Property(e => e.KeyHash).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Scopes).HasMaxLength(1000);
+            entity.Property(e => e.LastUsedIp).HasMaxLength(45);
         });
     }
 }

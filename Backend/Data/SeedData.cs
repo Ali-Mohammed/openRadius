@@ -707,6 +707,11 @@ public static class SeedData
             // Microservices
             new Permission { Name = "microservices.radius-sync.view", Description = "View RADIUS sync service", Category = "Microservices" },
             new Permission { Name = "microservices.radius-sync.manage", Description = "Manage RADIUS sync service", Category = "Microservices" },
+            // API Keys
+            new Permission { Name = "settings.api-keys.view", Description = "View API keys", Category = "Settings" },
+            new Permission { Name = "settings.api-keys.create", Description = "Create API keys", Category = "Settings" },
+            new Permission { Name = "settings.api-keys.update", Description = "Update API keys", Category = "Settings" },
+            new Permission { Name = "settings.api-keys.delete", Description = "Delete API keys", Category = "Settings" },
         };
     }
 }
