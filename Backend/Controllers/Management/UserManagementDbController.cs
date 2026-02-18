@@ -994,6 +994,94 @@ public class UserManagementDbController : ControllerBase
         }
     }
 
+    // POST: api/user-management/bulk-update-roles-groups
+    [HttpPost("bulk-update-roles-groups")]
+    public async Task<IActionResult> BulkUpdateRolesAndGroups([FromBody] BulkUpdateRolesGroupsRequest request)
+    {
+        try
+        {
+            if (request.UserIds == null || request.UserIds.Count == 0)
+            {
+                return BadRequest(new { message = "No users specified" });
+            }
+
+            var users = await _context.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.UserGroups)
+                .Where(u => request.UserIds.Contains(u.Id))
+                .ToListAsync();
+
+            if (users.Count == 0)
+            {
+                return NotFound(new { message = "No matching users found" });
+            }
+
+            // Validate roles exist
+            var validRoleIds = new List<int>();
+            if (request.RoleIds != null && request.RoleIds.Count > 0)
+            {
+                validRoleIds = await _context.Roles
+                    .Where(r => request.RoleIds.Contains(r.Id) && !r.IsDeleted)
+                    .Select(r => r.Id)
+                    .ToListAsync();
+            }
+
+            // Validate groups exist
+            var validGroupIds = new List<int>();
+            if (request.GroupIds != null && request.GroupIds.Count > 0)
+            {
+                validGroupIds = await _context.Groups
+                    .Where(g => request.GroupIds.Contains(g.Id) && !g.IsDeleted)
+                    .Select(g => g.Id)
+                    .ToListAsync();
+            }
+
+            foreach (var user in users)
+            {
+                // Update roles if provided
+                if (request.UpdateRoles)
+                {
+                    _context.UserRoles.RemoveRange(user.UserRoles);
+                    foreach (var roleId in validRoleIds)
+                    {
+                        _context.UserRoles.Add(new UserRole
+                        {
+                            UserId = user.Id,
+                            RoleId = roleId,
+                            AssignedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                // Update groups if provided
+                if (request.UpdateGroups)
+                {
+                    _context.UserGroups.RemoveRange(user.UserGroups);
+                    foreach (var groupId in validGroupIds)
+                    {
+                        _context.UserGroups.Add(new UserGroup
+                        {
+                            UserId = user.Id,
+                            GroupId = groupId,
+                            AssignedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Bulk updated roles/groups for {UserCount} users", users.Count);
+
+            return Ok(new { message = $"Successfully updated {users.Count} users" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk updating roles/groups");
+            return StatusCode(500, new { message = "Failed to bulk update", error = ex.Message });
+        }
+    }
+
     // POST: api/user-management/{id}/roles
     [HttpPost("{id}/roles")]
     public async Task<IActionResult> AssignRolesToUser(int id, [FromBody] List<int> roleIds)
@@ -1463,4 +1551,13 @@ public class CreatePermissionRequest
     public required string Name { get; set; }
     public string? Description { get; set; }
     public string? Category { get; set; }
+}
+
+public class BulkUpdateRolesGroupsRequest
+{
+    public List<int> UserIds { get; set; } = new();
+    public List<int> RoleIds { get; set; } = new();
+    public List<int> GroupIds { get; set; } = new();
+    public bool UpdateRoles { get; set; } = false;
+    public bool UpdateGroups { get; set; } = false;
 }
