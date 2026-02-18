@@ -204,8 +204,8 @@ export default function BillingProfileForm() {
   });
 
   const { data: automationsData, isLoading: isLoadingAutomations } = useQuery({
-    queryKey: ['automations', currentWorkspaceId],
-    queryFn: () => getAutomations({ isActive: true, pageSize: 1000 }),
+    queryKey: ['automations', 'on_requested', currentWorkspaceId],
+    queryFn: () => getAutomations({ isActive: true, triggerType: 'on_requested', pageSize: 1000 }),
     enabled: !!currentWorkspaceId,
   });
 
@@ -720,7 +720,7 @@ export default function BillingProfileForm() {
                   Automation
                 </CardTitle>
                 <CardDescription>
-                  Optionally select an automation workflow to run when this billing profile is activated
+                  Optionally select an "On Requested" automation workflow to run when this billing profile is activated
                 </CardDescription>
               </div>
             </div>
