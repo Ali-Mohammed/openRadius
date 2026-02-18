@@ -1206,7 +1206,7 @@ export default function UserManagement() {
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
                     {columnOrder.filter(c => c === 'actions' || columnVisibility[c as keyof typeof columnVisibility]).map(col => (
-                      <TableHead key={col} className="h-12 px-4">
+                      <TableHead key={col} className="h-9 px-3">
                         <Skeleton className="h-4 w-20" />
                       </TableHead>
                     ))}
@@ -1216,7 +1216,7 @@ export default function UserManagement() {
                   {Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i}>
                       {columnOrder.filter(c => c === 'actions' || columnVisibility[c as keyof typeof columnVisibility]).map(col => (
-                        <TableCell key={col} className="h-12 px-4">
+                        <TableCell key={col} className="h-9 px-3">
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
                       ))}
