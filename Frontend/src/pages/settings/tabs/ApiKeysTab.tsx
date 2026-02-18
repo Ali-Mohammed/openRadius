@@ -277,7 +277,7 @@ export default function ApiKeysTab() {
           </div>
           <div className="text-xs text-muted-foreground mt-2">
             <p><strong>Available filters:</strong> search, enabled, profileName, groupName, zoneName, onlineStatus, createdAfter, createdBefore</p>
-            <p><strong>Sorting:</strong> sortBy (username, createdAt, balance, expiration, lastOnline) &amp; sortDirection (asc, desc)</p>
+            <p><strong>Sorting:</strong> sortBy (username, createdAt, balance, expiration, lastOnline, firstname, lastname, email) &amp; sortDirection (asc, desc)</p>
             <p><strong>Pagination:</strong> page (default: 1) &amp; limit (default: 25, max: 100)</p>
           </div>
         </CardContent>
