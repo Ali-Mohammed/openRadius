@@ -4,7 +4,7 @@ import { GitBranch } from 'lucide-react';
 
 export function ConditionNode({ data }: { data: any }) {
   return (
-    <div className="px-4 py-2 shadow-md rounded-md bg-white border-2 border-yellow-500 min-w-[200px]">
+    <div className="px-4 py-2 shadow-md rounded-md bg-white dark:bg-gray-900 border-2 border-yellow-500 min-w-[200px]">
       <Handle
         type="target"
         position={Position.Top}
@@ -16,13 +16,13 @@ export function ConditionNode({ data }: { data: any }) {
           <GitBranch className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1">
-          <div className="text-xs text-gray-500 uppercase">Condition</div>
-          <div className="font-bold">{data.label}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">Condition</div>
+          <div className="font-bold text-gray-900 dark:text-gray-100">{data.label}</div>
         </div>
       </div>
 
       {data.description && (
-        <div className="text-xs text-gray-600 mt-1">{data.description}</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{data.description}</div>
       )}
 
       <div className="flex justify-between mt-2">
