@@ -1100,12 +1100,12 @@ export default function WorkflowDesigner() {
                 {selectedNode.type === 'action' && selectedNode.data.actionType === 'http-request' && (
                   <>
                     <div className="pt-1 border-t">
-                      <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                      <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
                         <Globe className="h-3.5 w-3.5" /> HTTP Request Config
                       </h4>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Method</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Method</label>
                       <select
                         value={selectedNode.data.httpMethod || 'GET'}
                         onChange={(e) => {
@@ -1127,7 +1127,7 @@ export default function WorkflowDesigner() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">URL</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">URL</label>
                       <TemplateInput
                         value={selectedNode.data.httpUrl || ''}
                         onChange={(val) => {
@@ -1143,10 +1143,10 @@ export default function WorkflowDesigner() {
                         placeholder="https://api.example.com/webhook"
                         triggerType={getConnectedTriggerType()}
                       />
-                      <p className="text-xs text-gray-400 mt-0.5">Type <code className="bg-gray-100 px-0.5 rounded">{'{{'}</code> to see available variables</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Type <code className="bg-gray-100 dark:bg-gray-800 px-0.5 rounded">{'{{'}</code> to see available variables</p>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Headers (JSON)</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Headers (JSON)</label>
                       <TemplateTextarea
                         value={selectedNode.data.httpHeaders || ''}
                         onChange={(val) => {
@@ -1165,7 +1165,7 @@ export default function WorkflowDesigner() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Body</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Body</label>
                       <TemplateTextarea
                         value={selectedNode.data.httpBody || ''}
                         onChange={(val) => {
@@ -1184,7 +1184,7 @@ export default function WorkflowDesigner() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Content Type</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Content Type</label>
                       <select
                         value={selectedNode.data.httpContentType || 'application/json'}
                         onChange={(e) => {
@@ -1205,7 +1205,7 @@ export default function WorkflowDesigner() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Expected Status Codes</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Expected Status Codes</label>
                       <input
                         type="text"
                         value={selectedNode.data.httpExpectedStatusCodes || '200-299'}
@@ -1224,7 +1224,7 @@ export default function WorkflowDesigner() {
                       <p className="text-xs text-gray-400 mt-0.5">e.g., 200-299 or 200,201,204</p>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Timeout (seconds)</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Timeout (seconds)</label>
                       <input
                         type="number"
                         value={selectedNode.data.httpTimeoutSeconds || 30}
@@ -1246,13 +1246,13 @@ export default function WorkflowDesigner() {
                   </>
                 )}
               </div>
-              <div className="px-3 py-3 border-t bg-gray-50">
+              <div className="px-3 py-3 border-t bg-gray-50 dark:bg-gray-800">
                 <button
                   onClick={() => {
                     setNodes(nodes.filter(node => node.id !== selectedNode.id));
                     setSelectedNode(null);
                   }}
-                  className="w-full px-3 py-2 bg-red-50 text-red-600 rounded text-xs font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full px-3 py-2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete Node
@@ -1263,7 +1263,7 @@ export default function WorkflowDesigner() {
           
           {/* History Panel */}
           {showHistory && (
-            <div className="absolute right-0 top-0 bottom-0 w-80 bg-white border-l shadow-xl z-50 flex flex-col">
+            <div className="absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-900 border-l dark:border-gray-700 shadow-xl z-50 flex flex-col">
               <div className="px-2 py-1.5 border-b flex items-center justify-between">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   <History className="h-4 w-4" />
@@ -1271,14 +1271,14 @@ export default function WorkflowDesigner() {
                 </h3>
                 <button
                   onClick={() => setShowHistory(false)}
-                  className="text-gray-400 hover:text-gray-600 text-lg"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg"
                 >
                   ×
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2 py-2">
                 {history.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 text-sm">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
                     No history yet. Make changes to save versions.
                   </div>
                 ) : (
@@ -1287,15 +1287,15 @@ export default function WorkflowDesigner() {
                       <button
                         key={item.id}
                         onClick={() => restoreFromHistory(item)}
-                        className="w-full text-left p-3 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                        className="w-full text-left p-3 border dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-all group"
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-semibold text-gray-700">
+                          <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                             {new Date(item.createdAt).toLocaleTimeString()}
                           </span>
-                          <RotateCcw className="h-3.5 w-3.5 text-gray-400 group-hover:text-blue-600" />
+                          <RotateCcw className="h-3.5 w-3.5 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
                           {new Date(item.createdAt).toLocaleDateString()}
                         </div>
                         <div className="flex gap-3 mt-2 text-xs">
@@ -1313,19 +1313,19 @@ export default function WorkflowDesigner() {
           {/* History Toggle Button */}
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="absolute top-4 left-60 z-40 bg-white border shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50"
+            className="absolute top-4 left-60 z-40 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50 dark:hover:bg-gray-700"
             title="Version History"
           >
-            <History className="h-4 w-4 text-gray-700" />
+            <History className="h-4 w-4 text-gray-700 dark:text-gray-300" />
           </button>
           
           {/* Execution History Toggle Button */}
           <button
             onClick={() => setShowExecutionHistory(!showExecutionHistory)}
-            className="absolute top-4 left-72 z-40 bg-white border shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50"
+            className="absolute top-4 left-72 z-40 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50 dark:hover:bg-gray-700"
             title="Execution History"
           >
-            <Activity className="h-4 w-4 text-gray-700" />
+            <Activity className="h-4 w-4 text-gray-700 dark:text-gray-300" />
           </button>
           
           {/* Execution History Panel */}
@@ -1339,13 +1339,13 @@ export default function WorkflowDesigner() {
           {/* Loading Indicator */}
           {(isLoading || saveMutation.isPending) && (
             <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-              <div className="bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-gray-200 flex items-center gap-3">
+              <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 flex items-center gap-3">
                 <div className="flex gap-1.5">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {isLoading ? 'Loading workflow...' : 'Saving...'}
                 </span>
               </div>
@@ -1358,7 +1358,7 @@ export default function WorkflowDesigner() {
               variant="outline" 
               onClick={handleTest} 
               size="sm"
-              className="shadow-md hover:shadow-lg transition-all bg-white rounded-full h-10 w-10 p-0"
+              className="shadow-md hover:shadow-lg transition-all bg-white dark:bg-gray-800 rounded-full h-10 w-10 p-0"
               aria-label="Test"
             >
               <Play className="h-4 w-4" />
