@@ -1382,6 +1382,262 @@ export default function UserManagement() {
         </CardContent>
       </Card>
 
+      {/* Floating Action Bar */}
+      {selectedUserIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected</span>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedUserIds(new Set())}
+          >
+            Clear
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleOpenBulkDialog}
+          >
+            <Shield className="h-4 w-4 mr-1" />
+            Update Roles & Groups
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk Update Roles & Groups Dialog */}
+      <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Update Roles & Groups</DialogTitle>
+            <DialogDescription>
+              Update roles and groups for {selectedUserIds.size} selected user{selectedUserIds.size > 1 ? 's' : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              This will <strong>replace</strong> existing roles and/or groups for all selected users. Use the toggles below to choose what to update.
+            </p>
+          </div>
+
+          <div className="grid gap-6 py-2">
+            {/* Roles Section */}
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Roles
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Update roles</span>
+                  <Switch
+                    checked={bulkUpdateRoles}
+                    onCheckedChange={setBulkUpdateRoles}
+                  />
+                </div>
+              </div>
+              {bulkUpdateRoles && (
+                <>
+                  <Popover open={bulkRolesSearchOpen} onOpenChange={setBulkRolesSearchOpen} modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={bulkRolesSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {bulkRoleIds.length > 0
+                          ? `${bulkRoleIds.length} role${bulkRoleIds.length > 1 ? 's' : ''} selected`
+                          : 'Select roles...'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start">
+                      <div className="flex flex-col">
+                        <div className="flex items-center border-b px-3">
+                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                          <Input
+                            placeholder="Search roles..."
+                            value={bulkRolesSearchQuery}
+                            onChange={(e) => setBulkRolesSearchQuery(e.target.value)}
+                            className="h-11 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          />
+                        </div>
+                        <div className="max-h-64 overflow-y-scroll p-1" style={{ overflowY: 'scroll' }}>
+                          {roles
+                            .filter(r => r.name.toLowerCase().includes(bulkRolesSearchQuery.toLowerCase()))
+                            .length === 0 ? (
+                            <div className="py-6 text-center text-sm">No roles found.</div>
+                          ) : (
+                            roles
+                              .filter(r => r.name.toLowerCase().includes(bulkRolesSearchQuery.toLowerCase()))
+                              .map((role) => (
+                                <div
+                                  key={role.id}
+                                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                  onClick={() => {
+                                    setBulkRoleIds(
+                                      bulkRoleIds.includes(role.id)
+                                        ? bulkRoleIds.filter(id => id !== role.id)
+                                        : [...bulkRoleIds, role.id]
+                                    );
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      bulkRoleIds.includes(role.id) ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  {role.name}
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {bulkRoleIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {bulkRoleIds.map(id => {
+                        const role = roles.find(r => r.id === id);
+                        return role ? (
+                          <Badge key={id} variant="secondary" className="text-xs">
+                            {role.name}
+                            <button
+                              type="button"
+                              className="ml-1 hover:text-destructive"
+                              onClick={() => setBulkRoleIds(bulkRoleIds.filter(rid => rid !== id))}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Groups Section */}
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Groups
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Update groups</span>
+                  <Switch
+                    checked={bulkUpdateGroups}
+                    onCheckedChange={setBulkUpdateGroups}
+                  />
+                </div>
+              </div>
+              {bulkUpdateGroups && (
+                <>
+                  <Popover open={bulkGroupsSearchOpen} onOpenChange={setBulkGroupsSearchOpen} modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={bulkGroupsSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {bulkGroupIds.length > 0
+                          ? `${bulkGroupIds.length} group${bulkGroupIds.length > 1 ? 's' : ''} selected`
+                          : 'Select groups...'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start">
+                      <div className="flex flex-col">
+                        <div className="flex items-center border-b px-3">
+                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                          <Input
+                            placeholder="Search groups..."
+                            value={bulkGroupsSearchQuery}
+                            onChange={(e) => setBulkGroupsSearchQuery(e.target.value)}
+                            className="h-11 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          />
+                        </div>
+                        <div className="max-h-64 overflow-y-scroll p-1" style={{ overflowY: 'scroll' }}>
+                          {groups
+                            .filter(g => g.name.toLowerCase().includes(bulkGroupsSearchQuery.toLowerCase()))
+                            .length === 0 ? (
+                            <div className="py-6 text-center text-sm">No groups found.</div>
+                          ) : (
+                            groups
+                              .filter(g => g.name.toLowerCase().includes(bulkGroupsSearchQuery.toLowerCase()))
+                              .map((group) => (
+                                <div
+                                  key={group.id}
+                                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                  onClick={() => {
+                                    setBulkGroupIds(
+                                      bulkGroupIds.includes(group.id)
+                                        ? bulkGroupIds.filter(id => id !== group.id)
+                                        : [...bulkGroupIds, group.id]
+                                    );
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      bulkGroupIds.includes(group.id) ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  {group.name}
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {bulkGroupIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {bulkGroupIds.map(id => {
+                        const group = groups.find(g => g.id === id);
+                        return group ? (
+                          <Badge key={id} variant="secondary" className="text-xs">
+                            {group.name}
+                            <button
+                              type="button"
+                              className="ml-1 hover:text-destructive"
+                              onClick={() => setBulkGroupIds(bulkGroupIds.filter(gid => gid !== id))}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkSave}
+              disabled={(!bulkUpdateRoles && !bulkUpdateGroups) || bulkUpdateMutation.isPending}
+            >
+              {bulkUpdateMutation.isPending ? 'Saving...' : `Update ${selectedUserIds.size} User${selectedUserIds.size > 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit/Create User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
