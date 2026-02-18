@@ -57,6 +57,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  MousePointerClick,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation } from '@tanstack/react-query';
