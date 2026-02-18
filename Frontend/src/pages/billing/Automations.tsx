@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Search, ArchiveRestore, GitBranch, Archive, RefreshCw, Zap } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ArchiveRestore, GitBranch, Archive, RefreshCw, Zap, Clock, Timer, MousePointerClick, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getAutomations,
@@ -61,6 +61,30 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inactive', variant: 'destructive' as const },
 ];
 
+const TRIGGER_TYPE_OPTIONS = [
+  { value: 'on_requested', label: 'On Requested', icon: MousePointerClick, description: 'Triggered manually or via billing profile activation' },
+  { value: 'on_action', label: 'On Action', icon: Play, description: 'Triggered by a system event (user created, payment, etc.)' },
+  { value: 'scheduled', label: 'Scheduled', icon: Clock, description: 'Runs on a schedule — at a specific time or periodically' },
+];
+
+const SCHEDULE_TYPE_OPTIONS = [
+  { value: 'at_time', label: 'At Specific Time', description: 'Run once at a specific date/time' },
+  { value: 'periodic', label: 'Periodic', description: 'Run repeatedly at a fixed interval' },
+];
+
+const PERIODIC_INTERVAL_OPTIONS = [
+  { value: 1, label: 'Every 1 minute' },
+  { value: 5, label: 'Every 5 minutes' },
+  { value: 10, label: 'Every 10 minutes' },
+  { value: 15, label: 'Every 15 minutes' },
+  { value: 30, label: 'Every 30 minutes' },
+  { value: 60, label: 'Every 1 hour' },
+  { value: 120, label: 'Every 2 hours' },
+  { value: 360, label: 'Every 6 hours' },
+  { value: 720, label: 'Every 12 hours' },
+  { value: 1440, label: 'Every 24 hours' },
+];
+
 export default function Automations() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -78,6 +102,11 @@ export default function Automations() {
     color: '#3b82f6',
     status: 'draft',
     isActive: true,
+    triggerType: 'on_requested',
+    scheduleType: null,
+    cronExpression: null,
+    scheduleIntervalMinutes: null,
+    scheduledTime: null,
   });
 
   const { data: activeAutomationsData, isLoading: isLoadingActive } = useQuery({
@@ -148,6 +177,11 @@ export default function Automations() {
         color: automation.color || '#3b82f6',
         status: automation.status,
         isActive: automation.isActive,
+        triggerType: automation.triggerType || 'on_requested',
+        scheduleType: automation.scheduleType || null,
+        cronExpression: automation.cronExpression || null,
+        scheduleIntervalMinutes: automation.scheduleIntervalMinutes || null,
+        scheduledTime: automation.scheduledTime || null,
       });
     } else {
       setEditingAutomation(null);
@@ -158,6 +192,11 @@ export default function Automations() {
         color: '#3b82f6',
         status: 'draft',
         isActive: true,
+        triggerType: 'on_requested',
+        scheduleType: null,
+        cronExpression: null,
+        scheduleIntervalMinutes: null,
+        scheduledTime: null,
       });
     }
     setIsDialogOpen(true);
@@ -244,6 +283,7 @@ export default function Automations() {
                 <TableRow>
                   <TableHead>Automation</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Trigger</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Active</TableHead>
                   <TableHead className="text-right">Actions</TableHead>

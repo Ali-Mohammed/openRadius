@@ -15,6 +15,13 @@ public class Automation
     public bool IsActive { get; set; } = true;
     public string? WorkflowJson { get; set; } // Stores the workflow definition
     
+    // Trigger Configuration
+    public string TriggerType { get; set; } = "on_requested"; // on_requested, on_action, scheduled
+    public string? ScheduleType { get; set; } // at_time, periodic (only when TriggerType = scheduled)
+    public string? CronExpression { get; set; } // Cron expression for scheduled triggers
+    public int? ScheduleIntervalMinutes { get; set; } // Interval in minutes for periodic schedules
+    public DateTime? ScheduledTime { get; set; } // Specific UTC time for at_time schedules
+    
     // Soft delete
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }

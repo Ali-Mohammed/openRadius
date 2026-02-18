@@ -34,6 +34,7 @@ public class AutomationController : ControllerBase
     public async Task<ActionResult<object>> GetAutomations(
         [FromQuery] string? search,
         [FromQuery] string? status,
+        [FromQuery] string? triggerType,
         [FromQuery] bool? isActive,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
@@ -58,6 +59,11 @@ public class AutomationController : ControllerBase
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(a => a.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(triggerType))
+            {
+                query = query.Where(a => a.TriggerType == triggerType);
             }
 
             if (isActive.HasValue)
@@ -129,6 +135,11 @@ public class AutomationController : ControllerBase
                 Color = request.Color,
                 Status = request.Status ?? "draft",
                 IsActive = request.IsActive ?? true,
+                TriggerType = request.TriggerType ?? "on_requested",
+                ScheduleType = request.ScheduleType,
+                CronExpression = request.CronExpression,
+                ScheduleIntervalMinutes = request.ScheduleIntervalMinutes,
+                ScheduledTime = request.ScheduledTime,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = User.GetSystemUserId()
             };
@@ -164,6 +175,11 @@ public class AutomationController : ControllerBase
             automation.Color = request.Color;
             automation.Status = request.Status ?? automation.Status;
             automation.IsActive = request.IsActive ?? automation.IsActive;
+            automation.TriggerType = request.TriggerType ?? automation.TriggerType;
+            automation.ScheduleType = request.ScheduleType;
+            automation.CronExpression = request.CronExpression;
+            automation.ScheduleIntervalMinutes = request.ScheduleIntervalMinutes;
+            automation.ScheduledTime = request.ScheduledTime;
             automation.WorkflowJson = request.WorkflowJson ?? automation.WorkflowJson;
             automation.UpdatedAt = DateTime.UtcNow;
             automation.UpdatedBy = User.GetSystemUserId();
@@ -243,7 +259,12 @@ public record CreateAutomationRequest(
     string? Icon,
     string? Color,
     string? Status,
-    bool? IsActive
+    bool? IsActive,
+    string? TriggerType, // on_requested, on_action, scheduled
+    string? ScheduleType, // at_time, periodic
+    string? CronExpression,
+    int? ScheduleIntervalMinutes,
+    DateTime? ScheduledTime
 );
 
 public record UpdateAutomationRequest(
@@ -253,5 +274,10 @@ public record UpdateAutomationRequest(
     string? Color,
     string? Status,
     bool? IsActive,
-    string? WorkflowJson
+    string? WorkflowJson,
+    string? TriggerType,
+    string? ScheduleType,
+    string? CronExpression,
+    int? ScheduleIntervalMinutes,
+    DateTime? ScheduledTime
 );

@@ -10,6 +10,11 @@ export interface Automation {
   status: string; // draft, active, paused, inactive
   isActive: boolean;
   workflowJson?: string;
+  triggerType: string; // on_requested, on_action, scheduled
+  scheduleType?: string | null; // at_time, periodic
+  cronExpression?: string | null;
+  scheduleIntervalMinutes?: number | null;
+  scheduledTime?: string | null;
   isDeleted: boolean;
   deletedAt?: string;
   deletedBy?: string;
@@ -26,6 +31,11 @@ export interface CreateAutomationRequest {
   color?: string;
   status?: string;
   isActive?: boolean;
+  triggerType?: string;
+  scheduleType?: string | null;
+  cronExpression?: string | null;
+  scheduleIntervalMinutes?: number | null;
+  scheduledTime?: string | null;
 }
 
 export interface UpdateAutomationRequest {
@@ -36,6 +46,11 @@ export interface UpdateAutomationRequest {
   status?: string;
   workflowJson?: string;
   isActive?: boolean;
+  triggerType?: string;
+  scheduleType?: string | null;
+  cronExpression?: string | null;
+  scheduleIntervalMinutes?: number | null;
+  scheduledTime?: string | null;
 }
 
 export interface AutomationsResponse {
@@ -49,6 +64,7 @@ export interface AutomationsResponse {
 export const getAutomations = async (params?: {
   search?: string;
   status?: string;
+  triggerType?: string;
   isActive?: boolean;
   page?: number;
   pageSize?: number;
