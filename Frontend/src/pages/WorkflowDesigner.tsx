@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import type { DragEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactFlow, {
@@ -100,6 +100,325 @@ const COMMENT_TYPES = [
   { value: 'info', label: 'Info', description: 'Add information', icon: MessageSquare },
 ];
 
+// ── Template variables available in HTTP request fields ──
+const BUILT_IN_VARIABLES = [
+  { key: 'username', label: 'Username', description: 'RADIUS username', category: 'Built-in' },
+  { key: 'userId', label: 'User ID', description: 'Internal RADIUS user ID', category: 'Built-in' },
+  { key: 'userUuid', label: 'User UUID', description: 'Public user UUID', category: 'Built-in' },
+  { key: 'triggeredBy', label: 'Triggered By', description: 'Who performed the action', category: 'Built-in' },
+  { key: 'triggerType', label: 'Trigger Type', description: 'Event type (e.g. user-updated)', category: 'Built-in' },
+  { key: 'timestamp', label: 'Timestamp', description: 'When the event occurred (ISO 8601)', category: 'Built-in' },
+];
+
+const COMMON_CONTEXT_VARIABLES = [
+  { key: 'email', label: 'Email', description: 'User email address', category: 'Context' },
+  { key: 'phone', label: 'Phone', description: 'User phone number', category: 'Context' },
+  { key: 'enabled', label: 'Enabled', description: 'User enabled status (true/false)', category: 'Context' },
+  { key: 'balance', label: 'Balance', description: 'User wallet balance', category: 'Context' },
+  { key: 'profileId', label: 'Profile ID', description: 'RADIUS profile ID', category: 'Context' },
+  { key: 'expiration', label: 'Expiration', description: 'Subscription expiration date (ISO 8601)', category: 'Context' },
+];
+
+const TRIGGER_SPECIFIC_VARIABLES: Record<string, { key: string; label: string; description: string; category: string }[]> = {
+  'user-created': [
+    { key: 'groupId', label: 'Group ID', description: 'User group ID', category: 'User Created' },
+    { key: 'zoneId', label: 'Zone ID', description: 'User zone ID', category: 'User Created' },
+  ],
+  'user-updated': [
+    { key: 'changes', label: 'Changes', description: 'List of changed fields', category: 'User Updated' },
+    { key: 'changeCount', label: 'Change Count', description: 'Number of fields changed', category: 'User Updated' },
+  ],
+  'user-activated': [
+    { key: 'activationType', label: 'Activation Type', description: 'Type of activation', category: 'Activation' },
+    { key: 'activationAmount', label: 'Activation Amount', description: 'Activation payment amount', category: 'Activation' },
+    { key: 'previousExpireDate', label: 'Previous Expire Date', description: 'Previous expiration date', category: 'Activation' },
+    { key: 'nextExpireDate', label: 'Next Expire Date', description: 'New expiration date', category: 'Activation' },
+    { key: 'paymentMethod', label: 'Payment Method', description: 'Payment method used', category: 'Activation' },
+    { key: 'activationId', label: 'Activation ID', description: 'Activation record ID', category: 'Activation' },
+    { key: 'billingActivationId', label: 'Billing Activation ID', description: 'Billing activation record ID', category: 'Activation' },
+  ],
+};
+
+function getAvailableVariables(triggerType?: string) {
+  const vars = [...BUILT_IN_VARIABLES, ...COMMON_CONTEXT_VARIABLES];
+  if (triggerType && TRIGGER_SPECIFIC_VARIABLES[triggerType]) {
+    vars.push(...TRIGGER_SPECIFIC_VARIABLES[triggerType]);
+  }
+  return vars;
+}
+
+// ── Autocomplete textarea for template variables ──
+function TemplateTextarea({
+  value,
+  onChange,
+  rows = 4,
+  placeholder,
+  className = '',
+  triggerType,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  rows?: number;
+  placeholder?: string;
+  className?: string;
+  triggerType?: string;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const allVars = getAvailableVariables(triggerType);
+  const filtered = filter
+    ? allVars.filter(
+        (v) =>
+          v.key.toLowerCase().includes(filter.toLowerCase()) ||
+          v.label.toLowerCase().includes(filter.toLowerCase())
+      )
+    : allVars;
+
+  // Detect {{ and show suggestions
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newVal = e.target.value;
+    onChange(newVal);
+
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = newVal.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/\{\{([a-zA-Z0-9_]*)$/);
+
+    if (match) {
+      setFilter(match[1]);
+      setShowSuggestions(true);
+      setSelectedIndex(0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const insertVariable = (variable: string) => {
+    if (!textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const textAfterCursor = value.slice(cursorPos);
+
+    // Find the {{ before cursor
+    const match = textBeforeCursor.match(/\{\{([a-zA-Z0-9_]*)$/);
+    if (match) {
+      const start = cursorPos - match[0].length;
+      const newValue = value.slice(0, start) + `{{${variable}}}` + textAfterCursor;
+      onChange(newValue);
+
+      // Set cursor after the inserted variable
+      requestAnimationFrame(() => {
+        const newCursorPos = start + variable.length + 4; // {{ + var + }}
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+      });
+    }
+
+    setShowSuggestions(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showSuggestions || filtered.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % filtered.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      insertVariable(filtered[selectedIndex].key);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        rows={rows}
+        className={className}
+        placeholder={placeholder}
+      />
+      {showSuggestions && filtered.length > 0 && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
+          {filtered.map((v, i) => (
+            <button
+              key={v.key}
+              type="button"
+              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-start gap-2 hover:bg-blue-50 ${
+                i === selectedIndex ? 'bg-blue-50' : ''
+              }`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                insertVariable(v.key);
+              }}
+              onMouseEnter={() => setSelectedIndex(i)}
+            >
+              <code className="text-blue-600 font-mono shrink-0 bg-blue-50 px-1 rounded">{`{{${v.key}}}`}</code>
+              <span className="text-gray-500 truncate">{v.description}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Template input for single-line fields (URL) ──
+function TemplateInput({
+  value,
+  onChange,
+  placeholder,
+  className = '',
+  triggerType,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  className?: string;
+  triggerType?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const allVars = getAvailableVariables(triggerType);
+  const filtered = filter
+    ? allVars.filter(
+        (v) =>
+          v.key.toLowerCase().includes(filter.toLowerCase()) ||
+          v.label.toLowerCase().includes(filter.toLowerCase())
+      )
+    : allVars;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    onChange(newVal);
+
+    const cursorPos = e.target.selectionStart || 0;
+    const textBeforeCursor = newVal.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/\{\{([a-zA-Z0-9_]*)$/);
+
+    if (match) {
+      setFilter(match[1]);
+      setShowSuggestions(true);
+      setSelectedIndex(0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const insertVariable = (variable: string) => {
+    if (!inputRef.current) return;
+
+    const input = inputRef.current;
+    const cursorPos = input.selectionStart || 0;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const textAfterCursor = value.slice(cursorPos);
+
+    const match = textBeforeCursor.match(/\{\{([a-zA-Z0-9_]*)$/);
+    if (match) {
+      const start = cursorPos - match[0].length;
+      const newValue = value.slice(0, start) + `{{${variable}}}` + textAfterCursor;
+      onChange(newValue);
+
+      requestAnimationFrame(() => {
+        const newCursorPos = start + variable.length + 4;
+        input.setSelectionRange(newCursorPos, newCursorPos);
+        input.focus();
+      });
+    }
+
+    setShowSuggestions(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || filtered.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % filtered.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      insertVariable(filtered[selectedIndex].key);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className={className}
+        placeholder={placeholder}
+      />
+      {showSuggestions && filtered.length > 0 && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
+          {filtered.map((v, i) => (
+            <button
+              key={v.key}
+              type="button"
+              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-start gap-2 hover:bg-blue-50 ${
+                i === selectedIndex ? 'bg-blue-50' : ''
+              }`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                insertVariable(v.key);
+              }}
+              onMouseEnter={() => setSelectedIndex(i)}
+            >
+              <code className="text-blue-600 font-mono shrink-0 bg-blue-50 px-1 rounded">{`{{${v.key}}}`}</code>
+              <span className="text-gray-500 truncate">{v.description}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WorkflowDesigner() {
   const { automationId } = useParams<{ automationId: string }>();
   const isLoadingFromServer = useRef(false);
@@ -113,6 +432,29 @@ export default function WorkflowDesigner() {
     show: boolean;
     item: any;
   }>({ show: false, item: null });
+
+  // Find the trigger type connected to the selected node (traverse edges backwards)
+  const getConnectedTriggerType = useCallback((): string | undefined => {
+    if (!selectedNode) return undefined;
+    const visited = new Set<string>();
+    const queue = [selectedNode.id];
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!;
+      if (visited.has(nodeId)) continue;
+      visited.add(nodeId);
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node?.type === 'trigger' && node.data?.triggerType) {
+        return node.data.triggerType as string;
+      }
+      // Find edges pointing to this node and trace back to their source
+      for (const edge of edges) {
+        if (edge.target === nodeId && !visited.has(edge.source)) {
+          queue.push(edge.source);
+        }
+      }
+    }
+    return undefined;
+  }, [selectedNode, nodes, edges]);
 
   // Load history from backend
   const { data: history = [], refetch: refetchHistory, isError: historyError, error: historyErrorData } = useQuery({
