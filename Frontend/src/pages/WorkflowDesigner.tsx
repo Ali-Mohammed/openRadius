@@ -1056,57 +1056,59 @@ export default function WorkflowDesigner() {
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-700 block mb-1.5">URL</label>
-                      <input
-                        type="text"
+                      <TemplateInput
                         value={selectedNode.data.httpUrl || ''}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const updatedNodes = nodes.map(node => 
                             node.id === selectedNode.id 
-                              ? { ...node, data: { ...node.data, httpUrl: e.target.value } }
+                              ? { ...node, data: { ...node.data, httpUrl: val } }
                               : node
                           );
                           setNodes(updatedNodes);
-                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpUrl: e.target.value } });
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpUrl: val } });
                         }}
                         className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
                         placeholder="https://api.example.com/webhook"
+                        triggerType={getConnectedTriggerType()}
                       />
-                      <p className="text-xs text-gray-400 mt-0.5">Use {'{{username}}'}, {'{{userUuid}}'}, etc.</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Type <code className="bg-gray-100 px-0.5 rounded">{'{{'}</code> to see available variables</p>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-700 block mb-1.5">Headers (JSON)</label>
-                      <textarea
+                      <TemplateTextarea
                         value={selectedNode.data.httpHeaders || ''}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const updatedNodes = nodes.map(node => 
                             node.id === selectedNode.id 
-                              ? { ...node, data: { ...node.data, httpHeaders: e.target.value } }
+                              ? { ...node, data: { ...node.data, httpHeaders: val } }
                               : node
                           );
                           setNodes(updatedNodes);
-                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpHeaders: e.target.value } });
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpHeaders: val } });
                         }}
                         rows={3}
                         className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
                         placeholder={'{"Authorization": "Bearer {{token}}"}'}
+                        triggerType={getConnectedTriggerType()}
                       />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-700 block mb-1.5">Body</label>
-                      <textarea
+                      <TemplateTextarea
                         value={selectedNode.data.httpBody || ''}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const updatedNodes = nodes.map(node => 
                             node.id === selectedNode.id 
-                              ? { ...node, data: { ...node.data, httpBody: e.target.value } }
+                              ? { ...node, data: { ...node.data, httpBody: val } }
                               : node
                           );
                           setNodes(updatedNodes);
-                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpBody: e.target.value } });
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpBody: val } });
                         }}
                         rows={4}
                         className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
                         placeholder={'{"username": "{{username}}"}'}
+                        triggerType={getConnectedTriggerType()}
                       />
                     </div>
                     <div>
