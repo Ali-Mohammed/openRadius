@@ -623,6 +623,16 @@ public static class PermissionRouteMap
             new("GET",    "api/workflow-history",                      "billing.automations.view"),
             new("DELETE", "api/workflow-history/*",                    "billing.automations.delete"),
             new("DELETE", "api/workflow-history/cleanup",              "billing.automations.delete"),
+
+            // ═══════════════════════════════════════════════════════════
+            //  API KEYS (management — Keycloak-authenticated)
+            // ═══════════════════════════════════════════════════════════
+            new("GET",    "api/api-keys/scopes",                      "settings.api-keys.view"),
+            new("GET",    "api/api-keys/*",                           "settings.api-keys.view"),
+            new("PUT",    "api/api-keys/*",                           "settings.api-keys.update"),
+            new("DELETE", "api/api-keys/*",                           "settings.api-keys.delete"),
+            new("GET",    "api/api-keys",                             "settings.api-keys.view"),
+            new("POST",   "api/api-keys",                             "settings.api-keys.create"),
         };
     }
 }
