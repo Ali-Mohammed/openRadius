@@ -97,3 +97,45 @@ export const restoreAutomation = async (id: number): Promise<Automation> => {
   const response = await apiClient.post(`/api/automation/${id}/restore`);
   return response.data;
 };
+
+// Test automation execution types
+export interface TestAutomationRequest {
+  triggerType?: string;
+  username?: string;
+  email?: string;
+  context?: Record<string, unknown>;
+}
+
+export interface TestStepResult {
+  stepOrder: number;
+  nodeId: string;
+  nodeType: string;
+  nodeSubType?: string;
+  nodeLabel?: string;
+  status: string;
+  result?: string;
+  errorMessage?: string;
+  executionTimeMs: number;
+  httpMethod?: string;
+  httpUrl?: string;
+  httpResponseStatusCode?: number;
+}
+
+export interface TestAutomationResult {
+  success: boolean;
+  executionUuid: string;
+  status: string;
+  resultSummary?: string;
+  executionTimeMs: number;
+  nodesVisited: number;
+  actionsExecuted: number;
+  actionsSucceeded: number;
+  actionsFailed: number;
+  errorMessage?: string;
+  steps: TestStepResult[];
+}
+
+export const testAutomation = async (id: number, data: TestAutomationRequest): Promise<TestAutomationResult> => {
+  const response = await apiClient.post(`/api/automation/${id}/test`, data);
+  return response.data;
+};
