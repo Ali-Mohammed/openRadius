@@ -27,8 +27,9 @@ public class BillingProfile
     public string? Icon { get; set; } // Icon name for visual identification
     
     // Foreign keys
-    public int RadiusProfileId { get; set; }
+    public int? RadiusProfileId { get; set; } // Optional: null if no radius profile assigned
     public int? BillingGroupId { get; set; } // null means all groups
+    public int? AutomationId { get; set; } // Optional: automation to run on profile events
     
     // Soft delete
     public bool IsDeleted { get; set; }
@@ -54,9 +55,11 @@ public class BillingProfile
     
     // Navigation properties
     [JsonIgnore]
-    public virtual RadiusProfile RadiusProfile { get; set; } = null!;
+    public virtual RadiusProfile? RadiusProfile { get; set; }
     [JsonIgnore]
     public virtual BillingGroup? BillingGroup { get; set; }
+    [JsonIgnore]
+    public virtual Automation? Automation { get; set; }
     [JsonIgnore]
     public virtual ICollection<BillingProfileWallet> ProfileWallets { get; set; } = new List<BillingProfileWallet>();
     [JsonIgnore]

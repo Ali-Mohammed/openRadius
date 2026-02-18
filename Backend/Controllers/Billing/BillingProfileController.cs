@@ -261,11 +261,24 @@ public class BillingProfileController : ControllerBase
                 return BadRequest(new { error = "A billing profile with this name already exists" });
             }
 
-            // Validate RadiusProfile exists
-            var radiusProfile = await _context.RadiusProfiles.FindAsync(request.RadiusProfileId);
-            if (radiusProfile == null)
+            // Validate RadiusProfile exists (optional)
+            if (request.RadiusProfileId.HasValue && request.RadiusProfileId.Value > 0)
             {
-                return BadRequest(new { error = "Invalid radius profile" });
+                var radiusProfile = await _context.RadiusProfiles.FindAsync(request.RadiusProfileId.Value);
+                if (radiusProfile == null)
+                {
+                    return BadRequest(new { error = "Invalid radius profile" });
+                }
+            }
+
+            // Validate Automation exists (optional)
+            if (request.AutomationId.HasValue && request.AutomationId.Value > 0)
+            {
+                var automation = await _context.Automations.FindAsync(request.AutomationId.Value);
+                if (automation == null)
+                {
+                    return BadRequest(new { error = "Invalid automation" });
+                }
             }
 
             // Validate BillingGroup exists (skip if billingGroupId is 0 for "All Groups")
@@ -283,8 +296,9 @@ public class BillingProfileController : ControllerBase
                 Name = request.Name,
                 Description = request.Description,
                 Price = request.Price,
-                RadiusProfileId = request.RadiusProfileId,
+                RadiusProfileId = (request.RadiusProfileId.HasValue && request.RadiusProfileId.Value > 0) ? request.RadiusProfileId : null,
                 BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId, // null means all groups
+                AutomationId = (request.AutomationId.HasValue && request.AutomationId.Value > 0) ? request.AutomationId : null,
                 
                 // Advanced Options
                 IsOffer = request.IsOffer,
@@ -398,8 +412,9 @@ public class BillingProfileController : ControllerBase
             existingProfile.Name = request.Name;
             existingProfile.Description = request.Description;
             existingProfile.Price = request.Price;
-            existingProfile.RadiusProfileId = request.RadiusProfileId;
+            existingProfile.RadiusProfileId = (request.RadiusProfileId.HasValue && request.RadiusProfileId.Value > 0) ? request.RadiusProfileId : null;
             existingProfile.BillingGroupId = request.BillingGroupId == 0 ? null : request.BillingGroupId; // null means all groups
+            existingProfile.AutomationId = (request.AutomationId.HasValue && request.AutomationId.Value > 0) ? request.AutomationId : null;
             
             // Advanced Options
             existingProfile.IsOffer = request.IsOffer;
@@ -577,8 +592,9 @@ public class CreateBillingProfileRequest
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal? Price { get; set; }
-    public int RadiusProfileId { get; set; }
+    public int? RadiusProfileId { get; set; } // Optional
     public int BillingGroupId { get; set; }
+    public int? AutomationId { get; set; } // Optional automation to run
     public List<int>? UserIds { get; set; } // Direct user assignment
     public List<WalletConfigRequest>? Wallets { get; set; }
     public List<AddonConfigRequest>? Addons { get; set; }
@@ -602,8 +618,9 @@ public class UpdateBillingProfileRequest
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal? Price { get; set; }
-    public int RadiusProfileId { get; set; }
+    public int? RadiusProfileId { get; set; } // Optional
     public int BillingGroupId { get; set; }
+    public int? AutomationId { get; set; } // Optional automation to run
     public List<int>? UserIds { get; set; } // Direct user assignment
     public List<WalletConfigRequest>? Wallets { get; set; }
     public List<AddonConfigRequest>? Addons { get; set; }
