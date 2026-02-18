@@ -78,17 +78,17 @@ export function ExecutionHistoryPanel({ automationUuid, onClose }: ExecutionHist
   // Detail view
   if (selectedExecutionUuid) {
     return (
-      <div className="absolute right-0 top-0 bottom-0 w-96 bg-white border-l shadow-xl z-50 flex flex-col">
+      <div className="absolute right-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-900 border-l dark:border-gray-700 shadow-xl z-50 flex flex-col">
         {/* Header */}
-        <div className="px-3 py-2 border-b flex items-center justify-between bg-gray-50">
+        <div className="px-3 py-2 border-b dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-800">
           <button
             onClick={() => { setSelectedExecutionUuid(null); setExpandedStep(null); }}
-            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             Back to list
           </button>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-lg">×</button>
         </div>
 
         {detailLoading ? (
@@ -102,7 +102,7 @@ export function ExecutionHistoryPanel({ automationUuid, onClose }: ExecutionHist
 
             {/* Steps timeline */}
             <div className="px-3 py-2">
-              <h4 className="text-xs font-semibold text-gray-700 mb-2">
+              <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Execution Steps ({executionDetail.steps?.length ?? 0})
               </h4>
               <div className="space-y-1">
@@ -118,7 +118,7 @@ export function ExecutionHistoryPanel({ automationUuid, onClose }: ExecutionHist
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
+          <div className="flex-1 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
             Execution not found
           </div>
         )}
