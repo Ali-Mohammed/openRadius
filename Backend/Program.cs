@@ -289,6 +289,9 @@ try
     // Add Automation Engine Service for evaluating workflow automations on domain events
     builder.Services.AddScoped<IAutomationEngineService, AutomationEngineService>();
 
+    // Add Automation Scheduler Service for managing Hangfire jobs for scheduled automations
+    builder.Services.AddScoped<IAutomationSchedulerService, AutomationSchedulerService>();
+
     // Add System Settings Service for global configuration (Swagger toggle, etc.)
     builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 
@@ -576,6 +579,27 @@ try
             catch (Exception ex)
             {
                 Console.WriteLine($"  ✗ Failed to register jobs for workspace {workspace.Id}: {ex.Message}");
+            }
+        }
+
+        // Register scheduled automations for each workspace
+        Console.WriteLine("🔄 Registering scheduled automation jobs...");
+        foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
+        {
+            try
+            {
+                var tenantConnectionString = GetTenantConnectionString(
+                    builder.Configuration.GetConnectionString("DefaultConnection")!,
+                    workspace.Id
+                );
+
+                using var automationScope = app.Services.CreateScope();
+                var automationScheduler = automationScope.ServiceProvider.GetRequiredService<IAutomationSchedulerService>();
+                await automationScheduler.RegisterAllScheduledAutomationsAsync(workspace.Id, tenantConnectionString);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  ✗ Failed to register scheduled automations for workspace {workspace.Id}: {ex.Message}");
             }
         }
     }
