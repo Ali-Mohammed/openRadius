@@ -1278,6 +1278,32 @@ public class RadiusUserController : ControllerBase
         user.DeletedBy = User.GetSystemUserId();
         await _context.SaveChangesAsync();
 
+        // Fire automation event: User Deleted
+        var deletedEvent = new AutomationEvent
+        {
+            EventType = AutomationEventType.UserDeleted,
+            TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.UserDeleted),
+            RadiusUserId = user.Id,
+            RadiusUserUuid = user.Uuid,
+            RadiusUsername = user.Username,
+            PerformedBy = User.Identity?.Name ?? "System",
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Context = new Dictionary<string, object?>
+            {
+                ["username"] = user.Username,
+                ["email"] = user.Email,
+                ["phone"] = user.Phone,
+                ["triggerSource"] = "user_deleted"
+            }
+        };
+        var deleteTenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+        if (deleteTenantInfo?.ConnectionString != null)
+        {
+            var serializedEvent = System.Text.Json.JsonSerializer.Serialize(deletedEvent);
+            _jobService.Enqueue<IAutomationEngineService>(
+                service => service.ProcessAutomationEventAsync(serializedEvent, deleteTenantInfo.WorkspaceId, deleteTenantInfo.ConnectionString));
+        }
+
         return NoContent();
     }
 

@@ -271,50 +271,50 @@ function ExecutionDetailHeader({ detail }: { detail: AutomationExecutionDetail }
   const StatusIcon = cfg.icon;
 
   return (
-    <div className="px-3 py-3 border-b space-y-2">
+    <div className="px-3 py-3 border-b dark:border-gray-700 space-y-2">
       <div className="flex items-center gap-2">
         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${cfg.bg} ${cfg.color}`}>
           <StatusIcon className={`h-3.5 w-3.5 ${detail.status === 'running' ? 'animate-spin' : ''}`} />
           {cfg.label}
         </span>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
           {TRIGGER_LABELS[detail.triggerType] ?? detail.triggerType}
         </span>
       </div>
 
       {detail.resultSummary && (
-        <p className="text-xs text-gray-700">{detail.resultSummary}</p>
+        <p className="text-xs text-gray-700 dark:text-gray-300">{detail.resultSummary}</p>
       )}
 
       {detail.errorMessage && (
-        <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+        <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-2 rounded border border-red-200 dark:border-red-800">
           {detail.errorMessage}
         </div>
       )}
 
       {/* Metrics grid */}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-gray-50 rounded p-1.5">
-          <div className="text-xs font-bold text-gray-700">{detail.nodesVisited}</div>
-          <div className="text-xs text-gray-500">Visited</div>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded p-1.5">
+          <div className="text-xs font-bold text-gray-700 dark:text-gray-300">{detail.nodesVisited}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Visited</div>
         </div>
-        <div className="bg-gray-50 rounded p-1.5">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded p-1.5">
           <div className="text-xs font-bold text-green-600">{detail.actionsSucceeded}</div>
-          <div className="text-xs text-gray-500">Succeeded</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Succeeded</div>
         </div>
-        <div className="bg-gray-50 rounded p-1.5">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded p-1.5">
           <div className="text-xs font-bold text-red-600">{detail.actionsFailed}</div>
-          <div className="text-xs text-gray-500">Failed</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Failed</div>
         </div>
       </div>
 
       {/* Metadata */}
-      <div className="text-xs text-gray-500 space-y-0.5">
-        {detail.radiusUsername && <div>User: <span className="font-medium text-gray-700">{detail.radiusUsername}</span></div>}
-        {detail.triggeredBy && <div>By: <span className="font-medium text-gray-700">{detail.triggeredBy}</span></div>}
-        <div>Time: <span className="font-medium text-gray-700">{detail.executionTimeMs}ms</span></div>
-        {detail.environment && <div>Env: <span className="font-medium text-gray-700">{detail.environment}</span></div>}
-        <div>Correlation: <span className="font-mono text-gray-600 text-xs">{detail.correlationId.slice(0, 8)}...</span></div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+        {detail.radiusUsername && <div>User: <span className="font-medium text-gray-700 dark:text-gray-300">{detail.radiusUsername}</span></div>}
+        {detail.triggeredBy && <div>By: <span className="font-medium text-gray-700 dark:text-gray-300">{detail.triggeredBy}</span></div>}
+        <div>Time: <span className="font-medium text-gray-700 dark:text-gray-300">{detail.executionTimeMs}ms</span></div>
+        {detail.environment && <div>Env: <span className="font-medium text-gray-700 dark:text-gray-300">{detail.environment}</span></div>}
+        <div>Correlation: <span className="font-mono text-gray-600 dark:text-gray-400 text-xs">{detail.correlationId.slice(0, 8)}...</span></div>
         <div>{new Date(detail.createdAt).toLocaleString()}</div>
       </div>
     </div>
@@ -342,17 +342,17 @@ function StepCard({
   const isHttpStep = step.nodeSubType === 'http-request';
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full text-left px-2.5 py-2 hover:bg-gray-50 transition-colors"
+        className="w-full text-left px-2.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-gray-400 w-4 text-right">{step.stepOrder}</span>
+          <span className="text-xs font-mono text-gray-400 dark:text-gray-500 w-4 text-right">{step.stepOrder}</span>
           <span className="text-sm">{nodeTypeIcon}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-gray-800 truncate">
+              <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
                 {step.nodeLabel ?? step.nodeSubType ?? step.nodeType}
               </span>
               <span className={`inline-flex px-1 py-0.5 rounded text-xs ${stepCfg.bg} ${stepCfg.color}`}>
@@ -360,25 +360,25 @@ function StepCard({
               </span>
             </div>
             {step.result && !isExpanded && (
-              <div className="text-xs text-gray-500 truncate mt-0.5">{step.result}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{step.result}</div>
             )}
           </div>
-          <span className="text-xs text-gray-400">{step.executionTimeMs}ms</span>
-          <ChevronRight className={`h-3 w-3 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+          <span className="text-xs text-gray-400 dark:text-gray-500">{step.executionTimeMs}ms</span>
+          <ChevronRight className={`h-3 w-3 text-gray-400 dark:text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         </div>
       </button>
 
       {isExpanded && (
-        <div className="px-2.5 pb-2.5 border-t bg-gray-50 space-y-2 text-xs">
+        <div className="px-2.5 pb-2.5 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-2 text-xs">
           {step.result && (
             <div className="pt-2">
-              <span className="font-semibold text-gray-600">Result: </span>
-              <span className="text-gray-700">{step.result}</span>
+              <span className="font-semibold text-gray-600 dark:text-gray-400">Result: </span>
+              <span className="text-gray-700 dark:text-gray-300">{step.result}</span>
             </div>
           )}
 
           {step.errorMessage && (
-            <div className="text-red-600 bg-red-50 p-2 rounded border border-red-200">
+            <div className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-2 rounded border border-red-200 dark:border-red-800">
               {step.errorMessage}
             </div>
           )}
@@ -387,12 +387,12 @@ function StepCard({
           {isHttpStep && (
             <div className="space-y-2">
               {step.httpMethod && step.httpUrl && (
-                <div className="bg-white p-2 rounded border space-y-1">
-                  <div className="font-semibold text-gray-600 flex items-center gap-1">
+                <div className="bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-700 space-y-1">
+                  <div className="font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1">
                     <Globe className="h-3 w-3" />
                     Request
                   </div>
-                  <div className="font-mono text-gray-800">
+                  <div className="font-mono text-gray-800 dark:text-gray-200">
                     <span className="font-bold text-blue-600">{step.httpMethod}</span>{' '}
                     <span className="break-all">{step.httpUrl}</span>
                   </div>
@@ -406,15 +406,15 @@ function StepCard({
               )}
 
               {step.httpResponseStatusCode != null && (
-                <div className="bg-white p-2 rounded border space-y-1">
-                  <div className="font-semibold text-gray-600 flex items-center gap-1">
+                <div className="bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-700 space-y-1">
+                  <div className="font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1">
                     <ArrowRight className="h-3 w-3" />
                     Response
                     <span className={`ml-1 font-bold ${step.httpResponseStatusCode < 400 ? 'text-green-600' : 'text-red-600'}`}>
                       {step.httpResponseStatusCode}
                     </span>
                     {step.httpResponseTimeMs != null && (
-                      <span className="text-gray-400 font-normal ml-auto">{step.httpResponseTimeMs}ms</span>
+                      <span className="text-gray-400 dark:text-gray-500 font-normal ml-auto">{step.httpResponseTimeMs}ms</span>
                     )}
                   </div>
                   {step.httpResponseHeaders && (
@@ -453,13 +453,13 @@ function CollapsibleJson({ label, json }: { label: string; json: string }) {
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-0.5"
+        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center gap-0.5"
       >
         <ChevronRight className={`h-3 w-3 transition-transform ${open ? 'rotate-90' : ''}`} />
         {label}
       </button>
       {open && (
-        <pre className="mt-1 text-xs bg-gray-100 p-2 rounded overflow-x-auto max-h-40 text-gray-700 font-mono whitespace-pre-wrap break-all">
+        <pre className="mt-1 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto max-h-40 text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-all">
           {formatted}
         </pre>
       )}

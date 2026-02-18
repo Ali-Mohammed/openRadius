@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Backend.Helpers;
 using Backend.Models;
+using Backend.Services;
 using System.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
@@ -2129,6 +2130,49 @@ namespace Backend.Controllers.Payments
                     customWallet.Name, customBalanceBefore, customWallet.CurrentBalance,
                     paymentLog.UserId, userBalanceBefore, userWallet.CurrentBalance,
                     paymentLog.Amount);
+
+                // Fire automation event: Payment Received
+                try
+                {
+                    var paymentEvent = new AutomationEvent
+                    {
+                        EventType = AutomationEventType.PaymentReceived,
+                        TriggerType = AutomationEvent.GetTriggerTypeString(AutomationEventType.PaymentReceived),
+                        RadiusUserId = 0,
+                        RadiusUserUuid = Guid.Empty,
+                        RadiusUsername = $"user-{paymentLog.UserId}",
+                        PerformedBy = "Payment Gateway",
+                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                        OccurredAt = DateTime.UtcNow,
+                        Context = new Dictionary<string, object?>
+                        {
+                            ["userId"] = paymentLog.UserId,
+                            ["amount"] = paymentLog.Amount,
+                            ["currency"] = paymentLog.Currency,
+                            ["gateway"] = paymentLog.Gateway,
+                            ["transactionId"] = paymentLog.TransactionId,
+                            ["serviceType"] = paymentLog.ServiceType,
+                            ["triggerSource"] = "payment_received"
+                        }
+                    };
+
+                    var accessor = HttpContext.RequestServices.GetService<Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<WorkspaceTenantInfo>>();
+                    var paymentTenantInfo = accessor?.MultiTenantContext?.TenantInfo;
+                    if (paymentTenantInfo?.ConnectionString != null)
+                    {
+                        var serializedEvent = JsonSerializer.Serialize(paymentEvent);
+                        var jobService = HttpContext.RequestServices.GetService<IWorkspaceJobService>();
+                        if (jobService != null)
+                        {
+                            jobService.Enqueue<IAutomationEngineService>(
+                                service => service.ProcessAutomationEventAsync(serializedEvent, paymentTenantInfo.WorkspaceId, paymentTenantInfo.ConnectionString));
+                        }
+                    }
+                }
+                catch (Exception eventEx)
+                {
+                    _logger.LogWarning(eventEx, "Failed to fire PaymentReceived automation event for transaction {TransactionId}", paymentLog.TransactionId);
+                }
             }
             catch (Exception ex)
             {

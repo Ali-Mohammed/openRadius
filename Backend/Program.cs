@@ -292,6 +292,9 @@ try
     // Add Automation Scheduler Service for managing Hangfire jobs for scheduled automations
     builder.Services.AddScoped<IAutomationSchedulerService, AutomationSchedulerService>();
 
+    // Add User Lifecycle Event Service for detecting expired/churned users and firing automation events
+    builder.Services.AddScoped<IUserLifecycleEventService, UserLifecycleEventService>();
+
     // Add System Settings Service for global configuration (Swagger toggle, etc.)
     builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 
@@ -600,6 +603,57 @@ try
             catch (Exception ex)
             {
                 Console.WriteLine($"  ✗ Failed to register scheduled automations for workspace {workspace.Id}: {ex.Message}");
+            }
+        }
+
+        // Register user lifecycle event detection jobs (expired & churned users)
+        Console.WriteLine("🔄 Registering user lifecycle event detection jobs...");
+        foreach (var workspace in workspaces.Where(w => w.DeletedAt == null))
+        {
+            try
+            {
+                var tenantConnectionString = GetTenantConnectionString(
+                    builder.Configuration.GetConnectionString("DefaultConnection")!,
+                    workspace.Id
+                );
+
+                var lifecycleHangfireOptions = new Hangfire.PostgreSql.PostgreSqlStorageOptions
+                {
+                    SchemaName = "hangfire"
+                };
+                var lifecycleStorage = new Hangfire.PostgreSql.PostgreSqlStorage(
+                    new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(tenantConnectionString, lifecycleHangfireOptions),
+                    lifecycleHangfireOptions);
+
+                var lifecycleJobManager = new Hangfire.RecurringJobManager(lifecycleStorage);
+
+                // Detect expired users every 5 minutes
+                var expiredJobId = $"workspace_{workspace.Id}_detect-expired-users";
+                lifecycleJobManager.AddOrUpdate<IUserLifecycleEventService>(
+                    expiredJobId,
+                    service => service.DetectExpiredUsersAsync(workspace.Id, tenantConnectionString),
+                    "*/5 * * * *",
+                    new Hangfire.RecurringJobOptions
+                    {
+                        TimeZone = TimeZoneInfo.Utc
+                    });
+
+                // Detect churned users every hour
+                var churnedJobId = $"workspace_{workspace.Id}_detect-churned-users";
+                lifecycleJobManager.AddOrUpdate<IUserLifecycleEventService>(
+                    churnedJobId,
+                    service => service.DetectChurnedUsersAsync(workspace.Id, tenantConnectionString),
+                    "0 * * * *",
+                    new Hangfire.RecurringJobOptions
+                    {
+                        TimeZone = TimeZoneInfo.Utc
+                    });
+
+                Console.WriteLine($"  ✓ Registered lifecycle detection jobs for workspace {workspace.Id}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  ✗ Failed to register lifecycle detection jobs for workspace {workspace.Id}: {ex.Message}");
             }
         }
     }
