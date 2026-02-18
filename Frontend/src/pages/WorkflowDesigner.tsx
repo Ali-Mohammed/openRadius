@@ -1385,11 +1385,11 @@ export default function WorkflowDesigner() {
             <AlertDialogDescription>
               This will replace your current workflow with the selected version from history.
               {restoreConfirm.item && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-1">
-                  <div className="text-sm font-medium text-gray-900">
+                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-1">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {new Date(restoreConfirm.item.createdAt).toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
                     {restoreConfirm.item.nodeCount} nodes, {restoreConfirm.item.edgeCount} connections
                   </div>
                 </div>
@@ -1409,19 +1409,19 @@ export default function WorkflowDesigner() {
       {/* Test Automation Dialog */}
       {showTestDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-2xl border w-[520px] max-h-[85vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-700 w-[520px] max-h-[85vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-green-100 rounded-lg">
-                  <Play className="h-4 w-4 text-green-600" />
+                <div className="p-1.5 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <Play className="h-4 w-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">Test Automation</h3>
                   <p className="text-xs text-muted-foreground">Run the workflow with sample data</p>
                 </div>
               </div>
-              <button onClick={() => setShowTestDialog(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowTestDialog(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1432,11 +1432,11 @@ export default function WorkflowDesigner() {
               {!testResult && !testMutation.isPending && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-700">Trigger Type</label>
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Trigger Type</label>
                     <select
                       value={testTriggerType}
                       onChange={(e) => setTestTriggerType(e.target.value)}
-                      className="w-full h-9 px-3 rounded-md border text-sm bg-white"
+                      className="w-full h-9 px-3 rounded-md border dark:border-gray-700 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
                     >
                       {TRIGGER_TYPES.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -1446,7 +1446,7 @@ export default function WorkflowDesigner() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-700">Test Username</label>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Test Username</label>
                       <input
                         type="text"
                         value={testUsername}
@@ -1456,7 +1456,7 @@ export default function WorkflowDesigner() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-700">Test Email</label>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Test Email</label>
                       <input
                         type="text"
                         value={testEmail}
@@ -1468,7 +1468,7 @@ export default function WorkflowDesigner() {
                   </div>
 
                   {testError && (
-                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                    <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
                       <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
                       <span>{testError}</span>
                     </div>
@@ -1480,8 +1480,8 @@ export default function WorkflowDesigner() {
               {testMutation.isPending && (
                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                  <p className="text-sm text-gray-600 font-medium">Running test...</p>
-                  <p className="text-xs text-gray-400">Executing workflow nodes</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Running test...</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Executing workflow nodes</p>
                 </div>
               )}
 
@@ -1490,9 +1490,9 @@ export default function WorkflowDesigner() {
                 <div className="space-y-3">
                   {/* Status Banner */}
                   <div className={`p-3 rounded-lg border flex items-center gap-3 ${
-                    testResult.status === 'completed' ? 'bg-green-50 border-green-200' :
-                    testResult.status === 'completed_with_errors' ? 'bg-amber-50 border-amber-200' :
-                    'bg-red-50 border-red-200'
+                    testResult.status === 'completed' ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' :
+                    testResult.status === 'completed_with_errors' ? 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800' :
+                    'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
                   }`}>
                     {testResult.status === 'completed' ? (
                       <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
@@ -1512,7 +1512,7 @@ export default function WorkflowDesigner() {
                          'Test Failed'}
                       </p>
                       {testResult.resultSummary && (
-                        <p className="text-xs text-gray-600 mt-0.5">{testResult.resultSummary}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{testResult.resultSummary}</p>
                       )}
                     </div>
                   </div>
@@ -1525,16 +1525,16 @@ export default function WorkflowDesigner() {
                       { label: 'Passed', value: testResult.actionsSucceeded },
                       { label: 'Time', value: `${testResult.executionTimeMs}ms` },
                     ].map((stat) => (
-                      <div key={stat.label} className="text-center px-2 py-2 rounded-lg bg-gray-50 border">
-                        <div className="text-sm font-semibold text-gray-900">{stat.value}</div>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">{stat.label}</div>
+                      <div key={stat.label} className="text-center px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border dark:border-gray-700">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{stat.value}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{stat.label}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Error message */}
                   {testResult.errorMessage && (
-                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-mono whitespace-pre-wrap">
+                    <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-400 font-mono whitespace-pre-wrap">
                       {testResult.errorMessage}
                     </div>
                   )}
@@ -1542,12 +1542,12 @@ export default function WorkflowDesigner() {
                   {/* Steps */}
                   {testResult.steps && testResult.steps.length > 0 && (
                     <div className="space-y-1.5">
-                      <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Execution Steps</h4>
+                      <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Execution Steps</h4>
                       <div className="space-y-1">
                         {testResult.steps.map((step: TestStepResult) => (
                           <div
                             key={step.stepOrder}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-xs"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 text-xs"
                           >
                             <span className="text-gray-400 font-mono w-5 shrink-0">#{step.stepOrder}</span>
                             {step.status === 'completed' ? (
@@ -1562,7 +1562,7 @@ export default function WorkflowDesigner() {
                               <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <span className="font-medium text-gray-800">
+                              <span className="font-medium text-gray-800 dark:text-gray-200">
                                 {step.nodeLabel || step.nodeSubType || step.nodeType}
                               </span>
                               {step.httpMethod && step.httpUrl && (
@@ -1572,7 +1572,7 @@ export default function WorkflowDesigner() {
                               )}
                               {step.httpResponseStatusCode && (
                                 <span className={`ml-1 px-1 py-0.5 rounded text-[10px] font-mono ${
-                                  step.httpResponseStatusCode < 400 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                  step.httpResponseStatusCode < 400 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-400'
                                 }`}>
                                   {step.httpResponseStatusCode}
                                 </span>
@@ -1599,10 +1599,10 @@ export default function WorkflowDesigner() {
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t flex items-center justify-between bg-gray-50/50 rounded-b-xl">
+            <div className="px-5 py-3 border-t dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50 rounded-b-xl">
               <button
                 onClick={() => setShowTestDialog(false)}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 Close
               </button>
@@ -1610,7 +1610,7 @@ export default function WorkflowDesigner() {
                 {testResult && (
                   <button
                     onClick={() => { setTestResult(null); setTestError(null); }}
-                    className="px-3 py-1.5 text-xs rounded-md border bg-white hover:bg-gray-50 text-gray-700 font-medium"
+                    className="px-3 py-1.5 text-xs rounded-md border dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium"
                   >
                     Configure
                   </button>
