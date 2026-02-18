@@ -438,6 +438,14 @@ export default function WorkflowDesigner() {
     item: any;
   }>({ show: false, item: null });
 
+  // Test execution state
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testTriggerType, setTestTriggerType] = useState('user-created');
+  const [testUsername, setTestUsername] = useState('test_user');
+  const [testEmail, setTestEmail] = useState('test@example.com');
+  const [testResult, setTestResult] = useState<TestAutomationResult | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+
   // Find the trigger type connected to the selected node (traverse edges backwards)
   const getConnectedTriggerType = useCallback((): string | undefined => {
     if (!selectedNode) return undefined;
@@ -683,8 +691,47 @@ export default function WorkflowDesigner() {
   };
 
   const handleTest = () => {
-    toast.info('Workflow testing will be implemented');
+    // Auto-detect trigger type from workflow nodes
+    const triggerNodes = nodes.filter(n => n.type === 'trigger');
+    if (triggerNodes.length > 0 && triggerNodes[0].data?.triggerType) {
+      setTestTriggerType(triggerNodes[0].data.triggerType);
+    }
+    setTestResult(null);
+    setTestError(null);
+    setShowTestDialog(true);
   };
+
+  const testMutation = useMutation({
+    mutationFn: () => testAutomation(parseInt(automationId!), {
+      triggerType: testTriggerType,
+      username: testUsername,
+      email: testEmail,
+      context: {
+        username: testUsername,
+        email: testEmail,
+        phone: '0000000000',
+        enabled: true,
+        balance: 100.00,
+      },
+    }),
+    onSuccess: (data) => {
+      setTestResult(data);
+      setTestError(null);
+      if (data.status === 'completed') {
+        toast.success(`Test passed — ${data.actionsSucceeded}/${data.actionsExecuted} actions succeeded in ${data.executionTimeMs}ms`);
+      } else if (data.status === 'completed_with_errors') {
+        toast.warning(`Test completed with errors — ${data.actionsFailed} action(s) failed`);
+      } else {
+        toast.error(`Test failed: ${data.errorMessage || 'Unknown error'}`);
+      }
+    },
+    onError: (error: any) => {
+      const msg = error.response?.data?.error || error.message || 'Test failed';
+      setTestError(msg);
+      setTestResult(null);
+      toast.error(msg);
+    },
+  });
 
   const restoreFromHistory = useCallback((historyItem: any) => {
     setRestoreConfirm({ show: true, item: historyItem });
@@ -1338,6 +1385,233 @@ export default function WorkflowDesigner() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Automation Dialog */}
+      {showTestDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl border w-[520px] max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-green-100 rounded-lg">
+                  <Play className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Test Automation</h3>
+                  <p className="text-xs text-muted-foreground">Run the workflow with sample data</p>
+                </div>
+              </div>
+              <button onClick={() => setShowTestDialog(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              {/* Config section — hide when results are showing */}
+              {!testResult && !testMutation.isPending && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-700">Trigger Type</label>
+                    <select
+                      value={testTriggerType}
+                      onChange={(e) => setTestTriggerType(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md border text-sm bg-white"
+                    >
+                      {TRIGGER_TYPES.map(t => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-gray-700">Test Username</label>
+                      <input
+                        type="text"
+                        value={testUsername}
+                        onChange={(e) => setTestUsername(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border text-sm"
+                        placeholder="test_user"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-gray-700">Test Email</label>
+                      <input
+                        type="text"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border text-sm"
+                        placeholder="test@example.com"
+                      />
+                    </div>
+                  </div>
+
+                  {testError && (
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                      <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{testError}</span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Loading state */}
+              {testMutation.isPending && (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  <p className="text-sm text-gray-600 font-medium">Running test...</p>
+                  <p className="text-xs text-gray-400">Executing workflow nodes</p>
+                </div>
+              )}
+
+              {/* Results */}
+              {testResult && (
+                <div className="space-y-3">
+                  {/* Status Banner */}
+                  <div className={`p-3 rounded-lg border flex items-center gap-3 ${
+                    testResult.status === 'completed' ? 'bg-green-50 border-green-200' :
+                    testResult.status === 'completed_with_errors' ? 'bg-amber-50 border-amber-200' :
+                    'bg-red-50 border-red-200'
+                  }`}>
+                    {testResult.status === 'completed' ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                    ) : testResult.status === 'completed_with_errors' ? (
+                      <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+                    )}
+                    <div>
+                      <p className={`text-sm font-medium ${
+                        testResult.status === 'completed' ? 'text-green-800' :
+                        testResult.status === 'completed_with_errors' ? 'text-amber-800' :
+                        'text-red-800'
+                      }`}>
+                        {testResult.status === 'completed' ? 'Test Passed' :
+                         testResult.status === 'completed_with_errors' ? 'Completed with Errors' :
+                         'Test Failed'}
+                      </p>
+                      {testResult.resultSummary && (
+                        <p className="text-xs text-gray-600 mt-0.5">{testResult.resultSummary}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: 'Nodes', value: testResult.nodesVisited },
+                      { label: 'Actions', value: testResult.actionsExecuted },
+                      { label: 'Passed', value: testResult.actionsSucceeded },
+                      { label: 'Time', value: `${testResult.executionTimeMs}ms` },
+                    ].map((stat) => (
+                      <div key={stat.label} className="text-center px-2 py-2 rounded-lg bg-gray-50 border">
+                        <div className="text-sm font-semibold text-gray-900">{stat.value}</div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">{stat.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Error message */}
+                  {testResult.errorMessage && (
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-mono whitespace-pre-wrap">
+                      {testResult.errorMessage}
+                    </div>
+                  )}
+
+                  {/* Steps */}
+                  {testResult.steps && testResult.steps.length > 0 && (
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Execution Steps</h4>
+                      <div className="space-y-1">
+                        {testResult.steps.map((step: TestStepResult) => (
+                          <div
+                            key={step.stepOrder}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-xs"
+                          >
+                            <span className="text-gray-400 font-mono w-5 shrink-0">#{step.stepOrder}</span>
+                            {step.status === 'completed' ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                            ) : step.status === 'failed' ? (
+                              <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                            ) : step.status === 'condition_true' ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                            ) : step.status === 'condition_false' ? (
+                              <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                            ) : (
+                              <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-medium text-gray-800">
+                                {step.nodeLabel || step.nodeSubType || step.nodeType}
+                              </span>
+                              {step.httpMethod && step.httpUrl && (
+                                <span className="ml-1.5 text-gray-400">
+                                  {step.httpMethod} {step.httpUrl.length > 30 ? step.httpUrl.substring(0, 30) + '...' : step.httpUrl}
+                                </span>
+                              )}
+                              {step.httpResponseStatusCode && (
+                                <span className={`ml-1 px-1 py-0.5 rounded text-[10px] font-mono ${
+                                  step.httpResponseStatusCode < 400 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {step.httpResponseStatusCode}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-gray-400 shrink-0">{step.executionTimeMs}ms</span>
+                            {step.result && (
+                              <span className="text-gray-500 truncate max-w-[100px]" title={step.result}>
+                                {step.result}
+                              </span>
+                            )}
+                            {step.errorMessage && (
+                              <span className="text-red-500 truncate max-w-[120px]" title={step.errorMessage}>
+                                {step.errorMessage}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t flex items-center justify-between bg-gray-50/50 rounded-b-xl">
+              <button
+                onClick={() => setShowTestDialog(false)}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Close
+              </button>
+              <div className="flex gap-2">
+                {testResult && (
+                  <button
+                    onClick={() => { setTestResult(null); setTestError(null); }}
+                    className="px-3 py-1.5 text-xs rounded-md border bg-white hover:bg-gray-50 text-gray-700 font-medium"
+                  >
+                    Configure
+                  </button>
+                )}
+                <button
+                  onClick={() => testMutation.mutate()}
+                  disabled={testMutation.isPending}
+                  className="px-4 py-1.5 text-xs rounded-md bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {testMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                  {testResult ? 'Run Again' : 'Run Test'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
