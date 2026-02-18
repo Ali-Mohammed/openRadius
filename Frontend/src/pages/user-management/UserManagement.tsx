@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { 
   Pencil, RefreshCw, Download, Users, Shield, X, UserPlus, Key, UserX, UserCheck, UserCog, MapPin, 
   Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, ArrowUpDown, ArrowUp, ArrowDown,
-  FileText, Building2, MoreVertical, ChevronsUpDown, Check
+  FileText, Building2, MoreVertical, ChevronsUpDown, Check, AlertTriangle
 } from 'lucide-react'
 import { userManagementApi, type User, type BulkUpdateRolesGroupsRequest } from '@/api/userManagementApi'
 import { zoneApi } from '@/services/zoneApi'
@@ -26,6 +26,7 @@ import { formatApiError } from '@/utils/errorHandler'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { tablePreferenceApi } from '@/api/tablePreferenceApi'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 // Column definitions
