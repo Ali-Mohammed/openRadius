@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using Backend.Helpers;
+using Backend.Services;
+using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
 
 namespace Backend.Controllers;
 
@@ -13,15 +16,21 @@ public class AutomationController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AutomationController> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAutomationSchedulerService _schedulerService;
+    private readonly IMultiTenantContextAccessor<WorkspaceTenantInfo> _tenantAccessor;
 
     public AutomationController(
         ApplicationDbContext context,
         ILogger<AutomationController> logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IAutomationSchedulerService schedulerService,
+        IMultiTenantContextAccessor<WorkspaceTenantInfo> tenantAccessor)
     {
         _context = context;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
+        _schedulerService = schedulerService;
+        _tenantAccessor = tenantAccessor;
     }
 
     private string? GetCurrentUserId()
