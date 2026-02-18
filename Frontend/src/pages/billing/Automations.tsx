@@ -323,6 +323,25 @@ export default function Automations() {
                           {automation.description || '-'}
                         </TableCell>
                         <TableCell>
+                          {(() => {
+                            const triggerOpt = TRIGGER_TYPE_OPTIONS.find(t => t.value === automation.triggerType);
+                            const TriggerIcon = triggerOpt?.icon || MousePointerClick;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <TriggerIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm">{triggerOpt?.label || automation.triggerType}</span>
+                                {automation.triggerType === 'scheduled' && automation.scheduleType && (
+                                  <Badge variant="outline" className="text-[10px] ml-1">
+                                    {automation.scheduleType === 'periodic'
+                                      ? `${automation.scheduleIntervalMinutes}m`
+                                      : 'once'}
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={statusOption?.variant}>
                             {statusOption?.label}
                           </Badge>
