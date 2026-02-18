@@ -156,6 +156,9 @@ public class AutomationController : ControllerBase
             _context.Automations.Add(automation);
             await _context.SaveChangesAsync();
 
+            // Register Hangfire job if this is a scheduled automation
+            SyncAutomationHangfireJob(automation);
+
             return CreatedAtAction(nameof(GetAutomation), new { id = automation.Id }, automation);
         }
         catch (Exception ex)
@@ -195,6 +198,9 @@ public class AutomationController : ControllerBase
 
             await _context.SaveChangesAsync();
 
+            // Update Hangfire job (register/update/remove based on trigger type & status)
+            SyncAutomationHangfireJob(automation);
+
             return Ok(automation);
         }
         catch (Exception ex)
@@ -222,6 +228,9 @@ public class AutomationController : ControllerBase
             automation.DeletedBy = User.GetSystemUserId();
 
             await _context.SaveChangesAsync();
+
+            // Remove Hangfire job for deleted automation
+            RemoveAutomationHangfireJob(automation.Id);
 
             return NoContent();
         }
@@ -257,6 +266,51 @@ public class AutomationController : ControllerBase
         {
             _logger.LogError(ex, "Error restoring automation {Id}", id);
             return StatusCode(500, new { error = "An error occurred while restoring the automation" });
+        }
+    }
+    /// <summary>
+    /// Syncs the Hangfire job for a scheduled automation using current tenant context.
+    /// </summary>
+    private void SyncAutomationHangfireJob(Automation automation)
+    {
+        try
+        {
+            var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+            if (tenantInfo?.ConnectionString == null)
+            {
+                _logger.LogWarning("No tenant context available for Hangfire job sync");
+                return;
+            }
+
+            ((AutomationSchedulerService)_schedulerService)
+                .SyncAutomationJob(automation, tenantInfo.WorkspaceId, tenantInfo.ConnectionString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync Hangfire job for automation {AutomationId}", automation.Id);
+        }
+    }
+
+    /// <summary>
+    /// Removes the Hangfire job for an automation using current tenant context.
+    /// </summary>
+    private void RemoveAutomationHangfireJob(int automationId)
+    {
+        try
+        {
+            var tenantInfo = _tenantAccessor.MultiTenantContext?.TenantInfo;
+            if (tenantInfo?.ConnectionString == null)
+            {
+                _logger.LogWarning("No tenant context available for Hangfire job removal");
+                return;
+            }
+
+            ((AutomationSchedulerService)_schedulerService)
+                .RemoveAutomationJob(automationId, tenantInfo.WorkspaceId, tenantInfo.ConnectionString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove Hangfire job for automation {AutomationId}", automationId);
         }
     }
 }
