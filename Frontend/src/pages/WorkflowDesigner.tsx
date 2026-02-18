@@ -49,12 +49,15 @@ import {
   MessageSquare,
   History,
   RotateCcw,
-  ShieldCheck
+  ShieldCheck,
+  Globe,
+  Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getAutomationById, updateAutomation } from '../api/automations';
 import { workflowHistoryApi } from '../api/workflowHistory';
+import { ExecutionHistoryPanel } from '../components/workflow/ExecutionHistoryPanel';
 
 
 const nodeTypes = {
@@ -82,6 +85,7 @@ const ACTION_TYPES = [
   { value: 'suspend-user', label: 'Suspend User', description: 'Suspend user account', icon: UserMinus },
   { value: 'apply-discount', label: 'Apply Discount', description: 'Apply a discount code', icon: Percent },
   { value: 'update-profile', label: 'Update Profile', description: 'Update user profile fields', icon: FileEdit },
+  { value: 'http-request', label: 'HTTP Request', description: 'Make an HTTP API call', icon: Globe },
 ];
 
 const CONDITION_TYPES = [
@@ -104,6 +108,7 @@ export default function WorkflowDesigner() {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showExecutionHistory, setShowExecutionHistory] = useState(false);
   const [restoreConfirm, setRestoreConfirm] = useState<{
     show: boolean;
     item: any;
@@ -657,6 +662,153 @@ export default function WorkflowDesigner() {
                     placeholder="Enter description..."
                   />
                 </div>
+                {/* HTTP Request Configuration */}
+                {selectedNode.type === 'action' && selectedNode.data.actionType === 'http-request' && (
+                  <>
+                    <div className="pt-1 border-t">
+                      <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                        <Globe className="h-3.5 w-3.5" /> HTTP Request Config
+                      </h4>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Method</label>
+                      <select
+                        value={selectedNode.data.httpMethod || 'GET'}
+                        onChange={(e) => {
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpMethod: e.target.value } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpMethod: e.target.value } });
+                        }}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">URL</label>
+                      <input
+                        type="text"
+                        value={selectedNode.data.httpUrl || ''}
+                        onChange={(e) => {
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpUrl: e.target.value } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpUrl: e.target.value } });
+                        }}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                        placeholder="https://api.example.com/webhook"
+                      />
+                      <p className="text-xs text-gray-400 mt-0.5">Use {'{{username}}'}, {'{{userUuid}}'}, etc.</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Headers (JSON)</label>
+                      <textarea
+                        value={selectedNode.data.httpHeaders || ''}
+                        onChange={(e) => {
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpHeaders: e.target.value } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpHeaders: e.target.value } });
+                        }}
+                        rows={3}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                        placeholder={'{"Authorization": "Bearer {{token}}"}'}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Body</label>
+                      <textarea
+                        value={selectedNode.data.httpBody || ''}
+                        onChange={(e) => {
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpBody: e.target.value } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpBody: e.target.value } });
+                        }}
+                        rows={4}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                        placeholder={'{"username": "{{username}}"}'}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Content Type</label>
+                      <select
+                        value={selectedNode.data.httpContentType || 'application/json'}
+                        onChange={(e) => {
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpContentType: e.target.value } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpContentType: e.target.value } });
+                        }}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="application/json">application/json</option>
+                        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                        <option value="text/plain">text/plain</option>
+                        <option value="text/xml">text/xml</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Expected Status Codes</label>
+                      <input
+                        type="text"
+                        value={selectedNode.data.httpExpectedStatusCodes || '200-299'}
+                        onChange={(e) => {
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpExpectedStatusCodes: e.target.value } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpExpectedStatusCodes: e.target.value } });
+                        }}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="200-299"
+                      />
+                      <p className="text-xs text-gray-400 mt-0.5">e.g., 200-299 or 200,201,204</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1.5">Timeout (seconds)</label>
+                      <input
+                        type="number"
+                        value={selectedNode.data.httpTimeoutSeconds || 30}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 30;
+                          const updatedNodes = nodes.map(node => 
+                            node.id === selectedNode.id 
+                              ? { ...node, data: { ...node.data, httpTimeoutSeconds: val } }
+                              : node
+                          );
+                          setNodes(updatedNodes);
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, httpTimeoutSeconds: val } });
+                        }}
+                        min={1}
+                        max={120}
+                        className="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               <div className="px-3 py-3 border-t bg-gray-50">
                 <button
@@ -730,6 +882,23 @@ export default function WorkflowDesigner() {
           >
             <History className="h-4 w-4 text-gray-700" />
           </button>
+          
+          {/* Execution History Toggle Button */}
+          <button
+            onClick={() => setShowExecutionHistory(!showExecutionHistory)}
+            className="absolute top-4 left-72 z-40 bg-white border shadow-md hover:shadow-lg p-2.5 rounded-lg transition-all hover:bg-gray-50"
+            title="Execution History"
+          >
+            <Activity className="h-4 w-4 text-gray-700" />
+          </button>
+          
+          {/* Execution History Panel */}
+          {showExecutionHistory && automation?.uuid && (
+            <ExecutionHistoryPanel
+              automationUuid={automation.uuid}
+              onClose={() => setShowExecutionHistory(false)}
+            />
+          )}
           
           {/* Loading Indicator */}
           {(isLoading || saveMutation.isPending) && (

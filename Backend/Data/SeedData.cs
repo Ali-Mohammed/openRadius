@@ -671,6 +671,7 @@ public static class SeedData
             new Permission { Name = "billing.automations.create", Description = "Create billing automations", Category = "Billing" },
             new Permission { Name = "billing.automations.update", Description = "Update billing automations", Category = "Billing" },
             new Permission { Name = "billing.automations.delete", Description = "Delete billing automations", Category = "Billing" },
+            new Permission { Name = "billing.automations.history", Description = "View automation execution history", Category = "Billing" },
             // Network - OLTs
             new Permission { Name = "network.olts.view", Description = "View OLT devices", Category = "Network" },
             new Permission { Name = "network.olts.create", Description = "Create OLT devices", Category = "Network" },

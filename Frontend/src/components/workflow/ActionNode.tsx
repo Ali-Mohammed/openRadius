@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { Mail, MessageSquare, DollarSign, Ban, Gift, CreditCard, User } from 'lucide-react';
+import { Mail, MessageSquare, DollarSign, Ban, Gift, CreditCard, User, Globe } from 'lucide-react';
 
 const actionIcons = {
   'send-email': Mail,
@@ -10,6 +10,7 @@ const actionIcons = {
   'suspend-user': Ban,
   'apply-discount': Gift,
   'update-profile': User,
+  'http-request': Globe,
 };
 
 export function ActionNode({ data }: { data: any }) {

@@ -591,7 +591,7 @@ public class AutomationEngineService : IAutomationEngineService
         step.HttpResponseHeaders = JsonSerializer.Serialize(responseHeaders, JsonOptions);
 
         // Capture response body (truncated)
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = response.Content != null ? await response.Content.ReadAsStringAsync() : "";
         step.HttpResponseBody = responseBody.Length > MaxHttpResponseBodyLength
             ? responseBody[..MaxHttpResponseBodyLength] + "...[truncated]"
             : responseBody;
