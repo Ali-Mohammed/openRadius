@@ -740,7 +740,7 @@ export default function UserManagement() {
   const renderColumnHeader = (column: string) => {
     if (column === 'actions') {
       return (
-        <TableHead key={column} className="h-12 px-4 text-right sticky right-0 bg-muted z-[16] relative" style={{ width: `${columnWidths.actions}px` }}>
+        <TableHead key={column} className="h-9 px-3 text-right sticky right-0 bg-muted z-[16] relative" style={{ width: `${columnWidths.actions}px` }}>
           Actions
           <div 
             className="absolute top-0 right-0 w-2 h-full cursor-col-resize border-r-2 border-dotted border-gray-300 hover:border-blue-500 transition-colors"
@@ -771,7 +771,7 @@ export default function UserManagement() {
     return (
       <TableHead 
         key={column} 
-        className={`h-12 px-4 relative select-none ${def.sortable ? 'cursor-pointer hover:bg-muted/80' : ''} ${dragClasses}`}
+        className={`h-9 px-3 relative select-none ${def.sortable ? 'cursor-pointer hover:bg-muted/80' : ''} ${dragClasses}`}
         style={{ width: `${columnWidths[column as keyof typeof columnWidths]}px` }}
         onClick={def.sortable ? () => handleSort(column) : undefined}
         draggable={isDraggable}
@@ -806,7 +806,7 @@ export default function UserManagement() {
     
     if (column === 'actions') {
       return (
-        <TableCell key={column} className="h-12 px-4 text-right sticky right-0 bg-background z-10" style={{ width: `${cellWidth}px` }}>
+        <TableCell key={column} className="h-9 px-3 text-right sticky right-0 bg-background z-10" style={{ width: `${cellWidth}px` }}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" title="More actions">
@@ -916,12 +916,12 @@ export default function UserManagement() {
           </TableCell>
         )
       case 'username':
-        return <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>{user.username || '-'}</TableCell>
+        return <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>{user.username || '-'}</TableCell>
       case 'email':
-        return <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>{user.email}</TableCell>
+        return <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>{user.email}</TableCell>
       case 'status':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             <Badge 
               variant={user.enabled !== false ? "outline" : "secondary"}
               className={user.enabled !== false 
@@ -934,7 +934,7 @@ export default function UserManagement() {
         )
       case 'supervisor':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             {user.supervisor ? (
               <span className="text-sm">
                 {user.supervisor.firstName || user.supervisor.lastName
@@ -948,7 +948,7 @@ export default function UserManagement() {
         )
       case 'groups':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1 items-center">
               {user.groups?.length ? (
                 <>
@@ -991,7 +991,7 @@ export default function UserManagement() {
         )
       case 'roles':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1 items-center">
               {user.roles?.length ? (
                 <>
@@ -1034,7 +1034,7 @@ export default function UserManagement() {
         )
       case 'zones':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1">
               {user.zones?.length ? user.zones.map((zone) => (
                 <Badge key={zone.id} variant="secondary" className="flex items-center gap-1.5 text-xs">
@@ -1050,7 +1050,7 @@ export default function UserManagement() {
         )
       case 'defaultWorkspace':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             {user.defaultWorkspace ? (
               <Badge variant="secondary" className="flex items-center gap-1.5 text-xs w-fit">
                 <div
@@ -1064,7 +1064,7 @@ export default function UserManagement() {
         )
       case 'workspaces':
         return (
-          <TableCell key={column} className="h-12 px-4" style={{ width: `${cellWidth}px` }}>
+          <TableCell key={column} className="h-9 px-3" style={{ width: `${cellWidth}px` }}>
             <div className="flex flex-wrap gap-1">
               {user.workspaces?.length ? user.workspaces.map((workspace) => (
                 <Badge key={workspace.id} variant="outline" className="flex items-center gap-1.5 text-xs">
@@ -1266,7 +1266,7 @@ export default function UserManagement() {
               <Table className="table-fixed" style={{ width: '100%', minWidth: 'max-content' }}>
                 <TableHeader className="sticky top-0 bg-muted z-[15]">
                   <TableRow className="hover:bg-muted">
-                    <TableHead className="h-12 w-12 px-4">
+                    <TableHead className="h-9 w-10 px-3">
                       <Checkbox
                         checked={paginatedUsers.length > 0 && selectedUserIds.size === paginatedUsers.length}
                         onCheckedChange={handleSelectAll}
@@ -1279,7 +1279,7 @@ export default function UserManagement() {
                 <TableBody>
                   {paginatedUsers.map((user) => (
                     <TableRow key={user.id} className={`${user.enabled === false ? 'opacity-60' : ''} ${selectedUserIds.has(user.id) ? 'bg-primary/5' : ''}`}>
-                      <TableCell className="h-12 w-12 px-4">
+                      <TableCell className="h-9 w-10 px-3">
                         <Checkbox
                           checked={selectedUserIds.has(user.id)}
                           onCheckedChange={() => handleToggleSelectUser(user.id)}
