@@ -2460,6 +2460,7 @@ BANNER_EOF
     fi
     if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
         echo -e "  │  RadiusSyncService   │  http://localhost:${SYNC_SERVICE_PORT}                       │"
+        echo -e "  │  Edge Dashboard      │  http://localhost:${SYNC_SERVICE_PORT}/dashboard              │"
         echo -e "  │  SignalR Hub         │  ${SIGNALR_HUB_URL}$(printf '%*s' $((25 - ${#SIGNALR_HUB_URL})) '')│"
     fi
     echo -e "  ${BOLD}└──────────────────────┴─────────────────────────────────────────────┘${NC}"
