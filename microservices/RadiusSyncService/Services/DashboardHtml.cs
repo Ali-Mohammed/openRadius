@@ -89,6 +89,9 @@ public static class DashboardHtml
       <a href=""#"" class=""nav-item"" data-section=""network"">
         <span class=""nav-icon"">🌐</span> Networks & Volumes
       </a>
+      <a href=""#"" class=""nav-item"" data-section=""connector"">
+        <span class=""nav-icon"">⚡</span> Connector
+      </a>
       <a href=""#"" class=""nav-item"" data-section=""signalr"">
         <span class=""nav-icon"">📡</span> SignalR Connection
       </a>
@@ -297,6 +300,147 @@ public static class DashboardHtml
         </div>
       </section>
 
+      <!-- ===== CONNECTOR SECTION ===== -->
+      <section id=""sec-connector"" class=""section"">
+        <div class=""section-toolbar"">
+          <h2>JDBC Sink Connector</h2>
+          <div style=""display:flex;gap:8px"">
+            <button class=""btn btn-sm"" onclick=""refreshConnector()"">↻ Refresh</button>
+            <button class=""btn btn-sm btn-green"" id=""btnDeploy"" onclick=""connectorAction('deploy')"">🚀 Deploy</button>
+          </div>
+        </div>
+
+        <!-- Connector Status Banner -->
+        <div class=""kpi-grid"" style=""margin-bottom:20px"">
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Connector State</div>
+            <div class=""kpi-value"" id=""kpiConnState""><span class=""dot dot-gray""></span> --</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Tasks</div>
+            <div class=""kpi-value"" id=""kpiConnTasks"">--</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Topics</div>
+            <div class=""kpi-value"" id=""kpiConnTopics"">--</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Connect API</div>
+            <div class=""kpi-value"" id=""kpiConnApi""><span class=""dot dot-gray""></span> --</div>
+          </div>
+        </div>
+
+        <div class=""grid-2"">
+          <!-- Live Status -->
+          <div class=""card"">
+            <div class=""card-header"">Live Status</div>
+            <div class=""card-body"">
+              <table class=""info-table"">
+                <tr><td class=""label"">Connector Name</td><td id=""connName"" class=""mono"">--</td></tr>
+                <tr><td class=""label"">State</td><td id=""connState"">--</td></tr>
+                <tr><td class=""label"">Type</td><td id=""connType"">--</td></tr>
+                <tr><td class=""label"">Worker ID</td><td id=""connWorker"" class=""mono"">--</td></tr>
+                <tr><td class=""label"">Connect URL</td><td id=""connUrl"" class=""mono text-sm"">--</td></tr>
+                <tr><td class=""label"">Last Checked</td><td id=""connCheckedAt"">--</td></tr>
+              </table>
+              <div style=""margin-top:12px;display:flex;gap:8px"">
+                <button class=""btn btn-sm btn-yellow"" onclick=""connectorAction('pause')"">⏸ Pause</button>
+                <button class=""btn btn-sm btn-green"" onclick=""connectorAction('resume')"">▶ Resume</button>
+                <button class=""btn btn-sm btn-red"" onclick=""connectorAction('restart')"">🔄 Restart</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connector Config -->
+          <div class=""card"">
+            <div class=""card-header"">Configuration</div>
+            <div class=""card-body"">
+              <table class=""info-table"">
+                <tr><td class=""label"">Connector Class</td><td id=""connClass"" class=""mono text-sm"">--</td></tr>
+                <tr><td class=""label"">Tasks Max</td><td id=""connTasksMax"">--</td></tr>
+                <tr><td class=""label"">Connection URL</td><td id=""connDbUrl"" class=""mono text-sm"">--</td></tr>
+                <tr><td class=""label"">Insert Mode</td><td id=""connInsertMode"">--</td></tr>
+                <tr><td class=""label"">Delete Enabled</td><td id=""connDeleteEnabled"">--</td></tr>
+                <tr><td class=""label"">Primary Key</td><td id=""connPkMode"">--</td></tr>
+                <tr><td class=""label"">PK Fields</td><td id=""connPkFields"" class=""mono"">--</td></tr>
+                <tr><td class=""label"">Auto Create</td><td id=""connAutoCreate"">--</td></tr>
+                <tr><td class=""label"">Auto Evolve</td><td id=""connAutoEvolve"">--</td></tr>
+                <tr><td class=""label"">Schema Evolution</td><td id=""connSchemaEvo"">--</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tasks Table -->
+        <div class=""card"">
+          <div class=""card-header"">Tasks</div>
+          <div class=""card-body p-0"">
+            <table class=""data-table"">
+              <thead>
+                <tr><th>Task ID</th><th>State</th><th>Worker ID</th><th>Error Trace</th><th style=""width:100px"">Actions</th></tr>
+              </thead>
+              <tbody id=""connTasksBody"">
+                <tr><td colspan=""5"" class=""text-center text-muted"">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Topics -->
+        <div class=""card"">
+          <div class=""card-header"">Subscribed Topics</div>
+          <div class=""card-body"">
+            <div id=""connTopicsList"" class=""topic-list"">
+              <span class=""text-muted text-sm"">Loading...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Handling & Transform -->
+        <div class=""grid-2"">
+          <div class=""card"">
+            <div class=""card-header"">Error Handling</div>
+            <div class=""card-body"">
+              <table class=""info-table"">
+                <tr><td class=""label"">Error Tolerance</td><td id=""connErrTolerance"">--</td></tr>
+                <tr><td class=""label"">Log Errors</td><td id=""connErrLog"">--</td></tr>
+                <tr><td class=""label"">DLQ Topic</td><td id=""connDlqTopic"" class=""mono text-sm"">--</td></tr>
+                <tr><td class=""label"">DLQ Headers</td><td id=""connDlqHeaders"">--</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class=""card"">
+            <div class=""card-header"">Transform (RegexRouter)</div>
+            <div class=""card-body"">
+              <table class=""info-table"">
+                <tr><td class=""label"">Type</td><td id=""connTransformType"" class=""mono text-sm"">--</td></tr>
+                <tr><td class=""label"">Regex</td><td id=""connTransformRegex"" class=""mono"">--</td></tr>
+                <tr><td class=""label"">Replacement</td><td id=""connTransformRepl"" class=""mono"">--</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Connectors on cluster -->
+        <div class=""card"">
+          <div class=""card-header"">All Connectors on Cluster</div>
+          <div class=""card-body"">
+            <div id=""allConnectorsList"" class=""text-muted text-sm"">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Raw Config (collapsible) -->
+        <div class=""card"">
+          <div class=""card-header"" style=""cursor:pointer;display:flex;justify-content:space-between;align-items:center"" onclick=""toggleRawConfig()"">
+            <span>Raw Configuration</span>
+            <span id=""rawConfigToggle"" style=""font-size:12px;color:var(--muted)"">▶ Show</span>
+          </div>
+          <div class=""card-body"" id=""rawConfigBody"" style=""display:none"">
+            <pre id=""connRawConfig"" class=""mono text-sm"" style=""white-space:pre-wrap;word-break:break-all;color:var(--muted);max-height:400px;overflow-y:auto"">--</pre>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== SIGNALR SECTION ===== -->
       <section id=""sec-signalr"" class=""section"">
         <div class=""section-toolbar""><h2>SignalR Connection</h2></div>
@@ -451,6 +595,18 @@ a { color: var(--accent); text-decoration: none; }
 .section.active { display: block; }
 .section-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .section-toolbar h2 { font-size: 16px; font-weight: 600; }
+
+/* Topic badges */
+.topic-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.topic-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); font-size: 12px; font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; color: var(--accent); }
+.topic-badge .topic-icon { font-size: 14px; }
+
+/* Connector state badges */
+.badge-RUNNING, .badge-running { background: rgba(34,197,94,0.12); color: var(--green); }
+.badge-PAUSED, .badge-paused { background: rgba(234,179,8,0.12); color: var(--yellow); }
+.badge-FAILED, .badge-failed { background: rgba(239,68,68,0.12); color: var(--red); }
+.badge-UNASSIGNED, .badge-unassigned { background: rgba(168,85,247,0.12); color: var(--purple); }
+.badge-NOT_FOUND { background: rgba(113,113,122,0.12); color: var(--muted); }
 
 /* Gauges */
 .gauge-row { display: flex; justify-content: center; gap: 48px; padding: 16px 0; }

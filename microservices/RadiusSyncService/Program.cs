@@ -27,6 +27,9 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalRConnectionS
 // Add Dashboard auth service
 builder.Services.AddSingleton<DashboardAuthService>();
 
+// Add Connector monitoring service
+builder.Services.AddSingleton<ConnectorService>();
+
 // Add health checks
 builder.Services.AddHealthChecks();
 
@@ -199,6 +202,55 @@ dashboardApi.MapGet("/signalr", (SignalRConnectionService signalR) =>
     return Results.Ok(signalR.GetDetailedStatus());
 });
 
+// Connector status
+dashboardApi.MapGet("/connector", async (ConnectorService connectorService) =>
+{
+    var status = await connectorService.GetConnectorStatusAsync(forceRefresh: true);
+    return Results.Ok(status);
+});
+
+// Connector actions (deploy, pause, resume, restart)
+dashboardApi.MapPost("/connector/{action}", async (
+    string action,
+    ConnectorService connectorService,
+    HttpContext ctx) =>
+{
+    try
+    {
+        ConnectorDeployResult result;
+        var body = await ctx.Request.ReadFromJsonAsync<ConnectorActionRequest>();
+        var connectorName = body?.ConnectorName ?? "jdbc-sink-workspace_1";
+
+        switch (action.ToLower())
+        {
+            case "deploy":
+                result = await connectorService.DeployConnectorAsync();
+                break;
+            case "pause":
+                result = await connectorService.PauseConnectorAsync(connectorName);
+                break;
+            case "resume":
+                result = await connectorService.ResumeConnectorAsync(connectorName);
+                break;
+            case "restart":
+                result = await connectorService.RestartConnectorAsync(connectorName);
+                break;
+            case "restart-task":
+                var taskId = body?.TaskId ?? 0;
+                result = await connectorService.RestartTaskAsync(connectorName, taskId);
+                break;
+            default:
+                return Results.BadRequest(new { success = false, message = $"Unknown action: {action}" });
+        }
+
+        return Results.Ok(new { success = result.Success, message = result.Message, statusCode = result.StatusCode });
+    }
+    catch (Exception ex)
+    {
+        return Results.Ok(new { success = false, message = ex.Message });
+    }
+});
+
 // Container actions
 dashboardApi.MapPost("/container/{action}", async (
     string action,
@@ -244,6 +296,7 @@ app.MapControllers();
 
 app.Run();
 
-// Request model
+// Request models
 record ContainerActionRequest(string? ContainerId);
+record ConnectorActionRequest(string? ConnectorName, int? TaskId);
 
