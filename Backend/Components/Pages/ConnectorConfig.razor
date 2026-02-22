@@ -1,0 +1,527 @@
+@page "/edge/connectors"
+@page "/edge/connectors/{ConnectorName}"
+@inject IRadiusSyncMonitoringService SyncService
+@inject IConfiguration Configuration
+
+<PageTitle>Connector Configuration — OpenRadius Edge</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Connector Configuration</h1>
+        <div class="page-header-subtitle">View, edit, and manage JDBC Sink connector configurations</div>
+    </div>
+    <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-sm" @onclick="RefreshData" disabled="@_loading">
+            @if (_loading) { <span class="spinner"></span> } else { <span>↻</span> }
+            Refresh
+        </button>
+        <button class="btn btn-primary btn-sm" @onclick="StartNewConnector">
+            + New Connector
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠ @_error</div>
+}
+@if (!string.IsNullOrEmpty(_success))
+{
+    <div class="alert alert-success">✓ @_success</div>
+}
+
+<!-- Tabs: List / Editor -->
+<div class="tabs">
+    <button class="tab @(_activeTab == "list" ? "active" : "")" @onclick='() => SetTab("list")'>
+        All Connectors (@(_connectors?.Count ?? 0))
+    </button>
+    @if (_editingConnectorName != null || _creatingNew)
+    {
+        <button class="tab @(_activeTab == "editor" ? "active" : "")">
+            @(_creatingNew ? "New Connector" : _editingConnectorName)
+        </button>
+    }
+    @if (_activeTab == "plugins")
+    {
+        <button class="tab active">Plugins</button>
+    }
+</div>
+
+@* ─── List Tab ─── *@
+@if (_activeTab == "list")
+{
+    @if (_connectors != null && _connectors.Any())
+    {
+        <div class="card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Connector Name</th>
+                        <th>Type</th>
+                        <th>Class</th>
+                        <th>State</th>
+                        <th>Tasks</th>
+                        <th style="width:220px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in _connectors)
+                    {
+                        <tr>
+                            <td style="font-weight:500;">@c.Name</td>
+                            <td class="text-mono text-sm">@c.Type</td>
+                            <td class="text-muted text-sm" title="@c.ConnectorClass">@TruncateClass(c.ConnectorClass)</td>
+                            <td>
+                                <span class="badge @GetStateBadge(c.State)">
+                                    <span class="badge-dot"></span> @c.State
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-green">@c.RunningTasks</span>/@c.TaskCount
+                                @if (c.FailedTasks > 0) { <span class="text-red text-sm"> (@c.FailedTasks failed)</span> }
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => EditConnector(c.Name)">✎ Edit</button>
+                                    @if (c.State == "RUNNING")
+                                    {
+                                        <button class="btn btn-warning btn-sm" @onclick="() => PauseConnector(c.Name)">⏸ Pause</button>
+                                    }
+                                    else if (c.State == "PAUSED")
+                                    {
+                                        <button class="btn btn-success btn-sm" @onclick="() => ResumeConnector(c.Name)">▶ Resume</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-success btn-sm" @onclick="() => RestartConnector(c.Name)">↻ Restart</button>
+                                    }
+                                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteConnector(c.Name)">✕</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (_connectors != null)
+    {
+        <div class="card" style="text-align:center; padding:3rem;">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">🔌</div>
+            <div style="font-weight:500;">No connectors registered</div>
+            <div class="text-muted text-sm mt-1">Create a JDBC Sink connector to start syncing data to your edge database.</div>
+            <button class="btn btn-primary mt-2" @onclick="StartNewConnector">+ Create Connector</button>
+        </div>
+    }
+    else
+    {
+        <div class="loading-state"><span class="spinner"></span> Loading connectors...</div>
+    }
+
+    <!-- Cluster + Plugins Info -->
+    @if (_clusterInfo != null)
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Cluster Info</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;">
+                <div><span class="text-muted text-sm">Version</span><div style="font-weight:500;">@_clusterInfo.Version</div></div>
+                <div><span class="text-muted text-sm">Commit</span><div class="text-mono text-sm">@_clusterInfo.Commit[..Math.Min(12, _clusterInfo.Commit.Length)]</div></div>
+                <div><span class="text-muted text-sm">Kafka Cluster</span><div class="text-mono text-sm">@(string.IsNullOrEmpty(_clusterInfo.KafkaClusterId) ? "—" : _clusterInfo.KafkaClusterId[..Math.Min(16, _clusterInfo.KafkaClusterId.Length)])</div></div>
+            </div>
+        </div>
+    }
+}
+
+@* ─── Editor Tab ─── *@
+@if (_activeTab == "editor")
+{
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">@(_creatingNew ? "Create New Connector" : $"Edit: {_editingConnectorName}")</span>
+            <button class="btn btn-ghost btn-sm" @onclick='() => SetTab("list")'>← Back to List</button>
+        </div>
+
+        @if (_creatingNew)
+        {
+            <div class="form-group">
+                <label>Connector Name</label>
+                <input type="text" @bind="_newConnectorName" placeholder="jdbc-sink-my-edge" />
+            </div>
+        }
+
+        <!-- Mode Toggle -->
+        <div class="flex items-center gap-1 mb-2">
+            <button class="btn @(_editorMode == "form" ? "btn-primary" : "btn-ghost") btn-sm" @onclick='() => _editorMode = "form"'>Form View</button>
+            <button class="btn @(_editorMode == "json" ? "btn-primary" : "btn-ghost") btn-sm" @onclick="SwitchToJson">JSON View</button>
+        </div>
+
+        @if (_editorMode == "form" && _editConfig != null)
+        {
+            <div class="config-grid">
+                @foreach (var kv in _editConfig.OrderBy(k => k.Key))
+                {
+                    <div class="config-key">@kv.Key</div>
+                    <div class="config-value">
+                        @if (kv.Key.Contains("password", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <input type="text" value="@kv.Value" @onchange="e => UpdateConfigField(kv.Key, e.Value?.ToString() ?? string.Empty)" style="color:var(--accent-yellow);" />
+                        }
+                        else
+                        {
+                            <input type="text" value="@kv.Value" @onchange="e => UpdateConfigField(kv.Key, e.Value?.ToString() ?? string.Empty)" />
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="form-group mt-2">
+                <label>Add New Property</label>
+                <div class="flex gap-1">
+                    <input type="text" @bind="_newPropKey" placeholder="property.name" style="flex:1;" />
+                    <input type="text" @bind="_newPropValue" placeholder="value" style="flex:2;" />
+                    <button class="btn btn-ghost btn-sm" @onclick="AddProperty" disabled="@(string.IsNullOrEmpty(_newPropKey))">+ Add</button>
+                </div>
+            </div>
+        }
+        else if (_editorMode == "json")
+        {
+            <div class="form-group">
+                <label>Configuration JSON</label>
+                <textarea rows="20" @bind="_jsonEditorContent"></textarea>
+            </div>
+        }
+
+        <div class="flex gap-1 mt-2">
+            @if (_creatingNew)
+            {
+                <button class="btn btn-primary" @onclick="SaveNewConnector" disabled="@_saving">
+                    @if (_saving) { <span class="spinner"></span> } Create Connector
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-primary" @onclick="SaveConfig" disabled="@_saving">
+                    @if (_saving) { <span class="spinner"></span> } Save Configuration
+                </button>
+            }
+            <button class="btn btn-ghost" @onclick='() => SetTab("list")'>Cancel</button>
+        </div>
+    </div>
+
+    <!-- Load Default JDBC Sink Template -->
+    @if (_creatingNew)
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Quick Templates</span>
+            </div>
+            <div class="flex gap-1 flex-wrap">
+                <button class="btn btn-ghost btn-sm" @onclick="LoadJdbcSinkTemplate">JDBC Sink (Debezium)</button>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string? ConnectorName { get; set; }
+
+    private string _activeTab = "list";
+    private string _editorMode = "form";
+    private List<ConnectorSummaryDto>? _connectors;
+    private ConnectClusterInfoDto? _clusterInfo;
+    private bool _loading;
+    private bool _saving;
+    private string? _error;
+    private string? _success;
+
+    // Editor state
+    private string? _editingConnectorName;
+    private bool _creatingNew;
+    private Dictionary<string, string>? _editConfig;
+    private string _jsonEditorContent = "";
+    private string _newConnectorName = "";
+    private string _newPropKey = "";
+    private string _newPropValue = "";
+
+    private string ConnectUrl => Configuration["EdgeRuntime:ConnectUrl"]
+                                  ?? Configuration["Debezium:ConnectUrl"]
+                                  ?? "http://localhost:8083";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+        if (!string.IsNullOrEmpty(ConnectorName))
+            await EditConnector(ConnectorName);
+    }
+
+    private async Task RefreshData()
+    {
+        _loading = true;
+        _error = null;
+        StateHasChanged();
+        try
+        {
+            _connectors = await SyncService.ListConnectorsAsync(ConnectUrl);
+            _clusterInfo = await SyncService.GetClusterInfoAsync(ConnectUrl);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private void SetTab(string tab)
+    {
+        _activeTab = tab;
+        if (tab == "list") { _editingConnectorName = null; _creatingNew = false; }
+    }
+
+    // ─── Edit Connector ──────────────────────────────────────────────────
+
+    private async Task EditConnector(string name)
+    {
+        _error = null; _success = null;
+        _editingConnectorName = name;
+        _creatingNew = false;
+        _activeTab = "editor";
+        _editorMode = "form";
+
+        try
+        {
+            _editConfig = await SyncService.GetConnectorConfigAsync(ConnectUrl, name);
+            if (_editConfig == null)
+            {
+                _error = $"Could not load config for connector '{name}'.";
+                SetTab("list");
+            }
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task SaveConfig()
+    {
+        _saving = true;
+        _error = null; _success = null;
+        StateHasChanged();
+
+        try
+        {
+            Dictionary<string, string> config;
+            if (_editorMode == "json")
+            {
+                config = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(_jsonEditorContent)
+                         ?? throw new Exception("Invalid JSON.");
+            }
+            else
+            {
+                config = _editConfig ?? throw new Exception("No configuration loaded.");
+            }
+
+            var result = await SyncService.UpdateConnectorConfigAsync(ConnectUrl, _editingConnectorName!, config);
+            if (result.Success)
+            {
+                _success = result.Message;
+                await RefreshData();
+            }
+            else
+            {
+                _error = $"{result.Message} {result.ErrorDetail}";
+            }
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    // ─── New Connector ───────────────────────────────────────────────────
+
+    private void StartNewConnector()
+    {
+        _editingConnectorName = null;
+        _creatingNew = true;
+        _activeTab = "editor";
+        _editorMode = "form";
+        _newConnectorName = "jdbc-sink-edge-";
+        _editConfig = new Dictionary<string, string>
+        {
+            ["connector.class"] = "io.debezium.connector.jdbc.JdbcSinkConnector",
+            ["tasks.max"] = "1",
+            ["topics"] = "",
+            ["connection.url"] = "jdbc:postgresql://postgres:5432/edge_db",
+            ["connection.username"] = "postgres",
+            ["connection.password"] = "",
+            ["insert.mode"] = "upsert",
+            ["delete.enabled"] = "true",
+            ["primary.key.mode"] = "record_key",
+            ["primary.key.fields"] = "Id",
+            ["auto.create"] = "false",
+            ["auto.evolve"] = "true",
+            ["schema.evolution"] = "basic",
+            ["quote.identifiers"] = "true",
+            ["key.converter"] = "org.apache.kafka.connect.json.JsonConverter",
+            ["value.converter"] = "org.apache.kafka.connect.json.JsonConverter",
+            ["key.converter.schemas.enable"] = "true",
+            ["value.converter.schemas.enable"] = "true",
+            ["errors.tolerance"] = "all",
+            ["errors.log.enable"] = "true",
+            ["errors.log.include.messages"] = "true"
+        };
+    }
+
+    private async Task SaveNewConnector()
+    {
+        if (string.IsNullOrWhiteSpace(_newConnectorName))
+        {
+            _error = "Connector name is required.";
+            return;
+        }
+
+        _saving = true;
+        _error = null; _success = null;
+        StateHasChanged();
+
+        try
+        {
+            Dictionary<string, string> config;
+            if (_editorMode == "json")
+            {
+                config = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(_jsonEditorContent)
+                         ?? throw new Exception("Invalid JSON.");
+            }
+            else
+            {
+                config = _editConfig ?? throw new Exception("No configuration loaded.");
+            }
+
+            var result = await SyncService.CreateConnectorAsync(ConnectUrl, _newConnectorName, config);
+            if (result.Success)
+            {
+                _success = result.Message;
+                _creatingNew = false;
+                _activeTab = "list";
+                await RefreshData();
+            }
+            else
+            {
+                _error = $"{result.Message} {result.ErrorDetail}";
+            }
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    // ─── Lifecycle Actions ───────────────────────────────────────────────
+
+    private async Task PauseConnector(string name)
+    {
+        _error = null; _success = null;
+        var result = await SyncService.PauseConnectorAsync(ConnectUrl, name);
+        HandleResult(result);
+        if (result.Success) await RefreshData();
+    }
+
+    private async Task ResumeConnector(string name)
+    {
+        _error = null; _success = null;
+        var result = await SyncService.ResumeConnectorAsync(ConnectUrl, name);
+        HandleResult(result);
+        if (result.Success) await RefreshData();
+    }
+
+    private async Task RestartConnector(string name)
+    {
+        _error = null; _success = null;
+        var result = await SyncService.RestartConnectorAsync(ConnectUrl, name);
+        HandleResult(result);
+        if (result.Success) await RefreshData();
+    }
+
+    private async Task DeleteConnector(string name)
+    {
+        _error = null; _success = null;
+        var result = await SyncService.DeleteConnectorAsync(ConnectUrl, name);
+        HandleResult(result);
+        if (result.Success) await RefreshData();
+    }
+
+    private void HandleResult(ConnectorOperationResult result)
+    {
+        if (result.Success) _success = result.Message;
+        else _error = $"{result.Message} {result.ErrorDetail}";
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────
+
+    private void UpdateConfigField(string key, string value)
+    {
+        if (_editConfig != null) _editConfig[key] = value;
+    }
+
+    private void AddProperty()
+    {
+        if (!string.IsNullOrEmpty(_newPropKey) && _editConfig != null)
+        {
+            _editConfig[_newPropKey] = _newPropValue;
+            _newPropKey = "";
+            _newPropValue = "";
+        }
+    }
+
+    private void SwitchToJson()
+    {
+        if (_editConfig != null)
+        {
+            _jsonEditorContent = System.Text.Json.JsonSerializer.Serialize(
+                _editConfig.OrderBy(k => k.Key).ToDictionary(k => k.Key, k => k.Value),
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        _editorMode = "json";
+    }
+
+    private void LoadJdbcSinkTemplate()
+    {
+        _editConfig = new Dictionary<string, string>
+        {
+            ["connector.class"] = "io.debezium.connector.jdbc.JdbcSinkConnector",
+            ["tasks.max"] = "1",
+            ["topics"] = "workspace_1.public.RadiusUsers,workspace_1.public.RadiusProfiles,workspace_1.public.RadiusNasDevices,workspace_1.public.RadiusIpReservations,workspace_1.public.radius_ip_pools",
+            ["connection.url"] = "jdbc:postgresql://postgres:5432/edge_db",
+            ["connection.username"] = "postgres",
+            ["connection.password"] = "",
+            ["insert.mode"] = "upsert",
+            ["delete.enabled"] = "true",
+            ["primary.key.mode"] = "record_key",
+            ["primary.key.fields"] = "Id",
+            ["auto.create"] = "false",
+            ["auto.evolve"] = "true",
+            ["schema.evolution"] = "basic",
+            ["quote.identifiers"] = "true",
+            ["table.name.format"] = "public.RadiusUsers",
+            ["key.converter"] = "org.apache.kafka.connect.json.JsonConverter",
+            ["value.converter"] = "org.apache.kafka.connect.json.JsonConverter",
+            ["key.converter.schemas.enable"] = "true",
+            ["value.converter.schemas.enable"] = "true",
+            ["errors.tolerance"] = "all",
+            ["errors.log.enable"] = "true",
+            ["errors.log.include.messages"] = "true",
+            ["errors.deadletterqueue.topic.name"] = "dlq-jdbc-sink-edge",
+            ["errors.deadletterqueue.topic.replication.factor"] = "1",
+            ["errors.deadletterqueue.context.headers.enable"] = "true"
+        };
+        _editorMode = "form";
+    }
+
+    private static string GetStateBadge(string state) => state switch
+    {
+        "RUNNING" => "badge-green",
+        "PAUSED" => "badge-yellow",
+        "FAILED" => "badge-red",
+        _ => "badge-gray"
+    };
+
+    private static string TruncateClass(string cls)
+    {
+        if (string.IsNullOrEmpty(cls)) return "—";
+        var parts = cls.Split('.');
+        return parts.Length >= 2 ? $"...{parts[^2]}.{parts[^1]}" : cls;
+    }
+}

@@ -1,0 +1,313 @@
+@page "/edge/docker"
+@inject IDockerMonitoringService DockerService
+
+<PageTitle>Docker Containers — OpenRadius Edge</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Docker Containers</h1>
+        <div class="page-header-subtitle">Monitor and manage all Docker containers on this server</div>
+    </div>
+    <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-sm" @onclick="RefreshContainers" disabled="@_loading">
+            @if (_loading) { <span class="spinner"></span> } else { <span>↻</span> }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠ @_error</div>
+}
+@if (!string.IsNullOrEmpty(_success))
+{
+    <div class="alert alert-success">✓ @_success</div>
+}
+
+<!-- Server Resources Bar -->
+@if (_resources != null)
+{
+    <div class="metrics-grid" style="margin-bottom:1.25rem;">
+        <div class="metric-card">
+            <div class="metric-label">CPU Usage</div>
+            <div class="metric-value" style="color:@GetUsageColor(_resources.Cpu.UsagePercent)">@_resources.Cpu.UsagePercent.ToString("F1")%</div>
+            <div class="metric-sub">@_resources.Cpu.Cores cores · Load: @_resources.LoadAverage1.ToString("F2")</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Memory</div>
+            <div class="metric-value" style="color:@GetUsageColor(_resources.Memory.UsagePercent)">@_resources.Memory.UsagePercent.ToString("F1")%</div>
+            <div class="metric-sub">@FormatBytes(_resources.Memory.UsedBytes) / @FormatBytes(_resources.Memory.TotalBytes)</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Disk</div>
+            <div class="metric-value" style="color:@GetUsageColor(_resources.Disk.UsagePercent)">@_resources.Disk.UsagePercent.ToString("F1")%</div>
+            <div class="metric-sub">@FormatBytes(_resources.Disk.AvailableBytes) available</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Host</div>
+            <div class="metric-value text-sm" style="font-size:0.95rem;">@_resources.Hostname</div>
+            <div class="metric-sub">@_resources.Os · @_resources.Uptime</div>
+        </div>
+    </div>
+}
+
+<!-- Containers Table -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">All Containers (@(_containers?.Count ?? 0))</span>
+        @if (_dockerInfo != null)
+        {
+            <span class="text-muted text-sm">Docker @_dockerInfo.ServerVersion</span>
+        }
+    </div>
+
+    @if (_containers != null && _containers.Any())
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Container</th>
+                    <th>Image</th>
+                    <th>State</th>
+                    <th>Status</th>
+                    <th>Ports</th>
+                    <th>CPU</th>
+                    <th>Memory</th>
+                    <th>Net I/O</th>
+                    <th style="width:160px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _containers)
+                {
+                    <tr>
+                        <td>
+                            <div style="font-weight:500;">@c.Name.TrimStart('/')</div>
+                            <div class="text-muted text-sm text-mono">@c.ShortId</div>
+                        </td>
+                        <td class="text-mono text-sm">@TruncateImage(c.Image)</td>
+                        <td>
+                            <span class="badge @GetStateBadge(c.State)">
+                                <span class="badge-dot"></span> @c.State
+                            </span>
+                        </td>
+                        <td class="text-sm text-muted">@c.Status</td>
+                        <td class="text-mono text-sm">@(string.IsNullOrEmpty(c.Ports) ? "—" : c.Ports)</td>
+                        <td class="text-mono text-sm">@c.Resources.CpuPercent</td>
+                        <td>
+                            <div class="text-mono text-sm">@c.Resources.MemoryUsage</div>
+                            @if (c.Resources.MemoryPercent > 0)
+                            {
+                                <div class="text-muted text-sm">@c.Resources.MemoryPercent.ToString("F1")%</div>
+                            }
+                        </td>
+                        <td class="text-mono text-sm">@c.Resources.NetIO</td>
+                        <td>
+                            <div class="btn-group">
+                                @if (c.State == "running")
+                                {
+                                    <button class="btn btn-warning btn-sm" title="Stop"
+                                            @onclick="() => StopContainer(c.Id)" disabled="@_actionInProgress">
+                                        ◼ Stop
+                                    </button>
+                                    <button class="btn btn-ghost btn-sm" title="Restart"
+                                            @onclick="() => RestartContainer(c.Id)" disabled="@_actionInProgress">
+                                        ↻
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-success btn-sm" title="Start"
+                                            @onclick="() => StartContainer(c.Id)" disabled="@_actionInProgress">
+                                        ▶ Start
+                                    </button>
+                                }
+                                <button class="btn btn-ghost btn-sm" title="Logs"
+                                        @onclick="() => ViewLogs(c.Id, c.Name)" disabled="@_actionInProgress">
+                                    📋
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (_containers != null)
+    {
+        <div class="text-muted" style="padding:2rem; text-align:center;">No containers found on this host.</div>
+    }
+    else
+    {
+        <div class="loading-state"><span class="spinner"></span> Loading containers...</div>
+    }
+</div>
+
+<!-- Logs Modal -->
+@if (_logsVisible)
+{
+    <div style="margin-top:1.5rem;">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Container Logs — @_logsContainerName.TrimStart('/')</span>
+                <div class="btn-group">
+                    <button class="btn btn-ghost btn-sm" @onclick="() => RefreshLogs(_logsContainerId!)">↻ Refresh</button>
+                    <button class="btn btn-ghost btn-sm" @onclick="CloseLogs">✕ Close</button>
+                </div>
+            </div>
+            @if (_logsLoading)
+            {
+                <div class="loading-state"><span class="spinner"></span> Loading logs...</div>
+            }
+            else if (_logs != null)
+            {
+                <div class="log-viewer">
+                    @foreach (var line in _logs.Logs)
+                    {
+                        <div class="log-line">@line</div>
+                    }
+                </div>
+                <div class="text-muted text-sm mt-1">@_logs.LineCount lines · @_logs.CollectedAt.ToString("HH:mm:ss")</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private List<ContainerInfoResponse>? _containers;
+    private ServerResourcesResponse? _resources;
+    private DockerSystemInfoResponse? _dockerInfo;
+    private bool _loading;
+    private bool _actionInProgress;
+    private string? _error;
+    private string? _success;
+
+    // Logs
+    private bool _logsVisible;
+    private bool _logsLoading;
+    private string? _logsContainerId;
+    private string _logsContainerName = "";
+    private ContainerLogsResponse? _logs;
+
+    protected override async Task OnInitializedAsync() => await RefreshContainers();
+
+    private async Task RefreshContainers()
+    {
+        _loading = true;
+        _error = null;
+        _success = null;
+        StateHasChanged();
+
+        try
+        {
+            var tasks = new Task[]
+            {
+                Task.Run(async () => _containers = await DockerService.GetContainersAsync(true)),
+                Task.Run(async () => _resources = await DockerService.GetServerResourcesAsync()),
+                Task.Run(async () => _dockerInfo = await DockerService.GetDockerSystemInfoAsync())
+            };
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task StartContainer(string id)
+    {
+        _actionInProgress = true;
+        _error = null; _success = null;
+        StateHasChanged();
+        try
+        {
+            var result = await DockerService.StartContainerAsync(id);
+            if (result.Success) { _success = result.Message; await RefreshContainers(); }
+            else _error = result.Message;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _actionInProgress = false; }
+    }
+
+    private async Task StopContainer(string id)
+    {
+        _actionInProgress = true;
+        _error = null; _success = null;
+        StateHasChanged();
+        try
+        {
+            var result = await DockerService.StopContainerAsync(id);
+            if (result.Success) { _success = result.Message; await RefreshContainers(); }
+            else _error = result.Message;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _actionInProgress = false; }
+    }
+
+    private async Task RestartContainer(string id)
+    {
+        _actionInProgress = true;
+        _error = null; _success = null;
+        StateHasChanged();
+        try
+        {
+            var result = await DockerService.RestartContainerAsync(id);
+            if (result.Success) { _success = result.Message; await RefreshContainers(); }
+            else _error = result.Message;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _actionInProgress = false; }
+    }
+
+    private async Task ViewLogs(string id, string name)
+    {
+        _logsContainerId = id;
+        _logsContainerName = name;
+        _logsVisible = true;
+        _logsLoading = true;
+        StateHasChanged();
+        try
+        {
+            _logs = await DockerService.GetContainerLogsAsync(id, 300, true);
+        }
+        catch (Exception ex) { _error = $"Failed to get logs: {ex.Message}"; }
+        finally { _logsLoading = false; }
+    }
+
+    private async Task RefreshLogs(string id)
+    {
+        _logsLoading = true;
+        StateHasChanged();
+        try { _logs = await DockerService.GetContainerLogsAsync(id, 300, true); }
+        catch (Exception ex) { _error = $"Failed to refresh logs: {ex.Message}"; }
+        finally { _logsLoading = false; }
+    }
+
+    private void CloseLogs() { _logsVisible = false; _logs = null; }
+
+    private static string GetStateBadge(string state) => state switch
+    {
+        "running" => "badge-green",
+        "exited" or "dead" => "badge-red",
+        "paused" or "restarting" => "badge-yellow",
+        _ => "badge-gray"
+    };
+
+    private static string GetUsageColor(double pct) => pct switch
+    {
+        >= 90 => "var(--accent-red)",
+        >= 70 => "var(--accent-yellow)",
+        _ => "var(--accent-green)"
+    };
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double value = bytes;
+        int i = 0;
+        while (value >= 1024 && i < units.Length - 1) { value /= 1024; i++; }
+        return $"{value:F1} {units[i]}";
+    }
+
+    private static string TruncateImage(string image) =>
+        image.Length > 45 ? image[..42] + "..." : image;
+}

@@ -286,6 +286,13 @@ try
     // Add Edge Runtime Script Service for generating install scripts
     builder.Services.AddScoped<IEdgeRuntimeScriptService, EdgeRuntimeScriptService>();
 
+    // Add Radius Sync Monitoring Service for CDC connector monitoring via Blazor admin
+    builder.Services.AddScoped<IRadiusSyncMonitoringService, RadiusSyncMonitoringService>();
+
+    // Add Blazor Server components for Edge Runtime admin panel (/edge/*)
+    builder.Services.AddRazorComponents()
+        .AddInteractiveServerComponents();
+
     // Add Automation Engine Service for evaluating workflow automations on domain events
     builder.Services.AddScoped<IAutomationEngineService, AutomationEngineService>();
 
@@ -688,6 +695,9 @@ try
         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
     });
 
+    // Serve static files (Blazor, CSS, JS)
+    app.UseStaticFiles();
+
     // CORS must be before authentication/authorization
     app.UseCors("AllowFrontend");
 
@@ -707,6 +717,9 @@ try
     app.UseMultiTenant();
 
     app.UseAuthorization();
+
+    // Antiforgery is required for Blazor Server interactive components
+    app.UseAntiforgery();
 
     // Centralized route-based permission enforcement for all API endpoints
     app.UsePermissionAuthorization();
@@ -790,6 +803,10 @@ try
     app.MapHub<LogsHub>("/hubs/logs");
     app.MapHub<TagSyncHub>("/hubs/tagsync");
     app.MapHub<MicroservicesHub>("/hubs/microservices").AllowAnonymous();
+
+    // Map Blazor Server components for the Edge Runtime admin panel
+    app.MapRazorComponents<Backend.Components.App>()
+        .AddInteractiveServerRenderMode();
 
     // Add Serilog request logging
     app.UseSerilogRequestLogging(options =>

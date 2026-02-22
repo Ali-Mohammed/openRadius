@@ -1,0 +1,447 @@
+@page "/edge/sync-health"
+@inject IRadiusSyncMonitoringService SyncService
+@inject IConfiguration Configuration
+@implements IDisposable
+
+<PageTitle>Sync Health — OpenRadius Edge</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Sync Health Monitor</h1>
+        <div class="page-header-subtitle">Real-time CDC synchronization health and diagnostics</div>
+    </div>
+    <div class="flex items-center gap-1">
+        <label class="text-sm text-muted">
+            <input type="checkbox" @bind="_autoRefresh" /> Auto-refresh
+        </label>
+        <button class="btn btn-ghost btn-sm" @onclick="RefreshAll" disabled="@_loading">
+            @if (_loading) { <span class="spinner"></span> } else { <span>↻</span> }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠ @_error</div>
+}
+
+@* ─── Overall Health Summary ─── *@
+@if (_health != null)
+{
+    <div class="metrics-grid" style="margin-bottom:1.5rem;">
+        <div class="metric-card @GetHealthClass(_health.OverallStatus)">
+            <div class="metric-label">Overall Status</div>
+            <div class="metric-value">@_health.OverallStatus</div>
+            <div class="metric-subtext">@_health.TotalConnectors connector(s) monitored</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Running</div>
+            <div class="metric-value text-green">@_health.RunningConnectors</div>
+            <div class="metric-subtext">of @_health.TotalConnectors</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Failed</div>
+            <div class="metric-value text-red">@_health.FailedConnectors</div>
+            <div class="metric-subtext">connectors in error state</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Paused</div>
+            <div class="metric-value text-yellow">@_health.PausedConnectors</div>
+            <div class="metric-subtext">connectors paused</div>
+        </div>
+    </div>
+
+    @* ─── Issues ─── *@
+    @if (_health.Issues.Any())
+    {
+        <div class="card mb-2">
+            <div class="card-header">
+                <span class="card-title">⚠ Active Issues (@_health.Issues.Count)</span>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Connector</th>
+                        <th>Component</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var issue in _health.Issues.OrderByDescending(i => i.Severity == "CRITICAL").ThenByDescending(i => i.Severity == "WARNING"))
+                    {
+                        <tr>
+                            <td>
+                                <span class="badge @(issue.Severity == "CRITICAL" ? "badge-red" : issue.Severity == "WARNING" ? "badge-yellow" : "badge-gray")">
+                                    <span class="badge-dot"></span> @issue.Severity
+                                </span>
+                            </td>
+                            <td style="font-weight:500;">@issue.ConnectorName</td>
+                            <td class="text-muted text-sm">@issue.Component</td>
+                            <td>@issue.Description</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card mb-2" style="text-align:center; padding:2rem; color:var(--accent-green);">
+            <div style="font-size:2rem; margin-bottom:.5rem;">✓</div>
+            <div style="font-weight:600;">All Connectors Healthy</div>
+            <div class="text-muted text-sm mt-1">No issues detected. All tasks are running normally.</div>
+        </div>
+    }
+}
+else if (_loading)
+{
+    <div class="loading-state"><span class="spinner"></span> Loading health report...</div>
+}
+
+@* ─── Connector Detail Cards ─── *@
+@if (_connectorDetails.Any())
+{
+    <h2 class="section-title">Connector Details</h2>
+
+    @foreach (var detail in _connectorDetails)
+    {
+        <div class="card mb-2">
+            <div class="card-header">
+                <span class="card-title">
+                    @detail.Name
+                    <span class="badge @GetStateBadge(detail.State) ml-1"><span class="badge-dot"></span> @detail.State</span>
+                </span>
+                <div class="flex gap-1">
+                    @if (detail.Topics.Any())
+                    {
+                        <button class="btn btn-ghost btn-sm" @onclick="() => ToggleTopics(detail.Name)">
+                            @(_expandedTopics.Contains(detail.Name) ? "▾ Topics" : "▸ Topics") (@detail.Topics.Count)
+                        </button>
+                    }
+                    <button class="btn btn-ghost btn-sm" @onclick="() => ToggleConfig(detail.Name)">
+                        @(_expandedConfigs.Contains(detail.Name) ? "▾ Config" : "▸ Config")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connector Info -->
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1rem;">
+                <div>
+                    <div class="text-muted text-sm">Type</div>
+                    <div>@detail.Type</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Worker</div>
+                    <div class="text-mono text-sm">@(detail.WorkerId ?? "—")</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Tasks</div>
+                    <div><span class="text-green">@detail.RunningTasks</span> / @detail.TaskCount</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Connector Class</div>
+                    <div class="text-mono text-sm" title="@detail.ConnectorClass">@TruncateClass(detail.ConnectorClass)</div>
+                </div>
+            </div>
+
+            <!-- Tasks Table -->
+            @if (detail.Tasks.Any())
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>State</th>
+                            <th>Worker</th>
+                            <th>Trace</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var task in detail.Tasks)
+                        {
+                            <tr>
+                                <td class="text-mono">@task.Id</td>
+                                <td>
+                                    <span class="badge @GetStateBadge(task.State)"><span class="badge-dot"></span> @task.State</span>
+                                </td>
+                                <td class="text-mono text-sm">@(task.WorkerId ?? "—")</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(task.Trace))
+                                    {
+                                        @{ var traceKey = $"{detail.Name}_{task.Id}"; }
+                                        <button class="btn btn-ghost btn-sm" @onclick="() => ToggleTrace(traceKey)">Show Trace</button>
+                                        @if (_expandedTraces.Contains(traceKey))
+                                        {
+                                            <pre class="code-block text-sm mt-1">@task.Trace</pre>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (task.State == "FAILED")
+                                    {
+                                        <button class="btn btn-warning btn-sm" @onclick="() => RestartTask(detail.Name, task.Id)">
+                                            ↻ Restart
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            <!-- Topics (expandable) -->
+            @if (_expandedTopics.Contains(detail.Name) && detail.Topics.Any())
+            {
+                <div class="mt-2">
+                    <div class="text-sm text-muted mb-1" style="font-weight:600;">Topics (@detail.Topics.Count)</div>
+                    <div class="flex gap-1 flex-wrap">
+                        @foreach (var topic in detail.Topics)
+                        {
+                            <span class="badge badge-blue text-sm">@topic</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Config (expandable) -->
+            @if (_expandedConfigs.Contains(detail.Name) && detail.Config.Any())
+            {
+                <div class="mt-2 config-grid">
+                    @foreach (var kv in detail.Config.OrderBy(k => k.Key))
+                    {
+                        <div class="config-key">@kv.Key</div>
+                        <div class="config-value">
+                            @if (kv.Key.Contains("password", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <span style="color:var(--accent-yellow);">••••••••</span>
+                            }
+                            else
+                            {
+                                @kv.Value
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+}
+
+@* ─── Cluster + Plugins ─── *@
+@if (_clusterInfo != null)
+{
+    <h2 class="section-title">Connect Cluster</h2>
+    <div class="card mb-2">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;">
+            <div>
+                <div class="text-muted text-sm">Version</div>
+                <div style="font-weight:500;">@_clusterInfo.Version</div>
+            </div>
+            <div>
+                <div class="text-muted text-sm">Commit</div>
+                <div class="text-mono text-sm">@_clusterInfo.Commit</div>
+            </div>
+            <div>
+                <div class="text-muted text-sm">Kafka Cluster ID</div>
+                <div class="text-mono text-sm">@(string.IsNullOrEmpty(_clusterInfo.KafkaClusterId) ? "—" : _clusterInfo.KafkaClusterId)</div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_plugins.Any())
+{
+    <div class="card mb-2">
+        <div class="card-header">
+            <span class="card-title">Installed Plugins (@_plugins.Count)</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Type</th>
+                    <th>Version</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in _plugins.OrderBy(x => x.Type).ThenBy(x => x.ClassName))
+                {
+                    <tr>
+                        <td class="text-mono text-sm">@p.ClassName</td>
+                        <td>
+                            <span class="badge @(p.Type == "sink" ? "badge-blue" : p.Type == "source" ? "badge-green" : "badge-gray")">
+                                @p.Type
+                            </span>
+                        </td>
+                        <td>@(p.Version ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@* ─── Last Refresh ─── *@
+@if (_lastRefresh.HasValue)
+{
+    <div class="text-muted text-sm" style="text-align:right; padding:0.5rem 0;">
+        Last refresh: @_lastRefresh.Value.ToString("HH:mm:ss") @(_autoRefresh ? "(auto-refresh every 15s)" : "")
+    </div>
+}
+
+@code {
+    private SyncHealthReportDto? _health;
+    private List<ConnectorDetailDto> _connectorDetails = new();
+    private ConnectClusterInfoDto? _clusterInfo;
+    private List<ConnectorPluginDto> _plugins = new();
+    private bool _loading;
+    private bool _autoRefresh = true;
+    private string? _error;
+    private DateTime? _lastRefresh;
+
+    private HashSet<string> _expandedTopics = new();
+    private HashSet<string> _expandedConfigs = new();
+    private HashSet<string> _expandedTraces = new();
+
+    private Timer? _timer;
+
+    private string ConnectUrl => Configuration["EdgeRuntime:ConnectUrl"]
+                                  ?? Configuration["Debezium:ConnectUrl"]
+                                  ?? "http://localhost:8083";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAll();
+        _timer = new Timer(async _ =>
+        {
+            if (_autoRefresh && !_loading)
+            {
+                await InvokeAsync(async () =>
+                {
+                    await RefreshAll();
+                    StateHasChanged();
+                });
+            }
+        }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
+    }
+
+    private async Task RefreshAll()
+    {
+        _loading = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var tasks = new List<Task>();
+
+            tasks.Add(Task.Run(async () => _health = await SyncService.GetHealthReportAsync(ConnectUrl)));
+            tasks.Add(Task.Run(async () => _clusterInfo = await SyncService.GetClusterInfoAsync(ConnectUrl)));
+            tasks.Add(Task.Run(async () => _plugins = await SyncService.GetPluginsAsync(ConnectUrl) ?? new()));
+
+            await Task.WhenAll(tasks);
+
+            // Load detailed info for each connector
+            if (_health != null)
+            {
+                var connectors = await SyncService.ListConnectorsAsync(ConnectUrl);
+                var details = new List<ConnectorDetailDto>();
+                if (connectors != null)
+                {
+                    foreach (var c in connectors)
+                    {
+                        try
+                        {
+                            var detail = await SyncService.GetConnectorStatusAsync(ConnectUrl, c.Name);
+                            if (detail != null)
+                            {
+                                // Load topics
+                                try
+                                {
+                                    var topics = await SyncService.GetConnectorTopicsAsync(ConnectUrl, c.Name);
+                                    if (topics != null) detail.Topics = topics;
+                                }
+                                catch { /* Topics endpoint may not be available */ }
+
+                                // Load config
+                                try
+                                {
+                                    var config = await SyncService.GetConnectorConfigAsync(ConnectUrl, c.Name);
+                                    if (config != null) detail.Config = config;
+                                }
+                                catch { /* Config might fail */ }
+
+                                details.Add(detail);
+                            }
+                        }
+                        catch { /* skip individual connector errors */ }
+                    }
+                }
+                _connectorDetails = details;
+            }
+
+            _lastRefresh = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load health data: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RestartTask(string connectorName, int taskId)
+    {
+        _error = null;
+        var result = await SyncService.RestartTaskAsync(ConnectUrl, connectorName, taskId);
+        if (!result.Success) _error = $"{result.Message} {result.ErrorDetail}";
+        else await RefreshAll();
+    }
+
+    private void ToggleTopics(string name) => Toggle(_expandedTopics, name);
+    private void ToggleConfig(string name) => Toggle(_expandedConfigs, name);
+    private void ToggleTrace(string key) => Toggle(_expandedTraces, key);
+
+    private static void Toggle(HashSet<string> set, string key)
+    {
+        if (!set.Remove(key)) set.Add(key);
+    }
+
+    private static string GetStateBadge(string state) => state switch
+    {
+        "RUNNING" => "badge-green",
+        "PAUSED" => "badge-yellow",
+        "FAILED" => "badge-red",
+        _ => "badge-gray"
+    };
+
+    private static string GetHealthClass(string status) => status switch
+    {
+        "HEALTHY" => "metric-card-green",
+        "DEGRADED" => "metric-card-yellow",
+        "CRITICAL" => "metric-card-red",
+        _ => ""
+    };
+
+    private static string TruncateClass(string cls)
+    {
+        if (string.IsNullOrEmpty(cls)) return "—";
+        var parts = cls.Split('.');
+        return parts.Length >= 2 ? $"...{parts[^2]}.{parts[^1]}" : cls;
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}
