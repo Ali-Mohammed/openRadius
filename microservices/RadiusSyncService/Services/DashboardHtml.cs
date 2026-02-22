@@ -621,8 +621,30 @@ public static class DashboardHtml
   --sidebar-w: 240px;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; transition: background 0.2s, color 0.2s; }
 a { color: var(--accent); text-decoration: none; }
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --muted: #64748b;
+  --sidebar-bg: #1e293b;
+}
+[data-theme="light"] .data-table th { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .data-table tr:hover td { background: rgba(0,0,0,0.025); }
+[data-theme="light"] .data-table td { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .info-table td { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .btn { background: var(--card); }
+[data-theme="light"] .btn:hover { background: #f8fafc; }
+[data-theme="light"] .connection-badge { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .nav-item:hover { background: rgba(255,255,255,0.08); }
+[data-theme="light"] .gauge-bg { stroke: #e2e8f0; }
+[data-theme="light"] .res-bar { background: #e2e8f0; }
+[data-theme="light"] .log-feed { scrollbar-color: #cbd5e1 transparent; }
+[data-theme="light"] pre { color: var(--muted) !important; }
 ";
 
     // =========================================================================
@@ -760,6 +782,52 @@ a { color: var(--accent); text-decoration: none; }
 .text-sm { font-size: 12px; }
 .text-center { text-align: center; }
 .truncate { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
+
+/* KPI row (horizontal strip variant) */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+
+/* Theme toggle button */
+.theme-btn { font-size: 14px; padding: 4px 8px; border-radius: 6px; line-height: 1; }
+
+/* Sort indicators in table headers */
+.data-table th.sortable { cursor: pointer; user-select: none; }
+.data-table th.sortable:hover { color: var(--text); }
+.sort-icon { display: inline-block; margin-left: 4px; font-style: normal; font-size: 11px; opacity: 0.5; transition: opacity 0.15s; }
+.sort-icon.active { opacity: 1; color: var(--accent); }
+
+/* CDC operation badges */
+.op-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+.op-created { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+.op-updated { background: rgba(59,130,246,0.12); color: var(--accent); border: 1px solid rgba(59,130,246,0.25); }
+.op-deleted { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+
+/* Table name pill */
+.table-pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-family: 'SF Mono', Monaco, monospace; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
+[data-theme="light"] .table-pill { background: rgba(0,0,0,0.04); }
+
+/* Pagination controls */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.pagination-info { font-size: 12px; color: var(--muted); }
+.pagination-controls { display: flex; align-items: center; gap: 6px; }
+.page-btn { min-width: 30px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; font-weight: 600; }
+.page-btn:hover:not(:disabled) { background: rgba(59,130,246,0.08); border-color: var(--accent); color: var(--accent); }
+.page-btn:disabled { opacity: 0.3; cursor: default; }
+.page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.page-size-select { height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 12px; cursor: pointer; outline: none; }
+
+/* CDC filter bar */
+.cdc-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.05); }
+[data-theme="light"] .cdc-toolbar { background: rgba(0,0,0,0.025); }
+.filter-input { flex: 1; min-width: 160px; max-width: 280px; height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; outline: none; transition: border-color 0.15s; }
+.filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+.filter-input::placeholder { color: var(--muted); }
+
+/* Sync grid cards */
+.sync-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; transition: border-color 0.15s; }
+.sync-card:hover { border-color: rgba(255,255,255,0.12); }
+[data-theme="light"] .sync-card:hover { border-color: rgba(0,0,0,0.15); }
+.sync-card-table { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-family: 'SF Mono',Monaco,monospace; }
+.sync-card-time { font-size: 13px; font-weight: 600; }
 ";
 
     // =========================================================================
