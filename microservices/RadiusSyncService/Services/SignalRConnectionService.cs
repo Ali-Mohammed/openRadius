@@ -103,7 +103,7 @@ public class SignalRConnectionService : BackgroundService
                     _logger.LogWarning("SignalR still unavailable after {N} attempts — {Url}",
                         _consecutiveFailures, _options.HubUrl);
                 else
-                    _logger.LogDebug(ex, "Error in SignalR connection loop (attempt {N})", _consecutiveFailures);
+                    _logger.LogDebug("SignalR connection attempt {N} failed: {Message}", _consecutiveFailures, ex.Message);
 
                 // Exponential backoff: 3s → 6s → 12s → 24s → 60s (cap)
                 var baseDelay = Math.Max(1, _options.ReconnectDelaySeconds);
