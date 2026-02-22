@@ -2309,7 +2309,10 @@ API_CREDS_EOF
   URL:            http://localhost:${SYNC_SERVICE_PORT}
   Health:         http://localhost:${SYNC_SERVICE_PORT}/health
   Status:         http://localhost:${SYNC_SERVICE_PORT}/status
+  Dashboard:      http://localhost:${SYNC_SERVICE_PORT}/dashboard
   SignalR Hub:    ${SIGNALR_HUB_URL}
+  Dashboard User: ${DASHBOARD_USERNAME}
+  Dashboard Pass: ${DASHBOARD_PASSWORD}
 SYNC_CREDS_EOF
     fi
 
