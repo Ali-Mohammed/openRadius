@@ -5,6 +5,7 @@ using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
 using Backend.Services;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text;
@@ -48,6 +49,31 @@ public class DebeziumController : ControllerBase
         _configuration = configuration;
         _edgeRuntimeScriptService = edgeRuntimeScriptService;
         _tenantAccessor = tenantAccessor;
+    }
+
+    /// <summary>
+    /// Handles Debezium-related exceptions consistently.
+    /// Returns 503 for connection errors and 500 for unexpected failures.
+    /// </summary>
+    private ObjectResult HandleDebeziumException(Exception ex, string operation)
+    {
+        if (ex is HttpRequestException)
+        {
+            _logger.LogWarning(ex, "Debezium Connect is unreachable during {Operation}", operation);
+            return StatusCode(503, new
+            {
+                error = "Debezium Connect is not reachable. Ensure the service is running and healthy.",
+                operation,
+                retryable = true
+            });
+        }
+
+        _logger.LogError(ex, "Unexpected error during {Operation}", operation);
+        return StatusCode(500, new
+        {
+            error = "An unexpected error occurred. Check server logs for details.",
+            operation
+        });
     }
 
     // Settings endpoints
@@ -117,11 +143,19 @@ public class DebeziumController : ControllerBase
                 message = $"Failed to connect: {response.ReasonPhrase}" 
             });
         }
+        catch (HttpRequestException)
+        {
+            return StatusCode(503, new { 
+                connected = false, 
+                message = "Debezium Connect is not reachable. Ensure the service is running and healthy."
+            });
+        }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unexpected error testing Debezium connection");
             return StatusCode(500, new { 
                 connected = false, 
-                message = $"Connection error: {ex.Message}" 
+                message = "An unexpected error occurred while testing the connection."
             });
         }
     }
@@ -315,8 +349,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching connectors");
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, "fetch connectors");
         }
     }
 
@@ -346,8 +379,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching connector {Name}", name);
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, $"fetch connector '{name}'");
         }
     }
 
@@ -443,8 +475,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating connector");
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, "create connector");
         }
     }
 
@@ -521,8 +552,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing connectors");
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, "sync connectors");
         }
     }
 
@@ -621,8 +651,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating connector");
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, "update connector");
         }
     }
 
@@ -655,8 +684,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting connector {Name}", name);
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, $"delete connector '{name}'");
         }
     }
 
@@ -689,8 +717,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error pausing connector {Name}", name);
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, $"pause connector '{name}'");
         }
     }
 
@@ -723,8 +750,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resuming connector {Name}", name);
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, $"resume connector '{name}'");
         }
     }
 
@@ -748,8 +774,7 @@ public class DebeziumController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error restarting connector {Name}", name);
-            return StatusCode(500, new { error = ex.Message });
+            return HandleDebeziumException(ex, $"restart connector '{name}'");
         }
     }
 
