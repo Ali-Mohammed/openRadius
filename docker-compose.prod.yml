@@ -116,17 +116,8 @@ services:
       - --mode dev-container
       - --smp 1
       - --default-log-level=info
-      # SASL/SCRAM authentication — ALL listeners (enterprise security)
-      # Both internal (Docker) and external (internet) require authentication
-      - --set redpanda.kafka_enable_authorization=true
-      - --set redpanda.superusers=["admin"]
-      - --set redpanda.kafka_api[0].authentication_method=sasl
-      - --set redpanda.kafka_api[1].authentication_method=sasl
-      # Enable SCRAM mechanisms (covers SCRAM-SHA-256 + SCRAM-SHA-512)
-      - --set redpanda.sasl_mechanisms=["SCRAM"]
-    environment:
-      # Bootstrap user — Redpanda creates this SCRAM user on first startup
-      RP_BOOTSTRAP_USER: "admin:${KAFKA_SASL_PASSWORD:-changeme_in_production}"
+      # Internal listener: plaintext (Docker network isolation provides security)
+      # External listener: open port 9094 for external Kafka clients if needed
     ports:
       - "9094:19092"  # Kafka external (SASL) — clients connect to kafka.<domain>:9094
     expose:
@@ -144,33 +135,6 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
-  # Redpanda Init - Ensure SCRAM superuser exists (idempotent, runs once)
-  # ---------------------------------------------------------------------------
-  redpanda-init:
-    image: redpandadata/redpanda:v25.3.4
-    container_name: openradius-redpanda-init
-    entrypoint: /bin/bash
-    command:
-      - -c
-      - |
-        set -e
-        echo "[redpanda-init] Ensuring SCRAM superuser 'admin' exists..."
-        # Create user (or update password if already exists)
-        rpk acl user create admin \
-          -p "$$KAFKA_SASL_PASSWORD" \
-          --mechanism scram-sha-256 \
-          --api-urls redpanda:9644 2>&1 || true
-        echo "[redpanda-init] SCRAM user setup complete."
-    environment:
-      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-changeme_in_production}
-    networks:
-      - openradius-network
-    depends_on:
-      redpanda:
-        condition: service_healthy
-    restart: "no"
-
-  # ---------------------------------------------------------------------------
   # Redpanda Console - Kafka UI
   # ---------------------------------------------------------------------------
   redpanda-console:
@@ -184,11 +148,6 @@ services:
       CONSOLE_CONFIG_FILE: |
         kafka:
           brokers: ["redpanda:9092"]
-          sasl:
-            enabled: true
-            mechanism: SCRAM-SHA-256
-            username: admin
-            password: ${KAFKA_SASL_PASSWORD:-changeme_in_production}
         redpanda:
           adminApi:
             enabled: true
@@ -198,8 +157,8 @@ services:
     networks:
       - openradius-network
     depends_on:
-      redpanda-init:
-        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
 
   # ---------------------------------------------------------------------------
   # Debezium Connect - CDC Platform
@@ -223,23 +182,13 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: true
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: true
-      # SASL/SCRAM authentication for Redpanda
-      CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
-      CONNECT_SASL_MECHANISM: SCRAM-SHA-256
-      CONNECT_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
-      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
-      CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-256
-      CONNECT_PRODUCER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
-      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
-      CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-256
-      CONNECT_CONSUMER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
     expose:
       - "8083"
     networks:
       - openradius-network
     depends_on:
-      redpanda-init:
-        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8083/ || exit 1"]
       interval: 30s
@@ -318,12 +267,8 @@ services:
       # Issuer MUST match the 'iss' claim in tokens (the external URL Keycloak stamps on JWTs)
       Oidc__Issuer: "${OIDC_ISSUER:-https://auth.${DOMAIN:-localhost}/realms/openradius}"
       
-      # Kafka (SASL/SCRAM authenticated)
+      # Kafka
       Kafka__BootstrapServers: "redpanda:9092"
-      Kafka__SaslUsername: "admin"
-      Kafka__SaslPassword: "${KAFKA_SASL_PASSWORD:-changeme_in_production}"
-      Kafka__SecurityProtocol: "SaslPlaintext"
-      Kafka__SaslMechanism: "ScramSha256"
       
       # Debezium
       Debezium__ConnectUrl: "http://debezium:8083"
@@ -352,8 +297,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      redpanda-init:
-        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
     volumes:
       - backend_logs:/app/Logs
       - /var/run/docker.sock:/var/run/docker.sock:ro
