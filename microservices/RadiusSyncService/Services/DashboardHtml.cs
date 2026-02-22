@@ -717,17 +717,29 @@ let state = {
 };
 
 // Navigation
+function navigateTo(section) {
+  const item = document.querySelector(`.nav-item[data-section=""${section}""]`);
+  if (!item) return;
+  state.currentSection = section;
+  document.querySelectorAll('.nav-item[data-section]').forEach(n => n.classList.remove('active'));
+  item.classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + section)?.classList.add('active');
+  document.getElementById('pageTitle').textContent = item.textContent.trim();
+  if (location.hash !== '#' + section)
+    history.pushState({ section }, '', '#' + section);
+}
+
 document.querySelectorAll('.nav-item[data-section]').forEach(item => {
   item.addEventListener('click', e => {
     e.preventDefault();
-    const section = item.dataset.section;
-    state.currentSection = section;
-    document.querySelectorAll('.nav-item[data-section]').forEach(n => n.classList.remove('active'));
-    item.classList.add('active');
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById('sec-' + section).classList.add('active');
-    document.getElementById('pageTitle').textContent = item.textContent.trim();
+    navigateTo(item.dataset.section);
   });
+});
+
+window.addEventListener('popstate', e => {
+  const section = (e.state?.section) || location.hash.replace('#', '') || 'overview';
+  navigateTo(section);
 });
 
 // API calls
@@ -1227,6 +1239,10 @@ function connDot(state) {
 
 // Initialize
 (async function init() {
+  // Restore section from URL hash (e.g. /dashboard#containers)
+  const initialSection = location.hash.replace('#', '') || 'overview';
+  navigateTo(initialSection);
+
   addLog('info', 'Dashboard loaded — connecting to API...');
   await refreshAll();
   addLog('ok', 'Initial data loaded');
