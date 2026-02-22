@@ -1249,6 +1249,7 @@ SYNCSERVICE_DOCKERFILE_EOF
         local search_paths=(
             "${script_dir}/microservices/RadiusSyncService"
             "${script_dir}/../microservices/RadiusSyncService"
+            "$(pwd)/microservices/RadiusSyncService"
             "/opt/openradius/microservices/RadiusSyncService"
         )
 
@@ -1267,10 +1268,42 @@ SYNCSERVICE_DOCKERFILE_EOF
             rm -rf "$INSTALL_DIR/syncservice/bin" "$INSTALL_DIR/syncservice/obj" 2>/dev/null || true
             print_success "RadiusSyncService source files prepared from: $syncservice_source"
         else
-            print_warning "RadiusSyncService source not found in standard locations."
-            print_info "Searched: ${search_paths[*]}"
-            print_info "Place the source in: $INSTALL_DIR/syncservice/"
-            print_info "Required file: RadiusSyncService.csproj"
+            # Download source files from GitHub
+            print_info "RadiusSyncService source not found locally. Downloading from GitHub..."
+
+            local github_base="https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/microservices/RadiusSyncService"
+            local sync_files=(
+                "RadiusSyncService.csproj"
+                "Program.cs"
+                "appsettings.json"
+                "Services/ConnectorService.cs"
+                "Services/DashboardAuthService.cs"
+                "Services/DashboardHtml.cs"
+                "Services/DockerService.cs"
+                "Services/MachineIdentityService.cs"
+                "Services/SignalRConnectionService.cs"
+            )
+
+            mkdir -p "$INSTALL_DIR/syncservice/Services" "$INSTALL_DIR/syncservice/Properties"
+
+            local download_failed=false
+            for sync_file in "${sync_files[@]}"; do
+                if curl -fsSL "$github_base/$sync_file" -o "$INSTALL_DIR/syncservice/$sync_file" 2>/dev/null; then
+                    log "[OK]    Downloaded: $sync_file"
+                else
+                    print_warning "Failed to download: $sync_file"
+                    download_failed=true
+                fi
+            done
+
+            if [[ "$download_failed" == "true" ]] || [[ ! -f "$INSTALL_DIR/syncservice/RadiusSyncService.csproj" ]]; then
+                print_error "Could not download RadiusSyncService source files."
+                print_info "Ensure internet connectivity or clone the repository:"
+                print_info "  git clone https://github.com/Ali-Mohammed/openRadius.git"
+                print_info "  Then re-run the installer from the repo root."
+                exit 52
+            fi
+            print_success "RadiusSyncService source files downloaded from GitHub"
         fi
 
         print_success "RadiusSyncService Dockerfile created"
