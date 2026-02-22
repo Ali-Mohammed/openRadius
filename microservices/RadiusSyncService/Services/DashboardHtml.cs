@@ -95,6 +95,9 @@ public static class DashboardHtml
       <a href=""#"" class=""nav-item"" data-section=""signalr"">
         <span class=""nav-icon"">📡</span> SignalR Connection
       </a>
+      <a href=""#"" class=""nav-item"" data-section=""database"">
+        <span class=""nav-icon"">🗄️</span> Database
+      </a>
       <a href=""#"" class=""nav-item"" data-section=""logs"">
         <span class=""nav-icon"">📋</span> Activity Log
       </a>
@@ -468,6 +471,51 @@ public static class DashboardHtml
         </div>
       </section>
 
+      <!-- ===== DATABASE SECTION ===== -->
+      <section id=""sec-database"" class=""section"">
+        <div class=""section-toolbar"">
+          <h2>Edge Database</h2>
+          <button class=""btn btn-sm"" onclick=""refreshDatabase()"">↻ Refresh</button>
+        </div>
+
+        <div class=""kpi-row"" id=""dbKpiRow"">
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Connection</div>
+            <div class=""kpi-value"" id=""dbStatus"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Total Rows</div>
+            <div class=""kpi-value"" id=""dbTotalRows"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Tables Monitored</div>
+            <div class=""kpi-value"" id=""dbTableCount"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Last Fetched</div>
+            <div class=""kpi-value text-sm"" id=""dbFetchedAt"">—</div>
+          </div>
+        </div>
+
+        <div class=""card"">
+          <div class=""card-header"">Table Row Counts</div>
+          <div class=""card-body"">
+            <div id=""dbError"" class=""text-muted text-sm"" style=""display:none;color:var(--red);""></div>
+            <table class=""data-table"" id=""dbTable"" style=""display:none;"">
+              <thead>
+                <tr>
+                  <th>Table</th>
+                  <th style=""text-align:right"">Rows</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id=""dbTableBody""></tbody>
+            </table>
+            <div id=""dbLoading"" class=""text-muted text-sm"">Loading database stats...</div>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== ACTIVITY LOG SECTION ===== -->
       <section id=""sec-logs"" class=""section"">
         <div class=""section-toolbar"">
@@ -661,6 +709,7 @@ let state = {
   service: null,
   docker: null,
   signalr: null,
+  database: null,
   logs: [],
   srHistory: [],
   refreshInterval: null,
@@ -700,7 +749,7 @@ async function apiPost(path, body) {
 
 // Data refresh
 async function refreshAll() {
-  await Promise.all([refreshService(), refreshDocker(), refreshSignalR(), refreshConnector()]);
+  await Promise.all([refreshService(), refreshDocker(), refreshSignalR(), refreshConnector(), refreshDatabase()]);
   document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
 }
 
@@ -975,6 +1024,51 @@ async function refreshConnector() {
   if (!data) return;
   state.connector = data;
   renderConnector(data);
+}
+
+async function refreshDatabase() {
+  const data = await api('database');
+  if (!data) return;
+  state.database = data;
+  renderDatabase(data);
+}
+
+function renderDatabase(d) {
+  const loading = document.getElementById('dbLoading');
+  const tbl = document.getElementById('dbTable');
+  const errEl = document.getElementById('dbError');
+
+  setText('dbFetchedAt', d.fetchedAt ? new Date(d.fetchedAt).toLocaleTimeString() : '--');
+
+  if (!d.reachable) {
+    if (loading) loading.style.display = 'none';
+    if (tbl) tbl.style.display = 'none';
+    if (errEl) { errEl.style.display = 'block'; errEl.textContent = '⚠ Cannot reach Edge database: ' + (d.error || 'Unknown error'); }
+    setText('dbStatus', '✗ Offline');
+    setText('dbTotalRows', '--');
+    setText('dbTableCount', '--');
+    return;
+  }
+
+  if (errEl) errEl.style.display = 'none';
+  if (loading) loading.style.display = 'none';
+  if (tbl) tbl.style.display = '';
+
+  setText('dbStatus', '✓ Online');
+  setText('dbTotalRows', (d.totalRows || 0).toLocaleString());
+  const tables = d.tables || [];
+  setText('dbTableCount', tables.length);
+
+  const tbody = document.getElementById('dbTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = tables.map(t => {
+    const ok = t.rowCount >= 0;
+    const rowVal = ok ? t.rowCount.toLocaleString() : '--';
+    const status = ok
+      ? `<span style="color:var(--green)">● OK</span>`
+      : `<span style="color:var(--red)" title="${esc(t.error || '')}">✗ Error</span>`;
+    return `<tr><td>${esc(t.tableName)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${rowVal}</td><td>${status}</td></tr>`;
+  }).join('');
 }
 
 function renderConnector(d) {
