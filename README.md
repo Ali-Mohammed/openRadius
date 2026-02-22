@@ -22,6 +22,13 @@
 ## 📋 Table of Contents
 
 - [Installation](#-installation)
+  - [Production Install (Interactive)](#quick-install-interactive)
+  - [Unattended Install](#unattended-install)
+  - [Resume Failed Install](#resume-a-failed-installation)
+  - [CLI Reference](#cli-reference)
+  - [What Gets Deployed](#what-the-installer-deploys)
+  - [Local Testing](#local-testing)
+  - [Docker Images](#docker-images)
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
@@ -45,34 +52,159 @@
 > - **Operating System:** Ubuntu 24.04 LTS (tested and recommended)
 > - **Platform:** Linux required
 > - **Architecture:** x86_64 / amd64
+> - **CPU:** 2 cores minimum (4+ recommended)
 > - **Memory:** 4GB RAM minimum (8GB recommended)
 > - **Storage:** 20GB available space
+> - **Ports:** 80, 443, 9094 must be available
+> - **Network:** Internet connectivity required
 
-**Quick Install:**
+#### Quick Install (Interactive)
+
 ```bash
 # Download and run installation script
 curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-openradius.sh -o install-openradius.sh
 chmod +x install-openradius.sh
-./install-openradius.sh
+sudo ./install-openradius.sh
 ```
 
-**Clone Repository:**
+Or clone the repo first:
+
 ```bash
 git clone https://github.com/Ali-Mohammed/openRadius.git
 cd openRadius
 chmod +x install-openradius.sh
-./install-openradius.sh
+sudo ./install-openradius.sh
 ```
 
-The installation script will:
-- ✅ Install Docker & Docker Compose
-- ✅ Configure firewall (UFW)
-- ✅ Generate SSL certificates (Let's Encrypt)
-- ✅ Set up nginx reverse proxy
-- ✅ Deploy all services
-- ✅ Configure automated backups
+The interactive installer will prompt you for:
+1. **Domain name** — e.g. `example.com`
+2. **SSL email** — for Let's Encrypt certificate generation
+3. **Password mode** — auto-generate (recommended) or enter custom passwords
+4. **Sample data** — optionally install sample RADIUS data
+5. **Keycloak auto-config** — auto-create realm, clients, and scopes
+6. **Automated backups** — enable daily backups at 2:00 AM
 
-**📚 Complete Guide**: [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+#### Unattended Install
+
+Create a config file (`install-config.env`):
+
+```env
+DOMAIN=example.com
+SSL_EMAIL=admin@example.com
+PASSWORD_MODE=auto            # auto | custom
+INSTALL_SAMPLE=n
+CONFIGURE_KEYCLOAK=y
+ENABLE_BACKUP=y
+SKIP_SSL=false                # true to skip Let's Encrypt
+
+# Only required if PASSWORD_MODE=custom (min 16 characters each):
+# POSTGRES_PASSWORD=...
+# KEYCLOAK_ADMIN_PASSWORD=...
+# REDIS_PASSWORD=...
+```
+
+Run:
+
+```bash
+sudo ./install-openradius.sh --unattended --config ./install-config.env
+```
+
+#### Resume a Failed Installation
+
+The installer saves checkpoints automatically. If it fails mid-way:
+
+```bash
+# Resume from where it left off
+sudo ./install-openradius.sh --resume
+
+# Resume from a specific step
+sudo ./install-openradius.sh --resume --from pull_docker_images
+```
+
+<details>
+<summary><b>Available Installation Steps (for <code>--from</code>)</b></summary>
+
+| Step | Description |
+|------|-------------|
+| `preflight_checks` | Disk, RAM, CPU, DNS, ports validation |
+| `install_docker` | Install Docker Engine |
+| `install_docker_compose` | Install Docker Compose |
+| `install_prerequisites` | Install required system packages |
+| `configure_firewall` | Configure UFW firewall rules |
+| `collect_configuration` | Prompt for domain, passwords, options |
+| `generate_env_file` | Generate `.env` file from configuration |
+| `save_credentials` | Save credentials to secure file |
+| `show_dns_instructions` | Display DNS A record setup guide |
+| `generate_ssl_certificates` | Obtain Let's Encrypt SSL certificates |
+| `clone_repository` | Clone OpenRadius from GitHub |
+| `configure_nginx` | Set up nginx reverse proxy |
+| `generate_htpasswd_files` | Generate htpasswd for admin consoles |
+| `generate_edge_env` | Generate EdgeRuntime `.env` template |
+| `prepare_keycloak_import` | Prepare Keycloak realm import JSON |
+| `pull_docker_images` | Pull all Docker images |
+| `start_services` | Start all Docker Compose services |
+| `wait_for_services` | Health check all services |
+| `configure_keycloak` | Auto-configure Keycloak realm/clients |
+| `setup_backup` | Enable automated daily backups |
+
+</details>
+
+#### CLI Reference
+
+```
+Usage: sudo ./install-openradius.sh [OPTIONS]
+
+Options:
+  --unattended, -u        Non-interactive mode (requires --config)
+  --config, -c FILE       Path to config file for unattended install
+  --resume, -r            Resume a previously failed installation
+  --from STEP             Resume from a specific step (use with --resume)
+  --log FILE              Custom log file path (default: /opt/openradius/install.log)
+  --version, -v           Show version and exit
+  --help, -h              Show this help message
+```
+
+#### What the Installer Deploys
+
+The script installs and configures the full OpenRadius stack:
+
+| Service | Description | URL |
+|---------|-------------|-----|
+| **Frontend** | React 19 SPA | `https://<domain>` |
+| **Backend API** | ASP.NET Core 10 | `https://api.<domain>` |
+| **Keycloak** | Identity & Access Management | `https://auth.<domain>` |
+| **PostgreSQL** | Primary database | Internal |
+| **Redis** | Caching & sessions | Internal |
+| **Redpanda** | Kafka-compatible event streaming | `kafka.<domain>:9094` |
+| **Redpanda Console** | Kafka UI (Basic Auth) | `https://kafka.<domain>` |
+| **Debezium** | Change Data Capture | `https://cdc.<domain>` |
+| **Seq** | Structured logging & search | `https://logs.<domain>` |
+| **nginx** | Reverse proxy + SSL termination | Ports 80/443 |
+
+After installation, credentials are saved to:
+- **Credentials file:** `/opt/openradius/credentials.txt` (chmod 600)
+- **Install log:** `/opt/openradius/install.log`
+
+#### Post-Install Commands
+
+```bash
+# View all service logs
+docker compose -f docker-compose.prod.yml logs -f
+
+# Check service status
+docker compose -f docker-compose.prod.yml ps
+
+# Restart all services
+docker compose -f docker-compose.prod.yml restart
+
+# Stop all services
+docker compose -f docker-compose.prod.yml down
+
+# Update to latest images
+docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+```
+
+**📚 Complete Guide**: [INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md)
 
 ### Local Testing
 
@@ -89,7 +221,7 @@ docker compose -f docker-compose.local.yml up -d
 # Seq Logs:  http://localhost:5341
 ```
 
-**📚 Testing Guide**: [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md)
+**📚 Testing Guide**: [LOCAL_TESTING_GUIDE.md](docs/LOCAL_TESTING_GUIDE.md)
 
 ### Docker Images
 
@@ -97,7 +229,7 @@ Pre-built images available on Docker Hub:
 - **Backend**: `alimohammed/openradius-backend:latest`
 - **Frontend**: `alimohammed/openradius-frontend:latest`
 
-**📚 Docker Guide**: [DOCKER_DEPLOYMENT_GUIDE.md](DOCKER_DEPLOYMENT_GUIDE.md)
+**📚 Docker Guide**: [DOCKER_DEPLOYMENT_GUIDE.md](docs/DOCKER_DEPLOYMENT_GUIDE.md)
 
 ---
 
