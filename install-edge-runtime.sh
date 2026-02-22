@@ -11,6 +11,8 @@
 #   • Docker & Docker Compose (if not present)
 #   • PostgreSQL 18.1 with WAL logical replication
 #   • Debezium Connect 3.0.0.Final with JDBC Sink Connector
+#   • RadiusSyncService — .NET 10 microservice for Docker monitoring,
+#     remote management, and real-time SignalR communication with central
 #   • FreeRADIUS 3.2 (optional — for local RADIUS authentication)
 #   • Management scripts (start, stop, status, backup, uninstall)
 #
@@ -52,9 +54,11 @@
 # =============================================================================
 
 # Version
-EDGE_RUNTIME_VERSION="1.2.0"
+EDGE_RUNTIME_VERSION="1.3.0"
 DEBEZIUM_CONNECT_VERSION="3.0.0.Final"
 POSTGRES_VERSION="18.1"
+DOTNET_RUNTIME_VERSION="10.0"
+RADIUS_SYNC_SERVICE_VERSION="1.0.0"
 
 # =============================================================================
 # Strict Mode & Globals
@@ -84,6 +88,9 @@ POSTGRES_PASSWORD=""
 POSTGRES_DB=""
 POSTGRES_USER="postgres"
 INSTALL_FREERADIUS="n"
+INSTALL_SYNC_SERVICE="y"
+SYNC_SERVICE_PORT="5242"
+SIGNALR_HUB_URL=""
 EDGE_SITE_ID=""
 NAS_SECRET=""
 CENTRAL_API_URL=""
@@ -545,6 +552,9 @@ load_unattended_config() {
     : "${CONNECTOR_GROUP_ID:=2}"
     : "${EDGE_SITE_ID:=$INSTANCE_NAME}"
     : "${INSTALL_FREERADIUS:=n}"
+    : "${INSTALL_SYNC_SERVICE:=y}"
+    : "${SYNC_SERVICE_PORT:=5242}"
+    : "${SIGNALR_HUB_URL:=}"
     : "${ENABLE_MONITORING:=n}"
     : "${CENTRAL_API_URL:=}"
 
@@ -977,6 +987,42 @@ collect_configuration() {
         fi
     fi
 
+    echo ""
+    echo -e "${CYAN}  Install RadiusSyncService (Docker monitoring & SignalR bridge)? [Y/n]: ${NC}"
+    echo -e "  ${GRAY}Enables real-time server resource monitoring, Docker management,${NC}"
+    echo -e "  ${GRAY}and bi-directional communication with the central OpenRadius panel.${NC}"
+    read -p "  > " INSTALL_SYNC_SERVICE
+    INSTALL_SYNC_SERVICE="${INSTALL_SYNC_SERVICE,,}"
+    INSTALL_SYNC_SERVICE="${INSTALL_SYNC_SERVICE:-y}"
+
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        echo -e "${CYAN}  RadiusSyncService HTTP port [5242]: ${NC}"
+        read -p "  > " input_sync_port
+        SYNC_SERVICE_PORT="${input_sync_port:-5242}"
+        if ! validate_port "$SYNC_SERVICE_PORT"; then
+            print_warning "Invalid port, using default: 5242"
+            SYNC_SERVICE_PORT="5242"
+        fi
+
+        echo -e "${CYAN}  Central OpenRadius SignalR Hub URL: ${NC}"
+        echo -e "  ${GRAY}Example: https://api.example.com/hubs/microservices${NC}"
+        if [[ -n "$CENTRAL_API_URL" ]]; then
+            local default_hub="${CENTRAL_API_URL%/}/hubs/microservices"
+            echo -e "  ${GRAY}Default: ${default_hub}${NC}"
+            read -p "  > " input_hub_url
+            SIGNALR_HUB_URL="${input_hub_url:-$default_hub}"
+        else
+            read -p "  > " SIGNALR_HUB_URL
+        fi
+
+        if [[ -z "$SIGNALR_HUB_URL" ]]; then
+            print_warning "SignalR Hub URL not set. RadiusSyncService will run but cannot connect to central panel."
+            SIGNALR_HUB_URL="http://localhost:5000/hubs/microservices"
+        fi
+
+        print_success "RadiusSyncService: port=$SYNC_SERVICE_PORT, hub=$SIGNALR_HUB_URL"
+    fi
+
     echo -e "${CYAN}  Enable Prometheus monitoring endpoint? [y/N]: ${NC}"
     read -p "  > " ENABLE_MONITORING
     ENABLE_MONITORING="${ENABLE_MONITORING,,}"
@@ -1004,6 +1050,11 @@ collect_configuration() {
     echo -e "  ${BOLD}Group ID:${NC}          $CONNECTOR_GROUP_ID"
     echo -e "  ${BOLD}Edge Site ID:${NC}      $EDGE_SITE_ID"
     echo -e "  ${BOLD}FreeRADIUS:${NC}        $INSTALL_FREERADIUS"
+    echo -e "  ${BOLD}SyncService:${NC}       $INSTALL_SYNC_SERVICE"
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        echo -e "  ${BOLD}SyncService Port:${NC}  $SYNC_SERVICE_PORT"
+        echo -e "  ${BOLD}SignalR Hub URL:${NC}   $SIGNALR_HUB_URL"
+    fi
     echo -e "  ${BOLD}Monitoring:${NC}        $ENABLE_MONITORING"
     echo ""
 
@@ -1091,6 +1142,83 @@ RUN cd /kafka/connect && \\
 USER kafka
 DOCKERFILE_EOF
     print_success "Dockerfile created"
+
+    # ─── RadiusSyncService Dockerfile ─────────────────────────────────────
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        print_step "Creating RadiusSyncService Dockerfile..."
+
+        mkdir -p "$INSTALL_DIR/syncservice"
+
+        cat > "$INSTALL_DIR/syncservice/Dockerfile" << 'SYNCSERVICE_DOCKERFILE_EOF'
+# ==========================================================================
+# OpenRadius RadiusSyncService — Multi-Stage Docker Build
+# ==========================================================================
+# Enterprise-grade .NET microservice for real-time SignalR monitoring,
+# Docker container management, and edge-to-central sync orchestration.
+# ==========================================================================
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+WORKDIR /src
+
+# Copy project file and restore dependencies (layer caching)
+COPY RadiusSyncService.csproj ./
+RUN dotnet restore
+
+# Copy remaining source and publish release build
+COPY . ./
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+# ==========================================================================
+# Runtime stage — minimal ASP.NET image
+# ==========================================================================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+WORKDIR /app
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r openradius && useradd -r -g openradius -m openradius
+
+COPY --from=build /app/publish .
+
+# Create config directory for machine identity persistence
+RUN mkdir -p /app/.config/OpenRadius && \
+    chown -R openradius:openradius /app
+
+EXPOSE 8080
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Note: Running as root is required for Docker socket access.
+# In production, consider using Docker socket proxy for least-privilege.
+USER root
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+    CMD curl -sf http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dotnet", "RadiusSyncService.dll"]
+SYNCSERVICE_DOCKERFILE_EOF
+
+        # Copy RadiusSyncService source files into the build context
+        print_step "Preparing RadiusSyncService source files..."
+        local syncservice_source="/Users/amohammed/Desktop/CodeMe/openRadius/microservices/RadiusSyncService"
+        if [[ -d "$syncservice_source" ]]; then
+            # Copy source files (excluding bin/obj build artifacts)
+            rsync -a --exclude='bin/' --exclude='obj/' "$syncservice_source/" "$INSTALL_DIR/syncservice/" 2>/dev/null || \
+            cp -r "$syncservice_source"/* "$INSTALL_DIR/syncservice/" 2>/dev/null || true
+            # Clean build artifacts if rsync wasn't available
+            rm -rf "$INSTALL_DIR/syncservice/bin" "$INSTALL_DIR/syncservice/obj" 2>/dev/null || true
+            print_success "RadiusSyncService source files prepared"
+        else
+            print_warning "RadiusSyncService source not found at $syncservice_source"
+            print_info "You will need to manually place the source in: $INSTALL_DIR/syncservice/"
+        fi
+
+        print_success "RadiusSyncService Dockerfile created"
+    fi
 
     # ─── init.sql ─────────────────────────────────────────────────────────
     print_step "Creating database schema..."
@@ -1390,6 +1518,52 @@ FREERADIUS_EOF
         print_success "FreeRADIUS service added"
     fi
 
+    # Append RadiusSyncService if requested
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        cat >> "$INSTALL_DIR/docker-compose.yml" << SYNCSERVICE_EOF
+
+  syncservice_${INSTANCE_NAME//-/_}:
+    build:
+      context: ./syncservice
+      dockerfile: Dockerfile
+    container_name: syncservice_${INSTANCE_NAME//-/_}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      SignalR__HubUrl: ${SIGNALR_HUB_URL}
+      SignalR__ReconnectDelaySeconds: 5
+      SignalR__HeartbeatIntervalSeconds: 30
+    ports:
+      - "${SYNC_SERVICE_PORT}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - syncservice_data:/app/.config/OpenRadius
+    networks:
+      - edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+SYNCSERVICE_EOF
+        print_success "RadiusSyncService added to Docker Compose"
+    fi
+
     # Networks and volumes
     cat >> "$INSTALL_DIR/docker-compose.yml" << VOLUMES_EOF
 
@@ -1401,6 +1575,15 @@ volumes:
   postgres_data:
     driver: local
 VOLUMES_EOF
+
+    # Append syncservice volume if installed
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        cat >> "$INSTALL_DIR/docker-compose.yml" << SYNC_VOL_EOF
+  syncservice_data:
+    driver: local
+SYNC_VOL_EOF
+    fi
+
     print_success "Docker Compose configuration created"
 
     # ─── JDBC Sink Connector Configuration ────────────────────────────────
@@ -1482,6 +1665,11 @@ INSTALL_FREERADIUS=${INSTALL_FREERADIUS}
 NAS_SECRET=${NAS_SECRET}
 CENTRAL_API_URL=${CENTRAL_API_URL}
 ENABLE_MONITORING=${ENABLE_MONITORING}
+
+# RadiusSyncService
+INSTALL_SYNC_SERVICE=${INSTALL_SYNC_SERVICE}
+SYNC_SERVICE_PORT=${SYNC_SERVICE_PORT}
+SIGNALR_HUB_URL=${SIGNALR_HUB_URL}
 ENV_EOF
 
     chmod 600 "$INSTALL_DIR/.edge-runtime.env"
@@ -1575,10 +1763,14 @@ echo ""
 echo "Edge Runtime is running!"
 echo "  PostgreSQL : localhost:__PG_PORT__"
 echo "  Connect API: http://localhost:__CONNECT_PORT__"
+if [ -d "./syncservice" ]; then
+    echo "  SyncService: http://localhost:__SYNC_SERVICE_PORT__"
+fi
 START_EOF
 
     sed -i "s/__PG_PORT__/${POSTGRES_PORT}/g" "$INSTALL_DIR/start.sh"
     sed -i "s/__CONNECT_PORT__/${CONNECT_PORT}/g" "$INSTALL_DIR/start.sh"
+    sed -i "s/__SYNC_SERVICE_PORT__/${SYNC_SERVICE_PORT}/g" "$INSTALL_DIR/start.sh"
     chmod +x "$INSTALL_DIR/start.sh"
     print_success "start.sh created"
 
@@ -1651,12 +1843,32 @@ docker compose exec -T __PG_SERVICE__ psql -U __PG_USER__ -d __PG_DB__ -c "SELEC
 echo ""
 echo -e "${CYAN}Resource Usage:${NC}"
 docker compose stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null || true
+
+# RadiusSyncService Status
+if curl -sf "http://localhost:__SYNC_SERVICE_PORT__/health" > /dev/null 2>&1; then
+    echo ""
+    echo -e "${CYAN}RadiusSyncService:${NC}"
+    SYNC_STATUS=$(curl -sf "http://localhost:__SYNC_SERVICE_PORT__/status" 2>/dev/null)
+    if [ $? -eq 0 ]; then
+        SIGNALR_CONNECTED=$(echo "$SYNC_STATUS" | jq -r '.signalRConnected' 2>/dev/null || echo "unknown")
+        MACHINE_ID=$(echo "$SYNC_STATUS" | jq -r '.machineId' 2>/dev/null || echo "unknown")
+        UPTIME=$(echo "$SYNC_STATUS" | jq -r '.uptime' 2>/dev/null || echo "unknown")
+        if [ "$SIGNALR_CONNECTED" = "true" ]; then
+            echo -e "  ${GREEN}● SignalR: Connected${NC}"
+        else
+            echo -e "  ${RED}● SignalR: Disconnected${NC}"
+        fi
+        echo -e "  Machine ID: $MACHINE_ID"
+        echo -e "  Uptime:     $UPTIME"
+    fi
+fi
 STATUS_EOF
 
     sed -i "s/__CONNECT_PORT__/${CONNECT_PORT}/g" "$INSTALL_DIR/status.sh"
     sed -i "s/__PG_SERVICE__/${service_pg}/g" "$INSTALL_DIR/status.sh"
     sed -i "s/__PG_USER__/${POSTGRES_USER}/g" "$INSTALL_DIR/status.sh"
     sed -i "s/__PG_DB__/${POSTGRES_DB}/g" "$INSTALL_DIR/status.sh"
+    sed -i "s/__SYNC_SERVICE_PORT__/${SYNC_SERVICE_PORT}/g" "$INSTALL_DIR/status.sh"
     chmod +x "$INSTALL_DIR/status.sh"
     print_success "status.sh created"
 
@@ -1697,7 +1909,7 @@ LINES="${2:-100}"
 
 if [ -z "$SERVICE" ]; then
     echo "Usage: ./logs.sh [service] [lines]"
-    echo "  Services: postgres, connect, freeradius, all"
+    echo "  Services: postgres, connect, freeradius, syncservice, all"
     echo "  Example:  ./logs.sh connect 200"
     echo ""
     echo "Showing last $LINES lines for all services:"
@@ -1898,6 +2110,38 @@ wait_for_health() {
             print_warning "FreeRADIUS may not be running. Check with: ./status.sh"
         fi
     fi
+
+    # ─── RadiusSyncService ────────────────────────────────────────────────
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        print_step "Waiting for RadiusSyncService to start..."
+        retries=0
+        max_retries=40
+        until curl -sf "http://localhost:${SYNC_SERVICE_PORT}/health" > /dev/null 2>&1; do
+            retries=$((retries + 1))
+            if [[ $retries -ge $max_retries ]]; then
+                print_warning "RadiusSyncService did not become healthy within the expected time."
+                print_info "Check logs: docker compose logs syncservice_${INSTANCE_NAME//-/_} --tail=30"
+                break
+            fi
+            echo -ne "\r  Waiting... ($retries/$max_retries)"
+            sleep 5
+        done
+        if [[ $retries -lt $max_retries ]]; then
+            echo ""
+            print_success "RadiusSyncService is healthy"
+            # Check SignalR connection status
+            local sync_status
+            sync_status=$(curl -sf "http://localhost:${SYNC_SERVICE_PORT}/status" 2>/dev/null || echo "{}")
+            local signalr_connected
+            signalr_connected=$(echo "$sync_status" | jq -r '.signalRConnected' 2>/dev/null || echo "unknown")
+            if [[ "$signalr_connected" == "true" ]]; then
+                print_success "SignalR Hub connection established"
+            else
+                print_warning "SignalR Hub not yet connected (will retry automatically)"
+                print_info "Hub URL: ${SIGNALR_HUB_URL}"
+            fi
+        fi
+    fi
 }
 
 # =============================================================================
@@ -2010,6 +2254,17 @@ RADIUS_CREDS_EOF
 API_CREDS_EOF
     fi
 
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        cat >> "$creds_file" << SYNC_CREDS_EOF
+
+# RadiusSyncService
+  URL:            http://localhost:${SYNC_SERVICE_PORT}
+  Health:         http://localhost:${SYNC_SERVICE_PORT}/health
+  Status:         http://localhost:${SYNC_SERVICE_PORT}/status
+  SignalR Hub:    ${SIGNALR_HUB_URL}
+SYNC_CREDS_EOF
+    fi
+
     chmod 600 "$creds_file"
     print_success "Credentials saved to: $creds_file"
     print_warning "Store this file securely and restrict access."
@@ -2066,6 +2321,15 @@ if [ "$CONNECTOR_STATUS" != "RUNNING" ]; then
     echo "[$(date -Iseconds)] ALERT: Connector state is $CONNECTOR_STATUS — attempting restart..."
     curl -sf -X POST "http://localhost:${CONNECT_PORT}/connectors/jdbc-sink-${INSTANCE_NAME}/restart" > /dev/null 2>&1 || true
     HEALTHY=false
+fi
+
+# Check RadiusSyncService
+if [ "${INSTALL_SYNC_SERVICE}" = "y" ]; then
+    if ! curl -sf "http://localhost:${SYNC_SERVICE_PORT}/health" > /dev/null 2>&1; then
+        echo "[$(date -Iseconds)] ALERT: RadiusSyncService is unhealthy — restarting..."
+        docker compose restart syncservice_${INSTANCE_NAME//-/_}
+        HEALTHY=false
+    fi
 fi
 
 if [ "$HEALTHY" = true ]; then
@@ -2142,6 +2406,10 @@ BANNER_EOF
     if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
         echo -e "  │  FreeRADIUS Auth     │  0.0.0.0:1812/udp                           │"
         echo -e "  │  FreeRADIUS Acct     │  0.0.0.0:1813/udp                           │"
+    fi
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
+        echo -e "  │  RadiusSyncService   │  http://localhost:${SYNC_SERVICE_PORT}                       │"
+        echo -e "  │  SignalR Hub         │  ${SIGNALR_HUB_URL}$(printf '%*s' $((25 - ${#SIGNALR_HUB_URL})) '')│"
     fi
     echo -e "  ${BOLD}└──────────────────────┴─────────────────────────────────────────────┘${NC}"
     echo ""
@@ -2231,7 +2499,7 @@ main() {
        |_|                    Runtime                                   |___/      
 BANNER
     echo -e "${NC}"
-    echo -e "  ${GRAY}Version ${GREEN}${EDGE_RUNTIME_VERSION}${GRAY}  •  Debezium ${DEBEZIUM_CONNECT_VERSION}  •  PostgreSQL ${POSTGRES_VERSION}${NC}"
+    echo -e "  ${GRAY}Version ${GREEN}${EDGE_RUNTIME_VERSION}${GRAY}  •  Debezium ${DEBEZIUM_CONNECT_VERSION}  •  PostgreSQL ${POSTGRES_VERSION}  •  .NET ${DOTNET_RUNTIME_VERSION}${NC}"
     echo ""
 
     print_header "OpenRadius Edge Runtime Installation v${EDGE_RUNTIME_VERSION}"
@@ -2241,6 +2509,7 @@ BANNER
     echo "    • PostgreSQL ${POSTGRES_VERSION} — local edge database"
     echo "    • Debezium Connect ${DEBEZIUM_CONNECT_VERSION} — JDBC Sink Connector"
     echo "    • Real-time CDC sync from central Kafka/Redpanda"
+    echo "    • RadiusSyncService — SignalR monitoring & Docker management"
     echo "    • FreeRADIUS (optional — for local RADIUS auth)"
     echo "    • Management scripts (start, stop, backup, status, etc.)"
     echo ""
