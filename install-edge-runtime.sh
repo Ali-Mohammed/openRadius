@@ -53,8 +53,7 @@
 # =============================================================================
 
 # Version
-EDGE_RUNTIME_VERSION="1.4.1"
-DEBEZIUM_CONNECT_VERSION="3.0.0.Final"
+EDGE_RUNTIME_VERSION="1.5.0"
 POSTGRES_VERSION="18.1"
 CLICKHOUSE_VERSION="24.8"
 DOTNET_RUNTIME_VERSION="10.0"
@@ -1783,7 +1782,7 @@ LINES="${2:-100}"
 
 if [ -z "$SERVICE" ]; then
     echo "Usage: ./logs.sh [service] [lines]"
-    echo "  Services: postgres, connect, freeradius, syncservice, all"
+    echo "  Services: postgres, freeradius, syncservice, all"
     echo "  Example:  ./logs.sh connect 200"
     echo ""
     echo "Showing last $LINES lines for all services:"
