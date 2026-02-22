@@ -1065,9 +1065,9 @@ function renderDatabase(d) {
     const ok = t.rowCount >= 0;
     const rowVal = ok ? t.rowCount.toLocaleString() : '--';
     const status = ok
-      ? `<span style="color:var(--green)">● OK</span>`
-      : `<span style="color:var(--red)" title="${esc(t.error || '')}">✗ Error</span>`;
-    return `<tr><td>${esc(t.tableName)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${rowVal}</td><td>${status}</td></tr>`;
+      ? `<span style=""color:var(--green)"">● OK</span>`
+      : `<span style=""color:var(--red)"" title=""${esc(t.error || '')}"">\u2717 Error</span>`;
+    return `<tr><td>${esc(t.tableName)}</td><td style=""text-align:right;font-variant-numeric:tabular-nums"">${rowVal}</td><td>${status}</td></tr>`;
   }).join('');
 }
 

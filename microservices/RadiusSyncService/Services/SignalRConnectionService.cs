@@ -31,6 +31,7 @@ public class SignalRConnectionService : BackgroundService
     private bool _isRegistered = false;
     private DateTime _connectedAt;
     private DateTime _lastHeartbeat;
+    private int _consecutiveFailures = 0;
 
     public SignalRConnectionService(
         ILogger<SignalRConnectionService> logger,
@@ -91,8 +92,23 @@ public class SignalRConnectionService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in SignalR connection loop");
-                await Task.Delay(TimeSpan.FromSeconds(_options.ReconnectDelaySeconds), stoppingToken);
+                _consecutiveFailures++;
+
+                // Only log at Warning on the 1st failure; subsequent repeated failures go to Debug
+                // to avoid flooding the console when the Backend is simply not running.
+                if (_consecutiveFailures == 1)
+                    _logger.LogWarning("SignalR connection unavailable at {HubUrl} — will retry (attempt {N})",
+                        _options.HubUrl, _consecutiveFailures);
+                else if (_consecutiveFailures % 10 == 0)
+                    _logger.LogWarning("SignalR still unavailable after {N} attempts — {Url}",
+                        _consecutiveFailures, _options.HubUrl);
+                else
+                    _logger.LogDebug(ex, "Error in SignalR connection loop (attempt {N})", _consecutiveFailures);
+
+                // Exponential backoff: 3s → 6s → 12s → 24s → 60s (cap)
+                var baseDelay = Math.Max(1, _options.ReconnectDelaySeconds);
+                var backoffSeconds = Math.Min(baseDelay * Math.Pow(2, _consecutiveFailures - 1), 60);
+                await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), stoppingToken);
             }
         }
 
@@ -101,7 +117,10 @@ public class SignalRConnectionService : BackgroundService
 
     private async Task InitializeConnection(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Initializing SignalR connection to {HubUrl}", _options.HubUrl);
+        if (_consecutiveFailures == 0)
+            _logger.LogInformation("Initializing SignalR connection to {HubUrl}", _options.HubUrl);
+        else
+            _logger.LogDebug("Retrying SignalR connection to {HubUrl} (attempt {N})", _options.HubUrl, _consecutiveFailures + 1);
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_options.HubUrl)
@@ -147,14 +166,15 @@ public class SignalRConnectionService : BackgroundService
         {
             await _hubConnection.StartAsync(stoppingToken);
             _connectedAt = DateTime.UtcNow;
-            _logger.LogInformation("SignalR connected successfully");
-            
+            _consecutiveFailures = 0;
+            _logger.LogInformation("SignalR connected successfully to {HubUrl}", _options.HubUrl);
+
             // Register this service with the hub
             await RegisterWithHub();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Failed to connect to SignalR hub at {HubUrl}", _options.HubUrl);
+            // Rethrow so ExecuteAsync handles logging + backoff centrally
             throw;
         }
     }
