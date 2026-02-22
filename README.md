@@ -27,6 +27,7 @@
   - [Resume Failed Install](#resume-a-failed-installation)
   - [CLI Reference](#cli-reference)
   - [What Gets Deployed](#what-the-installer-deploys)
+  - [Edge Runtime Installation](#edge-runtime-installation)
   - [Local Testing](#local-testing)
   - [Docker Images](#docker-images)
 - [Overview](#-overview)
@@ -205,6 +206,149 @@ docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compo
 ```
 
 **📚 Complete Guide**: [INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md)
+
+### Edge Runtime Installation
+
+Deploy an **Edge Runtime** on remote branch servers to sync data in real-time from the central OpenRadius cluster. Each edge site runs its own PostgreSQL + Debezium Connect stack, enabling offline-capable local RADIUS authentication with eventual consistency.
+
+> **Edge Runtime Requirements:**
+> - **Operating System:** Ubuntu 24.04 LTS (recommended)
+> - **CPU:** 2 cores minimum
+> - **Memory:** 2GB RAM minimum (4GB recommended)
+> - **Storage:** 10GB available space
+> - **Network:** Connectivity to central Kafka broker (port 9094)
+
+#### Quick Install (Interactive)
+
+```bash
+# Download and run installation script
+curl -fsSL https://raw.githubusercontent.com/Ali-Mohammed/openRadius/main/install-edge-runtime.sh -o install-edge-runtime.sh
+chmod +x install-edge-runtime.sh
+sudo ./install-edge-runtime.sh
+```
+
+Or clone the repo first:
+
+```bash
+git clone https://github.com/Ali-Mohammed/openRadius.git
+cd openRadius
+chmod +x install-edge-runtime.sh
+sudo ./install-edge-runtime.sh
+```
+
+The interactive wizard will prompt for:
+1. **Instance name** — unique identifier (e.g. `branch-office-1`, `site-baghdad`)
+2. **Kafka bootstrap server** — central broker address (e.g. `kafka.example.com:9094`)
+3. **Kafka SASL credentials** — username/password from the central server
+4. **Topics to sync** — choose from defaults or enter custom topics:
+   - `RadiusUsers` — User accounts
+   - `RadiusProfiles` — Service profiles
+   - `RadiusNasDevices` — NAS devices
+   - `RadiusIpReservations` — IP reservations
+   - `radius_ip_pools` — IP pools
+5. **Port configuration** — PostgreSQL (default: 5434), Connect REST (default: 8084)
+6. **FreeRADIUS** — optional local RADIUS authentication server (ports 1812/1813)
+7. **RadiusSyncService** — Docker monitoring dashboard with SignalR bridge
+
+#### Unattended Install
+
+Create a config file (`edge-config.env`):
+
+```env
+INSTANCE_NAME=branch-office-1
+KAFKA_BOOTSTRAP_SERVER=kafka.example.com:9094
+KAFKA_SASL_USERNAME=admin
+KAFKA_SASL_PASSWORD=your_kafka_password
+TOPICS=workspace_1.public.RadiusUsers,workspace_1.public.RadiusProfiles
+SERVER_NAME=workspace_1
+POSTGRES_PORT=5434
+CONNECT_PORT=8084
+CONNECTOR_GROUP_ID=2
+EDGE_SITE_ID=edge-1
+INSTALL_FREERADIUS=n
+INSTALL_SYNC_SERVICE=y
+SYNC_SERVICE_PORT=5242
+ENABLE_MONITORING=n
+CENTRAL_API_URL=https://api.example.com
+```
+
+Run:
+
+```bash
+sudo ./install-edge-runtime.sh --unattended --config ./edge-config.env
+```
+
+#### Resume a Failed Edge Install
+
+```bash
+# Resume from where it left off
+sudo ./install-edge-runtime.sh --resume
+
+# Resume from a specific step
+sudo ./install-edge-runtime.sh --resume --from start_services
+```
+
+<details>
+<summary><b>Available Edge Installation Steps (for <code>--from</code>)</b></summary>
+
+| Step | Description |
+|------|-------------|
+| `collect_configuration` | Prompt for instance name, Kafka, topics, ports |
+| `preflight_checks` | Disk, RAM, CPU, port availability validation |
+| `check_existing_installation` | Detect and handle prior installs |
+| `install_docker` | Install Docker Engine |
+| `install_prerequisites` | Install required system packages |
+| `verify_kafka_connectivity` | Test connection to central Kafka broker |
+| `generate_configs` | Generate Docker Compose, .env, connector JSON |
+| `generate_management_scripts` | Create start/stop/status/backup scripts |
+| `build_images` | Build Debezium Connect Docker image |
+| `start_services` | Start all Docker Compose services |
+| `wait_for_health` | Health check all services |
+| `register_connector` | Register JDBC Sink Connector with Connect |
+| `configure_freeradius` | Configure FreeRADIUS (if enabled) |
+| `save_credentials` | Save credentials to secure file |
+| `setup_monitoring` | Enable monitoring (if enabled) |
+
+</details>
+
+#### What the Edge Runtime Deploys
+
+| Service | Description | Endpoint |
+|---------|-------------|----------|
+| **PostgreSQL 18.1** | Local edge database | `localhost:5434` |
+| **Debezium Connect** | JDBC Sink Connector (CDC sync) | `http://localhost:8084` |
+| **RadiusSyncService** | Docker monitoring + SignalR bridge | `http://localhost:5242` |
+| **Edge Dashboard** | Web UI for monitoring | `http://localhost:5242/dashboard` |
+| **FreeRADIUS** | Local RADIUS auth (optional) | `0.0.0.0:1812/udp` |
+
+#### Edge Management Commands
+
+After installation, management scripts are available at `/opt/openradius-edge/<instance>/`:
+
+```bash
+# Start all edge services
+/opt/openradius-edge/<instance>/start.sh
+
+# Stop all edge services
+/opt/openradius-edge/<instance>/stop.sh
+
+# Check service status
+/opt/openradius-edge/<instance>/status.sh
+
+# View logs (all services or specific)
+/opt/openradius-edge/<instance>/logs.sh [service] [lines]
+
+# Backup edge database
+/opt/openradius-edge/<instance>/backup.sh
+
+# Update to latest images
+/opt/openradius-edge/<instance>/update.sh
+
+# Uninstall edge runtime
+/opt/openradius-edge/<instance>/uninstall.sh
+```
+
+Credentials are saved to `/opt/openradius-edge/<instance>/edge-credentials-*.txt`.
 
 ### Local Testing
 
