@@ -700,7 +700,7 @@ async function apiPost(path, body) {
 
 // Data refresh
 async function refreshAll() {
-  await Promise.all([refreshService(), refreshDocker(), refreshSignalR()]);
+  await Promise.all([refreshService(), refreshDocker(), refreshSignalR(), refreshConnector()]);
   document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
 }
 
