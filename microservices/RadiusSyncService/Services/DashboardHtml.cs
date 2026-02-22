@@ -123,6 +123,7 @@ public static class DashboardHtml
       <div class=""topbar-actions"">
         <span class=""refresh-text"" id=""lastRefresh"">--</span>
         <button class=""btn btn-sm"" onclick=""refreshAll()"" title=""Refresh now"">↻ Refresh</button>
+        <button class=""btn btn-sm theme-btn"" onclick=""toggleTheme()"" id=""themeToggle"" title=""Toggle light/dark mode"">🌙</button>
       </div>
     </header>
 
@@ -526,14 +527,19 @@ public static class DashboardHtml
           <button class=""btn btn-sm"" onclick=""refreshCdc()"">↻ Refresh</button>
         </div>
 
+        <!-- KPI strip -->
         <div class=""kpi-row"">
           <div class=""kpi-card"">
-            <div class=""kpi-label"">Status</div>
+            <div class=""kpi-label"">Connection</div>
             <div class=""kpi-value"" id=""cdcStatus"">—</div>
           </div>
           <div class=""kpi-card"">
             <div class=""kpi-label"">Events Loaded</div>
             <div class=""kpi-value"" id=""cdcEventCount"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Filtered / Showing</div>
+            <div class=""kpi-value"" id=""cdcShowing"">—</div>
           </div>
           <div class=""kpi-card"">
             <div class=""kpi-label"">Last Activity</div>
@@ -557,22 +563,46 @@ public static class DashboardHtml
 
         <!-- Recent events feed -->
         <div class=""card"">
-          <div class=""card-header"">Recent Changes (last 50)</div>
-          <div class=""card-body"">
-            <div id=""cdcError"" class=""text-muted text-sm"" style=""display:none;color:var(--red);""></div>
+          <div class=""card-header"" style=""display:flex;justify-content:space-between;align-items:center"">
+            <span>Recent Changes</span>
+            <span class=""text-muted text-sm"" style=""font-size:11px;font-weight:normal;text-transform:none"">Paginated client-side from last 50 loaded</span>
+          </div>
+
+          <!-- Filter + page-size toolbar -->
+          <div class=""cdc-toolbar"" id=""cdcToolbar"" style=""display:none"">
+            <input type=""text"" id=""cdcFilterInput"" class=""filter-input""
+                   placeholder=""Filter by table, record, operation...""
+                   oninput=""cdcApplyFilter(this.value)"" />
+            <label style=""font-size:12px;color:var(--muted);white-space:nowrap"">Rows per page:
+              <select class=""page-size-select"" id=""cdcPageSizeSel"" onchange=""cdcSetPageSize(+this.value)"">
+                <option value=""10"" selected>10</option>
+                <option value=""25"">25</option>
+                <option value=""50"">50</option>
+              </select>
+            </label>
+            <button class=""btn btn-sm"" onclick=""cdcClearFilter()"" title=""Clear filter"">✕ Clear</button>
+          </div>
+
+          <div class=""card-body"" style=""padding:0"">
+            <div id=""cdcError"" style=""display:none;color:var(--red);padding:14px 16px;font-size:13px""></div>
             <table class=""data-table"" id=""cdcEventsTable"" style=""display:none"">
               <thead>
                 <tr>
-                  <th>Table</th>
-                  <th>Record</th>
-                  <th>Operation</th>
-                  <th>Timestamp</th>
+                  <th class=""sortable"" onclick=""cdcSort('table')"">Table <i class=""sort-icon"" id=""cdcSortTable"">⇅</i></th>
+                  <th class=""sortable"" onclick=""cdcSort('record')"">Record <i class=""sort-icon"" id=""cdcSortRecord"">⇅</i></th>
+                  <th class=""sortable"" onclick=""cdcSort('operation')"">Operation <i class=""sort-icon"" id=""cdcSortOperation"">⇅</i></th>
+                  <th class=""sortable"" onclick=""cdcSort('timestamp')"">Timestamp <i class=""sort-icon active"" id=""cdcSortTimestamp"">↓</i></th>
                   <th>Age</th>
                 </tr>
               </thead>
               <tbody id=""cdcEventsBody""></tbody>
             </table>
-            <div id=""cdcLoading"" class=""text-muted text-sm"">Loading CDC events...</div>
+            <div id=""cdcLoading"">Loading CDC events...</div>
+            <!-- Pagination -->
+            <div class=""pagination"" id=""cdcPagination"" style=""display:none"">
+              <span class=""pagination-info"" id=""cdcPaginationInfo""></span>
+              <div class=""pagination-controls"" id=""cdcPageButtons""></div>
+            </div>
           </div>
         </div>
       </section>
