@@ -966,6 +966,171 @@ function resBar(pct, color) {
 function getCpuColor(pct) { return pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--yellow)' : 'var(--green)'; }
 function getMemColor(pct) { return pct > 85 ? 'var(--red)' : pct > 60 ? 'var(--yellow)' : 'var(--accent)'; }
 
+// ==========================================================================
+// Connector
+// ==========================================================================
+
+async function refreshConnector() {
+  const data = await api('connector');
+  if (!data) return;
+  state.connector = data;
+  renderConnector(data);
+}
+
+function renderConnector(d) {
+  // KPI cards
+  const live = d.liveStatus;
+  const cfg = d.config;
+
+  // Connector state KPI
+  if (live) {
+    const st = (live.connectorState || 'UNKNOWN').toUpperCase();
+    const dotCls = st === 'RUNNING' ? 'dot-green' : st === 'PAUSED' ? 'dot-yellow' : st === 'FAILED' ? 'dot-red' : 'dot-gray';
+    document.getElementById('kpiConnState').innerHTML = `<span class=""dot ${dotCls}""></span> ${st}`;
+  } else {
+    document.getElementById('kpiConnState').innerHTML = `<span class=""dot dot-gray""></span> ${d.connectReachable ? 'N/A' : 'Offline'}`;
+  }
+
+  // Tasks KPI
+  if (live && live.tasks) {
+    const running = live.tasks.filter(t => (t.state || '').toUpperCase() === 'RUNNING').length;
+    setText('kpiConnTasks', running + ' / ' + live.tasks.length);
+  } else {
+    setText('kpiConnTasks', '--');
+  }
+
+  // Topics KPI
+  setText('kpiConnTopics', cfg ? cfg.topics.length : '--');
+
+  // Connect API KPI
+  const apiDot = d.connectReachable ? 'dot-green' : 'dot-red';
+  const apiLabel = d.connectReachable ? 'Reachable' : 'Offline';
+  document.getElementById('kpiConnApi').innerHTML = `<span class=""dot ${apiDot}""></span> ${apiLabel}`;
+
+  // Live status details
+  if (live) {
+    setText('connName', live.name || d.connectorName || '--');
+    const st = (live.connectorState || 'UNKNOWN').toUpperCase();
+    document.getElementById('connState').innerHTML = `<span class=""badge badge-${st}"">${connDot(st)} ${st}</span>`;
+    setText('connType', live.type || 'sink');
+    setText('connWorker', live.workerId || '--');
+  } else if (d.connectError) {
+    setText('connName', d.connectorName || '--');
+    document.getElementById('connState').innerHTML = `<span class=""badge badge-NOT_FOUND"">${connDot('NOT_FOUND')} ${d.connectError}</span>`;
+    setText('connType', '--');
+    setText('connWorker', '--');
+  }
+  setText('connUrl', d.connectUrl || '--');
+  setText('connCheckedAt', d.checkedAt ? formatDate(d.checkedAt) : '--');
+
+  // Config details
+  if (cfg) {
+    setText('connClass', shortClass(cfg.connectorClass));
+    setText('connTasksMax', cfg.tasksMax || '--');
+    setText('connDbUrl', cfg.connectionUrl || '--');
+    setText('connInsertMode', cfg.insertMode || '--');
+    setText('connDeleteEnabled', cfg.deleteEnabled || '--');
+    setText('connPkMode', cfg.primaryKeyMode || '--');
+    setText('connPkFields', cfg.primaryKeyFields || '--');
+    setText('connAutoCreate', cfg.autoCreate || '--');
+    setText('connAutoEvolve', cfg.autoEvolve || '--');
+    setText('connSchemaEvo', cfg.schemaEvolution || '--');
+
+    // Topics list
+    const topicsEl = document.getElementById('connTopicsList');
+    if (cfg.topics && cfg.topics.length > 0) {
+      topicsEl.innerHTML = cfg.topics.map(t => {
+        const tableName = t.split('.').pop();
+        return `<div class=""topic-badge""><span class=""topic-icon"">📨</span><span>${esc(t)}</span><span class=""text-muted"" style=""font-size:10px"">→ ${esc(tableName)}</span></div>`;
+      }).join('');
+    } else {
+      topicsEl.innerHTML = '<span class=""text-muted text-sm"">No topics configured</span>';
+    }
+
+    // Error handling
+    setText('connErrTolerance', cfg.errorsTolerance || '--');
+    setText('connErrLog', cfg.rawConfig && cfg.rawConfig['errors.log.enable'] || '--');
+    setText('connDlqTopic', cfg.dlqTopicName || '--');
+    setText('connDlqHeaders', cfg.rawConfig && cfg.rawConfig['errors.deadletterqueue.context.headers.enable'] || '--');
+
+    // Transform
+    setText('connTransformType', shortClass(cfg.transformType));
+    setText('connTransformRegex', cfg.transformRegex || '--');
+    setText('connTransformRepl', cfg.transformReplacement || '--');
+
+    // Raw config
+    document.getElementById('connRawConfig').textContent = JSON.stringify(cfg.rawConfig, null, 2);
+  } else if (d.configError) {
+    document.getElementById('connTopicsList').innerHTML = `<span class=""text-muted text-sm"">Config error: ${esc(d.configError)}</span>`;
+  }
+
+  // Tasks table
+  if (live && live.tasks && live.tasks.length > 0) {
+    document.getElementById('connTasksBody').innerHTML = live.tasks.map(t => {
+      const tSt = (t.state || 'UNKNOWN').toUpperCase();
+      const badgeCls = 'badge badge-' + tSt;
+      const hasTrace = t.trace && t.trace.length > 0;
+      return `<tr>
+        <td><strong>${t.id}</strong></td>
+        <td><span class=""${badgeCls}"">${connDot(tSt)} ${tSt}</span></td>
+        <td class=""mono text-sm"">${esc(t.workerId || '--')}</td>
+        <td class=""text-sm ${hasTrace ? 'text-red' : 'text-muted'}"">${hasTrace ? esc(t.trace.substring(0, 200)) + '...' : 'None'}</td>
+        <td><button class=""btn btn-sm btn-yellow"" onclick=""connectorAction('restart-task', ${t.id})"">Restart</button></td>
+      </tr>`;
+    }).join('');
+  } else {
+    document.getElementById('connTasksBody').innerHTML = '<tr><td colspan=""5"" class=""text-center text-muted"">No tasks available</td></tr>';
+  }
+
+  // All connectors on cluster
+  const allEl = document.getElementById('allConnectorsList');
+  if (d.allConnectors && d.allConnectors.length > 0) {
+    allEl.innerHTML = d.allConnectors.map(c => {
+      const isActive = c === (d.connectorName || cfg?.name);
+      return `<span class=""topic-badge"" style=""${isActive ? 'border-color:var(--green);color:var(--green)' : ''}"">${isActive ? '● ' : '○ '}${esc(c)}</span>`;
+    }).join(' ');
+  } else if (d.connectReachable) {
+    allEl.innerHTML = '<span class=""text-muted text-sm"">No connectors deployed</span>';
+  } else {
+    allEl.innerHTML = '<span class=""text-muted text-sm"">Connect API not reachable</span>';
+  }
+}
+
+async function connectorAction(action, taskId) {
+  addLog('info', `Sending ${action} to connector...`);
+  const body = { connectorName: state.connector?.connectorName || 'jdbc-sink-workspace_1' };
+  if (taskId !== undefined) body.taskId = taskId;
+  
+  const result = await apiPost('connector/' + action, body);
+  if (result) {
+    addLog(result.success ? 'ok' : 'error', result.message || `${action} completed`);
+  }
+  setTimeout(refreshConnector, 2000);
+}
+
+function toggleRawConfig() {
+  const body = document.getElementById('rawConfigBody');
+  const toggle = document.getElementById('rawConfigToggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    toggle.textContent = '▼ Hide';
+  } else {
+    body.style.display = 'none';
+    toggle.textContent = '▶ Show';
+  }
+}
+
+function shortClass(cls) {
+  if (!cls) return '--';
+  const parts = cls.split('.');
+  return parts.length > 2 ? parts.slice(-2).join('.') : cls;
+}
+
+function connDot(state) {
+  const cls = state === 'RUNNING' ? 'dot-green' : state === 'PAUSED' ? 'dot-yellow' : state === 'FAILED' ? 'dot-red' : 'dot-gray';
+  return `<span class=""dot ${cls}""></span>`;
+}
+
 // Initialize
 (async function init() {
   addLog('info', 'Dashboard loaded — connecting to API...');
