@@ -54,7 +54,7 @@
 # =============================================================================
 
 # Version
-EDGE_RUNTIME_VERSION="1.4.0"
+EDGE_RUNTIME_VERSION="1.4.1"
 DEBEZIUM_CONNECT_VERSION="3.0.0.Final"
 POSTGRES_VERSION="18.1"
 CLICKHOUSE_VERSION="24.8"
