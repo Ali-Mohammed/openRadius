@@ -3,7 +3,7 @@
   "config": {
     "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
     "tasks.max": "1",
-    "topics": "workspace_1.public.RadiusCustomAttributes,workspace_1.public.RadiusNasDevices,workspace_1.public.RadiusUsers,workspace_1.public.RadiusProfiles",
+    "topics": "workspace_1.public.RadiusIpReservations,workspace_1.public.RadiusNasDevices,workspace_1.public.RadiusProfiles,workspace_1.public.RadiusUsers,workspace_1.public.radius_ip_pools,workspace_1.public.RadiusCustomAttributes",
     "connection.url": "jdbc:postgresql://postgres:5432/edge_db",
     "connection.username": "postgres",
     "connection.password": "changeme_in_production",
