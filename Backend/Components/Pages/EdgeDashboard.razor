@@ -1,0 +1,299 @@
+@page "/edge"
+@inject IDockerMonitoringService DockerService
+@inject IRadiusSyncMonitoringService SyncService
+@inject IConfiguration Configuration
+
+<PageTitle>Edge Dashboard — OpenRadius</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Edge Runtime Dashboard</h1>
+        <div class="page-header-subtitle">Real-time overview of all edge infrastructure components</div>
+    </div>
+    <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-sm" @onclick="RefreshAll" disabled="@_loading">
+            @if (_loading) { <span class="spinner"></span> } else { <span>↻</span> }
+            Refresh
+        </button>
+        @if (_lastRefresh.HasValue)
+        {
+            <span class="text-muted text-sm">Updated @_lastRefresh.Value.ToString("HH:mm:ss")</span>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠ @_error</div>
+}
+
+<!-- Sync Health Overview -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-label">Overall Status</div>
+        <div class="metric-value">
+            @if (_healthReport != null)
+            {
+                <span class="badge @GetStatusBadgeClass(_healthReport.OverallStatus)">
+                    <span class="badge-dot"></span> @_healthReport.OverallStatus
+                </span>
+            }
+            else
+            {
+                <span class="badge badge-gray"><span class="badge-dot"></span> LOADING</span>
+            }
+        </div>
+        <div class="metric-sub">Kafka Connect cluster</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-label">Connectors</div>
+        <div class="metric-value text-cyan">@(_healthReport?.TotalConnectors ?? 0)</div>
+        <div class="metric-sub">
+            <span class="text-green">@(_healthReport?.RunningConnectors ?? 0) running</span>
+            @if ((_healthReport?.FailedConnectors ?? 0) > 0)
+            {
+                <span> · <span class="text-red">@_healthReport!.FailedConnectors failed</span></span>
+            }
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-label">Tasks</div>
+        <div class="metric-value text-cyan">@(_healthReport?.TotalTasks ?? 0)</div>
+        <div class="metric-sub">
+            <span class="text-green">@(_healthReport?.RunningTasks ?? 0) running</span>
+            @if ((_healthReport?.FailedTasks ?? 0) > 0)
+            {
+                <span> · <span class="text-red">@_healthReport!.FailedTasks failed</span></span>
+            }
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-label">Connect Version</div>
+        <div class="metric-value text-sm" style="font-size:1.1rem;">@(_healthReport?.Cluster?.Version ?? "—")</div>
+        <div class="metric-sub">Kafka Connect</div>
+    </div>
+</div>
+
+<!-- Docker + Server Resources -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Server Resources</span>
+        </div>
+        @if (_serverResources != null)
+        {
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div>
+                    <div class="text-muted text-sm">CPU</div>
+                    <div style="font-weight:600;">@_serverResources.Cpu.UsagePercent.ToString("F1")%</div>
+                    <div class="text-muted text-sm">@_serverResources.Cpu.Cores cores</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Memory</div>
+                    <div style="font-weight:600;">@_serverResources.Memory.UsagePercent.ToString("F1")%</div>
+                    <div class="text-muted text-sm">@FormatBytes(_serverResources.Memory.UsedBytes) / @FormatBytes(_serverResources.Memory.TotalBytes)</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Disk</div>
+                    <div style="font-weight:600;">@_serverResources.Disk.UsagePercent.ToString("F1")%</div>
+                    <div class="text-muted text-sm">@FormatBytes(_serverResources.Disk.UsedBytes) / @FormatBytes(_serverResources.Disk.TotalBytes)</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Uptime</div>
+                    <div style="font-weight:600; font-size:0.85rem;">@_serverResources.Uptime</div>
+                    <div class="text-muted text-sm">@_serverResources.Hostname</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="loading-state"><span class="spinner"></span> Loading resources...</div>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Docker Overview</span>
+        </div>
+        @if (_dockerInfo != null)
+        {
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div>
+                    <div class="text-muted text-sm">Containers</div>
+                    <div style="font-weight:600;">@_dockerInfo.RunningContainers / @_dockerInfo.TotalContainers</div>
+                    <div class="text-muted text-sm">running / total</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Images</div>
+                    <div style="font-weight:600;">@_dockerInfo.Images</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Docker Version</div>
+                    <div style="font-weight:600;">@_dockerInfo.ServerVersion</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Storage</div>
+                    <div style="font-weight:600; font-size:0.85rem;">@_dockerInfo.StorageDriver</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="loading-state"><span class="spinner"></span> Loading Docker info...</div>
+        }
+    </div>
+</div>
+
+<!-- Containers Quick View -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span class="card-title">Containers</span>
+        <a href="/edge/docker" class="btn btn-ghost btn-sm">View All →</a>
+    </div>
+    @if (_containers != null && _containers.Any())
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Image</th>
+                    <th>Status</th>
+                    <th>CPU</th>
+                    <th>Memory</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _containers.Take(8))
+                {
+                    <tr>
+                        <td style="font-weight:500;">@c.Name.TrimStart('/')</td>
+                        <td class="text-muted text-mono text-sm">@TruncateImage(c.Image)</td>
+                        <td>
+                            <span class="badge @(c.State == "running" ? "badge-green" : c.State == "exited" ? "badge-red" : "badge-yellow")">
+                                <span class="badge-dot"></span> @c.State
+                            </span>
+                        </td>
+                        <td class="text-mono text-sm">@c.Resources.CpuPercent</td>
+                        <td class="text-mono text-sm">@c.Resources.MemoryUsage</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (_containers != null)
+    {
+        <div class="text-muted" style="padding:1rem; text-align:center;">No containers found.</div>
+    }
+    else
+    {
+        <div class="loading-state"><span class="spinner"></span> Loading containers...</div>
+    }
+</div>
+
+<!-- Issues -->
+@if (_healthReport?.Issues.Any() == true)
+{
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Issues (@_healthReport.Issues.Count)</span>
+        </div>
+        <ul class="issues-list">
+            @foreach (var issue in _healthReport.Issues)
+            {
+                <li>
+                    <span class="badge @GetSeverityBadge(issue.Severity)" style="flex-shrink:0;">@issue.Severity</span>
+                    <div>
+                        <strong>@issue.Connector</strong> — @issue.Message
+                        @if (!string.IsNullOrEmpty(issue.Trace))
+                        {
+                            <div class="text-muted text-sm text-mono mt-1" style="max-height:60px; overflow:hidden;">@issue.Trace[..Math.Min(200, issue.Trace.Length)]</div>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    private SyncHealthReportDto? _healthReport;
+    private ServerResourcesResponse? _serverResources;
+    private DockerSystemInfoResponse? _dockerInfo;
+    private List<ContainerInfoResponse>? _containers;
+    private bool _loading;
+    private string? _error;
+    private DateTime? _lastRefresh;
+
+    private string ConnectUrl => Configuration["EdgeRuntime:ConnectUrl"]
+                                  ?? Configuration["Debezium:ConnectUrl"]
+                                  ?? "http://localhost:8083";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAll();
+    }
+
+    private async Task RefreshAll()
+    {
+        _loading = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var healthTask = SyncService.GetHealthReportAsync(ConnectUrl);
+            var resourcesTask = DockerService.GetServerResourcesAsync();
+            var dockerTask = DockerService.GetDockerSystemInfoAsync();
+            var containersTask = DockerService.GetContainersAsync(true);
+
+            await Task.WhenAll(healthTask, resourcesTask, dockerTask, containersTask);
+
+            _healthReport = healthTask.Result;
+            _serverResources = resourcesTask.Result;
+            _dockerInfo = dockerTask.Result;
+            _containers = containersTask.Result;
+            _lastRefresh = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load dashboard data: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        "HEALTHY" => "badge-green",
+        "DEGRADED" => "badge-yellow",
+        "CRITICAL" => "badge-red",
+        _ => "badge-gray"
+    };
+
+    private static string GetSeverityBadge(string severity) => severity switch
+    {
+        "ERROR" or "CRITICAL" => "badge-red",
+        "WARNING" => "badge-yellow",
+        _ => "badge-gray"
+    };
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double value = bytes;
+        int i = 0;
+        while (value >= 1024 && i < units.Length - 1) { value /= 1024; i++; }
+        return $"{value:F1} {units[i]}";
+    }
+
+    private static string TruncateImage(string image)
+    {
+        if (image.Length > 40) return image[..37] + "...";
+        return image;
+    }
+}
