@@ -122,8 +122,8 @@ services:
       - --set redpanda.superusers=["admin"]
       - --set redpanda.kafka_api[0].authentication_method=sasl
       - --set redpanda.kafka_api[1].authentication_method=sasl
-      # Enable SCRAM-SHA-256/512 mechanisms on all SASL listeners
-      - --set redpanda.sasl_mechanisms=["SCRAM-SHA-256","SCRAM-SHA-512"]
+      # Enable SCRAM mechanisms (covers SCRAM-SHA-256 + SCRAM-SHA-512)
+      - --set redpanda.sasl_mechanisms=["SCRAM"]
     environment:
       # Bootstrap user — Redpanda creates this SCRAM user on first startup
       RP_BOOTSTRAP_USER: "admin:${KAFKA_SASL_PASSWORD:-changeme_in_production}"
