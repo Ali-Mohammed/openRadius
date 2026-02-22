@@ -316,9 +316,13 @@ sudo ./install-edge-runtime.sh --resume --from start_services
 | Service | Description | Endpoint |
 |---------|-------------|----------|
 | **PostgreSQL 18.1** | Local edge database | `localhost:5434` |
+| **Redis 7** | Auth cache, session tracking, rate limiting | `localhost:6380` |
 | **Debezium Connect** | JDBC Sink Connector (CDC sync) | `http://localhost:8084` |
+| **ClickHouse 24.8** | Columnar analytics for RADIUS accounting | `localhost:8123` |
+| **Fluent Bit 3.2** | Log pipeline (FreeRADIUS → ClickHouse) | Internal |
 | **RadiusSyncService** | Docker monitoring + SignalR bridge | `http://localhost:5242` |
 | **Edge Dashboard** | Web UI for monitoring | `http://localhost:5242/dashboard` |
+| **Metabase** | BI & analytics dashboard for ClickHouse | `http://localhost:3300` |
 | **FreeRADIUS** | Local RADIUS auth (optional) | `0.0.0.0:1812/udp` |
 
 #### Edge Management Commands

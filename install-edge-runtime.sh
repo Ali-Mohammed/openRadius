@@ -54,9 +54,10 @@
 # =============================================================================
 
 # Version
-EDGE_RUNTIME_VERSION="1.3.0"
+EDGE_RUNTIME_VERSION="1.4.0"
 DEBEZIUM_CONNECT_VERSION="3.0.0.Final"
 POSTGRES_VERSION="18.1"
+CLICKHOUSE_VERSION="24.8"
 DOTNET_RUNTIME_VERSION="10.0"
 RADIUS_SYNC_SERVICE_VERSION="1.0.0"
 
@@ -133,11 +134,13 @@ init_logging() {
 }
 
 log() {
+    [[ -z "$LOG_FILE" ]] && return 0
     mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
     echo "[$(date -Iseconds 2>/dev/null || date)] $*" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 log_debug() {
+    [[ -z "$LOG_FILE" ]] && return 0
     mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
     echo "[$(date -Iseconds 2>/dev/null || date)] [DEBUG] $*" >> "$LOG_FILE" 2>/dev/null || true
 }
@@ -2561,7 +2564,7 @@ main() {
        |_|                    Runtime                                   |___/      
 BANNER
     echo -e "${NC}"
-    echo -e "  ${GRAY}Version ${GREEN}${EDGE_RUNTIME_VERSION}${GRAY}  •  Debezium ${DEBEZIUM_CONNECT_VERSION}  •  PostgreSQL ${POSTGRES_VERSION}  •  .NET ${DOTNET_RUNTIME_VERSION}${NC}"
+    echo -e "  ${GRAY}Version ${GREEN}${EDGE_RUNTIME_VERSION}${GRAY}  •  Debezium ${DEBEZIUM_CONNECT_VERSION}  •  PostgreSQL ${POSTGRES_VERSION}  •  ClickHouse ${CLICKHOUSE_VERSION}  •  .NET ${DOTNET_RUNTIME_VERSION}${NC}"
     echo ""
 
     print_header "OpenRadius Edge Runtime Installation v${EDGE_RUNTIME_VERSION}"
@@ -2569,9 +2572,13 @@ BANNER
     echo -e "  ${CYAN}This script will install and configure:${NC}"
     echo "    • Docker & Docker Compose (if not present)"
     echo "    • PostgreSQL ${POSTGRES_VERSION} — local edge database"
+    echo "    • Redis 7 — auth cache, session tracking, rate limiting"
     echo "    • Debezium Connect ${DEBEZIUM_CONNECT_VERSION} — JDBC Sink Connector"
     echo "    • Real-time CDC sync from central Kafka/Redpanda"
+    echo "    • ClickHouse ${CLICKHOUSE_VERSION} — columnar analytics for RADIUS accounting"
+    echo "    • Fluent Bit 3.2 — log pipeline (FreeRADIUS → ClickHouse)"
     echo "    • RadiusSyncService — SignalR monitoring & Docker management"
+    echo "    • Metabase — BI & analytics dashboard for ClickHouse"
     echo "    • FreeRADIUS (optional — for local RADIUS auth)"
     echo "    • Management scripts (start, stop, backup, status, etc.)"
     echo ""
