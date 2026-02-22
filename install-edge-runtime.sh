@@ -1204,17 +1204,38 @@ SYNCSERVICE_DOCKERFILE_EOF
 
         # Copy RadiusSyncService source files into the build context
         print_step "Preparing RadiusSyncService source files..."
-        local syncservice_source="/Users/amohammed/Desktop/CodeMe/openRadius/microservices/RadiusSyncService"
-        if [[ -d "$syncservice_source" ]]; then
+
+        # Resolve source path relative to the installer script's location
+        local script_dir
+        script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        local syncservice_source=""
+
+        # Search common locations for the RadiusSyncService source
+        local search_paths=(
+            "${script_dir}/microservices/RadiusSyncService"
+            "${script_dir}/../microservices/RadiusSyncService"
+            "/opt/openradius/microservices/RadiusSyncService"
+        )
+
+        for search_path in "${search_paths[@]}"; do
+            if [[ -d "$search_path" ]] && [[ -f "$search_path/RadiusSyncService.csproj" ]]; then
+                syncservice_source="$search_path"
+                break
+            fi
+        done
+
+        if [[ -n "$syncservice_source" ]]; then
             # Copy source files (excluding bin/obj build artifacts)
             rsync -a --exclude='bin/' --exclude='obj/' "$syncservice_source/" "$INSTALL_DIR/syncservice/" 2>/dev/null || \
             cp -r "$syncservice_source"/* "$INSTALL_DIR/syncservice/" 2>/dev/null || true
             # Clean build artifacts if rsync wasn't available
             rm -rf "$INSTALL_DIR/syncservice/bin" "$INSTALL_DIR/syncservice/obj" 2>/dev/null || true
-            print_success "RadiusSyncService source files prepared"
+            print_success "RadiusSyncService source files prepared from: $syncservice_source"
         else
-            print_warning "RadiusSyncService source not found at $syncservice_source"
-            print_info "You will need to manually place the source in: $INSTALL_DIR/syncservice/"
+            print_warning "RadiusSyncService source not found in standard locations."
+            print_info "Searched: ${search_paths[*]}"
+            print_info "Place the source in: $INSTALL_DIR/syncservice/"
+            print_info "Required file: RadiusSyncService.csproj"
         fi
 
         print_success "RadiusSyncService Dockerfile created"
