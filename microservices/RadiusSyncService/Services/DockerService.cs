@@ -671,6 +671,29 @@ public class DockerService
     }
 
     /// <summary>
+    /// Restarts a Docker container (stop + start).
+    /// </summary>
+    public async Task<CommandResult> RestartContainerAsync(string containerIdOrName)
+    {
+        if (_dockerClient == null)
+            return new CommandResult { Success = false, Error = "Docker client not initialized" };
+
+        try
+        {
+            await _dockerClient.Containers.RestartContainerAsync(containerIdOrName, new ContainerRestartParameters
+            {
+                WaitBeforeKillSeconds = 10
+            });
+            return new CommandResult { Success = true, Output = $"Container {containerIdOrName} restarted" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to restart container {Container}", containerIdOrName);
+            return new CommandResult { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
     /// Removes a Docker container.
     /// </summary>
     public async Task<CommandResult> RemoveContainerAsync(string containerIdOrName, bool force = false)

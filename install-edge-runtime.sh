@@ -91,6 +91,8 @@ INSTALL_FREERADIUS="n"
 INSTALL_SYNC_SERVICE="y"
 SYNC_SERVICE_PORT="5242"
 SIGNALR_HUB_URL=""
+DASHBOARD_USERNAME="admin"
+DASHBOARD_PASSWORD=""
 EDGE_SITE_ID=""
 NAS_SECRET=""
 CENTRAL_API_URL=""
@@ -555,6 +557,8 @@ load_unattended_config() {
     : "${INSTALL_SYNC_SERVICE:=y}"
     : "${SYNC_SERVICE_PORT:=5242}"
     : "${SIGNALR_HUB_URL:=}"
+    : "${DASHBOARD_USERNAME:=admin}"
+    : "${DASHBOARD_PASSWORD:=}"
     : "${ENABLE_MONITORING:=n}"
     : "${CENTRAL_API_URL:=}"
 
@@ -1021,6 +1025,23 @@ collect_configuration() {
         fi
 
         print_success "RadiusSyncService: port=$SYNC_SERVICE_PORT, hub=$SIGNALR_HUB_URL"
+
+        # Dashboard credentials
+        echo ""
+        echo -e "${CYAN}  Dashboard username [admin]: ${NC}"
+        read -p "  > " input_dash_user
+        DASHBOARD_USERNAME="${input_dash_user:-admin}"
+
+        echo -e "${CYAN}  Dashboard password (leave blank to auto-generate): ${NC}"
+        read -s -p "  > " input_dash_pass
+        echo ""
+        if [[ -z "$input_dash_pass" ]]; then
+            DASHBOARD_PASSWORD=$(generate_password 16)
+            print_info "Auto-generated dashboard password (will be shown in credentials file)"
+        else
+            DASHBOARD_PASSWORD="$input_dash_pass"
+        fi
+        print_success "Dashboard auth configured for user: $DASHBOARD_USERNAME"
     fi
 
     echo -e "${CYAN}  Enable Prometheus monitoring endpoint? [y/N]: ${NC}"
@@ -1054,6 +1075,7 @@ collect_configuration() {
     if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
         echo -e "  ${BOLD}SyncService Port:${NC}  $SYNC_SERVICE_PORT"
         echo -e "  ${BOLD}SignalR Hub URL:${NC}   $SIGNALR_HUB_URL"
+        echo -e "  ${BOLD}Dashboard User:${NC}    $DASHBOARD_USERNAME"
     fi
     echo -e "  ${BOLD}Monitoring:${NC}        $ENABLE_MONITORING"
     echo ""
@@ -1554,6 +1576,9 @@ FREERADIUS_EOF
       SignalR__HubUrl: ${SIGNALR_HUB_URL}
       SignalR__ReconnectDelaySeconds: 5
       SignalR__HeartbeatIntervalSeconds: 30
+      Dashboard__Username: ${DASHBOARD_USERNAME}
+      Dashboard__Password: ${DASHBOARD_PASSWORD}
+      Dashboard__SessionTimeoutMinutes: 480
     ports:
       - "${SYNC_SERVICE_PORT}:8080"
     volumes:
@@ -1691,6 +1716,8 @@ ENABLE_MONITORING=${ENABLE_MONITORING}
 INSTALL_SYNC_SERVICE=${INSTALL_SYNC_SERVICE}
 SYNC_SERVICE_PORT=${SYNC_SERVICE_PORT}
 SIGNALR_HUB_URL=${SIGNALR_HUB_URL}
+DASHBOARD_USERNAME=${DASHBOARD_USERNAME}
+DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
 ENV_EOF
 
     chmod 600 "$INSTALL_DIR/.edge-runtime.env"
