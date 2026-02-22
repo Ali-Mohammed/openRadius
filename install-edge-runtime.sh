@@ -5,13 +5,13 @@
 # =============================================================================
 # This script installs and configures an OpenRadius Edge Runtime stack on a
 # remote edge server. The edge runtime synchronizes data in real-time from the
-# central OpenRadius Kafka/Redpanda cluster via Debezium JDBC Sink Connector.
+# central OpenRadius Kafka/Redpanda cluster.
 #
 # Components Installed:
 #   • Docker & Docker Compose (if not present)
 #   • PostgreSQL 18.1 with WAL logical replication
-#   • Debezium Connect 3.0.0.Final with JDBC Sink Connector
 #   • RadiusSyncService — .NET 10 microservice for Docker monitoring,
+#     Kafka Connect / JDBC Sink Connector management via web dashboard,
 #     remote management, and real-time SignalR communication with central
 #   • FreeRADIUS 3.2 (optional — for local RADIUS authentication)
 #   • Management scripts (start, stop, status, backup, uninstall)
@@ -37,7 +37,6 @@
 #   50  Docker image build/pull failed
 #   60  Service startup failed
 #   61  Health check timeout
-#   70  Connector registration failed
 #   80  FreeRADIUS configuration failed (non-fatal)
 #   90  Cleanup / rollback in progress
 #
@@ -83,8 +82,6 @@ KAFKA_SASL_PASSWORD=""
 TOPICS=""
 SERVER_NAME=""
 POSTGRES_PORT="5434"
-CONNECT_PORT="8084"
-CONNECTOR_GROUP_ID="2"
 POSTGRES_PASSWORD=""
 POSTGRES_DB=""
 POSTGRES_USER="postgres"
@@ -341,7 +338,7 @@ save_checkpoint() {
         echo "FAILED_AT:$failed_step"
         # Save all configuration variables for resume
         for var in INSTANCE_NAME KAFKA_BOOTSTRAP_SERVER KAFKA_SASL_USERNAME KAFKA_SASL_PASSWORD \
-                   TOPICS SERVER_NAME POSTGRES_PORT CONNECT_PORT CONNECTOR_GROUP_ID \
+                   TOPICS SERVER_NAME POSTGRES_PORT \
                    POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER INSTALL_FREERADIUS \
                    EDGE_SITE_ID NAS_SECRET CENTRAL_API_URL ENABLE_MONITORING \
                    INSTALL_SYNC_SERVICE SYNC_SERVICE_PORT SIGNALR_HUB_URL \
@@ -466,8 +463,8 @@ show_usage() {
 Usage: sudo ./install-edge-runtime.sh [OPTIONS]
 
   Installs the OpenRadius Edge Runtime — a self-contained PostgreSQL +
-  Debezium Connect stack that syncs data from the central Kafka/Redpanda
-  cluster to a local edge database.
+  PostgreSQL + RadiusSyncService stack that syncs data from the central
+  Kafka/Redpanda cluster to a local edge database via the web dashboard.
 
 Options:
   --unattended, -u        Non-interactive mode (requires --config)
@@ -486,8 +483,6 @@ Unattended Config File Format (edge-config.env):
   TOPICS=workspace_1.public.RadiusUsers,workspace_1.public.RadiusProfiles
   SERVER_NAME=workspace_1
   POSTGRES_PORT=5434
-  CONNECT_PORT=8084
-  CONNECTOR_GROUP_ID=2
   EDGE_SITE_ID=edge-1
   INSTALL_FREERADIUS=n
   ENABLE_MONITORING=n
@@ -510,7 +505,7 @@ Steps (for --from):
   preflight_checks, install_docker, install_prerequisites,
   collect_configuration, verify_kafka_connectivity, generate_configs,
   generate_management_scripts, build_images, start_services,
-  wait_for_health, register_connector, configure_freeradius,
+  wait_for_health, configure_freeradius,
   save_credentials, setup_monitoring
 EOF
 }
@@ -555,8 +550,6 @@ load_unattended_config() {
     # Apply defaults
     : "${KAFKA_SASL_USERNAME:=admin}"
     : "${POSTGRES_PORT:=5434}"
-    : "${CONNECT_PORT:=8084}"
-    : "${CONNECTOR_GROUP_ID:=2}"
     : "${EDGE_SITE_ID:=$INSTANCE_NAME}"
     : "${INSTALL_FREERADIUS:=n}"
     : "${INSTALL_SYNC_SERVICE:=y}"
@@ -633,7 +626,7 @@ preflight_checks() {
     fi
 
     # --- Port Availability ---
-    for port in $POSTGRES_PORT $CONNECT_PORT; do
+    for port in $POSTGRES_PORT; do
         if ss -tlnp 2>/dev/null | grep -q ":${port} " || netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
             local proc
             proc=$(ss -tlnp 2>/dev/null | grep ":${port} " | awk '{print $NF}' | head -1)
@@ -799,8 +792,6 @@ collect_configuration() {
         print_info "  Kafka:       $KAFKA_BOOTSTRAP_SERVER"
         print_info "  Topics:      $TOPICS"
         print_info "  PG Port:     $POSTGRES_PORT"
-        print_info "  Connect:     $CONNECT_PORT"
-        print_info "  Group ID:    $CONNECTOR_GROUP_ID"
         print_info "  FreeRADIUS:  $INSTALL_FREERADIUS"
         log "[CONFIG] Unattended mode — config already loaded"
         return 0
@@ -950,19 +941,7 @@ collect_configuration() {
         POSTGRES_PORT="5434"
     fi
 
-    echo -e "${CYAN}  Kafka Connect REST port [8084]: ${NC}"
-    read -p "  > " input_connect_port
-    CONNECT_PORT="${input_connect_port:-8084}"
-    if ! validate_port "$CONNECT_PORT"; then
-        print_warning "Invalid port, using default: 8084"
-        CONNECT_PORT="8084"
-    fi
-
-    echo -e "${CYAN}  Connector group ID (unique per edge instance) [2]: ${NC}"
-    read -p "  > " input_group_id
-    CONNECTOR_GROUP_ID="${input_group_id:-2}"
-
-    print_success "Ports: PostgreSQL=$POSTGRES_PORT, Connect=$CONNECT_PORT, GroupID=$CONNECTOR_GROUP_ID"
+    print_success "Ports: PostgreSQL=$POSTGRES_PORT"
 
     # ─── Edge Site Identity ───────────────────────────────────────────────
     print_divider
@@ -1082,8 +1061,6 @@ collect_configuration() {
         echo -e "    ${GRAY}• $(echo "$t" | xargs)${NC}"
     done
     echo -e "  ${BOLD}PostgreSQL Port:${NC}   $POSTGRES_PORT"
-    echo -e "  ${BOLD}Connect Port:${NC}      $CONNECT_PORT"
-    echo -e "  ${BOLD}Group ID:${NC}          $CONNECTOR_GROUP_ID"
     echo -e "  ${BOLD}Edge Site ID:${NC}      $EDGE_SITE_ID"
     echo -e "  ${BOLD}FreeRADIUS:${NC}        $INSTALL_FREERADIUS"
     echo -e "  ${BOLD}SyncService:${NC}       $INSTALL_SYNC_SERVICE"
@@ -1163,22 +1140,6 @@ generate_configs() {
     mkdir -p "$INSTALL_DIR"
     cd "$INSTALL_DIR"
     print_success "Install directory: $INSTALL_DIR"
-
-    # ─── Dockerfile ───────────────────────────────────────────────────────
-    print_step "Creating Dockerfile..."
-
-    cat > "$INSTALL_DIR/Dockerfile" << DOCKERFILE_EOF
-FROM debezium/connect:${DEBEZIUM_CONNECT_VERSION}
-
-# Install JDBC Sink Connector plugin for database synchronization
-USER root
-RUN cd /kafka/connect && \\
-    curl -sL https://repo1.maven.org/maven2/io/debezium/debezium-connector-jdbc/${DEBEZIUM_CONNECT_VERSION}/debezium-connector-jdbc-${DEBEZIUM_CONNECT_VERSION}-plugin.tar.gz | tar xz && \\
-    chown -R kafka:kafka /kafka/connect
-
-USER kafka
-DOCKERFILE_EOF
-    print_success "Dockerfile created"
 
     # ─── RadiusSyncService Dockerfile ─────────────────────────────────────
     if [[ "$INSTALL_SYNC_SERVICE" == "y" ]]; then
