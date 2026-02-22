@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield, CheckCircle2, XCircle, RefreshCw, Info, BookOpen, ChevronDown, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, Save, HelpCircle, Database, FileJson, Camera, Clock, Zap, Shield, CheckCircle2, XCircle, RefreshCw, Info, BookOpen, ChevronDown, AlertCircle, AlertTriangle, ListChecks } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +61,14 @@ interface ConnectorFormProps {
   onSuccess: () => void;
 }
 
+const DEFAULT_OPENRADIUS_TABLES = [
+  'public.RadiusIpReservations',
+  'public.RadiusNasDevices',
+  'public.RadiusProfiles',
+  'public.RadiusUsers',
+  'public.radius_ip_pools',
+];
+
 export default function ConnectorForm({ connector, onClose, onSuccess }: ConnectorFormProps) {
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -69,7 +77,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
   const [selectedTables, setSelectedTables] = useState<string[]>(
     connector?.tableIncludeList
       ? connector.tableIncludeList.split(',').map(t => t.trim())
-      : ['public.RadiusUsers', 'public.RadiusNasDevices', 'public.RadiusProfiles', 'public.RadiusCustomAttributes']
+      : [...DEFAULT_OPENRADIUS_TABLES]
   );
   const [showGuide, setShowGuide] = useState(!connector);
   const [formData, setFormData] = useState<Connector>({
@@ -84,7 +92,7 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     pluginName: 'pgoutput',
     slotName: '',
     publicationAutocreateMode: 'filtered',
-    tableIncludeList: 'public.RadiusUsers,public.RadiusNasDevices,public.RadiusProfiles,public.RadiusCustomAttributes',
+    tableIncludeList: DEFAULT_OPENRADIUS_TABLES.join(','),
     snapshotMode: 'initial',
     additionalConfig: '',
   });
@@ -170,6 +178,17 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
     };
 
     try {
+      // Validate additionalConfig is valid JSON if provided
+      if (updatedFormData.additionalConfig && updatedFormData.additionalConfig.trim() !== '') {
+        try {
+          JSON.parse(updatedFormData.additionalConfig);
+        } catch {
+          toast.error('Additional Config must be valid JSON. Please fix the JSON syntax and try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
       // Auto-generate slot name if empty
       if (!updatedFormData.slotName) {
         // Generate slot name: only lowercase, digits, underscores, max 63 chars
@@ -747,23 +766,39 @@ export default function ConnectorForm({ connector, onClose, onSuccess }: Connect
                   
                   {availableTables.length > 0 ? (
                     <div className="border rounded-md p-4 max-h-60 overflow-y-auto space-y-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <input
-                          type="checkbox"
-                          id="select-all"
-                          checked={selectedTables.length === availableTables.length}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedTables([...availableTables]);
-                            } else {
-                              setSelectedTables([]);
-                            }
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="select-all"
+                            checked={selectedTables.length === availableTables.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTables([...availableTables]);
+                              } else {
+                                setSelectedTables([]);
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <label htmlFor="select-all" className="font-medium text-sm">
+                            Select All ({availableTables.length} tables)
+                          </label>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-xs"
+                          onClick={() => {
+                            const defaultsInAvailable = DEFAULT_OPENRADIUS_TABLES.filter(t => availableTables.includes(t));
+                            setSelectedTables(defaultsInAvailable);
+                            toast.success(`Loaded ${defaultsInAvailable.length} default OpenRadius tables`);
                           }}
-                          className="rounded border-gray-300"
-                        />
-                        <label htmlFor="select-all" className="font-medium text-sm">
-                          Select All ({availableTables.length} tables)
-                        </label>
+                        >
+                          <ListChecks className="h-3.5 w-3.5" />
+                          Load OpenRadius Defaults
+                        </Button>
                       </div>
                       <div className="border-t pt-2">
                         {availableTables.map((table) => (

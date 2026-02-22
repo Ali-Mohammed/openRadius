@@ -399,13 +399,20 @@ public class DebeziumController : ControllerBase
             // Add any additional config from JSON
             if (!string.IsNullOrEmpty(connector.AdditionalConfig))
             {
-                var additionalConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(connector.AdditionalConfig);
-                if (additionalConfig != null)
+                try
                 {
-                    foreach (var kvp in additionalConfig)
+                    var additionalConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(connector.AdditionalConfig);
+                    if (additionalConfig != null)
                     {
-                        config[kvp.Key] = kvp.Value;
+                        foreach (var kvp in additionalConfig)
+                        {
+                            config[kvp.Key] = kvp.Value;
+                        }
                     }
+                }
+                catch (JsonException ex)
+                {
+                    return BadRequest(new { error = $"Invalid JSON in Additional Config: {ex.Message}" });
                 }
             }
 
@@ -570,13 +577,20 @@ public class DebeziumController : ControllerBase
             // Add any additional config from JSON
             if (!string.IsNullOrEmpty(connector.AdditionalConfig))
             {
-                var additionalConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(connector.AdditionalConfig);
-                if (additionalConfig != null)
+                try
                 {
-                    foreach (var kvp in additionalConfig)
+                    var additionalConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(connector.AdditionalConfig);
+                    if (additionalConfig != null)
                     {
-                        config[kvp.Key] = kvp.Value;
+                        foreach (var kvp in additionalConfig)
+                        {
+                            config[kvp.Key] = kvp.Value;
+                        }
                     }
+                }
+                catch (JsonException ex)
+                {
+                    return BadRequest(new { error = $"Invalid JSON in Additional Config: {ex.Message}" });
                 }
             }
 
