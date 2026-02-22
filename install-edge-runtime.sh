@@ -75,11 +75,6 @@ CONFIG_FILE=""
 INSTALL_START_TIME=$(date +%s)
 
 # Configuration variables (populated during collect_configuration)
-KAFKA_BOOTSTRAP_SERVER=""
-KAFKA_SASL_USERNAME=""
-KAFKA_SASL_PASSWORD=""
-TOPICS=""
-SERVER_NAME=""
 POSTGRES_PORT="5434"
 POSTGRES_PASSWORD=""
 POSTGRES_DB=""
@@ -336,8 +331,7 @@ save_checkpoint() {
         echo "# OpenRadius Edge Runtime Install Checkpoint — $(date -Iseconds 2>/dev/null || date)"
         echo "FAILED_AT:$failed_step"
         # Save all configuration variables for resume
-        for var in INSTANCE_NAME KAFKA_BOOTSTRAP_SERVER KAFKA_SASL_USERNAME KAFKA_SASL_PASSWORD \
-                   TOPICS SERVER_NAME POSTGRES_PORT \
+        for var in INSTANCE_NAME POSTGRES_PORT \
                    POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER INSTALL_FREERADIUS \
                    EDGE_SITE_ID NAS_SECRET CENTRAL_API_URL ENABLE_MONITORING \
                    INSTALL_SYNC_SERVICE SYNC_SERVICE_PORT SIGNALR_HUB_URL \
@@ -476,11 +470,6 @@ Options:
 
 Unattended Config File Format (edge-config.env):
   INSTANCE_NAME=branch-office-1
-  KAFKA_BOOTSTRAP_SERVER=kafka.example.com:9094
-  KAFKA_SASL_USERNAME=admin
-  KAFKA_SASL_PASSWORD=your_kafka_password
-  TOPICS=workspace_1.public.RadiusUsers,workspace_1.public.RadiusProfiles
-  SERVER_NAME=workspace_1
   POSTGRES_PORT=5434
   EDGE_SITE_ID=edge-1
   INSTALL_FREERADIUS=n
@@ -502,7 +491,7 @@ Examples:
 
 Steps (for --from):
   preflight_checks, install_docker, install_prerequisites,
-  collect_configuration, verify_kafka_connectivity, generate_configs,
+  collect_configuration, generate_configs,
   generate_management_scripts, build_images, start_services,
   wait_for_health, configure_freeradius,
   save_credentials, setup_monitoring
@@ -531,10 +520,6 @@ load_unattended_config() {
     # Validate required fields
     local missing=()
     [[ -z "${INSTANCE_NAME:-}" ]] && missing+=("INSTANCE_NAME")
-    [[ -z "${KAFKA_BOOTSTRAP_SERVER:-}" ]] && missing+=("KAFKA_BOOTSTRAP_SERVER")
-    [[ -z "${KAFKA_SASL_PASSWORD:-}" ]] && missing+=("KAFKA_SASL_PASSWORD")
-    [[ -z "${TOPICS:-}" ]] && missing+=("TOPICS")
-    [[ -z "${SERVER_NAME:-}" ]] && missing+=("SERVER_NAME")
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         print_error "Missing required fields in config file: ${missing[*]}"
@@ -547,7 +532,6 @@ load_unattended_config() {
     fi
 
     # Apply defaults
-    : "${KAFKA_SASL_USERNAME:=admin}"
     : "${POSTGRES_PORT:=5434}"
     : "${EDGE_SITE_ID:=$INSTANCE_NAME}"
     : "${INSTALL_FREERADIUS:=n}"
@@ -788,8 +772,6 @@ collect_configuration() {
         print_header "CONFIGURATION (UNATTENDED)"
         print_success "Using pre-loaded configuration:"
         print_info "  Instance:    $INSTANCE_NAME"
-        print_info "  Kafka:       $KAFKA_BOOTSTRAP_SERVER"
-        print_info "  Topics:      $TOPICS"
         print_info "  PG Port:     $POSTGRES_PORT"
         print_info "  FreeRADIUS:  $INSTALL_FREERADIUS"
         log "[CONFIG] Unattended mode — config already loaded"
@@ -824,107 +806,6 @@ collect_configuration() {
     INSTALL_DIR="/opt/openradius-edge/$INSTANCE_NAME"
     LOG_FILE="$INSTALL_DIR/install.log"
     CHECKPOINT_FILE="$INSTALL_DIR/.install-checkpoint"
-
-    # ─── Central Server Connection ────────────────────────────────────────
-    print_divider
-    echo -e "${BOLD}  Central Server — Kafka/Redpanda Connection${NC}"
-    echo -e "  The Kafka bootstrap server address from your central OpenRadius deployment."
-    echo -e "  Format: ${GRAY}hostname:port${NC} (e.g., ${GRAY}kafka.example.com:9094${NC})"
-    echo ""
-    while true; do
-        echo -e "${CYAN}  Enter Kafka bootstrap server (host:port): ${NC}"
-        read -p "  > " KAFKA_BOOTSTRAP_SERVER
-        if [[ -n "$KAFKA_BOOTSTRAP_SERVER" ]] && validate_host "${KAFKA_BOOTSTRAP_SERVER%%:*}"; then
-            # Default port 9094 if not specified
-            if [[ ! "$KAFKA_BOOTSTRAP_SERVER" =~ :[0-9]+$ ]]; then
-                KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER}:9094"
-                print_info "Using default port 9094: $KAFKA_BOOTSTRAP_SERVER"
-            fi
-            break
-        else
-            print_error "Invalid address. Use format: hostname:port (e.g., kafka.example.com:9094)"
-        fi
-    done
-    print_success "Kafka bootstrap: $KAFKA_BOOTSTRAP_SERVER"
-
-    # ─── Kafka SASL Credentials ───────────────────────────────────────────
-    print_divider
-    echo -e "${BOLD}  Kafka SASL/SCRAM Authentication${NC}"
-    echo -e "  Credentials for authenticating with the central Kafka broker."
-    echo -e "  These are found in: ${GRAY}/opt/openradius/openradius-credentials-*.txt${NC}"
-    echo -e "  or in: ${GRAY}/opt/openradius/edge-runtime.env${NC}"
-    echo ""
-
-    echo -e "${CYAN}  Enter Kafka SASL username [admin]: ${NC}"
-    read -p "  > " KAFKA_SASL_USERNAME
-    KAFKA_SASL_USERNAME="${KAFKA_SASL_USERNAME:-admin}"
-
-    while true; do
-        echo -e "${CYAN}  Enter Kafka SASL password: ${NC}"
-        read -sp "  > " KAFKA_SASL_PASSWORD
-        echo ""
-        if [[ -n "$KAFKA_SASL_PASSWORD" ]]; then
-            break
-        else
-            print_error "Kafka SASL password is required."
-        fi
-    done
-    print_success "Kafka credentials configured"
-
-    # ─── Topics ───────────────────────────────────────────────────────────
-    print_divider
-    echo -e "${BOLD}  Kafka Topics to Sync${NC}"
-    echo -e "  Comma-separated list of topics to replicate to this edge site."
-    echo -e "  Format: ${GRAY}server_name.schema.table${NC}"
-    echo -e "  Example: ${GRAY}workspace_1.public.RadiusUsers,workspace_1.public.RadiusProfiles${NC}"
-    echo ""
-    echo -e "  Available default tables:"
-    echo -e "    ${GRAY}• RadiusUsers           — User accounts${NC}"
-    echo -e "    ${GRAY}• RadiusProfiles         — Service profiles${NC}"
-    echo -e "    ${GRAY}• RadiusNasDevices       — NAS devices${NC}"
-    echo -e "    ${GRAY}• RadiusIpReservations   — IP reservations${NC}"
-    echo -e "    ${GRAY}• radius_ip_pools        — IP pools${NC}"
-    echo ""
-
-    echo -e "${CYAN}  Enter Debezium server name / topic prefix [workspace_1]: ${NC}"
-    read -p "  > " SERVER_NAME
-    SERVER_NAME="${SERVER_NAME:-workspace_1}"
-
-    echo ""
-    echo -e "  ${BOLD}Select tables to sync:${NC}"
-    echo "  1) All default tables (recommended)"
-    echo "  2) RadiusUsers only"
-    echo "  3) RadiusUsers + RadiusProfiles"
-    echo "  4) Custom (enter topics manually)"
-    echo -e "${CYAN}  Choose option [1/2/3/4]: ${NC}"
-    read -p "  > " topic_choice
-
-    case "${topic_choice:-1}" in
-        1)
-            TOPICS="${SERVER_NAME}.public.RadiusUsers,${SERVER_NAME}.public.RadiusProfiles,${SERVER_NAME}.public.RadiusNasDevices,${SERVER_NAME}.public.RadiusIpReservations,${SERVER_NAME}.public.radius_ip_pools"
-            ;;
-        2)
-            TOPICS="${SERVER_NAME}.public.RadiusUsers"
-            ;;
-        3)
-            TOPICS="${SERVER_NAME}.public.RadiusUsers,${SERVER_NAME}.public.RadiusProfiles"
-            ;;
-        4)
-            while true; do
-                echo -e "${CYAN}  Enter topics (comma-separated): ${NC}"
-                read -p "  > " TOPICS
-                if [[ -n "$TOPICS" ]]; then
-                    break
-                else
-                    print_error "At least one topic is required."
-                fi
-            done
-            ;;
-        *)
-            TOPICS="${SERVER_NAME}.public.RadiusUsers,${SERVER_NAME}.public.RadiusProfiles,${SERVER_NAME}.public.RadiusNasDevices,${SERVER_NAME}.public.RadiusIpReservations,${SERVER_NAME}.public.radius_ip_pools"
-            ;;
-    esac
-    print_success "Topics: $TOPICS"
 
     # ─── Port Configuration ───────────────────────────────────────────────
     print_divider
@@ -1052,13 +933,6 @@ collect_configuration() {
 
     echo -e "  ${BOLD}Instance:${NC}          $INSTANCE_NAME"
     echo -e "  ${BOLD}Install Dir:${NC}       $INSTALL_DIR"
-    echo -e "  ${BOLD}Kafka Bootstrap:${NC}   $KAFKA_BOOTSTRAP_SERVER"
-    echo -e "  ${BOLD}SASL Username:${NC}     $KAFKA_SASL_USERNAME"
-    echo -e "  ${BOLD}Topics:${NC}"
-    IFS=',' read -ra topic_arr <<< "$TOPICS"
-    for t in "${topic_arr[@]}"; do
-        echo -e "    ${GRAY}• $(echo "$t" | xargs)${NC}"
-    done
     echo -e "  ${BOLD}PostgreSQL Port:${NC}   $POSTGRES_PORT"
     echo -e "  ${BOLD}Edge Site ID:${NC}      $EDGE_SITE_ID"
     echo -e "  ${BOLD}FreeRADIUS:${NC}        $INSTALL_FREERADIUS"
@@ -1077,55 +951,6 @@ collect_configuration() {
     if [[ "$confirm" == "n" ]]; then
         print_error "Installation cancelled by user."
         exit 0
-    fi
-}
-
-# =============================================================================
-# Verify Kafka Connectivity
-# =============================================================================
-
-verify_kafka_connectivity() {
-    print_header "VERIFYING KAFKA CONNECTIVITY"
-
-    local kafka_host="${KAFKA_BOOTSTRAP_SERVER%%:*}"
-    local kafka_port="${KAFKA_BOOTSTRAP_SERVER##*:}"
-    kafka_port="${kafka_port:-9094}"
-
-    print_step "Testing TCP connectivity to $kafka_host:$kafka_port..."
-
-    local retries=0
-    local max_retries=3
-    local connected=false
-
-    while [[ $retries -lt $max_retries ]]; do
-        if timeout 10 bash -c "echo > /dev/tcp/$kafka_host/$kafka_port" 2>/dev/null; then
-            connected=true
-            break
-        fi
-        retries=$((retries + 1))
-        if [[ $retries -lt $max_retries ]]; then
-            print_warning "Connection attempt $retries failed. Retrying in 5s..."
-            sleep 5
-        fi
-    done
-
-    if [[ "$connected" == "true" ]]; then
-        print_success "Kafka broker is reachable at $kafka_host:$kafka_port"
-    else
-        print_warning "Cannot reach Kafka broker at $kafka_host:$kafka_port"
-        print_info "This may be expected if:"
-        print_info "  • The Kafka broker is not yet running"
-        print_info "  • Firewall rules haven't been applied yet"
-        print_info "  • DNS hasn't propagated yet"
-        echo ""
-        if [[ "$UNATTENDED" != "true" ]]; then
-            echo -e "${YELLOW}  Continue anyway? The edge runtime will retry on startup. [Y/n]: ${NC}"
-            read -p "  > " continue_anyway
-            if [[ "${continue_anyway,,}" == "n" ]]; then
-                exit 40
-            fi
-        fi
-        print_warning "Proceeding without Kafka verification — connector will retry on startup"
     fi
 }
 
@@ -1603,13 +1428,6 @@ POSTGRES_USER="${POSTGRES_USER}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 POSTGRES_PORT=${POSTGRES_PORT}
 
-# Kafka
-KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER}"
-KAFKA_SASL_USERNAME="${KAFKA_SASL_USERNAME}"
-KAFKA_SASL_PASSWORD="${KAFKA_SASL_PASSWORD}"
-TOPICS=${TOPICS}
-SERVER_NAME=${SERVER_NAME}
-
 # Optional
 INSTALL_FREERADIUS=${INSTALL_FREERADIUS}
 NAS_SECRET=${NAS_SECRET}
@@ -2069,15 +1887,6 @@ Edge Site ID:     ${EDGE_SITE_ID}
   User:           ${POSTGRES_USER}
   Password:       ${POSTGRES_PASSWORD}
   Connection:     postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}
-
-# Kafka Broker (Central)
-  Bootstrap:      ${KAFKA_BOOTSTRAP_SERVER}
-  SASL Username:  ${KAFKA_SASL_USERNAME}
-  SASL Password:  ${KAFKA_SASL_PASSWORD}
-
-# CDC Topics
-  Topics:         ${TOPICS}
-  Server Name:    ${SERVER_NAME}
 CREDS_EOF
 
     if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
@@ -2259,7 +2068,6 @@ BANNER_EOF
     echo -e "  ${BOLD}│  Service             │  Endpoint                                   │${NC}"
     echo -e "  ${BOLD}├──────────────────────┼─────────────────────────────────────────────┤${NC}"
     echo -e "  │  PostgreSQL          │  localhost:${POSTGRES_PORT}                              │"
-    echo -e "  │  Kafka Broker        │  ${KAFKA_BOOTSTRAP_SERVER}$(printf '%*s' $((25 - ${#KAFKA_BOOTSTRAP_SERVER})) '')│"
     if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
         echo -e "  │  FreeRADIUS Auth     │  0.0.0.0:1812/udp                           │"
         echo -e "  │  FreeRADIUS Acct     │  0.0.0.0:1813/udp                           │"
@@ -2278,13 +2086,6 @@ BANNER_EOF
     echo "    Database: ${POSTGRES_DB}"
     echo "    User:     ${POSTGRES_USER}"
     echo "    Password: ${POSTGRES_PASSWORD}"
-    echo ""
-
-    echo -e "  ${BOLD}Syncing Topics:${NC}"
-    IFS=',' read -ra topic_arr <<< "$TOPICS"
-    for t in "${topic_arr[@]}"; do
-        echo -e "    ${GRAY}• $(echo "$t" | xargs)${NC}"
-    done
     echo ""
 
     echo -e "  ${BOLD}Management Commands:${NC}"
@@ -2422,12 +2223,7 @@ BANNER
     run_step "install_prerequisites" install_prerequisites
 
     # =========================================================================
-    # Phase 5: Verify Connectivity
-    # =========================================================================
-    run_step "verify_kafka_connectivity" verify_kafka_connectivity
-
-    # =========================================================================
-    # Phase 6: Generate All Config Files
+    # Phase 5: Generate All Config Files
     # =========================================================================
     run_step "generate_configs" generate_configs
     run_step "generate_management_scripts" generate_management_scripts
