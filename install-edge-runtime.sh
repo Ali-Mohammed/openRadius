@@ -1490,7 +1490,7 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     networks:
       - edge-network
     restart: unless-stopped
