@@ -164,7 +164,13 @@ export default function Connectors() {
       
       setConnectors(mergedConnectors);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to fetch connectors');
+      const status = error.response?.status;
+      const serverError = error.response?.data?.error;
+      if (status === 503) {
+        toast.error(serverError || 'Debezium Connect is not reachable. Ensure the service is running.');
+      } else {
+        toast.error(serverError || error.message || 'Failed to fetch connectors');
+      }
     } finally {
       setLoading(false);
     }
