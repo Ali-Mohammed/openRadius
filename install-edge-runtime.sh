@@ -572,6 +572,11 @@ load_unattended_config() {
     POSTGRES_DB="${INSTANCE_NAME//-/_}_db"
     NAS_SECRET="${NAS_SECRET:-$(generate_password 16)}"
 
+    # Generate dashboard password if not set
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" && -z "$DASHBOARD_PASSWORD" ]]; then
+        DASHBOARD_PASSWORD=$(generate_password 16)
+    fi
+
     print_success "Unattended configuration loaded and validated"
 }
 
@@ -1052,6 +1057,11 @@ collect_configuration() {
     # ─── Generate secrets ─────────────────────────────────────────────────
     POSTGRES_PASSWORD=$(generate_password 32)
     POSTGRES_DB="${INSTANCE_NAME//-/_}_db"
+
+    # Generate dashboard password if not set
+    if [[ "$INSTALL_SYNC_SERVICE" == "y" && -z "$DASHBOARD_PASSWORD" ]]; then
+        DASHBOARD_PASSWORD=$(generate_password 16)
+    fi
 
     # ─── Configuration Summary ────────────────────────────────────────────
     print_divider
