@@ -144,6 +144,33 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
+  # Redpanda Init - Ensure SCRAM superuser exists (idempotent, runs once)
+  # ---------------------------------------------------------------------------
+  redpanda-init:
+    image: redpandadata/redpanda:v25.3.4
+    container_name: openradius-redpanda-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+        echo "[redpanda-init] Ensuring SCRAM superuser 'admin' exists..."
+        # Create user (or update password if already exists)
+        rpk acl user create admin \
+          -p "$$KAFKA_SASL_PASSWORD" \
+          --mechanism scram-sha-256 \
+          --api-urls redpanda:9644 2>&1 || true
+        echo "[redpanda-init] SCRAM user setup complete."
+    environment:
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-changeme_in_production}
+    networks:
+      - openradius-network
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # Redpanda Console - Kafka UI
   # ---------------------------------------------------------------------------
   redpanda-console:
@@ -171,8 +198,8 @@ services:
     networks:
       - openradius-network
     depends_on:
-      redpanda:
-        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
 
   # ---------------------------------------------------------------------------
   # Debezium Connect - CDC Platform
@@ -211,8 +238,8 @@ services:
     networks:
       - openradius-network
     depends_on:
-      redpanda:
-        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8083/ || exit 1"]
       interval: 30s
@@ -325,8 +352,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      redpanda:
-        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
     volumes:
       - backend_logs:/app/Logs
       - /var/run/docker.sock:/var/run/docker.sock:ro
