@@ -98,6 +98,9 @@ public static class DashboardHtml
       <a href=""#"" class=""nav-item"" data-section=""database"">
         <span class=""nav-icon"">🗄️</span> Database
       </a>
+      <a href=""#"" class=""nav-item"" data-section=""cdc"">
+        <span class=""nav-icon"">🔄</span> CDC Events
+      </a>
       <a href=""#"" class=""nav-item"" data-section=""logs"">
         <span class=""nav-icon"">📋</span> Activity Log
       </a>
@@ -516,6 +519,64 @@ public static class DashboardHtml
         </div>
       </section>
 
+      <!-- ===== CDC EVENTS SECTION ===== -->
+      <section id=""sec-cdc"" class=""section"">
+        <div class=""section-toolbar"">
+          <h2>CDC Events</h2>
+          <button class=""btn btn-sm"" onclick=""refreshCdc()"">↻ Refresh</button>
+        </div>
+
+        <div class=""kpi-row"">
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Status</div>
+            <div class=""kpi-value"" id=""cdcStatus"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Events Loaded</div>
+            <div class=""kpi-value"" id=""cdcEventCount"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Last Activity</div>
+            <div class=""kpi-value text-sm"" id=""cdcLastActivity"">—</div>
+          </div>
+          <div class=""kpi-card"">
+            <div class=""kpi-label"">Fetched At</div>
+            <div class=""kpi-value text-sm"" id=""cdcFetchedAt"">—</div>
+          </div>
+        </div>
+
+        <!-- Per-table last sync grid -->
+        <div class=""card"" style=""margin-bottom:16px"">
+          <div class=""card-header"">Table Sync Status</div>
+          <div class=""card-body"">
+            <div id=""cdcTableGrid"" style=""display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"">
+              <div class=""text-muted text-sm"">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent events feed -->
+        <div class=""card"">
+          <div class=""card-header"">Recent Changes (last 50)</div>
+          <div class=""card-body"">
+            <div id=""cdcError"" class=""text-muted text-sm"" style=""display:none;color:var(--red);""></div>
+            <table class=""data-table"" id=""cdcEventsTable"" style=""display:none"">
+              <thead>
+                <tr>
+                  <th>Table</th>
+                  <th>Record</th>
+                  <th>Operation</th>
+                  <th>Timestamp</th>
+                  <th>Age</th>
+                </tr>
+              </thead>
+              <tbody id=""cdcEventsBody""></tbody>
+            </table>
+            <div id=""cdcLoading"" class=""text-muted text-sm"">Loading CDC events...</div>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== ACTIVITY LOG SECTION ===== -->
       <section id=""sec-logs"" class=""section"">
         <div class=""section-toolbar"">
@@ -710,6 +771,7 @@ let state = {
   docker: null,
   signalr: null,
   database: null,
+  cdc: null,
   logs: [],
   srHistory: [],
   refreshInterval: null,
@@ -761,7 +823,7 @@ async function apiPost(path, body) {
 
 // Data refresh
 async function refreshAll() {
-  await Promise.all([refreshService(), refreshDocker(), refreshSignalR(), refreshConnector(), refreshDatabase()]);
+  await Promise.all([refreshService(), refreshDocker(), refreshSignalR(), refreshConnector(), refreshDatabase(), refreshCdc()]);
   document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
 }
 
@@ -1043,6 +1105,91 @@ async function refreshDatabase() {
   if (!data) return;
   state.database = data;
   renderDatabase(data);
+}
+
+async function refreshCdc() {
+  const data = await api('cdc');
+  if (!data) return;
+  state.cdc = data;
+  renderCdc(data);
+}
+
+function renderCdc(d) {
+  const loading  = document.getElementById('cdcLoading');
+  const tbl      = document.getElementById('cdcEventsTable');
+  const errEl    = document.getElementById('cdcError');
+
+  setText('cdcFetchedAt', d.fetchedAt ? new Date(d.fetchedAt).toLocaleTimeString() : '--');
+
+  if (!d.reachable) {
+    if (loading) loading.style.display = 'none';
+    if (tbl) tbl.style.display = 'none';
+    if (errEl) { errEl.style.display = 'block'; errEl.textContent = '⚠ Cannot reach Edge database: ' + (d.error || 'Unknown error'); }
+    setText('cdcStatus', '✗ Offline');
+    setText('cdcEventCount', '--');
+    setText('cdcLastActivity', '--');
+    document.getElementById('cdcTableGrid').innerHTML = '<span class=""text-muted text-sm"">—</span>';
+    return;
+  }
+
+  if (errEl) errEl.style.display = 'none';
+  if (loading) loading.style.display = 'none';
+  if (tbl) tbl.style.display = '';
+
+  const events = d.recentEvents || [];
+  const syncInfos = d.tableSyncInfo || [];
+
+  setText('cdcStatus', '✓ Online');
+  setText('cdcEventCount', events.length);
+
+  // Last activity
+  if (events.length > 0) {
+    setText('cdcLastActivity', timeAgo(events[0].timestamp));
+  } else {
+    setText('cdcLastActivity', 'No events');
+  }
+
+  // Per-table sync grid
+  const grid = document.getElementById('cdcTableGrid');
+  if (grid) {
+    grid.innerHTML = syncInfos.map(t => {
+      const ok = !t.error;
+      const ts = t.lastUpdated ? timeAgo(t.lastUpdated) : '—';
+      const tsTitle = t.lastUpdated ? new Date(t.lastUpdated).toLocaleString() : '';
+      return `
+        <div style=""border:1px solid var(--border);border-radius:6px;padding:10px 12px"">
+          <div style=""font-size:11px;color:var(--muted);margin-bottom:4px"">${ esc(t.tableName) }</div>
+          <div style=""font-size:13px;font-weight:600;color:${ok ? 'var(--text)' : 'var(--red)'}"" title=""${tsTitle}"">
+            ${ok ? ts : '✗ ' + esc(t.error || 'Error')}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Events table
+  const tbody = document.getElementById('cdcEventsBody');
+  if (!tbody) return;
+  tbody.innerHTML = events.map(e => {
+    const opColor = e.operation === 'Created' ? 'var(--green)'
+                  : e.operation === 'Deleted' ? 'var(--red)'
+                  : 'var(--accent)';
+    return `<tr>
+      <td><span style=""font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 6px"">${esc(e.tableName)}</span></td>
+      <td style=""max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"">${esc(e.identifier)}</td>
+      <td><span style=""color:${opColor};font-weight:600;font-size:12px"">${esc(e.operation)}</span></td>
+      <td style=""font-size:12px;color:var(--muted)"">${new Date(e.timestamp).toLocaleString()}</td>
+      <td style=""font-size:12px;color:var(--muted)"">${timeAgo(e.timestamp)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function timeAgo(isoStr) {
+  if (!isoStr) return '--';
+  const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
 }
 
 function renderDatabase(d) {

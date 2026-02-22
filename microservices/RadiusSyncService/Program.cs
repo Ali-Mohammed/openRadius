@@ -212,6 +212,13 @@ dashboardApi.MapGet("/database", async (EdgeDatabaseService dbService) =>
     return Results.Ok(stats);
 });
 
+// CDC activity feed
+dashboardApi.MapGet("/cdc", async (EdgeDatabaseService dbService) =>
+{
+    var activity = await dbService.GetCdcActivityAsync(forceRefresh: true);
+    return Results.Ok(activity);
+});
+
 // Connector status
 dashboardApi.MapGet("/connector", async (ConnectorService connectorService) =>
 {
