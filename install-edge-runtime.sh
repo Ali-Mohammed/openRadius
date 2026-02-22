@@ -187,10 +187,10 @@ print_divider() {
     echo -e "${GRAY}  ────────────────────────────────────────────────────────────────${NC}"
 }
 
-# Generate secure random password
+# Generate secure random password (single-line, alphanumeric only)
 generate_password() {
     local length=${1:-32}
-    openssl rand -base64 $((length * 2)) | tr -d "=+/" | cut -c1-"$length"
+    openssl rand -base64 $((length * 2)) | tr -d '=+/\n' | cut -c1-"$length"
 }
 
 # Validate IP address or hostname
@@ -1448,9 +1448,9 @@ services:
     container_name: ${service_pg}
     command: postgres -c wal_level=logical -c max_connections=200 -c shared_buffers=256MB
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -1489,12 +1489,12 @@ services:
       ${service_pg}:
         condition: service_healthy
     environment:
-      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVER}
-      GROUP_ID: ${CONNECTOR_GROUP_ID}
-      CONFIG_STORAGE_TOPIC: connect_configs_${INSTANCE_NAME//-/_}
-      OFFSET_STORAGE_TOPIC: connect_offsets_${INSTANCE_NAME//-/_}
-      STATUS_STORAGE_TOPIC: connect_status_${INSTANCE_NAME//-/_}
-      REST_ADVERTISED_HOST_NAME: ${service_connect}
+      BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVER}"
+      GROUP_ID: "${CONNECTOR_GROUP_ID}"
+      CONFIG_STORAGE_TOPIC: "connect_configs_${INSTANCE_NAME//-/_}"
+      OFFSET_STORAGE_TOPIC: "connect_offsets_${INSTANCE_NAME//-/_}"
+      STATUS_STORAGE_TOPIC: "connect_status_${INSTANCE_NAME//-/_}"
+      REST_ADVERTISED_HOST_NAME: "${service_connect}"
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
       CONNECT_OFFSET_FLUSH_INTERVAL_MS: "10000"
@@ -1549,11 +1549,11 @@ COMPOSE_EOF
       ${service_pg}:
         condition: service_healthy
     environment:
-      POSTGRES_HOST: ${service_pg}
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: "${service_pg}"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     ports:
       - "1812:1812/udp"
       - "1813:1813/udp"
@@ -1584,14 +1584,14 @@ FREERADIUS_EOF
       dockerfile: Dockerfile
     container_name: syncservice_${INSTANCE_NAME//-/_}
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
-      SignalR__HubUrl: ${SIGNALR_HUB_URL}
-      SignalR__ReconnectDelaySeconds: 5
-      SignalR__HeartbeatIntervalSeconds: 30
-      Dashboard__Username: ${DASHBOARD_USERNAME}
-      Dashboard__Password: ${DASHBOARD_PASSWORD}
-      Dashboard__SessionTimeoutMinutes: 480
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      SignalR__HubUrl: "${SIGNALR_HUB_URL}"
+      SignalR__ReconnectDelaySeconds: "5"
+      SignalR__HeartbeatIntervalSeconds: "30"
+      Dashboard__Username: "${DASHBOARD_USERNAME}"
+      Dashboard__Password: "${DASHBOARD_PASSWORD}"
+      Dashboard__SessionTimeoutMinutes: "480"
     ports:
       - "${SYNC_SERVICE_PORT}:8080"
     volumes:
@@ -1705,15 +1705,15 @@ EDGE_SITE_ID=${EDGE_SITE_ID}
 INSTALLER_VERSION=${EDGE_RUNTIME_VERSION}
 
 # PostgreSQL
-POSTGRES_DB=${POSTGRES_DB}
-POSTGRES_USER=${POSTGRES_USER}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+POSTGRES_DB="${POSTGRES_DB}"
+POSTGRES_USER="${POSTGRES_USER}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 POSTGRES_PORT=${POSTGRES_PORT}
 
 # Kafka
-KAFKA_BOOTSTRAP_SERVER=${KAFKA_BOOTSTRAP_SERVER}
-KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
-KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER}"
+KAFKA_SASL_USERNAME="${KAFKA_SASL_USERNAME}"
+KAFKA_SASL_PASSWORD="${KAFKA_SASL_PASSWORD}"
 TOPICS=${TOPICS}
 SERVER_NAME=${SERVER_NAME}
 CONNECTOR_GROUP_ID=${CONNECTOR_GROUP_ID}
