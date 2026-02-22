@@ -86,7 +86,6 @@ SIGNALR_HUB_URL=""
 DASHBOARD_USERNAME="admin"
 DASHBOARD_PASSWORD=""
 EDGE_SITE_ID=""
-NAS_SECRET=""
 CENTRAL_API_URL=""
 ENABLE_MONITORING="n"
 
@@ -333,7 +332,7 @@ save_checkpoint() {
         # Save all configuration variables for resume
         for var in INSTANCE_NAME POSTGRES_PORT \
                    POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER INSTALL_FREERADIUS \
-                   EDGE_SITE_ID NAS_SECRET CENTRAL_API_URL ENABLE_MONITORING \
+                   EDGE_SITE_ID CENTRAL_API_URL ENABLE_MONITORING \
                    INSTALL_SYNC_SERVICE SYNC_SERVICE_PORT SIGNALR_HUB_URL \
                    DASHBOARD_USERNAME DASHBOARD_PASSWORD \
                    INSTALL_DIR LOG_FILE CHECKPOINT_FILE; do
@@ -551,7 +550,7 @@ load_unattended_config() {
     # Auto-generate secrets
     POSTGRES_PASSWORD=$(generate_password 32)
     POSTGRES_DB="${INSTANCE_NAME//-/_}_db"
-    NAS_SECRET="${NAS_SECRET:-$(generate_password 16)}"
+
 
     # Generate dashboard password if not set
     if [[ "$INSTALL_SYNC_SERVICE" == "y" && -z "$DASHBOARD_PASSWORD" ]]; then
@@ -847,18 +846,6 @@ collect_configuration() {
     read -p "  > " INSTALL_FREERADIUS
     INSTALL_FREERADIUS="${INSTALL_FREERADIUS,,}"
     INSTALL_FREERADIUS="${INSTALL_FREERADIUS:-n}"
-
-    if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
-        echo -e "${CYAN}  Enter NAS shared secret (min 8 chars) [auto-generate]: ${NC}"
-        read -sp "  > " input_nas_secret
-        echo ""
-        if [[ -n "$input_nas_secret" ]] && [[ ${#input_nas_secret} -ge 8 ]]; then
-            NAS_SECRET="$input_nas_secret"
-        else
-            NAS_SECRET=$(generate_password 16)
-            print_info "NAS secret auto-generated"
-        fi
-    fi
 
     echo ""
     echo -e "${CYAN}  Install RadiusSyncService (Docker monitoring & SignalR bridge)? [Y/n]: ${NC}"
@@ -1430,7 +1417,6 @@ POSTGRES_PORT=${POSTGRES_PORT}
 
 # Optional
 INSTALL_FREERADIUS=${INSTALL_FREERADIUS}
-NAS_SECRET=${NAS_SECRET}
 CENTRAL_API_URL=${CENTRAL_API_URL}
 ENABLE_MONITORING=${ENABLE_MONITORING}
 
@@ -1761,6 +1747,20 @@ start_services() {
 
     cd "$INSTALL_DIR"
 
+    # Pre-flight: ensure no port conflicts right before starting
+    local ports_to_check=("$POSTGRES_PORT")
+    [[ "$INSTALL_FREERADIUS" == "y" ]] && ports_to_check+=("1812" "1813")
+    [[ "$INSTALL_SYNC_SERVICE" == "y" ]] && ports_to_check+=("$SYNC_SERVICE_PORT")
+
+    for port in "${ports_to_check[@]}"; do
+        local blocking
+        blocking=$(docker ps --format '{{.ID}} {{.Ports}}' 2>/dev/null | grep "0.0.0.0:${port}->" | awk '{print $1}' | head -1)
+        if [[ -n "$blocking" ]]; then
+            print_warning "Port $port still occupied — force-removing container $blocking"
+            docker rm -f "$blocking" 2>/dev/null || true
+        fi
+    done
+
     print_step "Starting Edge Runtime containers..."
     docker compose up -d
 
@@ -1849,7 +1849,6 @@ configure_freeradius() {
 
     print_header "CONFIGURING FREERADIUS"
     print_step "FreeRADIUS container is running with default configuration."
-    print_info "NAS Secret: $NAS_SECRET"
     print_info "Auth Port:  1812/udp"
     print_info "Acct Port:  1813/udp"
     print_info "For advanced FreeRADIUS configuration, modify the container or mount custom configs."
@@ -1895,7 +1894,7 @@ CREDS_EOF
 # FreeRADIUS
   Auth Port:      1812/udp
   Acct Port:      1813/udp
-  NAS Secret:     ${NAS_SECRET}
+  NAS Clients:    Managed via database (RadiusNasDevices table)
 RADIUS_CREDS_EOF
     fi
 
@@ -1996,6 +1995,24 @@ check_existing_installation() {
         return 0
     fi
 
+    # ── Kill any containers occupying our configured ports ──────────────
+    local ports_to_check=("$POSTGRES_PORT")
+    [[ "$INSTALL_FREERADIUS" == "y" ]] && ports_to_check+=("1812" "1813")
+    [[ "$INSTALL_SYNC_SERVICE" == "y" ]] && ports_to_check+=("$SYNC_SERVICE_PORT")
+
+    for port in "${ports_to_check[@]}"; do
+        local blocking_container
+        blocking_container=$(docker ps --format '{{.ID}} {{.Ports}}' 2>/dev/null | grep "0.0.0.0:${port}->" | awk '{print $1}' | head -1)
+        if [[ -n "$blocking_container" ]]; then
+            local cname
+            cname=$(docker inspect --format '{{.Name}}' "$blocking_container" 2>/dev/null | sed 's|^/||')
+            print_warning "Port $port is occupied by container: $cname ($blocking_container)"
+            print_step "Stopping blocking container $cname..."
+            docker rm -f "$blocking_container" 2>/dev/null || true
+            print_success "Removed blocking container: $cname"
+        fi
+    done
+
     if [[ -d "$INSTALL_DIR" ]] && [[ -f "$INSTALL_DIR/docker-compose.yml" ]]; then
         print_warning "Existing installation found at: $INSTALL_DIR"
 
@@ -2020,6 +2037,11 @@ check_existing_installation() {
             print_step "Removing old Docker images..."
             docker compose config --images 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
             print_success "Old images cleaned"
+
+            # Also remove any orphan containers matching this instance
+            print_step "Removing orphan containers..."
+            docker ps -a --filter "name=${INSTANCE_NAME//-/_}" --format '{{.ID}}' 2>/dev/null | xargs -r docker rm -f 2>/dev/null || true
+            print_success "Orphan containers removed"
 
             # Remove old generated files but preserve backups and credentials
             print_step "Cleaning old configuration files..."
