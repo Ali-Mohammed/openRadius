@@ -110,6 +110,31 @@ public class KafkaConsumerService : BackgroundService
             SessionTimeoutMs = 6000,
         };
 
+        // Configure SASL/SCRAM if credentials are provided
+        var securityProtocol = _configuration["Kafka:SecurityProtocol"];
+        if (!string.IsNullOrEmpty(securityProtocol) && Enum.TryParse<SecurityProtocol>(securityProtocol, true, out var protocol))
+        {
+            config.SecurityProtocol = protocol;
+        }
+
+        var saslMechanism = _configuration["Kafka:SaslMechanism"];
+        if (!string.IsNullOrEmpty(saslMechanism) && Enum.TryParse<SaslMechanism>(saslMechanism, true, out var mechanism))
+        {
+            config.SaslMechanism = mechanism;
+        }
+
+        var saslUsername = _configuration["Kafka:SaslUsername"];
+        if (!string.IsNullOrEmpty(saslUsername))
+        {
+            config.SaslUsername = saslUsername;
+        }
+
+        var saslPassword = _configuration["Kafka:SaslPassword"];
+        if (!string.IsNullOrEmpty(saslPassword))
+        {
+            config.SaslPassword = saslPassword;
+        }
+
         using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
         
         try

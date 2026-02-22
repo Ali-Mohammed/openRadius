@@ -116,12 +116,11 @@ services:
       - --mode dev-container
       - --smp 1
       - --default-log-level=info
-      # SASL/SCRAM authentication — external listener only
-      # Use kafka_enable_authorization + per-listener authentication_method
-      # instead of enable_sasl (which forces SASL on ALL listeners)
+      # SASL/SCRAM authentication — ALL listeners (enterprise security)
+      # Both internal (Docker) and external (internet) require authentication
       - --set redpanda.kafka_enable_authorization=true
       - --set redpanda.superusers=["admin"]
-      - --set redpanda.kafka_api[0].authentication_method=none
+      - --set redpanda.kafka_api[0].authentication_method=sasl
       - --set redpanda.kafka_api[1].authentication_method=sasl
       # Bootstrap SCRAM superuser (created on first start)
       - --set redpanda.sasl_mechanisms=["SCRAM"]
@@ -158,6 +157,11 @@ services:
       CONSOLE_CONFIG_FILE: |
         kafka:
           brokers: ["redpanda:9092"]
+          sasl:
+            enabled: true
+            mechanism: SCRAM-SHA-256
+            username: admin
+            password: ${KAFKA_SASL_PASSWORD:-changeme_in_production}
         redpanda:
           adminApi:
             enabled: true
@@ -192,6 +196,16 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: true
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: true
+      # SASL/SCRAM authentication for Redpanda
+      CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_SASL_MECHANISM: SCRAM-SHA-256
+      CONNECT_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-256
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-256
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"${KAFKA_SASL_PASSWORD:-changeme_in_production}\";"
     expose:
       - "8083"
     networks:
@@ -277,8 +291,12 @@ services:
       # Issuer MUST match the 'iss' claim in tokens (the external URL Keycloak stamps on JWTs)
       Oidc__Issuer: "${OIDC_ISSUER:-https://auth.${DOMAIN:-localhost}/realms/openradius}"
       
-      # Kafka
+      # Kafka (SASL/SCRAM authenticated)
       Kafka__BootstrapServers: "redpanda:9092"
+      Kafka__SaslUsername: "admin"
+      Kafka__SaslPassword: "${KAFKA_SASL_PASSWORD:-changeme_in_production}"
+      Kafka__SecurityProtocol: "SaslPlaintext"
+      Kafka__SaslMechanism: "ScramSha256"
       
       # Debezium
       Debezium__ConnectUrl: "http://debezium:8083"
