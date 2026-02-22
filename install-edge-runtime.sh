@@ -344,6 +344,8 @@ save_checkpoint() {
                    TOPICS SERVER_NAME POSTGRES_PORT CONNECT_PORT CONNECTOR_GROUP_ID \
                    POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER INSTALL_FREERADIUS \
                    EDGE_SITE_ID NAS_SECRET CENTRAL_API_URL ENABLE_MONITORING \
+                   INSTALL_SYNC_SERVICE SYNC_SERVICE_PORT SIGNALR_HUB_URL \
+                   DASHBOARD_USERNAME DASHBOARD_PASSWORD \
                    INSTALL_DIR LOG_FILE CHECKPOINT_FILE; do
             if [[ -n "${!var}" ]]; then
                 echo "VAR:${var}=${!var}"
@@ -1845,7 +1847,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 echo "Starting OpenRadius Edge Runtime..."
-docker compose up -d --build
+docker compose up -d
 
 echo "Waiting for services to initialize..."
 sleep 30
@@ -1859,6 +1861,7 @@ echo "  PostgreSQL : localhost:__PG_PORT__"
 echo "  Connect API: http://localhost:__CONNECT_PORT__"
 if [ -d "./syncservice" ]; then
     echo "  SyncService: http://localhost:__SYNC_SERVICE_PORT__"
+    echo "  Dashboard  : http://localhost:__SYNC_SERVICE_PORT__/dashboard"
 fi
 START_EOF
 
@@ -1887,7 +1890,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 echo "Restarting OpenRadius Edge Runtime..."
 docker compose down
-docker compose up -d --build
+docker compose up -d
 sleep 30
 ./register-connector.sh
 echo "Edge Runtime restarted."
@@ -2023,10 +2026,12 @@ LOGS_EOF
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
+INSTALL_DIR="$(pwd)"
 
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
@@ -2038,14 +2043,21 @@ echo "  1. Stop all edge runtime containers"
 echo "  2. Remove Docker volumes (ALL DATABASE DATA)"
 echo "  3. Remove Docker images"
 echo ""
-echo -e "${YELLOW}The install directory will be preserved for reference.${NC}"
+echo -e "${CYAN}Options:${NC}"
+echo "  1) Full uninstall (remove containers, volumes, images, AND install directory)"
+echo "  2) Soft uninstall (remove containers, volumes, images; keep config files)"
+echo "  3) Cancel"
 echo ""
+read -p "Choose option [1/2/3]: " OPTION
 
-read -p "Type 'yes' to confirm uninstallation: " CONFIRM
-if [ "$CONFIRM" != "yes" ]; then
-    echo "Aborted."
-    exit 0
-fi
+case "$OPTION" in
+    1|2)
+        ;;
+    *)
+        echo "Aborted."
+        exit 0
+        ;;
+esac
 
 echo ""
 echo "Creating final backup before uninstall..."
@@ -2055,12 +2067,23 @@ echo "Stopping and removing containers + volumes..."
 docker compose down -v --remove-orphans
 
 echo "Removing Docker images..."
-docker compose config --images 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
+docker compose config --images 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
 
-echo ""
-echo -e "${GREEN}Edge Runtime has been removed.${NC}"
-echo "Install directory preserved at: $(pwd)"
-echo "Backups (if any): $(pwd)/backups/"
+# Prune dangling images from builds
+docker image prune -f 2>/dev/null || true
+
+if [ "$OPTION" = "1" ]; then
+    echo "Removing install directory: $INSTALL_DIR"
+    cd /
+    rm -rf "$INSTALL_DIR"
+    echo ""
+    echo -e "${GREEN}Edge Runtime fully removed (directory deleted).${NC}"
+else
+    echo ""
+    echo -e "${GREEN}Edge Runtime removed. Config files preserved at: $INSTALL_DIR${NC}"
+    echo "Backups (if any): $INSTALL_DIR/backups/"
+    echo "Credentials:      $INSTALL_DIR/.edge-runtime.env"
+fi
 UNINSTALL_EOF
     chmod +x "$INSTALL_DIR/uninstall.sh"
     print_success "uninstall.sh created"
@@ -2454,17 +2477,44 @@ check_existing_installation() {
 
     if [[ -d "$INSTALL_DIR" ]] && [[ -f "$INSTALL_DIR/docker-compose.yml" ]]; then
         print_warning "Existing installation found at: $INSTALL_DIR"
-        echo ""
-        echo "  1) Overwrite (stop existing, remove, and reinstall)"
-        echo "  2) Abort"
-        echo -e "${CYAN}  Choose option [1/2]: ${NC}"
-        read -p "  > " choice
+
+        local choice="1"
+        if [[ "$UNATTENDED" != "true" ]]; then
+            echo ""
+            echo "  1) Clean reinstall (stop containers, remove volumes & configs, reinstall)"
+            echo "  2) Abort"
+            echo -e "${CYAN}  Choose option [1/2]: ${NC}"
+            read -p "  > " choice
+        else
+            print_info "Unattended mode: auto-selecting clean reinstall"
+        fi
 
         if [[ "$choice" == "1" ]]; then
-            print_step "Stopping existing installation..."
+            print_step "Stopping existing containers..."
             cd "$INSTALL_DIR"
-            docker compose down 2>/dev/null || true
-            print_success "Existing installation stopped"
+            docker compose down -v --remove-orphans 2>/dev/null || true
+            print_success "Existing containers and volumes removed"
+
+            # Remove stale Docker images from previous build
+            print_step "Removing old Docker images..."
+            docker compose config --images 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
+            print_success "Old images cleaned"
+
+            # Remove old generated files but preserve backups and credentials
+            print_step "Cleaning old configuration files..."
+            local files_to_remove=(
+                "docker-compose.yml" "Dockerfile" "init.sql"
+                "jdbc-sink-connector.json" ".install-checkpoint"
+                "register-connector.sh" "start.sh" "stop.sh"
+                "restart.sh" "status.sh" "backup.sh" "logs.sh"
+                "uninstall.sh" "update.sh"
+            )
+            for f in "${files_to_remove[@]}"; do
+                rm -f "$INSTALL_DIR/$f" 2>/dev/null || true
+            done
+            # Remove syncservice build context (will be regenerated)
+            rm -rf "$INSTALL_DIR/syncservice" 2>/dev/null || true
+            print_success "Old configuration cleaned (backups & .env preserved)"
         else
             print_error "Installation aborted."
             exit 0
