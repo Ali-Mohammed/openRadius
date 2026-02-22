@@ -1,0 +1,172 @@
+name: "Bug Report"
+description: "Report a bug or defect in OpenRadius"
+title: "[BUG] "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+        Thank you for taking the time to report a bug. Please fill out the sections below to help us investigate and resolve the issue efficiently.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - "Critical — System down / data loss / security vulnerability"
+        - "High — Major feature broken, no workaround"
+        - "Medium — Feature impaired, workaround available"
+        - "Low — Minor issue, cosmetic, or edge case"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which environment does this occur in?
+      options:
+        - Production
+        - Staging
+        - Development
+        - Local (Docker Compose)
+      multiple: true
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which component(s) are affected?
+      options:
+        - Backend API (.NET)
+        - Frontend (React)
+        - FreeRADIUS Integration
+        - Keycloak / Authentication
+        - Database / Migrations
+        - Docker / Infrastructure
+        - Billing / Payments
+        - Microservices
+        - NGINX / Proxy
+        - Other
+      multiple: true
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: Describe what is happening and what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Navigate to '...'
+        2. Click on '...'
+        3. Send API request to '...'
+        4. Observe error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include error messages, HTTP status codes, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs & Error Output
+      description: |
+        Paste relevant logs, stack traces, or API responses.
+        **IMPORTANT: Redact any sensitive data (tokens, passwords, PII, internal IDs).**
+      render: shell
+      placeholder: |
+        Paste logs here. Ensure no sensitive data is included.
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Recordings
+      description: If applicable, add screenshots or screen recordings to illustrate the issue.
+
+  - type: input
+    id: api-endpoint
+    attributes:
+      label: API Endpoint (if applicable)
+      description: The affected API endpoint (use UUID-based paths, never internal IDs).
+      placeholder: "e.g., GET /api/users/{uuid}"
+
+  - type: input
+    id: version
+    attributes:
+      label: Application Version / Commit SHA
+      description: The version or commit where this bug was observed.
+      placeholder: "e.g., v2.4.1 or abc1234"
+
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System Information
+      description: Provide details about your environment.
+      placeholder: |
+        - OS: macOS 15.x / Ubuntu 24.04 / Windows 11
+        - Browser: Chrome 120 / Firefox 121
+        - Docker version: 27.x
+        - Node.js version: 20.x
+        - .NET version: 9.x
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (if any)
+      description: Describe any temporary workaround you've found.
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Is this a regression?
+      description: Did this work correctly in a previous version?
+      options:
+        - "Yes — worked before, broken now"
+        - "No — never worked"
+        - "Unknown"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate.
+          required: true
+        - label: I have redacted all sensitive information (tokens, passwords, PII, internal IDs).
+          required: true
+        - label: I have included steps to reproduce the issue.
+          required: true
+        - label: I have checked the documentation and changelog.
+          required: false

@@ -1,0 +1,137 @@
+name: "General Request"
+description: "Submit a general request — support, question, configuration change, or other"
+title: "[REQUEST] "
+labels: ["request", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## General Request
+        Use this template for support requests, configuration changes, questions, documentation requests, or anything that doesn't fit the bug report or feature request templates.
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request Type
+      description: What type of request is this?
+      options:
+        - Support / Troubleshooting
+        - Configuration Change
+        - Documentation Request
+        - Access / Permission Change
+        - Infrastructure / Deployment
+        - Data Request
+        - Integration Support
+        - Performance Investigation
+        - Security Review
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: How urgent is this request?
+      options:
+        - "Urgent — Blocking production or business operations"
+        - "High — Needed within this sprint"
+        - "Normal — Can be scheduled in upcoming work"
+        - "Low — No time pressure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Related Component
+      description: Which component(s) does this request relate to?
+      options:
+        - Backend API (.NET)
+        - Frontend (React)
+        - FreeRADIUS Integration
+        - Keycloak / Authentication
+        - Database
+        - Docker / Infrastructure
+        - Billing / Payments
+        - Microservices
+        - NGINX / Proxy
+        - Documentation
+        - General / Multiple
+        - Other
+      multiple: true
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Request Description
+      description: |
+        Provide a detailed description of your request.
+        Include context, background, and any relevant details.
+      placeholder: Describe your request clearly and thoroughly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: business-justification
+    attributes:
+      label: Business Justification
+      description: Why is this request needed? What business value does it provide?
+      placeholder: Explain the business need or impact.
+
+  - type: textarea
+    id: expected-outcome
+    attributes:
+      label: Expected Outcome
+      description: What should the result look like when this request is fulfilled?
+      placeholder: Describe the desired end state.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: |
+        Any additional information, links, screenshots, or references.
+        **IMPORTANT: Do not include sensitive data (tokens, passwords, PII, internal IDs).**
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment (if applicable)
+      description: Which environment does this relate to?
+      options:
+        - Production
+        - Staging
+        - Development
+        - Local (Docker Compose)
+        - All Environments
+        - N/A
+    validations:
+      required: false
+
+  - type: textarea
+    id: stakeholders
+    attributes:
+      label: Stakeholders
+      description: Who are the stakeholders or teams affected by this request?
+      placeholder: |
+        - Team / Department
+        - Point of contact
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions to ensure this is not a duplicate.
+          required: true
+        - label: I have provided sufficient context for the team to understand and act on this request.
+          required: true
+        - label: I have redacted all sensitive information (tokens, passwords, PII, internal IDs).
+          required: true

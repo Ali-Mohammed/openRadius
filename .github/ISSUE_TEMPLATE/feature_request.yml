@@ -1,0 +1,208 @@
+name: "Feature Request"
+description: "Propose a new feature or enhancement for OpenRadius"
+title: "[FEATURE] "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+        Thank you for suggesting a new feature. Please provide as much detail as possible so we can evaluate and prioritize this request.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Business Priority
+      description: How important is this feature to your operations?
+      options:
+        - "Critical — Blocking business operations or compliance"
+        - "High — Significant business impact, needed soon"
+        - "Medium — Valuable improvement, can wait for a release cycle"
+        - "Low — Nice to have"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target Component
+      description: Which component(s) would this feature affect?
+      options:
+        - Backend API (.NET)
+        - Frontend (React)
+        - FreeRADIUS Integration
+        - Keycloak / Authentication
+        - Database / Data Model
+        - Docker / Infrastructure
+        - Billing / Payments
+        - Microservices
+        - NGINX / Proxy
+        - Admin Dashboard
+        - Reporting / Analytics
+        - API / Integrations
+        - Other
+      multiple: true
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - New functionality
+        - Enhancement of existing feature
+        - Performance improvement
+        - Security enhancement
+        - UX / UI improvement
+        - API enhancement
+        - Integration / Webhook
+        - Automation / Workflow
+        - Reporting / Analytics
+        - Configuration / Settings
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: |
+        Describe the problem this feature would solve. 
+        What pain point or gap exists today?
+      placeholder: "As a [role], I need [capability] so that [business value]..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        Describe your proposed solution in detail. Include:
+        - Expected behavior
+        - User workflow
+        - Any API changes (use UUID-based identifiers, never internal IDs)
+      placeholder: |
+        Describe the solution you'd like to see implemented.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        Define clear, testable acceptance criteria.
+      placeholder: |
+        - [ ] Given [context], when [action], then [expected result]
+        - [ ] API endpoint follows UUID convention
+        - [ ] Audit fields (CreatedAt, CreatedBy, etc.) are populated
+        - [ ] Soft delete is implemented where applicable
+        - [ ] Proper RBAC permissions are enforced
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you've considered.
+
+  - type: textarea
+    id: api-design
+    attributes:
+      label: API Design (if applicable)
+      description: |
+        Propose API endpoints, request/response shapes.
+        **Remember: Use UUIDs for all external identifiers, never expose internal int IDs.**
+      render: json
+      placeholder: |
+        // Example:
+        // POST /api/resource
+        // {
+        //   "name": "example",
+        //   "parentUuid": "550e8400-e29b-41d4-a716-446655440000"
+        // }
+        //
+        // Response:
+        // {
+        //   "uuid": "...",
+        //   "name": "example",
+        //   "createdAt": "...",
+        //   "createdBy": "..."
+        // }
+
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Permissions & Roles
+      description: |
+        What permissions are required for this feature?
+        Follow the `resource.action` pattern (e.g., `users.view`, `billing.create`).
+      placeholder: |
+        - `resource.view` — Who can view this?
+        - `resource.create` — Who can create?
+        - `resource.update` — Who can update?
+        - `resource.delete` — Who can delete?
+        - Admin role: full access
+        - Regular user: limited access
+
+  - type: textarea
+    id: data-model
+    attributes:
+      label: Data Model Changes (if applicable)
+      description: |
+        Describe any database schema changes needed.
+        **Remember: Use int/bigint for PKs, UUID for external IDs, include audit fields.**
+      placeholder: |
+        New table: TableName
+        - Id (bigint, PK)
+        - Uuid (uniqueidentifier, indexed)
+        - CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+        - IsDeleted, DeletedAt, DeletedBy
+
+  - type: textarea
+    id: ui-mockups
+    attributes:
+      label: UI Mockups / Wireframes
+      description: Attach any mockups, wireframes, or screenshots illustrating the desired UI.
+
+  - type: dropdown
+    id: breaking-change
+    attributes:
+      label: Is this a breaking change?
+      description: Would this feature require breaking changes to existing APIs or workflows?
+      options:
+        - "No — fully backward compatible"
+        - "Yes — requires migration / versioning"
+        - "Unsure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies & Risks
+      description: |
+        List any dependencies on other features, services, or third-party systems.
+        Note any risks or concerns.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions to ensure this is not a duplicate.
+          required: true
+        - label: I have considered the enterprise architecture (Clean Architecture, SOLID, UUID strategy).
+          required: true
+        - label: I have defined acceptance criteria.
+          required: true
+        - label: I have considered permissions and RBAC requirements.
+          required: false
+        - label: I have considered audit trail and soft delete requirements.
+          required: false
