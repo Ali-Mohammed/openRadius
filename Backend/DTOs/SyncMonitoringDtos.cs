@@ -29,6 +29,10 @@ public class ConnectorDetailDto
     public string State { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string WorkerId { get; set; } = string.Empty;
+    public string ConnectorClass { get; set; } = string.Empty;
+    public int TaskCount { get; set; }
+    public int RunningTasks { get; set; }
+    public int FailedTasks { get; set; }
     public string? Trace { get; set; }
     public List<ConnectorTaskDto> Tasks { get; set; } = new();
     public Dictionary<string, string> Config { get; set; } = new();
@@ -64,6 +68,7 @@ public class ConnectClusterInfoDto
 public class ConnectorPluginDto
 {
     public string Class { get; set; } = string.Empty;
+    public string ClassName => Class;
     public string Type { get; set; } = string.Empty;
     public string? Version { get; set; }
 }
@@ -106,6 +111,9 @@ public class SyncHealthIssueDto
 {
     public string Severity { get; set; } = "INFO"; // INFO, WARNING, ERROR, CRITICAL
     public string Connector { get; set; } = string.Empty;
+    public string ConnectorName => Connector;
+    public string Component { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string Description => Message;
     public string? Trace { get; set; }
 }
