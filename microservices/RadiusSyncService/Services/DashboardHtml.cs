@@ -655,7 +655,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 a { color: var(--accent); text-decoration: none; }
 
 /* Light theme */
-[data-theme="light"] {
+[data-theme=""light""] {
   --bg: #f1f5f9;
   --card: #ffffff;
   --border: #e2e8f0;
@@ -663,18 +663,18 @@ a { color: var(--accent); text-decoration: none; }
   --muted: #64748b;
   --sidebar-bg: #1e293b;
 }
-[data-theme="light"] .data-table th { background: rgba(0,0,0,0.04); }
-[data-theme="light"] .data-table tr:hover td { background: rgba(0,0,0,0.025); }
-[data-theme="light"] .data-table td { border-bottom-color: rgba(0,0,0,0.06); }
-[data-theme="light"] .info-table td { border-bottom-color: rgba(0,0,0,0.06); }
-[data-theme="light"] .btn { background: var(--card); }
-[data-theme="light"] .btn:hover { background: #f8fafc; }
-[data-theme="light"] .connection-badge { background: rgba(0,0,0,0.04); }
-[data-theme="light"] .nav-item:hover { background: rgba(255,255,255,0.08); }
-[data-theme="light"] .gauge-bg { stroke: #e2e8f0; }
-[data-theme="light"] .res-bar { background: #e2e8f0; }
-[data-theme="light"] .log-feed { scrollbar-color: #cbd5e1 transparent; }
-[data-theme="light"] pre { color: var(--muted) !important; }
+[data-theme=""light""] .data-table th { background: rgba(0,0,0,0.04); }
+[data-theme=""light""] .data-table tr:hover td { background: rgba(0,0,0,0.025); }
+[data-theme=""light""] .data-table td { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme=""light""] .info-table td { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme=""light""] .btn { background: var(--card); }
+[data-theme=""light""] .btn:hover { background: #f8fafc; }
+[data-theme=""light""] .connection-badge { background: rgba(0,0,0,0.04); }
+[data-theme=""light""] .nav-item:hover { background: rgba(255,255,255,0.08); }
+[data-theme=""light""] .gauge-bg { stroke: #e2e8f0; }
+[data-theme=""light""] .res-bar { background: #e2e8f0; }
+[data-theme=""light""] .log-feed { scrollbar-color: #cbd5e1 transparent; }
+[data-theme=""light""] pre { color: var(--muted) !important; }
 ";
 
     // =========================================================================
@@ -833,7 +833,7 @@ a { color: var(--accent); text-decoration: none; }
 
 /* Table name pill */
 .table-pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-family: 'SF Mono', Monaco, monospace; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
-[data-theme="light"] .table-pill { background: rgba(0,0,0,0.04); }
+[data-theme=""light""] .table-pill { background: rgba(0,0,0,0.04); }
 
 /* Pagination controls */
 .pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
@@ -847,7 +847,7 @@ a { color: var(--accent); text-decoration: none; }
 
 /* CDC filter bar */
 .cdc-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.05); }
-[data-theme="light"] .cdc-toolbar { background: rgba(0,0,0,0.025); }
+[data-theme=""light""] .cdc-toolbar { background: rgba(0,0,0,0.025); }
 .filter-input { flex: 1; min-width: 160px; max-width: 280px; height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; outline: none; transition: border-color 0.15s; }
 .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
 .filter-input::placeholder { color: var(--muted); }
@@ -855,7 +855,7 @@ a { color: var(--accent); text-decoration: none; }
 /* Sync grid cards */
 .sync-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; transition: border-color 0.15s; }
 .sync-card:hover { border-color: rgba(255,255,255,0.12); }
-[data-theme="light"] .sync-card:hover { border-color: rgba(0,0,0,0.15); }
+[data-theme=""light""] .sync-card:hover { border-color: rgba(0,0,0,0.15); }
 .sync-card-table { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-family: 'SF Mono',Monaco,monospace; }
 .sync-card-time { font-size: 13px; font-weight: 600; }
 ";
@@ -873,7 +873,15 @@ let state = {
   logs: [],
   srHistory: [],
   refreshInterval: null,
-  currentSection: 'overview'
+  currentSection: 'overview',
+  // CDC table state
+  cdcAllEvents: [],
+  cdcFiltered: [],
+  cdcPage: 0,
+  cdcPageSize: 10,
+  cdcSortCol: 'timestamp',
+  cdcSortDir: 'desc',
+  cdcFilter: ''
 };
 
 // Navigation
@@ -1225,8 +1233,13 @@ function renderCdc(d) {
     if (errEl) { errEl.style.display = 'block'; errEl.textContent = '⚠ Cannot reach Edge database: ' + (d.error || 'Unknown error'); }
     setText('cdcStatus', '✗ Offline');
     setText('cdcEventCount', '--');
+    setText('cdcShowing', '--');
     setText('cdcLastActivity', '--');
     document.getElementById('cdcTableGrid').innerHTML = '<span class=""text-muted text-sm"">—</span>';
+    const toolbar = document.getElementById('cdcToolbar');
+    const pager   = document.getElementById('cdcPagination');
+    if (toolbar) toolbar.style.display = 'none';
+    if (pager)   pager.style.display   = 'none';
     return;
   }
 
@@ -1234,51 +1247,176 @@ function renderCdc(d) {
   if (loading) loading.style.display = 'none';
   if (tbl) tbl.style.display = '';
 
-  const events = d.recentEvents || [];
+  const toolbar = document.getElementById('cdcToolbar');
+  const pager   = document.getElementById('cdcPagination');
+  if (toolbar) toolbar.style.display = '';
+  if (pager)   pager.style.display   = '';
+
+  const events    = d.recentEvents || [];
   const syncInfos = d.tableSyncInfo || [];
 
+  state.cdcAllEvents = events;
   setText('cdcStatus', '✓ Online');
   setText('cdcEventCount', events.length);
-
-  // Last activity
-  if (events.length > 0) {
-    setText('cdcLastActivity', timeAgo(events[0].timestamp));
-  } else {
-    setText('cdcLastActivity', 'No events');
-  }
+  setText('cdcLastActivity', events.length > 0 ? timeAgo(events[0].timestamp) : 'No events');
 
   // Per-table sync grid
   const grid = document.getElementById('cdcTableGrid');
   if (grid) {
     grid.innerHTML = syncInfos.map(t => {
-      const ok = !t.error;
-      const ts = t.lastUpdated ? timeAgo(t.lastUpdated) : '—';
+      const ok     = !t.error;
+      const ts     = t.lastUpdated ? timeAgo(t.lastUpdated) : '—';
       const tsTitle = t.lastUpdated ? new Date(t.lastUpdated).toLocaleString() : '';
-      return `
-        <div style=""border:1px solid var(--border);border-radius:6px;padding:10px 12px"">
-          <div style=""font-size:11px;color:var(--muted);margin-bottom:4px"">${ esc(t.tableName) }</div>
-          <div style=""font-size:13px;font-weight:600;color:${ok ? 'var(--text)' : 'var(--red)'}"" title=""${tsTitle}"">
-            ${ok ? ts : '✗ ' + esc(t.error || 'Error')}
-          </div>
-        </div>`;
+      const dotColor = ok ? 'var(--green)' : 'var(--red)';
+      return `<div class=""sync-card"">
+        <div class=""sync-card-table"">${esc(t.tableName)}</div>
+        <div class=""sync-card-time"" style=""color:${ok ? 'var(--text)' : 'var(--red)'}"" title=""${tsTitle}"">
+          <span style=""color:${dotColor};font-size:9px"">●</span>
+          ${ok ? ts : '✗ ' + esc(t.error || 'Error')}
+        </div>
+      </div>`;
     }).join('');
   }
 
-  // Events table
+  _cdcApplyFilterInternal(state.cdcFilter);
+}
+
+// ---- CDC filter ----
+function cdcApplyFilter(val) {
+  state.cdcFilter = val;
+  state.cdcPage = 0;
+  _cdcApplyFilterInternal(val);
+}
+
+function cdcClearFilter() {
+  const inp = document.getElementById('cdcFilterInput');
+  if (inp) inp.value = '';
+  cdcApplyFilter('');
+}
+
+function _cdcApplyFilterInternal(val) {
+  const q = (val || '').trim().toLowerCase();
+  state.cdcFiltered = !q
+    ? state.cdcAllEvents.slice()
+    : state.cdcAllEvents.filter(e =>
+        (e.tableName  || '').toLowerCase().includes(q) ||
+        (e.identifier || '').toLowerCase().includes(q) ||
+        (e.operation  || '').toLowerCase().includes(q));
+  renderCdcTable();
+}
+
+// ---- CDC sort ----
+function cdcSort(col) {
+  if (state.cdcSortCol === col) {
+    state.cdcSortDir = state.cdcSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.cdcSortCol = col;
+    state.cdcSortDir = col === 'timestamp' ? 'desc' : 'asc';
+  }
+  state.cdcPage = 0;
+  renderCdcTable();
+}
+
+// ---- CDC page size ----
+function cdcSetPageSize(n) {
+  state.cdcPageSize = n;
+  state.cdcPage = 0;
+  renderCdcTable();
+}
+
+// ---- CDC navigate pages ----
+function cdcGoPage(p) {
+  const maxPage = Math.max(0, Math.ceil(state.cdcFiltered.length / state.cdcPageSize) - 1);
+  state.cdcPage = Math.min(Math.max(0, p), maxPage);
+  renderCdcTable();
+}
+
+// ---- Render CDC events table with current sort + pagination ----
+function renderCdcTable() {
+  // Sort
+  const sorted = state.cdcFiltered.slice().sort((a, b) => {
+    let va, vb;
+    switch (state.cdcSortCol) {
+      case 'table':     va = (a.tableName  || '').toLowerCase(); vb = (b.tableName  || '').toLowerCase(); break;
+      case 'record':    va = (a.identifier || '').toLowerCase(); vb = (b.identifier || '').toLowerCase(); break;
+      case 'operation': va = (a.operation  || '').toLowerCase(); vb = (b.operation  || '').toLowerCase(); break;
+      default:          va = new Date(a.timestamp).getTime();    vb = new Date(b.timestamp).getTime();    break;
+    }
+    return (va < vb ? -1 : va > vb ? 1 : 0) * (state.cdcSortDir === 'asc' ? 1 : -1);
+  });
+
+  // Paginate
+  const total   = sorted.length;
+  const perPage = state.cdcPageSize;
+  const pages   = Math.max(1, Math.ceil(total / perPage));
+  const page    = Math.min(state.cdcPage, pages - 1);
+  const start   = page * perPage;
+  const slice   = sorted.slice(start, start + perPage);
+
+  // Update KPI
+  setText('cdcShowing', total > 0
+    ? (start + 1) + '–' + Math.min(start + perPage, total) + ' of ' + total
+    : '0');
+
+  // Sort header indicators
+  ['table', 'record', 'operation', 'timestamp'].forEach(col => {
+    const elId = 'cdcSort' + col.charAt(0).toUpperCase() + col.slice(1);
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (state.cdcSortCol === col) {
+      el.textContent = state.cdcSortDir === 'asc' ? '↑' : '↓';
+      el.classList.add('active');
+    } else {
+      el.textContent = '⇅';
+      el.classList.remove('active');
+    }
+  });
+
+  // Render tbody
   const tbody = document.getElementById('cdcEventsBody');
   if (!tbody) return;
-  tbody.innerHTML = events.map(e => {
-    const opColor = e.operation === 'Created' ? 'var(--green)'
-                  : e.operation === 'Deleted' ? 'var(--red)'
-                  : 'var(--accent)';
-    return `<tr>
-      <td><span style=""font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 6px"">${esc(e.tableName)}</span></td>
-      <td style=""max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"">${esc(e.identifier)}</td>
-      <td><span style=""color:${opColor};font-weight:600;font-size:12px"">${esc(e.operation)}</span></td>
-      <td style=""font-size:12px;color:var(--muted)"">${new Date(e.timestamp).toLocaleString()}</td>
-      <td style=""font-size:12px;color:var(--muted)"">${timeAgo(e.timestamp)}</td>
-    </tr>`;
-  }).join('');
+  if (slice.length === 0) {
+    tbody.innerHTML = `<tr><td colspan=""5"" class=""text-center text-muted"" style=""padding:28px 16px"">
+      ${state.cdcFilter ? '🔍 No events match <strong>' + esc(state.cdcFilter) + '</strong>' : 'No CDC events recorded'}
+    </td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map(e => {
+      const op = (e.operation || '').toLowerCase();
+      const opClass = op === 'created' ? 'op-created' : op === 'deleted' ? 'op-deleted' : 'op-updated';
+      return `<tr>
+        <td><span class=""table-pill"">${esc(e.tableName)}</span></td>
+        <td style=""max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px"" title=""${esc(e.identifier)}"">${esc(e.identifier)}</td>
+        <td><span class=""op-badge ${opClass}"">${esc(e.operation)}</span></td>
+        <td style=""font-size:12px;color:var(--muted)"">${new Date(e.timestamp).toLocaleString()}</td>
+        <td style=""font-size:12px;color:var(--muted)"">${timeAgo(e.timestamp)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Pagination controls
+  const pgInfo = document.getElementById('cdcPaginationInfo');
+  const pgBtns = document.getElementById('cdcPageButtons');
+  if (pgInfo) pgInfo.textContent = 'Page ' + (page + 1) + ' of ' + pages + '  (' + total + ' events)';
+  if (pgBtns) {
+    let btns = `<button class=""page-btn"" onclick=""cdcGoPage(${page - 1})"" ${page === 0 ? 'disabled' : ''}>‹ Prev</button>`;
+    const maxBtns = 5;
+    let sPg = Math.max(0, page - Math.floor(maxBtns / 2));
+    let ePg = Math.min(pages, sPg + maxBtns);
+    if (ePg - sPg < maxBtns) sPg = Math.max(0, ePg - maxBtns);
+    if (sPg > 0) {
+      btns += `<button class=""page-btn"" onclick=""cdcGoPage(0)"">1</button>`;
+      if (sPg > 1) btns += `<span style=""padding:0 4px;color:var(--muted)"">…</span>`;
+    }
+    for (let i = sPg; i < ePg; i++) {
+      btns += `<button class=""page-btn${i === page ? ' active' : ''}"" onclick=""cdcGoPage(${i})"">${i + 1}</button>`;
+    }
+    if (ePg < pages) {
+      if (ePg < pages - 1) btns += `<span style=""padding:0 4px;color:var(--muted)"">…</span>`;
+      btns += `<button class=""page-btn"" onclick=""cdcGoPage(${pages - 1})"">${pages}</button>`;
+    }
+    btns += `<button class=""page-btn"" onclick=""cdcGoPage(${page + 1})"" ${page >= pages - 1 ? 'disabled' : ''}>Next ›</button>`;
+    pgBtns.innerHTML = btns;
+  }
 }
 
 function timeAgo(isoStr) {
@@ -1482,8 +1620,43 @@ function connDot(state) {
   return `<span class=""dot ${cls}""></span>`;
 }
 
+// =========================================================================
+// Theme
+// =========================================================================
+function toggleTheme() {
+  const html    = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    html.removeAttribute('data-theme');
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = '🌙';
+    localStorage.setItem('orDashTheme', 'dark');
+  } else {
+    html.setAttribute('data-theme', 'light');
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = '☀️';
+    localStorage.setItem('orDashTheme', 'light');
+  }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('orDashTheme') || 'dark';
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    // btn not yet rendered, will be set after DOM load
+    window.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.textContent = '☀️';
+    }, { once: true });
+    // also try now (script runs after body)
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
 // Initialize
 (async function init() {
+  initTheme();
   // Restore section from URL hash (e.g. /dashboard#containers)
   const initialSection = location.hash.replace('#', '') || 'overview';
   navigateTo(initialSection);
