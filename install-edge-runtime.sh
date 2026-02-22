@@ -1474,64 +1474,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-
-  ${service_connect}:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ${service_connect}
-    platform: linux/amd64
-    depends_on:
-      ${service_pg}:
-        condition: service_healthy
-    environment:
-      BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVER}"
-      GROUP_ID: "${CONNECTOR_GROUP_ID}"
-      CONFIG_STORAGE_TOPIC: "connect_configs_${INSTANCE_NAME//-/_}"
-      OFFSET_STORAGE_TOPIC: "connect_offsets_${INSTANCE_NAME//-/_}"
-      STATUS_STORAGE_TOPIC: "connect_status_${INSTANCE_NAME//-/_}"
-      REST_ADVERTISED_HOST_NAME: "${service_connect}"
-      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
-      CONNECT_OFFSET_FLUSH_INTERVAL_MS: "10000"
-      CONNECT_OFFSET_FLUSH_TIMEOUT_MS: "5000"
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_SASL_MECHANISM: "SCRAM-SHA-256"
-      CONNECT_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
-      CONNECT_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_SASL_USERNAME}" password="${KAFKA_SASL_PASSWORD}";'
-      CONNECT_PRODUCER_SASL_MECHANISM: "SCRAM-SHA-256"
-      CONNECT_PRODUCER_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
-      CONNECT_PRODUCER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_SASL_USERNAME}" password="${KAFKA_SASL_PASSWORD}";'
-      CONNECT_CONSUMER_SASL_MECHANISM: "SCRAM-SHA-256"
-      CONNECT_CONSUMER_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
-      CONNECT_CONSUMER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_SASL_USERNAME}" password="${KAFKA_SASL_PASSWORD}";'
-      KAFKA_HEAP_OPTS: "-Xms512M -Xmx2G"
-    ports:
-      - "${CONNECT_PORT}:8083"
-    networks:
-      - edge-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 3G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 COMPOSE_EOF
 
     # Append FreeRADIUS if requested
