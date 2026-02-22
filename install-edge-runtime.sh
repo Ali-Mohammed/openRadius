@@ -1976,23 +1976,6 @@ wait_for_health() {
     echo ""
     print_success "PostgreSQL is healthy"
 
-    # ─── Kafka Connect ────────────────────────────────────────────────────
-    print_step "Waiting for Kafka Connect to start (this may take 60-90 seconds)..."
-    retries=0
-    max_retries=60
-    until curl -sf "http://localhost:${CONNECT_PORT}/" > /dev/null 2>&1; do
-        retries=$((retries + 1))
-        if [[ $retries -ge $max_retries ]]; then
-            print_error "Kafka Connect did not start within the expected time."
-            cd "$INSTALL_DIR" && docker compose logs "connect_${INSTANCE_NAME//-/_}" --tail=30
-            exit 61
-        fi
-        echo -ne "\r  Waiting... ($retries/$max_retries)"
-        sleep 5
-    done
-    echo ""
-    print_success "Kafka Connect is ready"
-
     # ─── FreeRADIUS ───────────────────────────────────────────────────────
     if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
         print_step "Checking FreeRADIUS..."
@@ -2096,7 +2079,6 @@ Edge Site ID:     ${EDGE_SITE_ID}
 # CDC Topics
   Topics:         ${TOPICS}
   Server Name:    ${SERVER_NAME}
-  Group ID:       ${CONNECTOR_GROUP_ID}
 CREDS_EOF
 
     if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
