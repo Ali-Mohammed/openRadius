@@ -1429,7 +1429,6 @@ SQL_EOF
     print_step "Creating Docker Compose configuration..."
 
     local service_pg="postgres_${INSTANCE_NAME//-/_}"
-    local service_connect="connect_${INSTANCE_NAME//-/_}"
 
     cat > "$INSTALL_DIR/docker-compose.yml" << COMPOSE_EOF
 # ==========================================================================
@@ -1583,49 +1582,6 @@ SYNC_VOL_EOF
 
     print_success "Docker Compose configuration created"
 
-    # ─── JDBC Sink Connector Configuration ────────────────────────────────
-    print_step "Creating JDBC Sink Connector configuration..."
-
-    # Build table name format based on topics
-    local primary_table="public.RadiusUsers"
-    if [[ "$TOPICS" == *"RadiusProfiles"* ]] && [[ "$TOPICS" != *","* ]]; then
-        primary_table="public.RadiusProfiles"
-    fi
-
-    cat > "$INSTALL_DIR/jdbc-sink-connector.json" << CONNECTOR_EOF
-{
-  "name": "jdbc-sink-${INSTANCE_NAME}",
-  "config": {
-    "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
-    "tasks.max": "1",
-    "topics": "${TOPICS}",
-    "connection.url": "jdbc:postgresql://${service_pg}:5432/${POSTGRES_DB}",
-    "connection.username": "${POSTGRES_USER}",
-    "connection.password": "${POSTGRES_PASSWORD}",
-    "insert.mode": "upsert",
-    "delete.enabled": "true",
-    "primary.key.mode": "record_key",
-    "primary.key.fields": "Id",
-    "auto.create": "false",
-    "auto.evolve": "true",
-    "schema.evolution": "basic",
-    "quote.identifiers": "true",
-    "table.name.format": "${primary_table}",
-    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "key.converter.schemas.enable": "true",
-    "value.converter.schemas.enable": "true",
-    "errors.tolerance": "all",
-    "errors.log.enable": "true",
-    "errors.log.include.messages": "true",
-    "errors.deadletterqueue.topic.name": "dlq-jdbc-sink-${INSTANCE_NAME}",
-    "errors.deadletterqueue.topic.replication.factor": "1",
-    "errors.deadletterqueue.context.headers.enable": "true"
-  }
-}
-CONNECTOR_EOF
-    print_success "JDBC Sink Connector config created"
-
     # ─── Save .edge-runtime.env ───────────────────────────────────────────
     print_step "Saving configuration metadata..."
 
@@ -1654,8 +1610,6 @@ KAFKA_SASL_USERNAME="${KAFKA_SASL_USERNAME}"
 KAFKA_SASL_PASSWORD="${KAFKA_SASL_PASSWORD}"
 TOPICS=${TOPICS}
 SERVER_NAME=${SERVER_NAME}
-CONNECTOR_GROUP_ID=${CONNECTOR_GROUP_ID}
-CONNECT_PORT=${CONNECT_PORT}
 
 # Optional
 INSTALL_FREERADIUS=${INSTALL_FREERADIUS}
@@ -1683,63 +1637,6 @@ generate_management_scripts() {
     print_header "GENERATING MANAGEMENT SCRIPTS"
 
     local service_pg="postgres_${INSTANCE_NAME//-/_}"
-    local service_connect="connect_${INSTANCE_NAME//-/_}"
-
-    # ─── register-connector.sh ────────────────────────────────────────────
-    print_step "Creating connector registration script..."
-
-    cat > "$INSTALL_DIR/register-connector.sh" << 'REGISTER_EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/jdbc-sink-connector.json"
-CONNECT_URL="http://localhost:__CONNECT_PORT__"
-
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-echo -e "${YELLOW}Waiting for Kafka Connect to be ready...${NC}"
-RETRIES=0
-MAX_RETRIES=60
-until curl -sf "$CONNECT_URL/" > /dev/null 2>&1; do
-    RETRIES=$((RETRIES + 1))
-    if [ $RETRIES -ge $MAX_RETRIES ]; then
-        echo -e "${RED}ERROR: Kafka Connect did not become ready after $MAX_RETRIES attempts.${NC}"
-        exit 1
-    fi
-    echo "  Attempt $RETRIES/$MAX_RETRIES — waiting 5s..."
-    sleep 5
-done
-
-echo -e "${GREEN}Kafka Connect is ready!${NC}"
-
-CONNECTOR_NAME=$(jq -r '.name' "$CONFIG_FILE")
-
-if curl -sf "$CONNECT_URL/connectors/$CONNECTOR_NAME" > /dev/null 2>&1; then
-    echo "Connector '$CONNECTOR_NAME' already exists. Updating..."
-    curl -sf -X PUT "$CONNECT_URL/connectors/$CONNECTOR_NAME/config" \
-        -H "Content-Type: application/json" \
-        -d "$(jq '.config' "$CONFIG_FILE")" | jq .
-else
-    echo "Registering connector '$CONNECTOR_NAME'..."
-    curl -sf -X POST "$CONNECT_URL/connectors" \
-        -H "Content-Type: application/json" \
-        -d @"$CONFIG_FILE" | jq .
-fi
-
-echo ""
-echo "Checking connector status..."
-sleep 5
-curl -sf "$CONNECT_URL/connectors/$CONNECTOR_NAME/status" | jq .
-echo -e "${GREEN}Connector registration complete!${NC}"
-REGISTER_EOF
-
-    sed -i "s/__CONNECT_PORT__/${CONNECT_PORT}/g" "$INSTALL_DIR/register-connector.sh"
-    chmod +x "$INSTALL_DIR/register-connector.sh"
-    print_success "register-connector.sh created"
 
     # ─── start.sh ─────────────────────────────────────────────────────────
     print_step "Creating start script..."
@@ -1753,15 +1650,11 @@ echo "Starting OpenRadius Edge Runtime..."
 docker compose up -d
 
 echo "Waiting for services to initialize..."
-sleep 30
-
-echo "Registering connector..."
-./register-connector.sh
+sleep 15
 
 echo ""
 echo "Edge Runtime is running!"
 echo "  PostgreSQL : localhost:__PG_PORT__"
-echo "  Connect API: http://localhost:__CONNECT_PORT__"
 if [ -d "./syncservice" ]; then
     echo "  SyncService: http://localhost:__SYNC_SERVICE_PORT__"
     echo "  Dashboard  : http://localhost:__SYNC_SERVICE_PORT__/dashboard"
@@ -1769,7 +1662,6 @@ fi
 START_EOF
 
     sed -i "s/__PG_PORT__/${POSTGRES_PORT}/g" "$INSTALL_DIR/start.sh"
-    sed -i "s/__CONNECT_PORT__/${CONNECT_PORT}/g" "$INSTALL_DIR/start.sh"
     sed -i "s/__SYNC_SERVICE_PORT__/${SYNC_SERVICE_PORT}/g" "$INSTALL_DIR/start.sh"
     chmod +x "$INSTALL_DIR/start.sh"
     print_success "start.sh created"
@@ -1794,8 +1686,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 echo "Restarting OpenRadius Edge Runtime..."
 docker compose down
 docker compose up -d
-sleep 30
-./register-connector.sh
+sleep 15
 echo "Edge Runtime restarted."
 RESTART_EOF
     chmod +x "$INSTALL_DIR/restart.sh"
@@ -1821,22 +1712,6 @@ echo -e "${CYAN}Docker Containers:${NC}"
 docker compose ps
 echo ""
 
-echo -e "${CYAN}Connector Status:${NC}"
-CONNECTORS=$(curl -sf http://localhost:__CONNECT_PORT__/connectors 2>/dev/null)
-if [ $? -eq 0 ]; then
-    echo "$CONNECTORS" | jq -r '.[]' 2>/dev/null | while read -r name; do
-        STATUS=$(curl -sf "http://localhost:__CONNECT_PORT__/connectors/$name/status" | jq -r '.connector.state' 2>/dev/null)
-        if [ "$STATUS" = "RUNNING" ]; then
-            echo -e "  ${GREEN}● $name: $STATUS${NC}"
-        else
-            echo -e "  ${RED}● $name: $STATUS${NC}"
-        fi
-    done
-else
-    echo -e "  ${YELLOW}Connect API not reachable.${NC}"
-fi
-
-echo ""
 echo -e "${CYAN}Database:${NC}"
 docker compose exec -T __PG_SERVICE__ psql -U __PG_USER__ -d __PG_DB__ -c "SELECT 'RadiusUsers' as table_name, COUNT(*) as rows FROM public.\"RadiusUsers\" UNION ALL SELECT 'RadiusProfiles', COUNT(*) FROM public.\"RadiusProfiles\" UNION ALL SELECT 'RadiusNasDevices', COUNT(*) FROM public.\"RadiusNasDevices\";" 2>/dev/null || echo -e "  ${YELLOW}Cannot query database.${NC}"
 
@@ -1864,7 +1739,6 @@ if curl -sf "http://localhost:__SYNC_SERVICE_PORT__/health" > /dev/null 2>&1; th
 fi
 STATUS_EOF
 
-    sed -i "s/__CONNECT_PORT__/${CONNECT_PORT}/g" "$INSTALL_DIR/status.sh"
     sed -i "s/__PG_SERVICE__/${service_pg}/g" "$INSTALL_DIR/status.sh"
     sed -i "s/__PG_USER__/${POSTGRES_USER}/g" "$INSTALL_DIR/status.sh"
     sed -i "s/__PG_DB__/${POSTGRES_DB}/g" "$INSTALL_DIR/status.sh"
@@ -2018,8 +1892,7 @@ docker compose down
 docker compose up -d
 
 echo "Waiting for services..."
-sleep 30
-./register-connector.sh
+sleep 15
 
 echo ""
 echo -e "${GREEN}Update complete!${NC}"
