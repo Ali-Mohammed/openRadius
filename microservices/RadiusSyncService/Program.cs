@@ -30,6 +30,9 @@ builder.Services.AddSingleton<DashboardAuthService>();
 // Add Connector monitoring service
 builder.Services.AddSingleton<ConnectorService>();
 
+// Add Edge database stats service
+builder.Services.AddSingleton<EdgeDatabaseService>();
+
 // Add health checks
 builder.Services.AddHealthChecks();
 
@@ -200,6 +203,13 @@ dashboardApi.MapGet("/docker", async (DockerService dockerService) =>
 dashboardApi.MapGet("/signalr", (SignalRConnectionService signalR) =>
 {
     return Results.Ok(signalR.GetDetailedStatus());
+});
+
+// Edge database table row counts
+dashboardApi.MapGet("/database", async (EdgeDatabaseService dbService) =>
+{
+    var stats = await dbService.GetTableStatsAsync(forceRefresh: true);
+    return Results.Ok(stats);
 });
 
 // Connector status
