@@ -62,6 +62,7 @@ interface ConnectorFormProps {
 }
 
 const DEFAULT_OPENRADIUS_TABLES = [
+  'public.RadiusCustomAttributes',
   'public.RadiusIpReservations',
   'public.RadiusNasDevices',
   'public.RadiusProfiles',

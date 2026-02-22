@@ -183,6 +183,21 @@ public static class SeedData
             {
                 Name = "Viewer",
                 Description = "Basic read-only access to dashboard and assigned workspace data."
+            },
+            new Role
+            {
+                Name = "ISP Agent",
+                Description = "Field agent who can create and manage subscriber activations, top-ups, and wallets. Limited to billing operations."
+            },
+            new Role
+            {
+                Name = "Billing Administrator",
+                Description = "Full access to all billing features including profiles, activations, payments, wallets, cashbacks, and financial reports."
+            },
+            new Role
+            {
+                Name = "Sale Manager",
+                Description = "Manages sales operations including billing profiles, groups, cashbacks, and subscriber activations. Can view financial data and reports."
             }
         };
 
@@ -408,6 +423,109 @@ public static class SeedData
             rolePermissions.Add(new RolePermission
             {
                 RoleId = viewer.Id,
+                PermissionId = permission.Id
+            });
+        }
+
+        // ISP Agent
+        var ispAgent = roles.FirstOrDefault(r => r.Name == "ISP Agent");
+        if (ispAgent == null) return;
+        var ispAgentPermissions = permissions.Where(p =>
+            p.Name == "dashboard.view" ||
+            p.Name == "workspace.view" ||
+            p.Name == "workspace.switch" ||
+            p.Name == "radius.users.view" ||
+            p.Name == "radius.users.create" ||
+            p.Name == "radius.users.update" ||
+            p.Name == "radius.profiles.view" ||
+            p.Name == "billing.activations.view" ||
+            p.Name == "billing.activations.create" ||
+            p.Name == "billing.topup.view" ||
+            p.Name == "billing.topup.create" ||
+            p.Name == "billing.wallets.view" ||
+            p.Name == "billing.user-wallets.view" ||
+            p.Name == "billing.user-wallets.create" ||
+            p.Name == "billing.user-wallets.update" ||
+            p.Name == "billing.transactions.view" ||
+            p.Name == "billing.balances.view" ||
+            p.Name == "billing.history.view" ||
+            p.Name == "payments.view" ||
+            p.Name == "payments.create"
+        );
+        foreach (var permission in ispAgentPermissions)
+        {
+            rolePermissions.Add(new RolePermission
+            {
+                RoleId = ispAgent.Id,
+                PermissionId = permission.Id
+            });
+        }
+
+        // Billing Administrator
+        var billingAdmin = roles.FirstOrDefault(r => r.Name == "Billing Administrator");
+        if (billingAdmin == null) return;
+        var billingAdminPermissions = permissions.Where(p =>
+            p.Name.StartsWith("billing.") ||
+            p.Name.StartsWith("payments.") ||
+            p.Name.StartsWith("settings.payment-") ||
+            p.Name == "dashboard.view" ||
+            p.Name == "workspace.view" ||
+            p.Name == "workspace.switch" ||
+            p.Name == "radius.users.view" ||
+            p.Name == "radius.profiles.view" ||
+            p.Name == "radius.groups.view" ||
+            p.Name == "reports.view" ||
+            p.Name == "reports.export" ||
+            p.Name == "audit.view"
+        );
+        foreach (var permission in billingAdminPermissions)
+        {
+            rolePermissions.Add(new RolePermission
+            {
+                RoleId = billingAdmin.Id,
+                PermissionId = permission.Id
+            });
+        }
+
+        // Sale Manager
+        var saleManager = roles.FirstOrDefault(r => r.Name == "Sale Manager");
+        if (saleManager == null) return;
+        var saleManagerPermissions = permissions.Where(p =>
+            p.Name == "dashboard.view" ||
+            p.Name == "workspace.view" ||
+            p.Name == "workspace.switch" ||
+            p.Name == "radius.users.view" ||
+            p.Name == "radius.profiles.view" ||
+            p.Name == "billing.profiles.view" ||
+            p.Name == "billing.profiles.create" ||
+            p.Name == "billing.profiles.update" ||
+            p.Name == "billing.groups.view" ||
+            p.Name == "billing.groups.create" ||
+            p.Name == "billing.groups.update" ||
+            p.Name == "billing.cashbacks.view" ||
+            p.Name == "billing.cashbacks.create" ||
+            p.Name == "billing.cashbacks.update" ||
+            p.Name == "billing.cashback-groups.view" ||
+            p.Name == "billing.cashback-groups.create" ||
+            p.Name == "billing.cashback-groups.update" ||
+            p.Name == "billing.activations.view" ||
+            p.Name == "billing.activations.create" ||
+            p.Name == "billing.topup.view" ||
+            p.Name == "billing.topup.create" ||
+            p.Name == "billing.wallets.view" ||
+            p.Name == "billing.user-wallets.view" ||
+            p.Name == "billing.transactions.view" ||
+            p.Name == "billing.balances.view" ||
+            p.Name == "billing.history.view" ||
+            p.Name == "payments.view" ||
+            p.Name == "reports.view" ||
+            p.Name == "reports.export"
+        );
+        foreach (var permission in saleManagerPermissions)
+        {
+            rolePermissions.Add(new RolePermission
+            {
+                RoleId = saleManager.Id,
                 PermissionId = permission.Id
             });
         }
