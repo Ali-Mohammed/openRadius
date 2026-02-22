@@ -1913,7 +1913,7 @@ build_images() {
 
     cd "$INSTALL_DIR"
 
-    print_step "Building Debezium Connect image with JDBC Sink plugin..."
+    print_step "Building Docker images..."
     local max_retries=3
     local attempt=1
 
@@ -2038,32 +2038,6 @@ wait_for_health() {
 }
 
 # =============================================================================
-# Register Connector
-# =============================================================================
-
-register_connector() {
-    print_header "REGISTERING JDBC SINK CONNECTOR"
-
-    cd "$INSTALL_DIR"
-    ./register-connector.sh
-
-    # Verify connector is running
-    sleep 10
-    local connector_name="jdbc-sink-${INSTANCE_NAME}"
-    local status
-    status=$(curl -sf "http://localhost:${CONNECT_PORT}/connectors/${connector_name}/status" 2>/dev/null | jq -r '.connector.state' 2>/dev/null || echo "UNKNOWN")
-
-    if [[ "$status" == "RUNNING" ]]; then
-        print_success "Connector '${connector_name}' is RUNNING"
-    elif [[ "$status" == "UNKNOWN" ]]; then
-        print_warning "Could not verify connector status. Check with: ./status.sh"
-    else
-        print_warning "Connector state: $status — may need investigation"
-        print_info "Check connector logs: docker compose logs connect_${INSTANCE_NAME//-/_}"
-    fi
-}
-
-# =============================================================================
 # Configure FreeRADIUS (Optional)
 # =============================================================================
 
@@ -2113,10 +2087,6 @@ Edge Site ID:     ${EDGE_SITE_ID}
   User:           ${POSTGRES_USER}
   Password:       ${POSTGRES_PASSWORD}
   Connection:     postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}
-
-# Kafka Connect REST API
-  URL:            http://localhost:${CONNECT_PORT}
-  Connectors:     http://localhost:${CONNECT_PORT}/connectors
 
 # Kafka Broker (Central)
   Bootstrap:      ${KAFKA_BOOTSTRAP_SERVER}
@@ -2204,21 +2174,6 @@ if ! docker compose exec -T postgres_${INSTANCE_NAME//-/_} pg_isready -U "$POSTG
     HEALTHY=false
 fi
 
-# Check Kafka Connect
-if ! curl -sf "http://localhost:${CONNECT_PORT}/" > /dev/null 2>&1; then
-    echo "[$(date -Iseconds)] ALERT: Kafka Connect is down — restarting..."
-    docker compose restart connect_${INSTANCE_NAME//-/_}
-    HEALTHY=false
-fi
-
-# Check connector status
-CONNECTOR_STATUS=$(curl -sf "http://localhost:${CONNECT_PORT}/connectors/jdbc-sink-${INSTANCE_NAME}/status" 2>/dev/null | jq -r '.connector.state' 2>/dev/null || echo "UNKNOWN")
-if [ "$CONNECTOR_STATUS" != "RUNNING" ]; then
-    echo "[$(date -Iseconds)] ALERT: Connector state is $CONNECTOR_STATUS — attempting restart..."
-    curl -sf -X POST "http://localhost:${CONNECT_PORT}/connectors/jdbc-sink-${INSTANCE_NAME}/restart" > /dev/null 2>&1 || true
-    HEALTHY=false
-fi
-
 # Check RadiusSyncService
 if [ "${INSTALL_SYNC_SERVICE}" = "y" ]; then
     if ! curl -sf "http://localhost:${SYNC_SERVICE_PORT}/health" > /dev/null 2>&1; then
@@ -2279,9 +2234,9 @@ check_existing_installation() {
             # Remove old generated files but preserve backups and credentials
             print_step "Cleaning old configuration files..."
             local files_to_remove=(
-                "docker-compose.yml" "Dockerfile" "init.sql"
-                "jdbc-sink-connector.json" ".install-checkpoint"
-                "register-connector.sh" "start.sh" "stop.sh"
+                "docker-compose.yml" "init.sql"
+                ".install-checkpoint"
+                "start.sh" "stop.sh"
                 "restart.sh" "status.sh" "backup.sh" "logs.sh"
                 "uninstall.sh" "update.sh"
             )
@@ -2304,7 +2259,6 @@ check_existing_installation() {
 
 show_summary() {
     local service_pg="postgres_${INSTANCE_NAME//-/_}"
-    local service_connect="connect_${INSTANCE_NAME//-/_}"
 
     echo ""
     echo -e "${GREEN}${BOLD}"
@@ -2324,7 +2278,6 @@ BANNER_EOF
     echo -e "  ${BOLD}│  Service             │  Endpoint                                   │${NC}"
     echo -e "  ${BOLD}├──────────────────────┼─────────────────────────────────────────────┤${NC}"
     echo -e "  │  PostgreSQL          │  localhost:${POSTGRES_PORT}                              │"
-    echo -e "  │  Connect REST API    │  http://localhost:${CONNECT_PORT}                       │"
     echo -e "  │  Kafka Broker        │  ${KAFKA_BOOTSTRAP_SERVER}$(printf '%*s' $((25 - ${#KAFKA_BOOTSTRAP_SERVER})) '')│"
     if [[ "$INSTALL_FREERADIUS" == "y" ]]; then
         echo -e "  │  FreeRADIUS Auth     │  0.0.0.0:1812/udp                           │"
@@ -2423,7 +2376,7 @@ main() {
        |_|                    Runtime                                   |___/      
 BANNER
     echo -e "${NC}"
-    echo -e "  ${GRAY}Version ${GREEN}${EDGE_RUNTIME_VERSION}${GRAY}  •  Debezium ${DEBEZIUM_CONNECT_VERSION}  •  PostgreSQL ${POSTGRES_VERSION}  •  ClickHouse ${CLICKHOUSE_VERSION}  •  .NET ${DOTNET_RUNTIME_VERSION}${NC}"
+    echo -e "  ${GRAY}Version ${GREEN}${EDGE_RUNTIME_VERSION}${GRAY}  •  PostgreSQL ${POSTGRES_VERSION}  •  ClickHouse ${CLICKHOUSE_VERSION}  •  .NET ${DOTNET_RUNTIME_VERSION}${NC}"
     echo ""
 
     print_header "OpenRadius Edge Runtime Installation v${EDGE_RUNTIME_VERSION}"
@@ -2432,11 +2385,10 @@ BANNER
     echo "    • Docker & Docker Compose (if not present)"
     echo "    • PostgreSQL ${POSTGRES_VERSION} — local edge database"
     echo "    • Redis 7 — auth cache, session tracking, rate limiting"
-    echo "    • Debezium Connect ${DEBEZIUM_CONNECT_VERSION} — JDBC Sink Connector"
     echo "    • Real-time CDC sync from central Kafka/Redpanda"
     echo "    • ClickHouse ${CLICKHOUSE_VERSION} — columnar analytics for RADIUS accounting"
     echo "    • Fluent Bit 3.2 — log pipeline (FreeRADIUS → ClickHouse)"
-    echo "    • RadiusSyncService — SignalR monitoring & Docker management"
+    echo "    • RadiusSyncService — SignalR monitoring, Docker & connector management"
     echo "    • Metabase — BI & analytics dashboard for ClickHouse"
     echo "    • FreeRADIUS (optional — for local RADIUS auth)"
     echo "    • Management scripts (start, stop, backup, status, etc.)"
@@ -2505,7 +2457,6 @@ BANNER
     run_step "build_images" build_images
     run_step "start_services" start_services
     run_step "wait_for_health" wait_for_health
-    run_step "register_connector" register_connector
 
     # =========================================================================
     # Phase 8: Optional Configuration
