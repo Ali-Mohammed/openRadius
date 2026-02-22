@@ -1,0 +1,1003 @@
+@page "/edge/services"
+@page "/edge/services/{ServiceName}"
+@implements IAsyncDisposable
+@inject IConfiguration Configuration
+@inject IDockerMonitoringService DockerService
+@inject NavigationManager Navigation
+
+<PageTitle>Service Monitor — OpenRadius Edge</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>
+            Service Monitor
+            @if (_connected)
+            {
+                <span class="badge badge-green" style="font-size:0.65rem; vertical-align:middle; margin-left:0.5rem;">
+                    <span class="badge-dot live-pulse"></span> LIVE
+                </span>
+            }
+            else
+            {
+                <span class="badge badge-yellow" style="font-size:0.65rem; vertical-align:middle; margin-left:0.5rem;">
+                    <span class="badge-dot"></span> CONNECTING
+                </span>
+            }
+        </h1>
+        <div class="page-header-subtitle">Real-time server resources &amp; service health from connected RadiusSyncService instances</div>
+    </div>
+    <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-sm" @onclick="RefreshAll" disabled="@_loading">
+            @if (_loading) { <span class="spinner"></span> } else { <span>↻</span> }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠ @_error</div>
+}
+
+<!-- ─── Top-Level Metrics ─── -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-label">Connected Services</div>
+        <div class="metric-value">@_services.Count</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Healthy</div>
+        <div class="metric-value text-green">@_services.Count(s => s.IsHealthy)</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Degraded / Offline</div>
+        <div class="metric-value @(_services.Any(s => !s.IsHealthy) ? "text-red" : "")">@_services.Count(s => !s.IsHealthy)</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Last Update</div>
+        <div class="metric-value text-muted" style="font-size:0.95rem;">@(_lastUpdate?.ToString("HH:mm:ss") ?? "—")</div>
+    </div>
+</div>
+
+@if (_selectedService != null)
+{
+    <!-- ─── Single Service Detail View ─── -->
+    <div class="flex items-center gap-1 mb-2">
+        <button class="btn btn-ghost btn-sm" @onclick="ClearSelection">← All Services</button>
+        <h2 style="margin:0;">@_selectedService.DisplayName</h2>
+        <span class="badge @GetStatusBadge(_selectedService.Status)">
+            <span class="badge-dot @(_selectedService.IsHealthy ? "live-pulse" : "")"></span>
+            @_selectedService.Status
+        </span>
+    </div>
+
+    <!-- Resource Gauges -->
+    <div class="resource-gauges-grid">
+        <div class="card gauge-card">
+            <div class="gauge-label">CPU</div>
+            <div class="gauge-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle class="gauge-bg" cx="60" cy="60" r="52" />
+                    <circle class="gauge-fill @GetGaugeColor(_selectedService.CpuPercent)" cx="60" cy="60" r="52"
+                            stroke-dasharray="@GetDashArray(_selectedService.CpuPercent)" stroke-dashoffset="0"
+                            transform="rotate(-90 60 60)" />
+                </svg>
+                <div class="gauge-text">@_selectedService.CpuPercent.ToString("F1")%</div>
+            </div>
+            <div class="gauge-detail">@_selectedService.CpuCores cores · @_selectedService.CpuModel</div>
+        </div>
+
+        <div class="card gauge-card">
+            <div class="gauge-label">Memory</div>
+            <div class="gauge-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle class="gauge-bg" cx="60" cy="60" r="52" />
+                    <circle class="gauge-fill @GetGaugeColor(_selectedService.MemoryPercent)" cx="60" cy="60" r="52"
+                            stroke-dasharray="@GetDashArray(_selectedService.MemoryPercent)" stroke-dashoffset="0"
+                            transform="rotate(-90 60 60)" />
+                </svg>
+                <div class="gauge-text">@_selectedService.MemoryPercent.ToString("F1")%</div>
+            </div>
+            <div class="gauge-detail">@FormatBytes(_selectedService.MemoryUsed) / @FormatBytes(_selectedService.MemoryTotal)</div>
+        </div>
+
+        <div class="card gauge-card">
+            <div class="gauge-label">Disk</div>
+            <div class="gauge-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle class="gauge-bg" cx="60" cy="60" r="52" />
+                    <circle class="gauge-fill @GetGaugeColor(_selectedService.DiskPercent)" cx="60" cy="60" r="52"
+                            stroke-dasharray="@GetDashArray(_selectedService.DiskPercent)" stroke-dashoffset="0"
+                            transform="rotate(-90 60 60)" />
+                </svg>
+                <div class="gauge-text">@_selectedService.DiskPercent.ToString("F1")%</div>
+            </div>
+            <div class="gauge-detail">@FormatBytes(_selectedService.DiskUsed) / @FormatBytes(_selectedService.DiskTotal)</div>
+        </div>
+
+        <div class="card gauge-card">
+            <div class="gauge-label">Swap</div>
+            <div class="gauge-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle class="gauge-bg" cx="60" cy="60" r="52" />
+                    <circle class="gauge-fill @GetGaugeColor(_selectedService.SwapPercent)" cx="60" cy="60" r="52"
+                            stroke-dasharray="@GetDashArray(_selectedService.SwapPercent)" stroke-dashoffset="0"
+                            transform="rotate(-90 60 60)" />
+                </svg>
+                <div class="gauge-text">@_selectedService.SwapPercent.ToString("F1")%</div>
+            </div>
+            <div class="gauge-detail">@FormatBytes(_selectedService.SwapUsed) / @FormatBytes(_selectedService.SwapTotal)</div>
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="card mt-2">
+        <div class="card-header">
+            <span class="card-title">System Info</span>
+            <span class="text-muted text-sm">Updated @FormatTimeAgo(_selectedService.LastHeartbeat)</span>
+        </div>
+        <div class="system-info-grid">
+            <div><span class="text-muted text-sm">Hostname</span><div class="text-mono">@_selectedService.Hostname</div></div>
+            <div><span class="text-muted text-sm">OS</span><div>@_selectedService.Os</div></div>
+            <div><span class="text-muted text-sm">Kernel</span><div class="text-mono text-sm">@_selectedService.Kernel</div></div>
+            <div><span class="text-muted text-sm">Uptime</span><div>@_selectedService.Uptime</div></div>
+            <div><span class="text-muted text-sm">Load Average</span><div class="text-mono">@_selectedService.LoadAvg1.ToString("F2") · @_selectedService.LoadAvg5.ToString("F2") · @_selectedService.LoadAvg15.ToString("F2")</div></div>
+            <div><span class="text-muted text-sm">Version</span><div class="text-mono text-sm">@_selectedService.Version</div></div>
+            <div><span class="text-muted text-sm">Machine</span><div class="text-mono text-sm">@_selectedService.MachineName</div></div>
+            <div><span class="text-muted text-sm">Platform</span><div>@_selectedService.Platform</div></div>
+        </div>
+    </div>
+
+    <!-- Docker Containers (from this service) -->
+    @if (_selectedService.Containers.Any())
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Docker Containers (@_selectedService.Containers.Count)</span>
+                <button class="btn btn-ghost btn-sm" @onclick="() => RequestDockerStatus(_selectedService.ServiceName)">↻ Refresh Docker</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Image</th>
+                        <th>State</th>
+                        <th>CPU</th>
+                        <th>Memory</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in _selectedService.Containers)
+                    {
+                        <tr>
+                            <td style="font-weight:500;">@c.Name</td>
+                            <td class="text-mono text-sm">@c.Image</td>
+                            <td>
+                                <span class="badge @GetContainerBadge(c.State)">
+                                    <span class="badge-dot @(c.State == "running" ? "live-pulse" : "")"></span>
+                                    @c.State
+                                </span>
+                            </td>
+                            <td class="text-mono text-sm">@c.CpuPercent</td>
+                            <td class="text-mono text-sm">@c.MemoryUsage</td>
+                            <td>
+                                <div class="btn-group">
+                                    @if (c.State == "running")
+                                    {
+                                        <button class="btn btn-warning btn-sm" @onclick="() => StopContainer(_selectedService.ServiceName, c.Id)">■ Stop</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-success btn-sm" @onclick="() => StartContainer(_selectedService.ServiceName, c.Id)">▶ Start</button>
+                                    }
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => ViewLogs(_selectedService.ServiceName, c.Id, c.Name)">📋 Logs</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <!-- Log Viewer -->
+    @if (_viewingLogs)
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Logs: @_logsContainerName</span>
+                <div class="flex gap-1">
+                    <button class="btn btn-ghost btn-sm" @onclick="() => ViewLogs(_selectedService.ServiceName, _logsContainerId, _logsContainerName)">↻ Refresh</button>
+                    <button class="btn btn-ghost btn-sm" @onclick="CloseLogs">✕ Close</button>
+                </div>
+            </div>
+            <div class="log-viewer">
+                @if (_containerLogs != null && _containerLogs.Any())
+                {
+                    @foreach (var line in _containerLogs)
+                    {
+                        <div class="log-line">@line</div>
+                    }
+                }
+                else
+                {
+                    <div class="text-muted" style="padding:1rem;">Waiting for logs...</div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Heartbeat History -->
+    @if (_selectedService.HeartbeatHistory.Any())
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Recent Heartbeats</span>
+                <span class="text-muted text-sm">Last @_selectedService.HeartbeatHistory.Count entries</span>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>CPU</th>
+                        <th>Memory (MB)</th>
+                        <th>Threads</th>
+                        <th>Uptime</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var hb in _selectedService.HeartbeatHistory.AsEnumerable().Reverse().Take(20))
+                    {
+                        <tr>
+                            <td class="text-mono text-sm">@hb.Timestamp.ToString("HH:mm:ss")</td>
+                            <td>
+                                <span class="badge @(hb.Healthy ? "badge-green" : "badge-red")">
+                                    <span class="badge-dot"></span> @(hb.Healthy ? "OK" : "FAIL")
+                                </span>
+                            </td>
+                            <td class="text-mono">@hb.CpuUsage.ToString("F1")%</td>
+                            <td class="text-mono">@hb.MemoryMb.ToString("F0")</td>
+                            <td class="text-mono">@hb.ThreadCount</td>
+                            <td class="text-muted text-sm">@FormatDuration(hb.UptimeSeconds)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <!-- Activity Log -->
+    @if (_selectedService.Activities.Any())
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Activity Log</span>
+            </div>
+            <div class="activity-feed">
+                @foreach (var act in _selectedService.Activities.AsEnumerable().Reverse().Take(30))
+                {
+                    <div class="activity-entry">
+                        <span class="activity-time text-mono text-sm">@act.Timestamp.ToString("HH:mm:ss")</span>
+                        <span class="activity-badge @GetActivityLevelClass(act.Level)">@act.Level</span>
+                        <span class="activity-message">@act.Message</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <!-- ─── All Services List ─── -->
+    @if (_services.Any())
+    {
+        <div class="services-grid">
+            @foreach (var svc in _services)
+            {
+                <div class="card service-card @(svc.IsHealthy ? "" : "service-card-degraded")" @onclick="() => SelectService(svc)">
+                    <div class="service-card-header">
+                        <div class="flex items-center gap-1">
+                            <span class="service-status-dot @(svc.IsHealthy ? "live-pulse" : "") @GetStatusDotColor(svc.Status)"></span>
+                            <span class="service-card-name">@svc.DisplayName</span>
+                        </div>
+                        <span class="badge @GetStatusBadge(svc.Status)" style="font-size:0.65rem;">@svc.Status</span>
+                    </div>
+
+                    <div class="service-card-meta">
+                        <span class="text-muted text-sm">@svc.MachineName</span>
+                        <span class="text-muted text-sm">v@svc.Version</span>
+                    </div>
+
+                    <!-- Mini Resource Bars -->
+                    <div class="mini-resource-bars">
+                        <div class="mini-bar-row">
+                            <span class="mini-bar-label">CPU</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill @GetBarColor(svc.CpuPercent)" style="width:@(Math.Min(svc.CpuPercent, 100))%"></div>
+                            </div>
+                            <span class="mini-bar-value">@svc.CpuPercent.ToString("F0")%</span>
+                        </div>
+                        <div class="mini-bar-row">
+                            <span class="mini-bar-label">MEM</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill @GetBarColor(svc.MemoryPercent)" style="width:@(Math.Min(svc.MemoryPercent, 100))%"></div>
+                            </div>
+                            <span class="mini-bar-value">@svc.MemoryPercent.ToString("F0")%</span>
+                        </div>
+                        <div class="mini-bar-row">
+                            <span class="mini-bar-label">DISK</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill @GetBarColor(svc.DiskPercent)" style="width:@(Math.Min(svc.DiskPercent, 100))%"></div>
+                            </div>
+                            <span class="mini-bar-value">@svc.DiskPercent.ToString("F0")%</span>
+                        </div>
+                    </div>
+
+                    <div class="service-card-footer">
+                        <span class="text-muted text-sm">@svc.Containers.Count containers</span>
+                        <span class="text-muted text-sm" title="@svc.LastHeartbeat.ToString("yyyy-MM-dd HH:mm:ss")">@FormatTimeAgo(svc.LastHeartbeat)</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (!_loading)
+    {
+        <div class="card" style="text-align:center; padding:3rem;">
+            <div style="font-size:2.5rem; margin-bottom:0.75rem;">📡</div>
+            <div style="font-weight:600; font-size:1.1rem;">No Services Connected</div>
+            <div class="text-muted text-sm mt-1" style="max-width:28rem; margin:0.5rem auto;">
+                RadiusSyncService instances will appear here once they connect via SignalR.
+                Ensure the microservice is running and configured to connect to this hub.
+            </div>
+            <div class="text-mono text-sm mt-2" style="color:var(--accent-blue);">Hub: @_hubUrl</div>
+        </div>
+    }
+    else
+    {
+        <div class="loading-state"><span class="spinner"></span> Connecting to hub...</div>
+    }
+
+    <!-- Local Server Resources (this host) -->
+    @if (_localResources != null)
+    {
+        <div class="card mt-2">
+            <div class="card-header">
+                <span class="card-title">Local Server (this host)</span>
+                <button class="btn btn-ghost btn-sm" @onclick="RefreshLocalResources">↻</button>
+            </div>
+            <div class="resource-gauges-grid">
+                <div class="mini-gauge">
+                    <span class="text-muted text-sm">CPU</span>
+                    <div class="mini-bar-track" style="height:6px;">
+                        <div class="mini-bar-fill @GetBarColor(_localResources.Cpu?.UsagePercent ?? 0)" style="width:@(Math.Min(_localResources.Cpu?.UsagePercent ?? 0, 100))%"></div>
+                    </div>
+                    <span class="text-mono text-sm">@((_localResources.Cpu?.UsagePercent ?? 0).ToString("F1"))% · @(_localResources.Cpu?.Cores ?? 0) cores</span>
+                </div>
+                <div class="mini-gauge">
+                    <span class="text-muted text-sm">Memory</span>
+                    <div class="mini-bar-track" style="height:6px;">
+                        <div class="mini-bar-fill @GetBarColor(_localResources.Memory?.UsagePercent ?? 0)" style="width:@(Math.Min(_localResources.Memory?.UsagePercent ?? 0, 100))%"></div>
+                    </div>
+                    <span class="text-mono text-sm">@((_localResources.Memory?.UsagePercent ?? 0).ToString("F1"))% · @FormatBytes(_localResources.Memory?.UsedBytes ?? 0) / @FormatBytes(_localResources.Memory?.TotalBytes ?? 0)</span>
+                </div>
+                <div class="mini-gauge">
+                    <span class="text-muted text-sm">Disk</span>
+                    <div class="mini-bar-track" style="height:6px;">
+                        <div class="mini-bar-fill @GetBarColor(_localResources.Disk?.UsagePercent ?? 0)" style="width:@(Math.Min(_localResources.Disk?.UsagePercent ?? 0, 100))%"></div>
+                    </div>
+                    <span class="text-mono text-sm">@((_localResources.Disk?.UsagePercent ?? 0).ToString("F1"))% · @FormatBytes(_localResources.Disk?.UsedBytes ?? 0) / @FormatBytes(_localResources.Disk?.TotalBytes ?? 0)</span>
+                </div>
+                <div class="mini-gauge">
+                    <span class="text-muted text-sm">Host</span>
+                    <div class="text-mono text-sm">@_localResources.Hostname</div>
+                    <div class="text-muted text-sm">@_localResources.Os · @_localResources.Uptime</div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string? ServiceName { get; set; }
+
+    // ─── State ───────────────────────────────────────────────────────────
+    private HubConnection? _hubConnection;
+    private bool _connected;
+    private bool _loading = true;
+    private string? _error;
+    private DateTime? _lastUpdate;
+    private string _hubUrl = "";
+
+    private List<ServiceViewModel> _services = new();
+    private ServiceViewModel? _selectedService;
+    private ServerResourcesResponse? _localResources;
+
+    // Log viewer
+    private bool _viewingLogs;
+    private string _logsContainerId = "";
+    private string _logsContainerName = "";
+    private List<string>? _containerLogs;
+
+    // ─── Lifecycle ───────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        var baseUrl = Configuration["SignalR:HubBaseUrl"]
+                      ?? Configuration["Urls"]?.Split(';').FirstOrDefault()
+                      ?? "http://localhost:5000";
+        _hubUrl = $"{baseUrl.TrimEnd('/')}/hubs/microservices";
+
+        await ConnectToHub();
+        await RefreshLocalResources();
+
+        if (!string.IsNullOrEmpty(ServiceName))
+        {
+            var svc = _services.FirstOrDefault(s =>
+                s.ServiceName.Equals(ServiceName, StringComparison.OrdinalIgnoreCase));
+            if (svc != null) _selectedService = svc;
+        }
+
+        _loading = false;
+    }
+
+    private async Task ConnectToHub()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(_hubUrl)
+                .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
+                .Build();
+
+            // ─── Incoming handlers ───────────────────────────────────
+
+            _hubConnection.On<object>("InitialState", (state) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(state);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("services", out var servicesEl))
+                    {
+                        foreach (var svcEl in servicesEl.EnumerateArray())
+                        {
+                            UpsertServiceFromJson(svcEl);
+                        }
+                    }
+                    _lastUpdate = DateTime.UtcNow;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { /* swallow parse errors on initial state */ }
+            });
+
+            _hubConnection.On<object>("ServiceConnected", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    UpsertServiceFromJson(doc.RootElement);
+                    _lastUpdate = DateTime.UtcNow;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("ServiceDisconnected", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var name = doc.RootElement.GetProperty("serviceName").GetString() ?? "";
+                    var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+                    if (svc != null)
+                    {
+                        svc.Status = "Offline";
+                        svc.IsHealthy = false;
+                    }
+                    _lastUpdate = DateTime.UtcNow;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("ServiceHeartbeat", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var name = root.GetProperty("serviceName").GetString() ?? "";
+                    var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+                    if (svc == null) return;
+
+                    svc.Status = root.TryGetProperty("status", out var st) ? st.GetString() ?? "Online" : "Online";
+                    svc.IsHealthy = svc.Status == "Online";
+                    svc.LastHeartbeat = DateTime.UtcNow;
+
+                    if (root.TryGetProperty("healthReport", out var hr))
+                    {
+                        var hb = new HeartbeatEntry
+                        {
+                            Timestamp = DateTime.UtcNow,
+                            Healthy = hr.TryGetProperty("isHealthy", out var ih) && ih.GetBoolean(),
+                            CpuUsage = hr.TryGetProperty("cpuUsage", out var cpu) ? cpu.GetDouble() : 0,
+                            MemoryMb = hr.TryGetProperty("memoryUsageMb", out var mem) ? mem.GetDouble() : 0,
+                        };
+
+                        if (hr.TryGetProperty("customMetrics", out var cm))
+                        {
+                            hb.UptimeSeconds = cm.TryGetProperty("uptime", out var up) ? up.GetDouble() : 0;
+                            hb.ThreadCount = cm.TryGetProperty("threadCount", out var tc) ? tc.GetInt32() : 0;
+                        }
+
+                        svc.HeartbeatHistory.Add(hb);
+                        if (svc.HeartbeatHistory.Count > 100) svc.HeartbeatHistory.RemoveAt(0);
+
+                        svc.CpuPercent = hb.CpuUsage;
+                        svc.MemoryUsed = (long)(hb.MemoryMb * 1024 * 1024);
+                    }
+
+                    _lastUpdate = DateTime.UtcNow;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("DockerStatus", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var name = root.GetProperty("serviceName").GetString() ?? "";
+                    var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+                    if (svc == null) return;
+
+                    if (root.TryGetProperty("dockerStatus", out var ds))
+                    {
+                        ParseDockerStatus(svc, ds);
+                    }
+
+                    _lastUpdate = DateTime.UtcNow;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("ServiceActivity", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var name = root.GetProperty("serviceName").GetString() ?? "";
+                    var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+                    if (svc == null) return;
+
+                    svc.Activities.Add(new ActivityEntry
+                    {
+                        Timestamp = DateTime.UtcNow,
+                        Level = "INFO",
+                        Message = root.TryGetProperty("activity", out var a) ? a.GetString() ?? "" : ""
+                    });
+                    if (svc.Activities.Count > 200) svc.Activities.RemoveAt(0);
+
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("ServiceLog", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var name = root.GetProperty("serviceName").GetString() ?? "";
+                    var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+                    if (svc == null) return;
+
+                    svc.Activities.Add(new ActivityEntry
+                    {
+                        Timestamp = DateTime.UtcNow,
+                        Level = root.TryGetProperty("level", out var lv) ? lv.GetString() ?? "INFO" : "INFO",
+                        Message = root.TryGetProperty("message", out var msg) ? msg.GetString() ?? "" : ""
+                    });
+                    if (svc.Activities.Count > 200) svc.Activities.RemoveAt(0);
+
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("ContainerLogs", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("logsData", out var ld) && ld.TryGetProperty("logs", out var logs))
+                    {
+                        _containerLogs = new List<string>();
+                        foreach (var line in logs.EnumerateArray())
+                        {
+                            _containerLogs.Add(line.GetString() ?? "");
+                        }
+                    }
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.On<object>("PingResult", (data) =>
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var name = root.GetProperty("serviceName").GetString() ?? "";
+                    var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+                    if (svc != null && root.TryGetProperty("latencyMs", out var lat))
+                    {
+                        svc.LatencyMs = lat.GetDouble();
+                    }
+                    InvokeAsync(StateHasChanged);
+                }
+                catch { }
+            });
+
+            _hubConnection.Reconnecting += _ => { _connected = false; InvokeAsync(StateHasChanged); return Task.CompletedTask; };
+            _hubConnection.Reconnected += _ => { _connected = true; InvokeAsync(JoinDashboard); return Task.CompletedTask; };
+            _hubConnection.Closed += _ => { _connected = false; InvokeAsync(StateHasChanged); return Task.CompletedTask; };
+
+            await _hubConnection.StartAsync();
+            _connected = true;
+            await JoinDashboard();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to connect to hub: {ex.Message}";
+            _connected = false;
+        }
+    }
+
+    private async Task JoinDashboard()
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("JoinDashboard");
+            _connected = true;
+            _lastUpdate = DateTime.UtcNow;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // ─── Actions ─────────────────────────────────────────────────────────
+
+    private async Task RefreshAll()
+    {
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            // Request Docker status from all connected services
+            foreach (var svc in _services.Where(s => s.Status == "Online"))
+            {
+                await RequestDockerStatus(svc.ServiceName);
+            }
+            await RefreshLocalResources();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task RefreshLocalResources()
+    {
+        try { _localResources = await DockerService.GetServerResourcesAsync(); }
+        catch { /* local monitoring may not be available */ }
+    }
+
+    private async Task RequestDockerStatus(string serviceName)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("RequestDockerStatus", serviceName);
+        }
+    }
+
+    private async Task StartContainer(string serviceName, string containerId)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("RequestContainerStart", serviceName, containerId);
+            // Refresh Docker after a short delay
+            await Task.Delay(1500);
+            await RequestDockerStatus(serviceName);
+        }
+    }
+
+    private async Task StopContainer(string serviceName, string containerId)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("RequestContainerStop", serviceName, containerId);
+            await Task.Delay(2000);
+            await RequestDockerStatus(serviceName);
+        }
+    }
+
+    private async Task ViewLogs(string serviceName, string containerId, string containerName)
+    {
+        _viewingLogs = true;
+        _logsContainerId = containerId;
+        _logsContainerName = containerName;
+        _containerLogs = null;
+
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("RequestContainerLogs", serviceName, containerId, 200);
+        }
+    }
+
+    private void CloseLogs()
+    {
+        _viewingLogs = false;
+        _containerLogs = null;
+    }
+
+    private void SelectService(ServiceViewModel svc)
+    {
+        _selectedService = svc;
+        _viewingLogs = false;
+    }
+
+    private void ClearSelection()
+    {
+        _selectedService = null;
+        _viewingLogs = false;
+    }
+
+    // ─── JSON Parse Helpers ──────────────────────────────────────────────
+
+    private void UpsertServiceFromJson(System.Text.Json.JsonElement el)
+    {
+        var name = el.TryGetProperty("serviceName", out var sn) ? sn.GetString() ?? "unknown" : "unknown";
+        var svc = _services.FirstOrDefault(s => s.ServiceName == name);
+        if (svc == null)
+        {
+            svc = new ServiceViewModel { ServiceName = name };
+            _services.Add(svc);
+        }
+
+        svc.DisplayName = el.TryGetProperty("displayName", out var dn) && dn.ValueKind == System.Text.Json.JsonValueKind.String
+            ? dn.GetString() ?? name : name;
+        svc.Version = el.TryGetProperty("version", out var v) ? v.GetString() ?? "" : "";
+        svc.Status = el.TryGetProperty("status", out var s) ? s.GetString() ?? "Unknown" : "Unknown";
+        svc.IsHealthy = svc.Status == "Online";
+        svc.ConnectionId = el.TryGetProperty("connectionId", out var cId) ? cId.GetString() ?? "" : "";
+
+        if (el.TryGetProperty("metadata", out var meta))
+        {
+            svc.MachineName = meta.TryGetProperty("machineName", out var mn) ? mn.GetString() ?? "" : "";
+            svc.Platform = meta.TryGetProperty("platform", out var pl) ? pl.GetString() ?? "" : "";
+            svc.Os = meta.TryGetProperty("osVersion", out var os) ? os.GetString() ?? "" : "";
+        }
+
+        svc.LastHeartbeat = DateTime.UtcNow;
+    }
+
+    private void ParseDockerStatus(ServiceViewModel svc, System.Text.Json.JsonElement ds)
+    {
+        svc.Containers.Clear();
+
+        if (ds.TryGetProperty("totalCpuUsage", out var tc)) svc.DockerCpuTotal = tc.GetDouble();
+        if (ds.TryGetProperty("totalMemoryUsage", out var tm)) svc.DockerMemTotal = tm.GetInt64();
+
+        System.Text.Json.JsonElement containersEl = default;
+        bool hasContainers = ds.TryGetProperty("allContainers", out containersEl)
+                              || ds.TryGetProperty("runningContainers", out containersEl);
+
+        if (hasContainers)
+        {
+            foreach (var c in containersEl.EnumerateArray())
+            {
+                svc.Containers.Add(new ContainerViewModel
+                {
+                    Id = c.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "",
+                    Name = c.TryGetProperty("names", out var n) ? n.GetString()?.TrimStart('/') ?? "" : "",
+                    Image = c.TryGetProperty("image", out var img) ? img.GetString() ?? "" : "",
+                    State = c.TryGetProperty("state", out var st) ? st.GetString() ?? "" : "",
+                    Status = c.TryGetProperty("status", out var sts) ? sts.GetString() ?? "" : "",
+                    CpuPercent = c.TryGetProperty("cpuUsage", out var cpu) ? $"{cpu.GetDouble():F1}%" : "—",
+                    MemoryUsage = c.TryGetProperty("memoryUsageFormatted", out var mu) ? mu.GetString() ?? "—" : "—",
+                });
+            }
+        }
+
+        if (ds.TryGetProperty("dockerInfo", out var di))
+        {
+            svc.CpuCores = di.TryGetProperty("nCPU", out var nc) ? nc.GetInt32() : 0;
+            svc.MemoryTotal = di.TryGetProperty("memoryTotal", out var mt) ? mt.GetInt64() : 0;
+            svc.Hostname = di.TryGetProperty("operatingSystem", out var ho) ? ho.GetString() ?? "" : svc.Hostname;
+        }
+    }
+
+    // ─── Formatting Helpers ──────────────────────────────────────────────
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes <= 0) return "0 B";
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        int i = 0;
+        double d = bytes;
+        while (d >= 1024 && i < units.Length - 1) { d /= 1024; i++; }
+        return $"{d:F1} {units[i]}";
+    }
+
+    private static string FormatTimeAgo(DateTime dt)
+    {
+        var span = DateTime.UtcNow - dt;
+        if (span.TotalSeconds < 10) return "just now";
+        if (span.TotalSeconds < 60) return $"{span.Seconds}s ago";
+        if (span.TotalMinutes < 60) return $"{span.Minutes}m ago";
+        if (span.TotalHours < 24) return $"{span.Hours}h ago";
+        return $"{span.Days}d ago";
+    }
+
+    private static string FormatDuration(double seconds)
+    {
+        if (seconds <= 0) return "—";
+        var ts = TimeSpan.FromSeconds(seconds);
+        if (ts.TotalDays >= 1) return $"{ts.Days}d {ts.Hours}h";
+        if (ts.TotalHours >= 1) return $"{ts.Hours}h {ts.Minutes}m";
+        return $"{ts.Minutes}m {ts.Seconds}s";
+    }
+
+    private static string GetDashArray(double percent)
+    {
+        var circumference = 2 * Math.PI * 52;
+        var filled = circumference * Math.Min(percent, 100) / 100;
+        return $"{filled:F1} {circumference:F1}";
+    }
+
+    private static string GetGaugeColor(double percent) => percent switch
+    {
+        >= 90 => "gauge-critical",
+        >= 75 => "gauge-warning",
+        _ => "gauge-ok"
+    };
+
+    private static string GetBarColor(double percent) => percent switch
+    {
+        >= 90 => "bar-critical",
+        >= 75 => "bar-warning",
+        _ => "bar-ok"
+    };
+
+    private static string GetStatusBadge(string status) => status switch
+    {
+        "Online" => "badge-green",
+        "Degraded" => "badge-yellow",
+        "Maintenance" => "badge-blue",
+        _ => "badge-red"
+    };
+
+    private static string GetStatusDotColor(string status) => status switch
+    {
+        "Online" => "dot-green",
+        "Degraded" => "dot-yellow",
+        _ => "dot-red"
+    };
+
+    private static string GetContainerBadge(string state) => state switch
+    {
+        "running" => "badge-green",
+        "paused" => "badge-yellow",
+        "exited" => "badge-red",
+        "restarting" => "badge-blue",
+        _ => "badge-gray"
+    };
+
+    private static string GetActivityLevelClass(string level) => level switch
+    {
+        "ERROR" or "CRITICAL" => "activity-error",
+        "WARNING" => "activity-warning",
+        _ => "activity-info"
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            try { await _hubConnection.InvokeAsync("LeaveDashboard"); } catch { }
+            await _hubConnection.DisposeAsync();
+        }
+    }
+
+    // ─── View Models ─────────────────────────────────────────────────────
+
+    private class ServiceViewModel
+    {
+        public string ServiceName { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Version { get; set; } = "";
+        public string ConnectionId { get; set; } = "";
+        public string Status { get; set; } = "Unknown";
+        public bool IsHealthy { get; set; }
+        public DateTime LastHeartbeat { get; set; } = DateTime.UtcNow;
+        public double LatencyMs { get; set; }
+
+        // Host resources
+        public double CpuPercent { get; set; }
+        public int CpuCores { get; set; }
+        public string CpuModel { get; set; } = "";
+        public double MemoryPercent => MemoryTotal > 0 ? (double)MemoryUsed / MemoryTotal * 100 : 0;
+        public long MemoryTotal { get; set; }
+        public long MemoryUsed { get; set; }
+        public double DiskPercent { get; set; }
+        public long DiskTotal { get; set; }
+        public long DiskUsed { get; set; }
+        public double SwapPercent { get; set; }
+        public long SwapTotal { get; set; }
+        public long SwapUsed { get; set; }
+        public double LoadAvg1 { get; set; }
+        public double LoadAvg5 { get; set; }
+        public double LoadAvg15 { get; set; }
+
+        // System info
+        public string Hostname { get; set; } = "";
+        public string Os { get; set; } = "";
+        public string Kernel { get; set; } = "";
+        public string Uptime { get; set; } = "";
+        public string MachineName { get; set; } = "";
+        public string Platform { get; set; } = "";
+
+        // Docker
+        public double DockerCpuTotal { get; set; }
+        public long DockerMemTotal { get; set; }
+        public List<ContainerViewModel> Containers { get; set; } = new();
+
+        // History
+        public List<HeartbeatEntry> HeartbeatHistory { get; set; } = new();
+        public List<ActivityEntry> Activities { get; set; } = new();
+    }
+
+    private class ContainerViewModel
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Image { get; set; } = "";
+        public string State { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string CpuPercent { get; set; } = "—";
+        public string MemoryUsage { get; set; } = "—";
+    }
+
+    private class HeartbeatEntry
+    {
+        public DateTime Timestamp { get; set; }
+        public bool Healthy { get; set; }
+        public double CpuUsage { get; set; }
+        public double MemoryMb { get; set; }
+        public int ThreadCount { get; set; }
+        public double UptimeSeconds { get; set; }
+    }
+
+    private class ActivityEntry
+    {
+        public DateTime Timestamp { get; set; }
+        public string Level { get; set; } = "INFO";
+        public string Message { get; set; } = "";
+    }
+}
